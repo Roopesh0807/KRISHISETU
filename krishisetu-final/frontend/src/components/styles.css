@@ -1,0 +1,338 @@
+/* Reset styles */
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f5f5f5;
+}
+
+/* Contact Us Section */
+.contact-us-container {
+  text-align: center;
+  margin: 50px auto;
+  padding: 30px;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  max-width: 1000px;
+  width: 90%;
+}
+
+/* About Us Section */
+.about-us-container {
+  padding: 20px;
+  background-color: #f9f9f9;
+  margin-bottom: 40px;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.about-us-heading {
+  font-size: 36px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.about-us-description {
+  font-size: 18px;
+  color: #555;
+  max-width: 800px;
+  margin: 0 auto;
+  line-height: 1.6;
+  text-align: center;
+}
+
+/* Bootstrap Carousel Customization */
+.carousel {
+  margin-top: 20px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  position: relative; /* Required for arrow positioning */
+}
+
+.carousel-item img {
+  height: 70vh; /* Adjust height as needed */
+  object-fit: cover;
+}
+
+.carousel-caption {
+  background-color: rgba(0, 0, 0, 0.5);
+  padding: 20px;
+  border-radius: 10px;
+}
+
+.carousel-caption h5 {
+  font-size: 36px;
+  font-weight: bold;
+  margin-bottom: 15px;
+}
+
+.carousel-caption p {
+  font-size: 18px;
+}
+
+/* Customize Carousel Control Buttons */
+.carousel-control-prev,
+.carousel-control-next {
+  background-color: rgba(0, 0, 0, 0.3); /* Semi-transparent background */
+  width: 50px; /* Rectangle width */
+  height: 100px; /* Rectangle height */
+  top: 50%; /* Center vertically within the slide */
+  transform: translateY(150%); /* Adjust for exact center */
+  transition: background-color 0.3s ease; /* Smooth transition */
+  border: none; /* Remove default border */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute; /* Position relative to the slide */
+}
+
+.carousel-control-prev {
+ 
+  left: 20px; /* Position on the left */
+  border-radius: 0 10px 10px 0; /* Rounded right corners */
+}
+
+.carousel-control-next {
+ 
+  right: 20px; /* Position on the right */
+  border-radius: 10px 0 0 10px; /* Rounded left corners */
+}
+
+.carousel-control-prev:hover,
+.carousel-control-next:hover {
+  background-color: rgba(0, 0, 0, 0.6); /* Darker on hover */
+}
+
+.carousel-control-prev-icon,
+.carousel-control-next-icon {
+  filter: invert(1); /* Make the arrow icons white */
+  width: 24px; /* Adjust icon size */
+  height: 24px; /* Adjust icon size */
+}
+/* Increase Carousel Slide Speed */
+.carousel-item {
+  transition: transform 0.5s ease-in-out;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .carousel-item img {
+    height: 50vh; /* Adjust height for smaller screens */
+  }
+
+  .carousel-caption h5 {
+    font-size: 28px;
+  }
+
+  .carousel-caption p {
+    font-size: 16px;
+  }
+
+  .carousel-control-prev,
+  .carousel-control-next {
+    width: 40px; /* Smaller width for mobile */
+    height: 80px; /* Smaller height for mobile */
+  }
+}
+
+
+/* Hero Image Section */
+.hero-section {
+  position: relative;
+  width: 100%;
+  height: 100vh; /* Full viewport height */
+  overflow: hidden;
+}
+
+.hero-image {
+  width: 100%;
+  height: 100%; /* Full height of the container */
+  object-fit: cover; /* Ensures the image covers the entire area without distortion */
+  object-position: center; /* Centers the image */
+}
+
+.hero-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  text-align: center;
+  background-color: rgba(0, 0, 0, 0.5);
+  padding: 20px;
+  border-radius: 8px;
+}
+
+.hero-text h1 {
+  font-size: 36px;
+  margin-bottom: 15px;
+}
+
+.hero-text p {
+  font-size: 18px;
+}
+
+/* Login Button */
+.login-btn {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 15px 40px;
+  font-size: 18px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.login-btn:hover {
+  background-color: #45a049;
+}
+
+/* Contact Container */
+.contact-container {
+  width: 80%;
+  max-width: 1000px;
+  margin: 40px auto;
+  padding: 20px;
+  background-color: #fff;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+}
+
+.contact-container h2 {
+  text-align: center;
+  font-size: 32px;
+  color: #4CAF50;
+  margin-bottom: 20px;
+}
+
+.contact-container p {
+  text-align: center;
+  font-size: 18px;
+  color: #555;
+  margin: 10px 0;
+}
+
+/* Form Styling */
+.contact-form {
+  display: grid;
+  gap: 15px;
+  grid-template-columns: 1fr;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.contact-form .form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.contact-form label {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: #333;
+}
+
+.contact-form input,
+.contact-form textarea {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 16px;
+}
+
+.contact-form input:focus,
+.contact-form textarea:focus {
+  outline: none;
+  border-color: #4CAF50;
+}
+
+.contact-form button {
+  background-color: #4CAF50;
+  color: white;
+  padding: 12px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 18px;
+  transition: background-color 0.3s ease;
+}
+
+.contact-form button:hover {
+  background-color: #45a049;
+}
+
+/* Social Icons Section */
+.social-icons {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.social-icons p {
+  font-size: 20px;
+  color: #4CAF50;
+  margin-bottom: 10px;
+}
+
+.social-icons .icon {
+  font-size: 24px;
+  margin: 0 10px;
+  color: #333;
+  transition: color 0.3s ease;
+}
+
+.social-icons .icon:hover {
+  color: #4CAF50; /* Change color on hover */
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .contact-container {
+    width: 90%;
+    padding: 15px;
+  }
+
+  .contact-form input,
+  .contact-form textarea {
+    font-size: 14px;
+  }
+
+  .contact-form button {
+    font-size: 16px;
+  }
+
+  .social-icons .icon {
+    font-size: 20px;
+  }
+
+
+  .hero-text h1 {
+    font-size: 28px;
+  }
+
+  .hero-text p {
+    font-size: 16px;
+  }
+
+  .about-us-heading {
+    font-size: 28px;
+  }
+
+  .about-us-description {
+    font-size: 16px;
+  }
+
+  .chatbot-container {
+    width: 250px;
+    height: 350px;
+  }
+}

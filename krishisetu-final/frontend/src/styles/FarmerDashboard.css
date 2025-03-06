@@ -1,0 +1,142 @@
+/* Dashboard Container */
+.dashboard-container {
+  display: flex;
+  flex-direction: column;
+  font-family: Arial, sans-serif;
+  background-color: #f8f9fa;
+  min-height: 100vh;
+  padding: 20px;
+  margin-left: 80px; /* Default margin for closed sidebar */
+  transition: margin-left 0.3s ease; /* Smooth transition */
+}
+
+/* Adjust margin when sidebar is open */
+.sidebar.open ~ .main-content .dashboard-container {
+  margin-left: 250px; /* Margin for open sidebar */
+}
+
+/* Main Dashboard Content */
+.main-dashboard {
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+}
+
+/* Welcome Message */
+.dashboard-content h2 {
+  color: #333;
+  margin-bottom: 20px;
+}
+
+/* Weather Forecast Section */
+.weather-forecast {
+  margin-bottom: 30px;
+}
+
+.weather-forecast h3 {
+  color: #333;
+  margin-bottom: 15px;
+}
+
+.forecast-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.forecast-card {
+  background-color:skyblue;
+  background-size: cover; /* Ensure the image covers the entire card */
+  background-position: center; /* Center the image */
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  text-align: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  color: #333; /* Ensure text is visible on the background */
+}
+
+.forecast-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+.forecast-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+.weather-header {
+  margin-bottom: 15px;
+}
+
+.weather-icon {
+  font-size: 40px;
+  margin-bottom: 10px;
+}
+
+.weather-header h4 {
+  margin: 5px 0;
+  color: #333;
+}
+
+.weather-header p {
+  margin: 0;
+  color: #333;
+}
+
+.weather-details p {
+  margin: 5px 0;
+  color: #333;
+}
+
+/* Sales & Profit Chart */
+.chart-box {
+  margin-bottom: 30px;
+}
+
+.chart-box h3 {
+  color: #333;
+  margin-bottom: 15px;
+}
+
+.chart-wrapper {
+  height: 300px;
+}
+
+/* Price Comparison Table */
+.price-comparison {
+  margin-bottom: 30px;
+}
+
+.price-comparison h3 {
+  color: #333;
+  margin-bottom: 15px;
+}
+
+.price-comparison table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.price-comparison th,
+.price-comparison td {
+  padding: 12px;
+  text-align: left;
+  border: 1px solid #ddd;
+}
+
+.price-comparison th {
+  background: #007bff;
+  color: white;
+}
+
+.price-comparison tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.price-comparison tr:hover {
+  background-color: #f1f1f1;
+}
+

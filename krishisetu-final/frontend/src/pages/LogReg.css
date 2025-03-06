@@ -1,0 +1,126 @@
+/* Background Image for Login Container */
+.log-container {
+    background: url('../assets/LoginBg.jpg') no-repeat center center/cover;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .popup-content {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+  
+  .popup-content p {
+    font-size: 18px;
+    margin-bottom: 10px;
+  }
+  
+  .popup-content button {
+    padding: 8px 16px;
+    border: none;
+    background-color: #28a745;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 5px;
+  }
+  
+  .popup-content button:hover {
+    background-color: #218838;
+  }
+  
+/* Auth Card Styles */
+.auth-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+
+.auth-card {
+    background: rgba(255, 255, 255, 0.9);
+    padding: 30px 40px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    min-width: 400px;
+    max-width: 500px;
+    text-align: center;
+}
+
+.auth-card h2 {
+    margin-bottom: 20px;
+    color: green;
+}
+
+/* Form Styles */
+.form-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 50px;  /* Increased gap between input fields */
+    margin-bottom: 25px; /* Space between rows */
+}
+
+.form-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: green;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+/* Button Styles */
+.auth-button {
+    width: 100%;
+    padding: 12px;
+    background-color: green;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-top: 25px; /* Added gap above button */
+}
+
+.auth-button:hover {
+    background-color: darkgreen;
+}
+
+.link-button {
+    background: none;
+    border: none;
+    color: green;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.link-button:hover {
+    text-decoration: underline;
+}

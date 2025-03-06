@@ -1,0 +1,119 @@
+.order-review {
+  padding: 30px;
+  margin-top: 70px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  margin-left: 100px; /* Default margin for closed sidebar */
+  transition: margin-left 0.3s ease; /* Smooth transition */
+}
+
+/* Adjust margin when sidebar is open */
+.sidebar.open ~ .main-content .order-review {
+  margin-left: 280px; /* Margin for open sidebar */
+}
+
+.order-review h2 {
+  text-align: center;
+  color: #2c3e50;
+  font-size: 28px;
+  margin-bottom: 25px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  background-color: #ffffff;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+table th,
+table td {
+  padding: 15px;
+  text-align: center;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+table th {
+  background-color: #4caf50;
+  color: white;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+table tr:nth-child(even) {
+  background-color: #f8f9fa;
+}
+
+table tr:hover {
+  background-color: #f1f1f1;
+  transform: scale(1.02);
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+table tr:last-child td {
+  border-bottom: none;
+}
+
+.fulfilled {
+  color: #28a745;
+  font-weight: bold;
+  background-color: #e8f5e9;
+  padding: 5px 10px;
+  border-radius: 20px;
+  display: inline-block;
+}
+
+.unfulfilled {
+  color: #dc3545;
+  font-weight: bold;
+  background-color: #f8d7da;
+  padding: 5px 10px;
+  border-radius: 20px;
+  display: inline-block;
+}
+
+/* Add a subtle animation to table rows */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+table tr {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .order-review {
+    margin-left: 0;
+    padding: 15px;
+  }
+
+  .sidebar.open ~ .main-content .order-review {
+    margin-left: 0;
+  }
+
+  table th,
+  table td {
+    padding: 10px;
+    font-size: 14px;
+  }
+
+  .order-review h2 {
+    font-size: 24px;
+  }
+}

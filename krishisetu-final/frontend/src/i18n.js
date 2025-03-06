@@ -1,0 +1,115 @@
+import i18n from "i18next";
+import { initReactI18next } from "react-i18next";
+
+const resources = {
+  en: {
+    translation: {
+      "dashboard": "Dashboard",
+      "welcome": "Welcome, Farmer",
+      "weather forecast": "Weather Forecast",
+      "sales profit overview": "Sales Profit Overview",
+      "price comparison": "Price Comparison",
+      "temperature": "Temperature",
+      "humidity": "Humidity",
+      "wind speed": "Wind Speed",
+      "condition": "Condition",
+      "loading weather": "Loading weather data...",
+      "weather error": "Error fetching weather data",
+      "product": "Product",
+      "market price": "Market Price",
+      "krishisetu price": "KrishiSetu Price",
+      "profit per kg": "Profit per kg",
+      "total sales": "Total Sales",
+      "total profit": "Total Profit",
+      "change language": "Change Language",
+      "language selected": "Selected Language",
+      "english": "English",
+      "hindi": "Hindi",
+      "kannada": "Kannada",
+      "sunday": "Sunday",
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday"
+    },
+  },
+  hi: {
+    translation: {
+      "dashboard": "डैशबोर्ड",
+      "welcome": "स्वागत है, किसान",
+      "weather forecast": "मौसम पूर्वानुमान",
+      "sales profit overview": "बिक्री लाभ अवलोकन",
+      "price comparison": "मूल्य तुलना",
+      "temperature": "तापमान",
+      "humidity": "आर्द्रता",
+      "wind speed": "हवा की गति",
+      "condition": "मौसम की स्थिति",
+      "loading weather": "मौसम डेटा लोड हो रहा है...",
+      "weather error": "मौसम डेटा लाने में त्रुटि",
+      "product": "उत्पाद",
+      "market price": "बाजार मूल्य",
+      "krishisetu price": "कृषिसेतु मूल्य",
+      "profit per kg": "प्रति किलो लाभ",
+      "total sales": "कुल बिक्री",
+      "total profit": "कुल लाभ",
+      "change language": "भाषा बदलें",
+      "language selected": "चयनित भाषा",
+      "english": "अंग्रेज़ी",
+      "hindi": "हिंदी",
+      "kannada": "कन्नड़",
+      "Sunday": "रविवार",
+      "Monday": "सोमवार",
+      "Tuesday": "मंगलवार",
+      "Wednesday": "बुधवार",
+      "Thursday": "गुरुवार",
+      "Friday": "शुक्रवार",
+      "Saturday": "शनिवार"
+    },
+  },
+  kn: {
+    translation: {
+      "dashboard": "ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
+      "welcome": "ಸ್ವಾಗತ, ರೈತ",
+      "weather forecast": "ಹವಾಮಾನ ಮುನ್ಸೂಚನೆ",
+      "sales profit overview": "ಮಾರಾಟ ಲಾಭ ಅವಲೋಕನ",
+      "price comparison": "ಬೆಲೆ ಹೋಲಿಕೆ",
+      "temperature": "ತಾಪಮಾನ",
+      "humidity": "ತೇವಾಂಶ",
+      "wind speed": "ಗಾಳಿ ವೇಗ",
+      "condition": "ಹವಾಮಾನ ಸ್ಥಿತಿ",
+      "loading weather": "ಹವಾಮಾನ ಡೇಟಾ ಲೋಡ್ ಆಗುತ್ತಿದೆ...",
+      "weather error": "ಹವಾಮಾನ ಡೇಟಾ ತರಲು ದೋಷ ಉಂಟಾಗಿದೆ",
+      "product": "ಉತ್ಪನ್ನ",
+      "market price": "ಮಾರುಕಟ್ಟೆ ಬೆಲೆ",
+      "krishisetu price": "ಕೃಷಿಸೇತು ಬೆಲೆ",
+      "profit per kg": "ಪ್ರತಿ ಕೆ.ಜಿ ಲಾಭ",
+      "total sales": "ಒಟ್ಟು ಮಾರಾಟ",
+      "total profit": "ಒಟ್ಟು ಲಾಭ",
+      "change language": "ಭಾಷೆ ಬದಲಾಯಿಸಿ",
+      "language selected": "ಆಯ್ಕೆ ಮಾಡಲಾದ ಭಾಷೆ",
+      "english": "ಇಂಗ್ಲಿಷ್",
+      "hindi": "ಹಿಂದಿ",
+      "kannada": "ಕನ್ನಡ",
+      "sunday": "ಭಾನುವಾರ",
+      "monday": "ಸೋಮವಾರ",
+      "tuesday": "ಮಂಗಳವಾರ",
+      "wednesday": "ಬುಧವಾರ",
+      "thursday": "ಗುರುವಾರ",
+      "friday": "ಶುಕ್ರವಾರ",
+      "saturday": "ಶನಿವಾರ"
+    },
+  },
+};
+
+i18n.use(initReactI18next).init({
+  resources,
+  lng: "en", // Default language
+  fallbackLng: "en", // Fallback to English if translation is missing
+  interpolation: {
+    escapeValue: false,
+  },
+});
+
+export default i18n;

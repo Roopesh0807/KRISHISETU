@@ -1,0 +1,84 @@
+/* Container for the background and login content */
+.login-cont {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;  /* Center content horizontally */
+}
+
+/* Background image */
+.login-cont img {
+  width: 100%;
+  height: 80%;
+  object-fit: cover;  /* Cover the container */
+}
+
+/* Container for the login options */
+.log-cont {
+  position: absolute;
+  width: 50%;
+  height: auto;
+  background-color: white;
+  margin-top: 150px;  /* Move container further down */
+  padding: 2rem;
+  border-radius: 20px;
+  opacity: 0.8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;  /* Center the inner content */
+  justify-content: center;
+}
+
+/* Styling for the title */
+.login-title {
+  font-size: 24px;
+  color: #000;
+  background: #967ef4;
+  display: inline-block;
+  padding: 10px 20px;
+  border-radius: 8px;
+  margin-bottom: 50px;  /* Space between title and options */
+}
+
+/* Center the login options container */
+.login-options {
+  display: flex;
+  justify-content: center;  /* Center the items */
+  gap: 50px;
+}
+
+/* Style for each login card */
+.login-card {
+  background: #f0f0f0;
+  border-radius: 0%;
+  width: 250px;  /* Increase size */
+  height: 250px;  /* Increase size */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition: transform 0.3s;
+}
+
+/* Hover effect for the cards */
+.login-card:hover {
+  transform: scale(1.1);
+}
+
+/* Styling for images inside the cards */
+.login-card img {
+  width: 200px;  /* Increase image size */
+  height: 200px;  /* Increase image size */
+  object-fit: cover;
+  border-radius: 50%;  /* Make the image circular */
+  margin-bottom: 10px;
+}
+
+/* Styling for the text below images */
+.login-card p {
+  color: #000;
+  font-weight: bold;
+}

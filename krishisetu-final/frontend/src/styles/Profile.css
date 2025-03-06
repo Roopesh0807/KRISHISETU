@@ -1,0 +1,267 @@
+/* General Profile Page Styles */
+.profile-page {
+  font-family: Arial, sans-serif;
+  padding: 20px;
+  max-width: 900px;
+  margin: 0 auto;
+  background-color: #f8f8f8;
+  border-radius: 8px;
+}
+
+.profile-content {
+  padding: 20px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+h2, h3 {
+  color: #2a4d56;
+}
+
+h2 {
+  text-align: center;
+  font-size: 28px;
+  margin-bottom: 20px;
+}
+
+h3 {
+  font-size: 24px;
+  margin-bottom: 15px;
+}
+
+/* Profile Picture Section */
+.profile-pic-container {
+  text-align: center;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.profile-img {
+  width: 150px;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.no-photo-message {
+  font-size: 16px;
+  color: #999;
+}
+
+.photo-options-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px; /* Space between buttons */
+  margin-top: 10px;
+}
+
+.upload-btn, .remove-btn, .change-btn {
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  min-width: 150px; /* Equal width for buttons */
+  min-height: 40px; /* Equal height for buttons */
+}
+
+.upload-btn:hover, .remove-btn:hover, .change-btn:hover {
+  background-color: #45a049;
+}
+
+.upload-btn:focus, .remove-btn:focus, .change-btn:focus {
+  outline: none;
+  box-shadow: 0 0 5px rgba(0, 128, 0, 0.8);
+}
+
+.change-btn {
+  margin-left: 20px;
+  background-color: green; /* Different color for Change Photo */
+}
+
+.change-btn:hover {
+  background-color: #e68900; /* Slightly darker color on hover */
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.tabs button {
+  padding: 10px 20px;
+  background-color: #e1f7d5;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+  flex: 1; /* Equal width for all tabs */
+  max-width: 200px; /* Limit maximum width */
+}
+
+.tabs button:hover {
+  background-color: #c6f6a1;
+}
+
+.tabs button.active {
+  background-color: #4caf50;
+  color: white;
+}
+
+/* Details Section */
+.details-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.details-box {
+  padding: 20px;
+  background-color: #f4f4f4;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.3s ease;
+}
+
+.details-box p {
+  font-size: 16px;
+  color: #333;
+  line-height: 1.5;
+  margin: 5px 0;
+}
+
+/* Form Styles */
+.personal-details-form, .farm-details-form {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.details-box label {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 6px;
+  color: #333;
+}
+
+.details-box input, .details-box textarea, .details-box select {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 12px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  transition: border 0.3s ease;
+  font-size: 14px;
+}
+
+.details-box input:focus, .details-box select:focus, .details-box textarea:focus {
+  border-color: #4caf50;
+}
+
+.details-box textarea {
+  height: 100px;
+  resize: vertical;
+}
+
+.error {
+  color: red;
+  font-size: 14px;
+  margin-top: 5px;
+}
+
+/* Save Button */
+.save-btn {
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  margin-top: 20px;
+  align-self: flex-start;
+}
+
+.save-btn:hover {
+  background-color: #45a049;
+  transform: translateY(-2px);
+}
+
+.save-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.personal-details-form, .farm-details-form, .details-box {
+  animation: fadeIn 1s ease-out;
+}
+
+.details-box {
+  opacity: 0;
+  animation: fadeIn 0.8s ease-out forwards;
+}
+
+/* File Input */
+.details-box input[type="file"] {
+  display: none;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .profile-page {
+    padding: 10px;
+  }
+
+  .profile-content {
+    padding: 15px;
+  }
+
+  .photo-options-container {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .upload-btn, .remove-btn, .change-btn {
+    width: 100%;
+    max-width: 200px;
+  }
+
+  .tabs {
+    flex-direction: column;
+  }
+
+  .tabs button {
+    width: 100%;
+    max-width: none;
+  }
+
+  .details-box {
+    padding: 15px;
+  }
+
+  .save-btn {
+    width: 100%;
+  }
+}

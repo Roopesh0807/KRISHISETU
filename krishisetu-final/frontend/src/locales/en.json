@@ -1,0 +1,27 @@
+
+  {
+    "welcome": "Welcome",
+    "farmer": "Farmer",
+    "language_selected": "Selected Language",
+    "dashboard": "Dashboard",
+    "profile": "Profile",
+    "order_review": "Order Review",
+    "bargain_market": "Bargain Market",
+    "community": "Community",
+    "help_support": "Help & Support",
+    "logout": "Logout",
+    "total_sales": "Total Sales",
+    "total_profit": "Total Profit",
+    "weather_update": "Weather Update",
+    "temperature": "Temperature",
+    "humidity": "Humidity",
+    "rainfall": "Rainfall",
+    "products": "Products",
+    "add_product": "Add Product",
+    "your_products": "Your Products",
+    "price": "Price",
+    "quantity": "Quantity",
+    "category": "Category",
+    "edit": "Edit",
+    "delete": "Delete"
+}
