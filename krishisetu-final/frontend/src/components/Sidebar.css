@@ -1,0 +1,194 @@
+.sidebar {
+  width: 250px;
+  background-color: green !important;
+  height: calc(100vh - 100px); /* Adjust height to account for navbar */
+  overflow-y: auto;
+  padding-top: 20px;
+  display: flex;
+  position: fixed; /* Fix sidebar to the left */
+  left: 0;
+  top: 70px; /* Start below the navbar */
+  transition: width 0.3s ease, transform 0.3s ease;
+  z-index: 1000; /* Lower than navbar */
+}
+/* Sidebar when closed */
+.sidebar.closed {
+  width: 60px; /* Smaller width when closed */
+}
+
+/* Vertical Bars */
+.vertical-bar {
+  width: 10px; /* Increased width for better visibility */
+  height: 50px; /* Height of the vertical bars */
+  background-color: #ff5722; /* Distinct orange color */
+  cursor: pointer; /* Indicates clickable area */
+  transition: background-color 0.3s ease, width 0.3s ease;
+  position: fixed;
+  top: 50%; /* Center vertically */
+  transform: translateY(-50%); /* Center vertically */
+  z-index: 1001; /* Ensure bars are above other elements */
+  border-radius: 5px; /* Rounded corners */
+}
+
+.vertical-bar:hover {
+  background-color: #e64a19; /* Darker orange on hover */
+  width: 12px; /* Slightly wider on hover */
+}
+
+.left-bar {
+  left: 0; /* Position left bar */
+}
+
+.right-bar {
+  right: 0; /* Position right bar */
+}
+
+/* Tooltip for vertical bars */
+.vertical-bar::after {
+  content: attr(title);
+  position: absolute;
+  left: 15px; /* Position tooltip to the right of the bar */
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: #333;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 14px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+  z-index: 1002; /* Ensure tooltip is above other elements */
+}
+
+.vertical-bar:hover::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Sidebar Content */
+.sidebar-content {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Sidebar Header */
+.sidebar-header {
+  width: 100%;
+  display: flex;
+  justify-content:center;
+  align-items: center;
+  padding: 0 10px;
+  margin-bottom: 20px;
+}
+
+/* Sidebar Heading */
+.sidebar h2 {
+  font-size: 20px;
+  font-weight: bold;
+  color: white; /* Adjusted text color for better contrast */
+  margin: 0;
+}
+
+/* Sidebar Buttons (Full-width Navigation) */
+.sidebar button {
+  width: 90%; /* Almost full width */
+  background-color: #34495e; /* Keeping button background separate */
+  color: white;
+  border: none;
+  padding: 12px 15px;
+  margin: 13px 0;
+  font-size: 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.2s ease;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 10px; /* Space between icon and text */
+}
+.sidebar.closed{
+  min-width:100px;
+}
+/* Sidebar Buttons when closed */
+.sidebar.closed button {
+  width: 40px; /* Smaller width when closed */
+  height: 40px; /* Smaller height when closed */
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 20px; /* Larger icons */
+  text-align: center;
+  position: relative; /* For tooltip */
+}
+
+/* Tooltip for closed sidebar buttons */
+.sidebar.closed button::after {
+  content: attr(title);
+  position: absolute;
+  left: center; /* Position tooltip to the right */
+  top: 120%;
+  transform: translateY(-50%);
+  background-color: #333;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 14px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+  z-index: 1001; /* Ensure tooltip is above other elements */
+}
+
+.sidebar.closed button:hover::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Hover and Active Effects */
+.sidebar button:hover {
+  background-color: #1abc9c;
+  transform: scale(1.05);
+}
+
+.sidebar button:active {
+  background-color: #16a085;
+  transform: scale(1);
+}
+.community-overlay {
+  position: fixed; 
+  top: 50%; 
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80%;
+  height: 80%;
+  background: rgba(0, 0, 0, 0.8); /* Dark overlay background */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000; /* Bring to front */
+}
+
+.community-iframe {
+  width: 90%;
+  height: 90%;
+  border: none;
+  background: white;
+}
+
+.close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: red;
+  color: white;
+  border: none;
+  padding: 10px;
+  cursor: pointer;
+  font-size: 16px;
+}

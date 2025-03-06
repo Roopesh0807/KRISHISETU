@@ -1,0 +1,10 @@
+.main-content {
+    margin-left: 60px; /* Default margin for closed sidebar */
+    margin-top: 70px; /* Adjust based on navbar height */
+    transition: margin-left 0.3s ease; /* Smooth transition */
+  }
+  
+  /* Adjust margin when sidebar is open */
+  .sidebar.open ~ .main-content {
+    margin-left: 250px; /* Margin for open sidebar */
+  }

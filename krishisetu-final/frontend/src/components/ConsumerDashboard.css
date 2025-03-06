@@ -1,0 +1,426 @@
+
+ /* Full-screen layout */
+.market-bargaining-container {
+  display: flex;
+  margin-top: 60px;
+  width: 96vw; /* Full screen width */
+  height: 100vh; /* Full screen height */
+  padding: 20px;
+  gap: 20px;
+}
+ /* Market section takes 75% */
+.market-section {
+  width:65%;/* 75% width */
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 15px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  overflow-y: auto; /* Scroll if content is too long */
+}
+
+  
+  .market-section h2 {
+    text-align: center;
+    color: green;
+  }
+  
+  /* Search Input */
+  .market-section input {
+    width: 95%;
+    border: 2px solid #4CAF50;
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    font-size: 16px;
+  }
+  
+  /* Filters */
+  .filters {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+  }
+  
+  .filters select {
+    width: 48%;
+    padding: 10px;
+    border: 2px solid #4CAF50;
+    border-radius: 8px;
+    font-size: 16px;
+  }
+  
+  /* Products Grid - 3 Products Per Row */
+.products-container {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(200px, 1fr)); /* 3 products in a row */
+  gap: 20px;
+  width: 100%;
+}
+  /* Product Card */
+.product-card {
+  position: relative;
+  padding: 10px;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+  
+  .product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+  }
+  
+  /* Product Image */
+.product-image {
+  min-width:250px;
+  width: 100%;
+  min-height: 200px;
+  object-fit: cover;
+  border-radius: 5px;
+}
+  
+  .product-image:hover {
+    transform: scale(1.05);
+  }
+  
+  /* Reflection Effect */
+  .product-image::after {
+    content: "";
+    display: block;
+    width: 100px;
+    height: 100px;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.5), transparent);
+    transform: scaleY(-1);
+  }
+  
+ /* Organic Badge */
+.organic-badge {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 50px; /* Adjust badge size */
+  height: 50px;
+  z-index: 2;
+}
+ /* Bargaining section takes 25% */
+.bargaining-section {
+  width:35%;
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 15px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  overflow-y: auto;
+}
+
+  .bargaining-section h2 {
+    text-align: center;
+    color: green;
+  }
+  .farmer-buttons {
+    display: flex;
+    gap: 10px;
+  }
+  
+  .farmer-button {
+    padding: 10px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .farmer-button:hover {
+    background-color: #45a049;
+  }
+  
+  /* Farmers Grid - 1 Farmer Per Row */
+.farmers-container {
+
+  display: grid;
+  grid-template-columns: 1fr; /* 1 farmer profile per row */
+  gap: 15px;
+  width: 100%;
+}
+  
+  /* Farmer Profile Cards */
+  .farmer-profile-card {
+    background: #ffffff;
+    padding: 15px;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
+  }
+  
+  .farmer-profile-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+  }
+  
+  /* Farmer Image */
+  .farmer-image {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* View Farmer Button */
+  .farmer-profile-card button {
+    background-color: #27ae60;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 5px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+  
+  .farmer-profile-card button:hover {
+    background-color: #219150;
+  }
+  .product-button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    border: none;
+    border-radius: 5px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.3s ease, transform 0.2s ease;
+  }
+  
+  .product-button:nth-child(1) {
+    background-color: #28a745;
+    color: white;
+  }
+  
+  .product-button:nth-child(2) {
+    background-color: #007bff;
+    color: white;
+  }
+  
+  .product-button:nth-child(3) {
+    background-color: #ffc107;
+    color: black;
+  }
+  
+  .product-button:hover {
+    transform: scale(1.05);
+    opacity: 0.9;
+  }
+  
+  .product-button:active {
+    transform: scale(0.95);
+  }
+ /* Farmer Profile Cards */
+.farmer-profile-card {
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 15px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.farmer-profile-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Farmer Info Section (Image + Details) */
+.farmer-info {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+/* Farmer Image */
+.farmer-image {
+  width: 120px; /* Increased image size */
+  height: 120px; /* Increased image size */
+  border-radius: 10%;
+  object-fit: cover;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Farmer Details */
+.farmer-details {
+  flex: 1;
+  text-align: left;
+}
+
+.farmer-details p {
+  margin: 8px 0;
+  font-size: 16px;
+  color: #333;
+}
+
+/* Produce Table */
+.produce-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  background-color: #f9f9f9; /* Light background for the table */
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.produce-table th,
+.produce-table td {
+  padding: 12px;
+  text-align: center;
+  border: 1px solid #ddd;
+}
+
+.produce-table th {
+  background-color: #4CAF50; /* Green header */
+  color: white;
+  font-weight: bold;
+}
+
+.produce-table td {
+  background-color: #ffffff;
+}
+
+/* Farmer Buttons */
+.farmer-buttons {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.farmer-button {
+  padding: 12px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  border-radius: 8px;
+  font-size: 16px;
+  flex: 1;
+}
+
+.farmer-button:hover {
+  background-color: #45a049;
+}
+
+.farmer-button:nth-child(1) {
+  background-color: #27ae60; /* Green for View Farmer */
+}
+
+.farmer-button:nth-child(2) {
+  background-color: #007bff; /* Blue for Bargain Now */
+}
+/* Search Bar */
+.bargaining-section input[type="text"] {
+  width: 90%;
+  padding: 12px;
+  border: 2px solid #4CAF50;
+  border-radius: 8px;
+  font-size: 16px;
+  outline: none;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  margin-bottom: 15px;
+}
+
+.bargaining-section input[type="text"]:focus {
+  border-color: #45a049;
+  box-shadow: 0 0 8px rgba(72, 207, 173, 0.5);
+}
+
+/* Filters Container */
+.bargaining-section .filters {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 15px;
+  gap:30px;
+}
+
+/* Sort Dropdown */
+.bargaining-section .filters select {
+  padding: 12px;
+ 
+  border: 2px solid #4CAF50;
+  border-radius: 8px;
+  font-size: 16px;
+  background-color: white;
+  color: #333;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  appearance: none; /* Remove default arrow */
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%234CAF50%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 12px;
+  padding-right: 35px; /* Space for the arrow */
+}
+
+.bargaining-section .filters select:hover {
+  border-color: #45a049;
+}
+
+.bargaining-section .filters select:focus {
+  border-color: #45a049;
+  box-shadow: 0 0 8px rgba(72, 207, 173, 0.5);
+}
+/* Style for the select dropdown */
+select {
+  padding: 8px 12px; /* Padding for better spacing */
+  border: 1px solid #ccc; /* Light gray border */
+  border-radius: 5px; /* Rounded corners */
+  background-color: #fff; /* White background */
+  font-size: 14px; /* Font size */
+  color: #333; /* Text color */
+  cursor: pointer; /* Pointer cursor on hover */
+  transition: all 0.3s ease; /* Smooth transition for hover effects */
+  appearance: none; /* Remove default arrow (for cross-browser compatibility) */
+  -webkit-appearance: none; /* Remove default arrow for Safari */
+  -moz-appearance: none; /* Remove default arrow for Firefox */
+}
+
+/* Add a custom arrow for the dropdown */
+select {
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23333%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center; /* Position the arrow */
+  background-size: 12px; /* Size of the arrow */
+  padding-right: 30px; /* Add space for the arrow */
+}
+
+/* Hover effect */
+select:hover {
+  border-color: #4CAF50; /* Green border on hover */
+}
+
+/* Focus effect */
+select:focus {
+  outline: none; /* Remove default outline */
+  border-color: #4CAF50; /* Green border on focus */
+  box-shadow: 0 0 5px rgba(72, 207, 173, 0.5); /* Add a subtle shadow */
+}
+
+/* Style for dropdown options */
+select option {
+  padding: 8px 12px; /* Padding for options */
+  background-color: #fff; /* White background */
+  color: #333; /* Text color */
+}
+
+/* Style for dropdown options on hover */
+select option:hover {
+  background-color: #f0f0f0; /* Light gray background on hover */
+}
