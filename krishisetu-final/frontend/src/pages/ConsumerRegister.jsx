@@ -21,32 +21,30 @@ const ConsumerRegister = () => {
     e.preventDefault();
 
     if (formData.password !== formData.confirm_password) {
-        alert("❌ Passwords do not match.");
-        return;
+      alert("❌ Passwords do not match.");
+      return;
     }
 
     try {
       const response = await fetch("http://localhost:5000/api/consumerregister", {
-        method: "POST",  // ✅ Ensure this is POST
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
-    });
-    
-        const data = await response.json();
-        console.log("Server Response:", data); // ✅ Debugging
+      });
 
-        if (data.success) {
-            alert(`✅ Registration successful! Your Consumer ID: ${data.consumer_id}`);
-            navigate("/consumer-login");
-        } else {
-            alert(`⚠️ ${data.message || "User already exists!"}`);
-        }
+      const data = await response.json();
+      console.log("Server Response:", data);
+
+      if (data.success) {
+        alert(`✅ Registration successful! Your Consumer ID: ${data.consumer_id}`);
+        navigate("/consumer-login");
+      } else {
+        alert(`⚠️ ${data.message || "User already exists!"}`);
+      }
     } catch (error) {
-        console.error("Error Fetching Data:", error); // 🔍 Debugging
-        alert("❌ Error connecting to server.");
+      alert("❌ Error connecting to server.");
     }
-};
-
+  };
 
   return (
     <div className="log-container">
@@ -89,6 +87,7 @@ const ConsumerRegister = () => {
 
             <button type="submit" className="auth-button">Register</button>
           </form>
+          <p></p>
           <p>
             Already have an account?{" "}
             <button onClick={() => navigate("/consumer-login")} className="link-button">

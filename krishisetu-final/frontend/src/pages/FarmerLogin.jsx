@@ -26,13 +26,13 @@ const FarmerLogin = () => {
       const data = await response.json();
 
       if (data.success) {
-        window.alert("✅Login Successful! Redirecting to dashboard...");
-        setTimeout(() => navigate("/farmer-dashboard"), 1000); // Short delay for UX
+        alert("✅ Login Successful! Redirecting to dashboard...");
+        setTimeout(() => navigate("/farmer-dashboard"), 1000);
       } else {
-        window.alert(`Login Failed: ${data.message}`);
+        alert(`⚠️ Login Failed: ${data.message}`);
       }
     } catch (error) {
-      window.alert("Error connecting to server. Please try again later.");
+      alert("❌ Error connecting to server. Please try again later.");
     }
   };
 
@@ -42,35 +42,32 @@ const FarmerLogin = () => {
         <div className="auth-card">
           <h2>FARMER LOGIN</h2>
           <form onSubmit={handleSubmit}>
-            <div className="form-row">
-              <div className="form-group">
-                <label>Email or Phone:</label>
-                <input
-                  type="text"
-                  name="emailOrPhone"
-                  placeholder="Enter email or phone"
-                  onChange={handleChange}
-                  required
-                />
-              </div>
+            <div className="form-group">
+              <label>Email or Phone:</label>
+              <input
+                type="text"
+                name="emailOrPhone"
+                placeholder="Enter email or phone"
+                onChange={handleChange}
+                required
+              />
             </div>
 
-            <div className="form-row">
-              <div className="form-group">
-                <label>Password:</label>
-                <input
-                  type="password"
-                  name="password"
-                  placeholder="Enter password"
-                  onChange={handleChange}
-                  required
-                />
-              </div>
+            <div className="form-group">
+              <label>Password:</label>
+              <input
+                type="password"
+                name="password"
+                placeholder="Enter password"
+                onChange={handleChange}
+                required
+              />
             </div>
-
             <button type="submit" className="auth-button">Login</button>
           </form>
           <p>
+            </p>
+            <p>
             Don't have an account?{" "}
             <button onClick={() => navigate("/farmer-register")} className="link-button">
               Register here

@@ -1,7 +1,7 @@
 const mysql = require("mysql2");
 const { Sequelize } = require("sequelize");
 
-// Create MySQL connection pool
+// MySQL Connection Pool Configuration
 const pool = mysql.createPool({
   host: "localhost",
   user: "root",
@@ -16,27 +16,33 @@ const pool = mysql.createPool({
 const queryDatabase = (sql, values) => {
   return new Promise((resolve, reject) => {
     pool.query(sql, values, (err, results) => {
-      if (err) reject(err);
-      else resolve(results);
+      if (err) {
+        console.error("❌ Query Execution Failed:", err);
+        reject(err);
+      } else {
+        resolve(results);
+      }
     });
   });
 };
 
-
-const sequelize = new Sequelize('krishisetur', 'root', '', {
-    host: 'localhost',
-    dialect: 'mysql',
-    logging: false // Set to true if you want query logs
+// Sequelize Configuration
+const sequelize = new Sequelize("krishisetur", "root", "", {
+  host: "localhost",
+  dialect: "mysql",
+  logging: false, // Set to true if you want query logs
 });
 
-sequelize.authenticate()
-    .then(() => console.log('✅ MySQL Database connected'))
-    .catch(err => console.error('❌ Database connection error:', err));
-// Connect to the database
-// ✅ Connect MySQL pool (for raw queries)
+// Test Sequelize Connection
+sequelize
+  .authenticate()
+  .then(() => console.log("✅ MySQL Database connected via Sequelize"))
+  .catch((err) => console.error("❌ Sequelize Database connection error:", err));
+
+// Connect to MySQL Pool
 pool.getConnection((err, connection) => {
   if (err) {
-    console.error("❌ MySQL Connection Failed:", err);
+    console.error("❌ MySQL Connection Pool Failed:", err);
     return;
   }
   console.log("✅ MySQL Connection Pool Established");
@@ -48,6 +54,7 @@ pool.getConnection((err, connection) => {
       id INT AUTO_INCREMENT PRIMARY KEY,
       name VARCHAR(255) NOT NULL,
       email VARCHAR(255) NOT NULL,
+      phone VARCHAR(15) NOT NULL,
       message TEXT NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`,
@@ -123,14 +130,11 @@ pool.getConnection((err, connection) => {
     )`
   ];
 
+  // Execute table creation queries
   createTables.forEach((query) => {
-    connection.query(query, (err) => {
-      if (err) {
-        console.error("❌ Table Creation Failed:", err);
-      } else {
-        console.log("✅ Table is Ready");
-      }
-    });
+    queryDatabase(query)
+      .then(() => console.log("✅ Table is Ready"))
+      .catch((err) => console.error("❌ Table Creation Failed:", err));
   });
 
   // Drop existing triggers if they exist
@@ -141,13 +145,9 @@ pool.getConnection((err, connection) => {
   ];
 
   dropTriggers.forEach((query) => {
-    connection.query(query, (err) => {
-      if (err) {
-        console.error("❌ Trigger Drop Failed:", err);
-      } else {
-        console.log("✅ Trigger Dropped (if existed)");
-      }
-    });
+    queryDatabase(query)
+      .then(() => console.log("✅ Trigger Dropped (if existed)"))
+      .catch((err) => console.error("❌ Trigger Drop Failed:", err));
   });
 
   // Create the trigger for auto-generating farmer user_id
@@ -165,13 +165,9 @@ pool.getConnection((err, connection) => {
     END;
   `;
 
-  connection.query(createFarmerTrigger, (err) => {
-    if (err) {
-      console.error("❌ Farmer Trigger Creation Failed:", err);
-    } else {
-      console.log("✅ Farmer Trigger is Ready");
-    }
-  });
+  queryDatabase(createFarmerTrigger)
+    .then(() => console.log("✅ Farmer Trigger is Ready"))
+    .catch((err) => console.error("❌ Farmer Trigger Creation Failed:", err));
 
   // Create the trigger for auto-generating consumer user_id
   const createConsumerTrigger = `
@@ -188,13 +184,9 @@ pool.getConnection((err, connection) => {
     END;
   `;
 
-  connection.query(createConsumerTrigger, (err) => {
-    if (err) {
-      console.error("❌ Consumer Trigger Creation Failed:", err);
-    } else {
-      console.log("✅ Consumer Trigger is Ready");
-    }
-  });
+  queryDatabase(createConsumerTrigger)
+    .then(() => console.log("✅ Consumer Trigger is Ready"))
+    .catch((err) => console.error("❌ Consumer Trigger Creation Failed:", err));
 
   // Create the trigger for add_produce
   const createAddProduceTrigger = `
@@ -224,15 +216,9 @@ pool.getConnection((err, connection) => {
     END;
   `;
 
-  connection.query(createAddProduceTrigger, (err) => {
-    if (err) {
-      console.error("❌ Add Produce Trigger Creation Failed:", err);
-    } else {
-      console.log("✅ Add Produce Trigger is Ready");
-    }
-  });
-
-  connection.release();
+  queryDatabase(createAddProduceTrigger)
+    .then(() => console.log("✅ Add Produce Trigger is Ready"))
+    .catch((err) => console.error("❌ Add Produce Trigger Creation Failed:", err));
 });
 
 // Export functions

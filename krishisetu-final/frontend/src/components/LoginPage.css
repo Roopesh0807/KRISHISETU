@@ -2,83 +2,178 @@
 .login-cont {
   position: relative;
   width: 100%;
+  height: 100vh; /* Full viewport height */
   display: flex;
   flex-direction: column;
-  align-items: center;  /* Center content horizontally */
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 
 /* Background image */
-.login-cont img {
+.login-bg {
+  position: absolute;
   width: 100%;
-  height: 80%;
-  object-fit: cover;  /* Cover the container */
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(0.6); /* Darken the background */
+  z-index: -1; /* Place it behind the content */
 }
 
 /* Container for the login options */
 .log-cont {
-  position: absolute;
+  position: relative;
   width: 50%;
-  height: auto;
-  background-color: white;
-  margin-top: 150px;  /* Move container further down */
+  max-width: 600px;
+  background: rgba(255, 255, 255, 0.1); /* Transparent glass effect */
   padding: 2rem;
   border-radius: 20px;
-  opacity: 0.8;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(15px); /* Frosted glass effect */
+  border: 1px solid rgba(255, 255, 255, 0.2); /* Light border */
   display: flex;
   flex-direction: column;
-  align-items: center;  /* Center the inner content */
+  align-items: center;
   justify-content: center;
+  animation: fadeIn 1.5s ease-in-out;
 }
 
 /* Styling for the title */
 .login-title {
-  font-size: 24px;
-  color: #000;
-  background: #967ef4;
-  display: inline-block;
+  font-size: 2rem;
+  color: #fff;
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.8), rgba(69, 160, 73, 0.8));
   padding: 10px 20px;
   border-radius: 8px;
-  margin-bottom: 50px;  /* Space between title and options */
+  margin-bottom: 2rem;
+  text-transform: uppercase;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  animation: float 3s infinite ease-in-out;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 /* Center the login options container */
 .login-options {
   display: flex;
-  justify-content: center;  /* Center the items */
-  gap: 50px;
+  justify-content: center;
+  gap: 2rem;
+  width: 100%;
 }
 
 /* Style for each login card */
 .login-card {
-  background: #f0f0f0;
-  border-radius: 0%;
-  width: 250px;  /* Increase size */
-  height: 250px;  /* Increase size */
+  background: rgba(255, 255, 255, 0.1); /* Transparent glass effect */
+  border-radius: 15px;
+  width: 200px;
+  height: 250px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  justify-content: center;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
   cursor: pointer;
-  transition: transform 0.3s;
+  transition: all 0.3s ease;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.2); /* Light border */
 }
 
 /* Hover effect for the cards */
 .login-card:hover {
-  transform: scale(1.1);
+  transform: scale(1.05);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  background: rgba(255, 255, 255, 0.2); /* Slightly brighter on hover */
+}
+
+/* Gradient overlay on hover */
+.login-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.8), rgba(69, 160, 73, 0.8));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.login-card:hover::before {
+  opacity: 1;
 }
 
 /* Styling for images inside the cards */
-.login-card img {
-  width: 200px;  /* Increase image size */
-  height: 200px;  /* Increase image size */
+.login-card-img {
+  width: 120px;
+  height: 120px;
   object-fit: cover;
-  border-radius: 50%;  /* Make the image circular */
-  margin-bottom: 10px;
+  border-radius: 50%;
+  margin-bottom: 1rem;
+  transition: transform 0.3s ease;
+  z-index: 1; /* Ensure the image is above the overlay */
+}
+
+.login-card:hover .login-card-img {
+  transform: scale(1.1);
 }
 
 /* Styling for the text below images */
 .login-card p {
-  color: #000;
+  color: #fff;
   font-weight: bold;
+  font-size: 1.2rem;
+  z-index: 1; /* Ensure the text is above the overlay */
+  transition: color 0.3s ease;
+}
+
+.login-card:hover p {
+  color: #fff;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .log-cont {
+    width: 90%;
+    padding: 1.5rem;
+  }
+
+  .login-options {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .login-card {
+    width: 100%;
+    height: 200px;
+  }
+
+  .login-card-img {
+    width: 100px;
+    height: 100px;
+  }
+
+  .login-title {
+    font-size: 1.5rem;
+    padding: 8px 16px;
+  }
 }

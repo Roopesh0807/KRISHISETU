@@ -1,20 +1,63 @@
-import React from "react";
-import { Link } from "react-router-dom"; // Import Link for navigation
-import logo from "../assets/logo.jpg";
-import "./Navbar1.css";
+import React from 'react';
+import logo from '../assets/logo.jpg';
+import './Navbar1.css';
+import { useNavigate } from 'react-router-dom';
 
-const Navbar1 = () => {
+const Navbar1 = ({ isLoginPage = false, isAuthPage = false }) => {
+  const navigate = useNavigate();
+
+  // Navigation Handlers
+  const handleHomeClick = () => {
+    navigate('/');
+  };
+
+  const handleLoginClick = () => {
+    navigate('/LoginPage');
+  };
+
   return (
     <nav className="navbar">
-      <div className="logo">
+      <div className="logo" onClick={handleHomeClick}>
         <img src={logo} alt="Logo" />
         <span className="navbar-name">KRISHISETU</span>
       </div>
       <ul className="navbar-links">
-        <li><Link to="/" className="navbar-link">HOME</Link></li>
-        <li><Link to="/ScrollSection" className="navbar-link">ABOUT US</Link></li>
-        <li><Link to="/Contact" className="navbar-link">CONTACT US</Link></li>
-        <li><Link to="/LoginPage" className="navbar-link">LOG IN</Link></li>
+        {/* Always show Home button */}
+        <li>
+          <a href="/" className="navbar-link" onClick={handleHomeClick}>
+            HOME
+          </a>
+        </li>
+
+        {/* Show Login button only on auth pages (login/register) */}
+        {isAuthPage && (
+          <li>
+            <a href="/LoginPage" className="navbar-link" onClick={handleLoginClick}>
+              LOG IN
+            </a>
+          </li>
+        )}
+
+        {/* Hide other buttons on login page */}
+        {!isLoginPage && !isAuthPage && (
+          <>
+            <li>
+              <a href="#about" className="navbar-link">
+                ABOUT US
+              </a>
+            </li>
+            <li>
+              <a href="#contact" className="navbar-link">
+                CONTACT US
+              </a>
+            </li>
+            <li>
+              <a href="/LoginPage" className="navbar-link">
+                LOG IN
+              </a>
+            </li>
+          </>
+        )}
       </ul>
     </nav>
   );

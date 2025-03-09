@@ -1,230 +1,232 @@
 /* Reset styles */
 body {
-  font-family: Arial, sans-serif;
+  font-family: 'Poppins', Arial, sans-serif;
   margin: 0;
   padding: 0;
   background-color: #f5f5f5;
-}
-
-/* Contact Us Section */
-.contact-us-container {
-  text-align: center;
-  margin: 50px auto;
-  padding: 30px;
-  background-color: #fff;
-  border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  max-width: 1000px;
-  width: 90%;
-}
-
-/* About Us Section */
-.about-us-container {
-  padding: 20px;
-  background-color: #f9f9f9;
-  margin-bottom: 40px;
-  border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-}
-
-.about-us-heading {
-  font-size: 36px;
-  font-weight: bold;
+  scroll-behavior: smooth; /* Enable smooth scrolling */
   color: #333;
-  margin-bottom: 10px;
-  text-align: center;
-}
-
-.about-us-description {
-  font-size: 18px;
-  color: #555;
-  max-width: 800px;
-  margin: 0 auto;
   line-height: 1.6;
-  text-align: center;
+  overflow-x: hidden; /* Prevent horizontal scroll */
 }
 
-/* Bootstrap Carousel Customization */
-.carousel {
-  margin-top: 20px;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  position: relative; /* Required for arrow positioning */
-}
-
-.carousel-item img {
-  height: 70vh; /* Adjust height as needed */
-  object-fit: cover;
-}
-
-.carousel-caption {
-  background-color: rgba(0, 0, 0, 0.5);
-  padding: 20px;
-  border-radius: 10px;
-}
-
-.carousel-caption h5 {
-  font-size: 36px;
-  font-weight: bold;
-  margin-bottom: 15px;
-}
-
-.carousel-caption p {
-  font-size: 18px;
-}
-
-/* Customize Carousel Control Buttons */
-.carousel-control-prev,
-.carousel-control-next {
-  background-color: rgba(0, 0, 0, 0.3); /* Semi-transparent background */
-  width: 50px; /* Rectangle width */
-  height: 100px; /* Rectangle height */
-  top: 50%; /* Center vertically within the slide */
-  transform: translateY(150%); /* Adjust for exact center */
-  transition: background-color 0.3s ease; /* Smooth transition */
-  border: none; /* Remove default border */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: absolute; /* Position relative to the slide */
-}
-
-.carousel-control-prev {
- 
-  left: 20px; /* Position on the left */
-  border-radius: 0 10px 10px 0; /* Rounded right corners */
-}
-
-.carousel-control-next {
- 
-  right: 20px; /* Position on the right */
-  border-radius: 10px 0 0 10px; /* Rounded left corners */
-}
-
-.carousel-control-prev:hover,
-.carousel-control-next:hover {
-  background-color: rgba(0, 0, 0, 0.6); /* Darker on hover */
-}
-
-.carousel-control-prev-icon,
-.carousel-control-next-icon {
-  filter: invert(1); /* Make the arrow icons white */
-  width: 24px; /* Adjust icon size */
-  height: 24px; /* Adjust icon size */
-}
-/* Increase Carousel Slide Speed */
-.carousel-item {
-  transition: transform 0.5s ease-in-out;
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-  .carousel-item img {
-    height: 50vh; /* Adjust height for smaller screens */
-  }
-
-  .carousel-caption h5 {
-    font-size: 28px;
-  }
-
-  .carousel-caption p {
-    font-size: 16px;
-  }
-
-  .carousel-control-prev,
-  .carousel-control-next {
-    width: 40px; /* Smaller width for mobile */
-    height: 80px; /* Smaller height for mobile */
-  }
-}
-
-
-/* Hero Image Section */
+/* Hero Section */
 .hero-section {
   position: relative;
   width: 100%;
   height: 100vh; /* Full viewport height */
   overflow: hidden;
-}
-
-.hero-image {
-  width: 100%;
-  height: 100%; /* Full height of the container */
-  object-fit: cover; /* Ensures the image covers the entire area without distortion */
-  object-position: center; /* Centers the image */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.6)), url("../assets/background.jpg");
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed; /* Parallax effect */
+  color: white;
+  perspective: 1000px; /* For 3D effects */
 }
 
 .hero-text {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  color: white;
   text-align: center;
-  background-color: rgba(0, 0, 0, 0.5);
-  padding: 20px;
-  border-radius: 8px;
+  animation: fadeIn 2s ease-in-out;
+  transform-style: preserve-3d; /* Enable 3D transformations */
 }
 
 .hero-text h1 {
-  font-size: 36px;
-  margin-bottom: 15px;
+  font-size: 5rem;
+  margin-bottom: 20px;
+  font-weight: 700;
+  text-shadow: 2px 2px 10px rgba(0, 177, 0, 0.5);
+  background: linear-gradient(135deg, #4CAF50, #45a049);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: float 3s infinite ease-in-out;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 .hero-text p {
-  font-size: 18px;
+  font-size: 1.5rem;
+  margin-bottom: 40px;
+  text-shadow: 1px 1px 5px rgba(0, 104, 21, 0.5);
+  animation: fadeIn 2.5s ease-in-out;
 }
 
 /* Login Button */
 .login-btn {
-  position: absolute;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
   padding: 15px 40px;
-  font-size: 18px;
+  font-size: 1.2rem;
   background-color: #4CAF50;
   color: white;
   border: none;
-  border-radius: 5px;
+  border-radius: 30px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  animation: bounce 2s infinite;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 300%;
+  height: 300%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.3), transparent);
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform 0.5s ease;
+}
+
+.login-btn:hover::before {
+  transform: translate(-50%, -50%) scale(1);
 }
 
 .login-btn:hover {
   background-color: #45a049;
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
 }
 
-/* Contact Container */
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* About Us Section */
+.about-us-container {
+  padding: 120px 20px;
+  background-color: #fff;
+  margin: 40px auto;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  background: linear-gradient(135deg, #f5f5f5, #e0e0e0);
+  animation: slideUp 1s ease-in-out;
+  transform-style: preserve-3d;
+}
+
+.about-us-heading {
+  font-size: 3.5rem;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #4CAF50, #45a049);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: float 3s infinite ease-in-out;
+}
+
+.about-us-description {
+  font-size: 1.2rem;
+  color: #555;
+  max-width: 800px;
+  margin: 0 auto;
+  line-height: 1.8;
+  animation: fadeIn 2s ease-in-out;
+}
+
+/* Bootstrap Carousel Customization */
+.carousel {
+  margin-top: 60px;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  animation: fadeIn 1.5s ease-in-out;
+  transform-style: preserve-3d;
+}
+
+.carousel-item img {
+  height: 70vh;
+  object-fit: cover;
+  filter: brightness(0.8);
+  transition: filter 0.5s ease;
+}
+
+.carousel-item:hover img {
+  filter: brightness(1);
+}
+
+.carousel-caption {
+  background-color: rgba(0, 0, 0, 0.6);
+  padding: 30px;
+  border-radius: 15px;
+  backdrop-filter: blur(10px);
+  animation: slideUp 1s ease-in-out;
+}
+
+.carousel-caption h5 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 15px;
+  color: #fff;
+}
+
+.carousel-caption p {
+  font-size: 1.2rem;
+  color: #ddd;
+}
+
+.carousel-control-prev:hover,
+.carousel-control-next:hover {
+  background-color: rgba(0, 0, 0, 0.8);
+  opacity: 1;
+}
+
+/* Contact Us Section */
 .contact-container {
   width: 80%;
   max-width: 1000px;
-  margin: 40px auto;
-  padding: 20px;
+  margin: 80px auto;
+  padding: 50px;
   background-color: #fff;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  border-radius: 20px;
+  text-align: center;
+  background: linear-gradient(135deg, #f5f5f5, #e0e0e0);
+  animation: slideUp 1s ease-in-out;
+  transform-style: preserve-3d;
 }
 
 .contact-container h2 {
-  text-align: center;
-  font-size: 32px;
+  font-size: 3rem;
+  font-weight: 700;
   color: #4CAF50;
   margin-bottom: 20px;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #4CAF50, #45a049);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: float 3s infinite ease-in-out;
 }
 
 .contact-container p {
-  text-align: center;
-  font-size: 18px;
+  font-size: 1.2rem;
   color: #555;
   margin: 10px 0;
+  animation: fadeIn 2s ease-in-out;
 }
 
 /* Form Styling */
 .contact-form {
   display: grid;
-  gap: 15px;
+  gap: 20px;
   grid-template-columns: 1fr;
   max-width: 600px;
   margin: 0 auto;
@@ -236,7 +238,7 @@ body {
 }
 
 .contact-form label {
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: bold;
   margin-bottom: 5px;
   color: #333;
@@ -244,95 +246,145 @@ body {
 
 .contact-form input,
 .contact-form textarea {
-  padding: 10px;
+  padding: 12px;
   border: 1px solid #ddd;
-  border-radius: 5px;
-  font-size: 16px;
+  border-radius: 10px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background-color: #f9f9f9;
 }
 
 .contact-form input:focus,
 .contact-form textarea:focus {
   outline: none;
   border-color: #4CAF50;
+  box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
 }
 
 .contact-form button {
   background-color: #4CAF50;
   color: white;
-  padding: 12px;
+  padding: 15px;
   border: none;
-  border-radius: 5px;
+  border-radius: 10px;
   cursor: pointer;
-  font-size: 18px;
-  transition: background-color 0.3s ease;
+  font-size: 1.2rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
 }
 
 .contact-form button:hover {
   background-color: #45a049;
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Loading Spinner */
+.loading-spinner {
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top: 3px solid #fff;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* Social Icons Section */
 .social-icons {
   text-align: center;
-  margin-top: 20px;
+  margin-top: 30px;
 }
 
 .social-icons p {
-  font-size: 20px;
+  font-size: 1.2rem;
   color: #4CAF50;
-  margin-bottom: 10px;
+  margin-bottom: 15px;
+  animation: fadeIn 2s ease-in-out;
 }
 
 .social-icons .icon {
-  font-size: 24px;
-  margin: 0 10px;
+  font-size: 2rem;
+  margin: 0 15px;
   color: #333;
-  transition: color 0.3s ease;
+  transition: all 0.3s ease;
 }
 
 .social-icons .icon:hover {
-  color: #4CAF50; /* Change color on hover */
+  color: #4CAF50;
+  transform: scale(1.2);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
+  .hero-text h1 {
+    font-size: 3rem;
+  }
+
+  .hero-text p {
+    font-size: 1.2rem;
+  }
+
+  .about-us-heading {
+    font-size: 2.5rem;
+  }
+
+  .about-us-description {
+    font-size: 1rem;
+  }
+
+  .carousel-item img {
+    height: 50vh;
+  }
+
   .contact-container {
     width: 90%;
-    padding: 15px;
+    padding: 30px;
   }
 
   .contact-form input,
   .contact-form textarea {
-    font-size: 14px;
+    font-size: 0.9rem;
   }
 
   .contact-form button {
-    font-size: 16px;
+    font-size: 1rem;
   }
 
   .social-icons .icon {
-    font-size: 20px;
-  }
-
-
-  .hero-text h1 {
-    font-size: 28px;
-  }
-
-  .hero-text p {
-    font-size: 16px;
-  }
-
-  .about-us-heading {
-    font-size: 28px;
-  }
-
-  .about-us-description {
-    font-size: 16px;
-  }
-
-  .chatbot-container {
-    width: 250px;
-    height: 350px;
+    font-size: 1.5rem;
   }
 }

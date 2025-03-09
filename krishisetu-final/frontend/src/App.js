@@ -41,9 +41,7 @@ function App() {
   return (
     <CartProvider>
       <Router>
-   
         <Main />
-       
       </Router>
     </CartProvider>
   );
@@ -55,6 +53,8 @@ const Main = () => {
   // 🟢 Dynamic Navbar Rendering
   const getNavbar = () => {
     const path = location.pathname;
+
+    // Navbar2 for Farmer Pages
     if (
       path.startsWith("/farmer-dashboard") ||
       path.startsWith("/add-produce") ||
@@ -70,6 +70,8 @@ const Main = () => {
     ) {
       return <Navbar2 />;
     }
+
+    // Navbar3 for Consumer Pages
     if (
       path.startsWith("/consumer-dashboard") ||
       path.startsWith("/product/") ||
@@ -83,7 +85,13 @@ const Main = () => {
     ) {
       return <Navbar3 />;
     }
-    return <Navbar1 />;
+
+    // Navbar1 for Home, Login, etc.
+    return <Navbar1 isLoginPage={path === "/LoginPage"} 
+                    isAuthPage={path.startsWith("/farmer-login") || 
+                                path.startsWith("/farmer-register") || 
+                                path.startsWith("/consumer-login") || 
+                                path.startsWith("/consumer-register")} />;
   };
 
   // 🟢 Sidebar appears for all farmer-related pages
@@ -103,10 +111,21 @@ const Main = () => {
     );
   };
 
+  // 🟢 Chatbot appears on specific pages
+  const showChatbot = () => {
+    const path = location.pathname;
+    return (
+      path.startsWith("/farmer-dashboard") || 
+      path.startsWith("/consumer-dashboard")
+    );
+  };
+
   return (
     <div>
+      {/* Render the appropriate navbar */}
       {getNavbar()}
-      {/* ✅ Sidebar appears for all farmer-related pages */}
+
+      {/* Render Sidebar for farmer-related pages */}
       {showSidebar() && <Sidebar />}
 
       {/* Main Content Wrapper */}
@@ -157,13 +176,13 @@ const Main = () => {
           {/* 💬 Chat System */}
           <Route path="/orderpage" element={<OrderPage />} />
           <Route path="/payment" element={<Payment />} />
-
         </Routes>
-        {/* ✅ Chatbot appears on specific pages */}
-      {(location.pathname.startsWith("/farmer-dashboard") || 
-       location.pathname.startsWith("/consumer-dashboard")) && <Chatbot />}
+
+        {/* Render Chatbot on specific pages */}
+        {showChatbot() && <Chatbot />}
       </div>
     </div>
   );
 };
+
 export default App;

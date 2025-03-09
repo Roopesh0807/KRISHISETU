@@ -1,126 +1,197 @@
 /* Background Image for Login Container */
 .log-container {
-    background: url('../assets/LoginBg.jpg') no-repeat center center/cover;
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+  background: url('../assets/LoginBg.jpg') no-repeat center center/cover;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  backdrop-filter: blur(20px); /* Stronger frosted glass effect */
+  animation: fadeIn 1s ease-in-out; /* Smooth fade-in animation */
 }
-.popup {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
   }
-  
-  .popup-content {
-    background: white;
-    padding: 20px;
-    border-radius: 10px;
-    text-align: center;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  to {
+    opacity: 1;
   }
-  
-  .popup-content p {
-    font-size: 18px;
-    margin-bottom: 10px;
-  }
-  
-  .popup-content button {
-    padding: 8px 16px;
-    border: none;
-    background-color: #28a745;
-    color: white;
-    font-size: 16px;
-    cursor: pointer;
-    border-radius: 5px;
-  }
-  
-  .popup-content button:hover {
-    background-color: #218838;
-  }
-  
+}
+
 /* Auth Card Styles */
 .auth-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
 }
 
 .auth-card {
-    background: rgba(255, 255, 255, 0.9);
-    padding: 30px 40px;
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    min-width: 400px;
-    max-width: 500px;
-    text-align: center;
+  background: rgba(255, 255, 255, 0.2); /* More transparent glass effect */
+  padding: 40px;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  min-width: 400px;
+  max-width: 500px;
+  text-align: center;
+  backdrop-filter: blur(25px); /* Stronger frosted glass effect */
+  border: 1px solid rgba(255, 255, 255, 0.3); /* Light border */
+  animation: slideUp 1s ease-in-out; /* Slide-up animation */
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .auth-card h2 {
-    margin-bottom: 20px;
-    color: green;
+  margin-bottom: 20px;
+  color: #4CAF50; /* Green text */
+  font-size: 2.2rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1); /* Subtle text shadow */
 }
 
 /* Form Styles */
 .form-row {
-    display: flex;
-    justify-content: space-between;
-    gap: 50px;  /* Increased gap between input fields */
-    margin-bottom: 25px; /* Space between rows */
+  display: flex;
+  justify-content: space-between;
+  gap: 20px; /* Gap between input fields */
+  margin-bottom: 20px; /* Space between rows */
 }
 
 .form-group {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .form-group label {
-    margin-bottom: 5px;
-    font-weight: bold;
-    color: green;
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #333;
+  font-size: 0.9rem;
 }
 
 .form-group input {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    font-size: 14px;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.5); /* Lighter border for glass effect */
+  border-radius: 10px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  background-color: rgba(255, 255, 255, 0.3); /* More transparent input background */
 }
 
-/* Button Styles */
+.form-group input:focus {
+  outline: none;
+  border-color: #4CAF50; /* Green border on focus */
+  box-shadow: 0 0 10px rgba(76, 175, 80, 0.3); /* Glow effect */
+  background-color: rgba(255, 255, 255, 0.5); /* Slightly more solid white on focus */
+}
+
+/* Login Button Styles */
 .auth-button {
-    width: 100%;
-    padding: 12px;
-    background-color: green;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    font-size: 16px;
-    cursor: pointer;
-    margin-top: 25px; /* Added gap above button */
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, #4CAF50, #45a049); /* Green gradient */
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 20px; /* Added gap above button */
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); /* Subtle shadow */
 }
 
 .auth-button:hover {
-    background-color: darkgreen;
+  background: linear-gradient(135deg, #45a049, #4CAF50); /* Reverse gradient on hover */
+  transform: translateY(-2px); /* Slight lift effect */
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3); /* Enhanced shadow on hover */
 }
 
+.auth-button:active {
+  transform: translateY(0); /* Reset lift effect on click */
+}
+
+/* Register Button Styles */
+.register-button {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, #6a11cb, #2575fc); /* Purple to blue gradient */
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 20px; /* Added gap above button */
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); /* Subtle shadow */
+}
+
+.register-button:hover {
+  background: linear-gradient(135deg, #2575fc, #6a11cb); /* Reverse gradient on hover */
+  transform: translateY(-2px); /* Slight lift effect */
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3); /* Enhanced shadow on hover */
+  animation: pulse 1s infinite; /* Pulse animation on hover */
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.register-button:active {
+  transform: translateY(0); /* Reset lift effect on click */
+}
+
+/* Link Button Styles */
 .link-button {
-    background: none;
-    border: none;
-    color: green;
-    cursor: pointer;
-    font-weight: bold;
+  background: none;
+  border: none;
+  color: #4CAF50; /* Green text */
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.3s ease;
+  text-decoration: none;
 }
 
 .link-button:hover {
-    text-decoration: underline;
+  color: #fafafa; /* Darker green on hover */
+  text-decoration: underline;
+  transform: scale(1.05); /* Slight scale effect */
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .auth-card {
+    min-width: 90%;
+    padding: 20px;
+  }
+
+  .form-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .auth-card h2 {
+    font-size: 1.8rem;
+  }
 }

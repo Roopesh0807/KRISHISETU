@@ -7,69 +7,14 @@ const ConsumerLogin = () => {
   const [formData, setFormData] = useState({
     emailOrPhone: "",
     password: "",
-    otp: "",
   });
-
-  // const [isOtpSent, setIsOtpSent] = useState(false);
-  // const [isVerified, setIsVerified] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Function to send OTP
-  // const sendOtp = async () => {
-  //   if (!formData.emailOrPhone) {
-  //     alert("Please enter your Email or Phone number!");
-  //     return;
-  //   }
-
-  //   try {
-  //     const response = await fetch("http://localhost:5000/api/send-otp", {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify({ identifier: formData.emailOrPhone }),
-  //     });
-
-  //     const data = await response.json();
-  //     if (data.success) {
-  //       alert("✅ OTP sent successfully!");
-  //       setIsOtpSent(true);
-  //     } else {
-  //       alert(`⚠️ Error: ${data.message}`);
-  //     }
-  //   } catch (error) {
-  //     alert("❌ Error connecting to server. Please try again later.");
-  //   }
-  // };
-
-  // Function to verify OTP
-  // const verifyOtp = async () => {
-  //   try {
-  //     const response = await fetch("http://localhost:5000/api/verify-otp", {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify({ identifier: formData.emailOrPhone, otp: formData.otp }),
-  //     });
-
-  //     const data = await response.json();
-  //     if (data.success) {
-  //       alert("✅ OTP verified successfully!");
-  //       setIsVerified(true);
-  //     } else {
-  //       alert("⚠️ Invalid OTP. Please try again.");
-  //     }
-  //   } catch (error) {
-  //     alert("❌ Error verifying OTP.");
-  //   }
-  //  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // if (!isVerified) {
-    //   alert("⚠️ Please verify your email or phone number first!");
-    //   return;
-    // }
 
     try {
       const response = await fetch("http://localhost:5000/api/consumerlogin", {
@@ -106,27 +51,7 @@ const ConsumerLogin = () => {
                 onChange={handleChange}
                 required
               />
-              {/* <button type="button" className="verify-button" onClick={sendOtp}>
-                Send OTP
-              </button> */}
             </div>
-
-            {/* {isOtpSent && (
-              <div className="form-group">
-                <label>Enter OTP:</label>
-                <input
-                  type="text"
-                  name="otp"
-                  placeholder="Enter OTP"
-                  onChange={handleChange}
-                  required
-                />
-                <button type="button" className="verify-button" onClick={verifyOtp}>
-                  Verify OTP
-                </button>
-              </div>
-            )} */}
-
 
             <div className="form-group">
               <label>Password:</label>
@@ -140,6 +65,7 @@ const ConsumerLogin = () => {
             </div>
             <button type="submit" className="auth-button">Login</button>
           </form>
+          <p></p>
           <p>
             Don't have an account?{" "}
             <button onClick={() => navigate("/consumer-register")} className="link-button">

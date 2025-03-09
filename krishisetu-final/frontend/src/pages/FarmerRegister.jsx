@@ -19,22 +19,22 @@ const FarmerRegister = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
+
     if (formData.password !== formData.confirm_password) {
       alert("❌ Passwords do not match.");
       return;
     }
-  
+
     try {
       const response = await fetch("http://localhost:5000/api/farmerregister", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
-  
+
       const data = await response.json();
-      console.log("Server Response:", data); // ✅ Debugging
-  
+      console.log("Server Response:", data);
+
       if (data.success) {
         alert(`✅ Registration successful! Your Farmer ID: ${data.farmer_id}`);
         navigate("/farmer-login");
@@ -45,8 +45,6 @@ const FarmerRegister = () => {
       alert("❌ Error connecting to server.");
     }
   };
-  
-    
 
   return (
     <div className="log-container">
@@ -89,6 +87,7 @@ const FarmerRegister = () => {
 
             <button type="submit" className="auth-button">Register</button>
           </form>
+          <p></p>
           <p>
             Already have an account?{" "}
             <button onClick={() => navigate("/farmer-login")} className="link-button">
