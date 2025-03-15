@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Line } from "react-chartjs-2";
@@ -24,7 +23,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [priceComparison, setPriceComparison] = useState([]);
   const [farmerName, setFarmerName] = useState("");
-  const [forecast, setForecast] = useState([]); // 5-6 day weather forecast
+  const [forecast, setForecast] = useState([]); // 4-day weather forecast
 
   // ✅ Fetch Farmer Name
   useEffect(() => {
@@ -93,10 +92,6 @@ const Dashboard = () => {
 
     fetchPriceComparison();
   }, []);
-// // ✅ Language Switcher Function
-// const changeLanguage = (lang) => {
-//   i18n.changeLanguage(lang);
-// };
 
   // 🌤 Get Weather Icon Based on Condition
   const getWeatherIcon = (condition) => {
@@ -107,8 +102,8 @@ const Dashboard = () => {
     if (lowerCondition.includes("clear")) return "☀️";
     return "🌥️";
   };
-  
-  // Format Forecast Data for Display
+
+  // Format Forecast Data for Display (4 days)
   const formatForecast = (forecast) => {
     const groupedForecast = {};
     forecast.forEach((item) => {
@@ -117,7 +112,7 @@ const Dashboard = () => {
         groupedForecast[date] = item;
       }
     });
-    return Object.values(groupedForecast).slice(0, 6); // Return 5-6 days
+    return Object.values(groupedForecast).slice(0, 4); // Return 4 days
   };
 
   // Get Day of the Week
@@ -148,20 +143,14 @@ const Dashboard = () => {
     <div className="dashboard-container">
       <div className="main-dashboard">
         <div className="dashboard-content">
-        
+          {/* Welcome Message */}
           <h2>{t("welcome")}, {farmerName ? farmerName : t("farmer")}</h2>
           <LanguageSwitcher />
-          {/* 🌍 Language Switcher
-          <div className="language-switcher">
-            <button onClick={() => changeLanguage("en")}>🇬🇧 English</button>
-            <button onClick={() => changeLanguage("hi")}>🇮🇳 हिंदी</button>
-            <button onClick={() => changeLanguage("kn")}>🇮🇳 ಕನ್ನಡ</button>
-          </div> */}
 
-          {/* <p>{t("language selected")}: {i18n.language}</p> */}
           {/* 🌤 Weather Forecast Section */}
           <div className="weather-forecast">
             <h3>{t("weather forecast")}</h3>
+            
             {loading ? (
               <p>{t("loading weather")}</p>
             ) : forecast.length > 0 ? (

@@ -1,59 +1,108 @@
-/* Navbar Container */
-.navbar {
-  position: fixed; /* Fix navbar at the top */
-  top: 0;
-  left: 0;
-  width: 100%;
-   min-height: 70px; /*Fixed height for navbar */
-  background-color: #333; /* Dark background for the navbar */
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Add shadow for depth */
-  z-index: 1001; /* Higher than sidebar */
+/* Navbar2 Styles */
+.navbar2 {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: rgba(0, 0, 0, 0.9); /* Semi-transparent black background */
   padding: 10px 20px;
+  width: 100%;
+  box-sizing: border-box;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  animation: slideDown 0.5s ease-in-out;
+  border-bottom: 2px solid transparent;
+  transition: border-color 0.3s ease, background 0.3s ease;
+  height: 60px;
 }
-/* Logo and Name */
-.logo {
+
+.navbar2:hover {
+  border-bottom: 2px solid #4CAF50; /* Green border on hover */
+  background: rgba(0, 0, 0, 1); /* Solid black on hover */
+}
+
+.navbar2 .logo {
   display: flex;
   align-items: center;
-  gap: 10px; /* Space between logo and name */
+  cursor: pointer;
+  transition: transform 0.3s ease;
 }
 
-.logo img {
-  height: 40px; /* Adjust logo size */
-  /* border-radius: 50%; Optional: Make logo round */
+.navbar2 .logo:hover {
+  transform: scale(1.05);
 }
 
-.navbar-name {
-  font-size: 24px;
+.navbar2 .logo img {
+  height: 40px;
+  width: 100px;
+  margin-right: 10px;
+  border-radius: 8px;
+  transition: transform 0.3s ease;
+}
+
+.navbar2 .logo:hover img {
+  transform: none;
+}
+
+.navbar2 .navbar-name {
+  font-size: 20px;
   font-weight: bold;
-  color: #fff; /* White text for the name */
+  color: white;
+  white-space: nowrap;
+  text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+  background: linear-gradient(135deg, #4CAF50, #45a049);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  transition: all 0.3s ease;
 }
 
-/* Navbar Links */
-.navbar-links {
+.navbar2 .navbar-name:hover {
+  text-shadow: 0 0 10px rgba(76, 175, 80, 0.8); /* Glow effect on hover */
+}
+
+.navbar2 .navbar-icons {
   display: flex;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  gap: 20px; /* Space between links */
+  gap: 20px;
+  align-items: center;
 }
 
-.nav-item {
-  color: #fff; /* White text for nav items */
+.navbar2 .icon-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-decoration: none;
-  font-size: 16px;
-  transition: color 0.3s ease;
-}
-
-.nav-item:hover {
-  color: #4CAF50; /* Hover color */
-  text-decoration: underline; /* Add hover effect */
-}
-
-/* Active Link (Optional) */
-.nav-item.active {
-  color: #4CAF50; /* Active link color */
+  color: white;
   font-weight: bold;
+  transition: color 0.3s ease, transform 0.3s ease;
+}
+
+.navbar2 .icon-link:hover {
+  color: #4CAF50; /* Green hover effect */
+  transform: translateY(-3px); /* Slight lift effect */
+}
+
+.navbar2 .icon {
+  font-size: 20px;
+}
+
+.navbar2 .icon-text {
+  font-size: 12px;
+  margin-top: 3px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .navbar2 {
+    flex-direction: column;
+    padding: 8px;
+    height: auto;
+  }
+
+  .navbar2 .navbar-icons {
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+  }
 }

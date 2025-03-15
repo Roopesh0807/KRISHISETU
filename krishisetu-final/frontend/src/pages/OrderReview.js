@@ -1,6 +1,57 @@
 import React from "react";
 import "./../styles/OrderReview.css";
 
+// Sample data for orders
+const orders = [
+  {
+    id: "001",
+    date: "2025-02-06",
+    product: "Wheat",
+    quantity: "500 Kg",
+    amount: "250rs",
+    status: "fulfilled",
+  },
+  {
+    id: "002",
+    date: "2025-02-05",
+    product: "Rice",
+    quantity: "300 Kg",
+    amount: "180rs",
+    status: "unfulfilled",
+  },
+  {
+    id: "003",
+    date: "2025-02-04",
+    product: "Tomato",
+    quantity: "100 Kg",
+    amount: "60rs",
+    status: "fulfilled",
+  },
+  {
+    id: "004",
+    date: "2025-02-03",
+    product: "Onion",
+    quantity: "200 Kg",
+    amount: "120rs",
+    status: "unfulfilled",
+  },
+];
+
+// OrderRow component to render each row
+const OrderRow = ({ order }) => {
+  return (
+    <tr>
+      <td>{order.id}</td>
+      <td>{order.date}</td>
+      <td>{order.product}</td>
+      <td>{order.quantity}</td>
+      <td>{order.amount}</td>
+      <td className={order.status}>{order.status}</td>
+    </tr>
+  );
+};
+
+// OrderReview component
 const OrderReview = () => {
   return (
     <div className="order-review">
@@ -17,38 +68,9 @@ const OrderReview = () => {
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td>001</td>
-            <td>2025-02-06</td>
-            <td>Wheat</td>
-            <td>500 Kg</td>
-            <td>250rs</td>
-            <td className="fulfilled">Fulfilled</td>
-          </tr>
-          <tr>
-            <td>002</td>
-            <td>2025-02-05</td>
-            <td>Rice</td>
-            <td>300 Kg</td>
-            <td>180rs</td>
-            <td className="unfulfilled">Unfulfilled</td>
-          </tr>
-          <tr>
-            <td>003</td>
-            <td>2025-02-04</td>
-            <td>Tomato</td>
-            <td>100 Kg</td>
-            <td>60rs</td>
-            <td className="fulfilled">Fulfilled</td>
-          </tr>
-          <tr>
-            <td>004</td>
-            <td>2025-02-03</td>
-            <td>Onion</td>
-            <td>200 Kg</td>
-            <td>120rs</td>
-            <td className="unfulfilled">Unfulfilled</td>
-          </tr>
+          {orders.map((order) => (
+            <OrderRow key={order.id} order={order} />
+          ))}
         </tbody>
       </table>
     </div>

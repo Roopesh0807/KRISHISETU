@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import './addproduce.css';
+import './addproduce.css'; // Import the CSS file
 import KSlogo from "../assets/logo.jpg";
 import BSimg from "../assets/bargain.jpeg";
 
@@ -42,7 +42,7 @@ const AddProduce = () => {
 
     const updatedProduces = {
       ...produces,
-      [selectedMarket]: [...produces[selectedMarket], newProduce],
+      [selectedMarket]: [...produces[selectedMarket], newProduce], // Corrected syntax
     };
     setProduces(updatedProduces);
 
@@ -71,11 +71,17 @@ const AddProduce = () => {
 
       {/* Market selection buttons */}
       <div className="addproduce-market-buttons">
-        <button onClick={() => handleMarketClick('krishisetu')}>
+        <button 
+          onClick={() => handleMarketClick('krishisetu')}
+          className={selectedMarket === 'krishisetu' ? 'active' : ''}
+        >
           <img src={KSlogo} alt="KrishiSetu Logo" />
           KrishiSetu Market
         </button>
-        <button onClick={() => handleMarketClick('bargaining')}>
+        <button 
+          onClick={() => handleMarketClick('bargaining')}
+          className={selectedMarket === 'bargaining' ? 'active' : ''}
+        >
           <img src={BSimg} alt="Bargaining Logo" />
           Bargaining System
         </button>
@@ -84,8 +90,11 @@ const AddProduce = () => {
       {/* Show Add Produce Button for selected market */}
       {selectedMarket && (
         <>
-          <button className="addproduce-button" onClick={() => setIsFormVisible(true)}>
-            Add Produce
+          <button 
+            className="addproduce-button" 
+            onClick={() => setIsFormVisible(!isFormVisible)}
+          >
+            {isFormVisible ? 'Cancel' : 'Add Produce'}
           </button>
 
           {/* Form to add produce */}
@@ -100,6 +109,7 @@ const AddProduce = () => {
                     name="produceName"
                     value={newProduce.produceName}
                     onChange={handleFormChange}
+                    placeholder="Enter produce name"
                   />
                 </div>
                 <div>
@@ -109,6 +119,7 @@ const AddProduce = () => {
                     name="availability"
                     value={newProduce.availability}
                     onChange={handleFormChange}
+                    placeholder="Enter availability in kg"
                   />
                 </div>
                 <div>
@@ -118,6 +129,7 @@ const AddProduce = () => {
                     name="pricePerKg"
                     value={newProduce.pricePerKg}
                     onChange={handleFormChange}
+                    placeholder="Enter price per kg"
                   />
                 </div>
                 <button type="button" onClick={addProduceToMarket}>
@@ -129,33 +141,37 @@ const AddProduce = () => {
 
           {/* Table of produces */}
           <h3>List of Produces in {selectedMarket === 'krishisetu' ? 'KrishiSetu' : 'Bargaining'} Market</h3>
-          <table className="addproduce-table">
-            <thead>
-              <tr>
-                <th>Produce Name</th>
-                <th>Availability (kg)</th>
-                <th>Price per KG</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {produces[selectedMarket].map((produce, index) => (
-                <tr key={index}>
-                  <td>{produce.produceName}</td>
-                  <td>{produce.availability} kg</td>
-                  <td>₹{produce.pricePerKg}</td>
-                  <td>
-                    <button
-                      className="addproduce-remove-button"
-                      onClick={() => removeProduceFromMarket(index)}
-                    >
-                      Remove
-                    </button>
-                  </td>
+          {produces[selectedMarket].length > 0 ? (
+            <table className="addproduce-table">
+              <thead>
+                <tr>
+                  <th>Produce Name</th>
+                  <th>Availability (kg)</th>
+                  <th>Price per KG</th>
+                  <th>Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {produces[selectedMarket].map((produce, index) => (
+                  <tr key={index}>
+                    <td>{produce.produceName}</td>
+                    <td>{produce.availability} kg</td>
+                    <td>₹{produce.pricePerKg}</td>
+                    <td>
+                      <button
+                        className="addproduce-remove-button"
+                        onClick={() => removeProduceFromMarket(index)}
+                      >
+                        Remove
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p>No produces added yet.</p>
+          )}
         </>
       )}
     </div>

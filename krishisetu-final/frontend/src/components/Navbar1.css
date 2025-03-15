@@ -1,23 +1,24 @@
-/* Navbar Styles */
-.navbar {
+/* Navbar1 Styles */
+.navbar1 {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: rgba(0, 0, 0, 0.9); /* Semi-transparent black */
-  padding: 15px 20px;
+  background: black; /* Solid black background */
+  padding: 10px 20px; /* Reduced padding */
   width: 100%;
   box-sizing: border-box;
-  position: fixed;
+  position: fixed; /* Fixed position */
   top: 0;
-  z-index: 1000;
-  backdrop-filter: blur(15px); /* Enhanced blur effect */
+  left: 0;
+  z-index: 1000; /* Ensure it stays on top of other content */
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
   animation: slideDown 0.5s ease-in-out;
   border-bottom: 2px solid transparent;
   transition: border-color 0.3s ease;
+  height: 60px; /* Fixed height */
 }
 
-.navbar:hover {
+.navbar1:hover {
   border-bottom: 2px solid #4CAF50; /* Gradient border on hover */
 }
 
@@ -30,31 +31,31 @@
   }
 }
 
-.logo {
+.navbar1 .logo {
   display: flex;
   align-items: center;
   cursor: pointer;
   transition: transform 0.3s ease;
 }
 
-.logo:hover {
+.navbar1 .logo:hover {
   transform: scale(1.05);
 }
 
-.logo img {
-  height: 50px;
-  width: 120px;
+.navbar1 .logo img {
+  height: 40px; /* Reduced logo height */
+  width: 100px; /* Reduced logo width */
   margin-right: 10px;
   border-radius: 8px;
   transition: transform 0.3s ease;
 }
 
-.logo:hover img {
-  transform: rotate(5deg); /* Slight rotation on hover */
+.navbar1 .logo:hover img {
+  transform: none;
 }
 
-.navbar-name {
-  font-size: 24px;
+.navbar1 .navbar-name {
+  font-size: 20px; /* Reduced font size */
   font-weight: bold;
   color: white;
   white-space: nowrap;
@@ -65,28 +66,28 @@
   transition: all 0.3s ease;
 }
 
-.navbar-name:hover {
+.navbar1 .navbar-name:hover {
   text-shadow: 0 0 10px rgba(76, 175, 80, 0.8); /* Glow effect on hover */
 }
 
-.navbar-links {
+.navbar1 .navbar-links {
   list-style: none;
   display: flex;
-  gap: 25px;
+  gap: 20px; /* Reduced gap */
   margin-left: auto;
 }
 
-.navbar-links li {
+.navbar1 .navbar-links li {
   color: white;
   cursor: pointer;
-  font-size: 18px;
-  padding: 10px 20px;
+  font-size: 16px; /* Reduced font size */
+  padding: 8px 15px; /* Reduced padding */
   border-radius: 5px;
   transition: all 0.3s ease;
   position: relative;
 }
 
-.navbar-links li::before {
+.navbar1 .navbar-links li::before {
   content: '';
   position: absolute;
   bottom: 0;
@@ -99,45 +100,46 @@
   transition: transform 0.3s ease;
 }
 
-.navbar-links li:hover::before {
+.navbar1 .navbar-links li:hover::before {
   transform: scaleX(1);
   transform-origin: left;
 }
 
-.navbar-links li:hover {
+.navbar1 .navbar-links li:hover {
   background-color: rgba(255, 255, 255, 0.1);
   transform: translateY(-3px);
 }
 
-.navbar-link {
+.navbar1 .navbar-link {
   text-decoration: none;
   color: white;
   font-weight: bold;
   transition: color 0.3s ease;
 }
 
-.navbar-link:hover {
+.navbar1 .navbar-link:hover {
   color: #4CAF50; /* Green hover effect */
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .navbar {
+  .navbar1 {
     flex-direction: column;
-    padding: 10px;
+    padding: 8px; /* Reduced padding */
+    height: auto; /* Auto height for mobile */
   }
 
-  .navbar-links {
+  .navbar1 .navbar-links {
     flex-direction: column;
-    gap: 10px;
-    margin-top: 10px;
+    gap: 8px; /* Reduced gap */
+    margin-top: 8px; /* Reduced margin */
   }
 
-  .navbar-links li {
-    padding: 8px 12px;
+  .navbar1 .navbar-links li {
+    padding: 6px 10px; /* Reduced padding */
   }
 
-  .navbar-name {
-    font-size: 20px;
+  .navbar1 .navbar-name {
+    font-size: 18px; /* Reduced font size */
   }
 }

@@ -1,138 +1,86 @@
+/* Sidebar Container */
 .sidebar {
-  width: 250px;
-  background-color: green !important;
-  height: calc(100vh - 100px); /* Adjust height to account for navbar */
-  overflow-y: auto;
-  padding-top: 20px;
-  display: flex;
-  position: fixed; /* Fix sidebar to the left */
+  width: 70px; /* Reduced collapsed width */
+  background-color: rgba(0, 0, 0, 0.9); /* Semi-transparent black to match Navbar2 */
+  height: 100vh; /* Full height */
+  position: fixed; /* Fixed position */
+  top: 60px; /* Below the navbar (height of Navbar2) */
   left: 0;
-  top: 70px; /* Start below the navbar */
-  transition: width 0.3s ease, transform 0.3s ease;
-  z-index: 1000; /* Lower than navbar */
-}
-/* Sidebar when closed */
-.sidebar.closed {
-  width: 60px; /* Smaller width when closed */
+  overflow-x: hidden; /* Hide horizontal overflow */
+  transition: width 0.3s ease; /* Smooth transition for width */
+  z-index: 999; /* Ensure it's below the navbar */
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1); /* Subtle shadow */
 }
 
-/* Vertical Bars */
-.vertical-bar {
-  width: 10px; /* Increased width for better visibility */
-  height: 50px; /* Height of the vertical bars */
-  background-color: #ff5722; /* Distinct orange color */
-  cursor: pointer; /* Indicates clickable area */
-  transition: background-color 0.3s ease, width 0.3s ease;
-  position: fixed;
-  top: 50%; /* Center vertically */
-  transform: translateY(-50%); /* Center vertically */
-  z-index: 1001; /* Ensure bars are above other elements */
-  border-radius: 5px; /* Rounded corners */
-}
-
-.vertical-bar:hover {
-  background-color: #e64a19; /* Darker orange on hover */
-  width: 12px; /* Slightly wider on hover */
-}
-
-.left-bar {
-  left: 0; /* Position left bar */
-}
-
-.right-bar {
-  right: 0; /* Position right bar */
-}
-
-/* Tooltip for vertical bars */
-.vertical-bar::after {
-  content: attr(title);
-  position: absolute;
-  left: 15px; /* Position tooltip to the right of the bar */
-  top: 50%;
-  transform: translateY(-50%);
-  background-color: #333;
-  color: white;
-  padding: 5px 10px;
-  border-radius: 4px;
-  font-size: 14px;
-  white-space: nowrap;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.3s ease, visibility 0.3s ease;
-  z-index: 1002; /* Ensure tooltip is above other elements */
-}
-
-.vertical-bar:hover::after {
-  opacity: 1;
-  visibility: visible;
+/* Sidebar when open */
+.sidebar.open {
+  width: 220px; /* Slightly reduced expanded width */
 }
 
 /* Sidebar Content */
 .sidebar-content {
-  width: 100%;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
+  padding: 20px 10px;
+  gap: 15px; /* Spacing between buttons */
 }
 
-/* Sidebar Header */
-.sidebar-header {
-  width: 100%;
-  display: flex;
-  justify-content:center;
-  align-items: center;
-  padding: 0 10px;
-  margin-bottom: 20px;
-}
-
-/* Sidebar Heading */
-.sidebar h2 {
-  font-size: 20px;
-  font-weight: bold;
-  color: white; /* Adjusted text color for better contrast */
-  margin: 0;
-}
-
-/* Sidebar Buttons (Full-width Navigation) */
-.sidebar button {
-  width: 90%; /* Almost full width */
-  background-color: #34495e; /* Keeping button background separate */
-  color: white;
+/* Toggle Button */
+.toggle-btn {
+  background: none;
   border: none;
-  padding: 12px 15px;
-  margin: 13px 0;
-  font-size: 16px;
-  text-align: center;
+  color: white;
+  font-size: 24px;
   cursor: pointer;
-  transition: background 0.3s ease, transform 0.2s ease;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  gap: 10px; /* Space between icon and text */
-}
-.sidebar.closed{
-  min-width:100px;
-}
-/* Sidebar Buttons when closed */
-.sidebar.closed button {
-  width: 40px; /* Smaller width when closed */
-  height: 40px; /* Smaller height when closed */
-  padding: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 20px; /* Larger icons */
-  text-align: center;
-  position: relative; /* For tooltip */
+  margin-bottom: 20px;
+  align-self: flex-start; /* Align to the left */
+  transition: color 0.3s ease;
 }
 
-/* Tooltip for closed sidebar buttons */
-.sidebar.closed button::after {
+.toggle-btn:hover {
+  color: #4CAF50; /* Green hover effect */
+}
+
+/* Sidebar Buttons */
+.sidebar button {
+  width: 100%; /* Full width */
+  background: none;
+  border: none;
+  color: white;
+  text-align: left;
+  padding: 10px 15px;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 15px; /* Space between icon and text */
+  border-radius: 4px;
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+
+/* Active Button */
+.sidebar button.active {
+  background-color: #1abc9c; /* Highlight color for active button */
+}
+
+/* Hover and Active Effects */
+.sidebar button:hover {
+  background-color: rgba(255, 255, 255, 0.1); /* Slight hover effect */
+  transform: scale(1.02);
+}
+
+/* Icons */
+.sidebar button i {
+  font-size: 24px; /* Larger icon size */
+  min-width: 24px; /* Ensure consistent width */
+}
+
+/* Tooltip for collapsed buttons */
+.sidebar:not(.open) button::after {
   content: attr(title);
   position: absolute;
-  left: center; /* Position tooltip to the right */
-  top: 120%;
-  transform: translateY(-50%);
+  left: 80px; /* Position tooltip to the right */
   background-color: #333;
   color: white;
   padding: 5px 10px;
@@ -145,33 +93,23 @@
   z-index: 1001; /* Ensure tooltip is above other elements */
 }
 
-.sidebar.closed button:hover::after {
+.sidebar:not(.open) button:hover::after {
   opacity: 1;
   visibility: visible;
 }
 
-/* Hover and Active Effects */
-.sidebar button:hover {
-  background-color: #1abc9c;
-  transform: scale(1.05);
-}
-
-.sidebar button:active {
-  background-color: #16a085;
-  transform: scale(1);
-}
+/* Community Overlay */
 .community-overlay {
-  position: fixed; 
-  top: 50%; 
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 80%;
-  height: 80%;
-  background: rgba(0, 0, 0, 0.8); /* Dark overlay background */
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8); /* Dark overlay */
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000; /* Bring to front */
+  z-index: 1001; /* Above sidebar */
 }
 
 .community-iframe {
@@ -191,4 +129,32 @@
   padding: 10px;
   cursor: pointer;
   font-size: 16px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 60px; /* Further reduce collapsed width for mobile */
+  }
+
+  .sidebar.open {
+    width: 200px; /* Slightly reduce expanded width for mobile */
+  }
+
+  .sidebar-content {
+    padding: 15px 5px; /* Reduce padding for mobile */
+  }
+
+  .sidebar button {
+    padding: 8px 10px; /* Reduce button padding for mobile */
+    font-size: 14px; /* Reduce font size for mobile */
+  }
+
+  .sidebar button i {
+    font-size: 20px; /* Reduce icon size for mobile */
+  }
+
+  .sidebar:not(.open) button::after {
+    left: 70px; /* Adjust tooltip position for mobile */
+  }
 }

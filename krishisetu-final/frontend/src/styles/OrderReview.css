@@ -1,11 +1,39 @@
+/* OrderReview Container */
 .order-review {
-  padding: 30px;
+  padding: 40px;
   margin-top: 70px;
-  background-color: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.97);
+  border-radius: 25px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
   margin-left: 100px; /* Default margin for closed sidebar */
-  transition: margin-left 0.3s ease; /* Smooth transition */
+  transition: margin-left 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+  backdrop-filter: blur(20px); /* Frosted glass effect */
+  border: 1px solid rgba(255, 255, 255, 0.4); /* Subtle border */
+  overflow: hidden;
+  position: relative;
+}
+
+.order-review:hover {
+  transform: scale(1.02);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
+}
+
+/* Gradient Overlay on Hover */
+.order-review::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(46, 125, 50, 0.1));
+  border-radius: 25px;
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.order-review:hover::before {
+  opacity: 1;
 }
 
 /* Adjust margin when sidebar is open */
@@ -13,71 +41,117 @@
   margin-left: 280px; /* Margin for open sidebar */
 }
 
+/* Title Styling */
 .order-review h2 {
   text-align: center;
-  color: #2c3e50;
-  font-size: 28px;
-  margin-bottom: 25px;
-  font-weight: 600;
+  color: #2a4d56;
+  font-size: 36px;
+  margin-bottom: 30px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+  animation: textGlow 2s infinite alternate ease-in-out; /* Text glow animation */
 }
 
+@keyframes textGlow {
+  0% {
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+  }
+  100% {
+    text-shadow: 0px 0px 20px rgba(76, 175, 80, 0.7), 0px 0px 40px rgba(76, 175, 80, 0.5);
+  }
+}
+
+/* Table Styling */
 table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 20px;
-  background-color: #ffffff;
-  border-radius: 10px;
+  margin-top: 25px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(15px); /* Frosted glass effect */
+  animation: tableFadeIn 1s ease-in-out; /* Table fade-in animation */
+}
+
+@keyframes tableFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 table th,
 table td {
-  padding: 15px;
+  padding: 18px;
   text-align: center;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid rgba(224, 224, 224, 0.5);
 }
 
 table th {
-  background-color: #4caf50;
+  background: linear-gradient(135deg, #4CAF50, #45a049);
   color: white;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.75px;
+  font-size: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 table tr:nth-child(even) {
-  background-color: #f8f9fa;
+  background-color: rgba(248, 249, 250, 0.9);
 }
 
 table tr:hover {
-  background-color: #f1f1f1;
+  background-color: rgba(241, 241, 241, 0.95);
   transform: scale(1.02);
   transition: transform 0.2s ease, background-color 0.2s ease;
+  box-shadow: 0px 5px 25px rgba(0, 0, 0, 0.25);
 }
 
 table tr:last-child td {
   border-bottom: none;
 }
 
+/* Status Styling */
 .fulfilled {
   color: #28a745;
   font-weight: bold;
-  background-color: #e8f5e9;
-  padding: 5px 10px;
-  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(232, 245, 233, 0.95), rgba(200, 230, 201, 0.95));
+  padding: 8px 15px;
+  border-radius: 25px;
   display: inline-block;
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.fulfilled:hover {
+  transform: translateY(-3px);
+  box-shadow: 0px 6px 20px rgba(0, 0, 0, 0.25);
 }
 
 .unfulfilled {
   color: #dc3545;
   font-weight: bold;
-  background-color: #f8d7da;
-  padding: 5px 10px;
-  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(248, 215, 218, 0.95), rgba(245, 183, 177, 0.95));
+  padding: 8px 15px;
+  border-radius: 25px;
   display: inline-block;
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.unfulfilled:hover {
+  transform: translateY(-3px);
+  box-shadow: 0px 6px 20px rgba(0, 0, 0, 0.25);
 }
 
 /* Add a subtle animation to table rows */
@@ -96,11 +170,17 @@ table tr {
   animation: fadeIn 0.5s ease-in-out;
 }
 
+/* Hover Effect for Table Rows */
+table tr:hover td {
+  background-color: rgba(255, 255, 255, 0.95);
+  box-shadow: 0px 5px 25px rgba(0, 0, 0, 0.25);
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .order-review {
     margin-left: 0;
-    padding: 15px;
+    padding: 25px;
   }
 
   .sidebar.open ~ .main-content .order-review {
@@ -109,11 +189,11 @@ table tr {
 
   table th,
   table td {
-    padding: 10px;
+    padding: 12px;
     font-size: 14px;
   }
 
   .order-review h2 {
-    font-size: 24px;
+    font-size: 28px;
   }
 }

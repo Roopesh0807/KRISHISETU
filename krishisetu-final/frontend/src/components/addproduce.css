@@ -2,25 +2,56 @@
 .addproduce-container {
   font-family: 'Arial', sans-serif;
   max-width: 1200px;
-margin-top: 100px;
-margin-left: 130px;
-  padding: 20px;
+  margin-top: 80px; /* Adjusted for Navbar2 height */
+  margin-left: 90px; /* Adjusted for collapsed sidebar width */
+  margin-right: 20px; /* Added right margin for better spacing */
+  padding: 30px;
   text-align: center;
-  background-color: #f4f6f9;
-  border-radius: 12px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  background-color: rgba(244, 246, 249, 0.95); /* Semi-transparent background */
+  border-radius: 20px;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(20px); /* Enhanced glassmorphism effect */
+  border: 1px solid rgba(255, 255, 255, 0.4); /* Subtle border */
+  animation: fadeIn 0.8s ease-in-out;
+  transition: margin-left 0.3s ease; /* Smooth transition for sidebar expansion/collapse */
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Adjust margin when sidebar is open */
-.sidebar.open ~ .main-content .addproduce-container {
-  margin-left: 260px; /* Margin for open sidebar */
+.sidebar.open ~ .addproduce-container {
+  margin-left: 240px; /* Adjusted for expanded sidebar width */
+  margin-right: 20px; /* Added right margin for better spacing */
 }
 
 /* Header Section */
 .addproduce-container h1 {
-  font-size: 32px;
-  margin-bottom: 10px;
+  font-size: 40px;
+  margin-bottom: 15px;
   color: #333;
+  font-weight: 700;
+  background: linear-gradient(135deg, #4CAF50, #81C784); /* Green gradient */
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: textGlow 2s infinite alternate;
+}
+
+@keyframes textGlow {
+  0% {
+    text-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+  }
+  100% {
+    text-shadow: 0 0 20px rgba(76, 175, 80, 0.8);
+  }
 }
 
 .addproduce-container p {
@@ -43,18 +74,29 @@ margin-left: 130px;
   gap: 10px;
   padding: 15px 25px;
   font-size: 18px;
-  background-color: #4CAF50;
+  background: linear-gradient(135deg, #4CAF50, #81C784); /* Green gradient */
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 15px;
   cursor: pointer;
-  transition: background-color 0.3s ease, box-shadow 0.3s ease;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+  animation: buttonFloat 3s infinite ease-in-out;
+}
+
+@keyframes buttonFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 .addproduce-market-buttons button:hover {
-  background-color: #45a049;
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  background: linear-gradient(135deg, #388E3C, #66BB6A); /* Darker green gradient */
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
 }
 
 .addproduce-market-buttons button img {
@@ -67,30 +109,44 @@ margin-left: 130px;
 .addproduce-button {
   margin: 20px 0;
   padding: 12px 24px;
-  background-color: #007BFF;
+  background: linear-gradient(135deg, #007BFF, #0056b3); /* Blue gradient */
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 15px;
   cursor: pointer;
   font-size: 16px;
-  transition: background-color 0.3s ease, box-shadow 0.3s ease;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
 }
 
 .addproduce-button:hover {
-  background-color: #0056b3;
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  background: linear-gradient(135deg, #0056b3, #004080); /* Darker blue gradient */
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
 }
 
 /* Form Styling */
 .addproduce-form {
-  background-color: #ffffff;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  background-color: rgba(255, 255, 255, 0.95); /* Semi-transparent background */
+  padding: 25px;
+  border-radius: 15px;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
   max-width: 500px;
   margin: 20px auto;
   text-align: left;
+  backdrop-filter: blur(15px); /* Glassmorphism effect */
+  animation: slideIn 0.8s ease-in-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .addproduce-form h3 {
@@ -98,6 +154,10 @@ margin-left: 130px;
   margin-bottom: 20px;
   color: #333;
   text-align: center;
+  background: linear-gradient(135deg, #4CAF50, #81C784); /* Green gradient */
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: textGlow 2s infinite alternate;
 }
 
 .addproduce-form label {
@@ -109,34 +169,37 @@ margin-left: 130px;
 
 .addproduce-form input {
   width: 100%;
-  padding: 10px;
+  padding: 12px;
   margin-bottom: 15px;
   border: 1px solid #ddd;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 16px;
-  transition: border-color 0.3s ease;
+  transition: all 0.3s ease;
+  background-color: rgba(255, 255, 255, 0.9); /* Semi-transparent background */
 }
 
 .addproduce-form input:focus {
   border-color: #007BFF;
+  box-shadow: 0 0 15px rgba(0, 123, 255, 0.5);
 }
 
 .addproduce-form button {
   width: 100%;
   padding: 12px;
-  background-color: #28a745;
+  background: linear-gradient(135deg, #28a745, #218838); /* Green gradient */
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
   font-size: 16px;
-  transition: background-color 0.3s ease, box-shadow 0.3s ease;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
 }
 
 .addproduce-form button:hover {
-  background-color: #218838;
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  background: linear-gradient(135deg, #218838, #1e7e34); /* Darker green gradient */
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
 }
 
 /* Table Styling */
@@ -144,9 +207,11 @@ margin-left: 130px;
   width: 100%;
   border-collapse: collapse;
   margin: 20px 0;
-  background-color: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  background-color: rgba(255, 255, 255, 0.95); /* Semi-transparent background */
+  border-radius: 15px;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(15px); /* Glassmorphism effect */
+  animation: fadeIn 0.8s ease-in-out;
 }
 
 .addproduce-table th,
@@ -157,37 +222,48 @@ margin-left: 130px;
 }
 
 .addproduce-table th {
-  background-color: #4CAF50;
+  background: linear-gradient(135deg, #4CAF50, #81C784); /* Green gradient */
   color: white;
   font-weight: bold;
 }
 
 .addproduce-table tr:nth-child(even) {
-  background-color: #f9f9f9;
+  background-color: rgba(249, 249, 249, 0.9); /* Semi-transparent background */
 }
 
 .addproduce-table tr:hover {
-  background-color: #f1f1f1;
+  background-color: rgba(241, 241, 241, 0.9); /* Semi-transparent background */
 }
 
 .addproduce-remove-button {
   padding: 8px 12px;
-  background-color: #dc3545;
+  background: linear-gradient(135deg, #dc3545, #c82333); /* Red gradient */
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
-  transition: background-color 0.3s ease, box-shadow 0.3s ease;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
 }
 
 .addproduce-remove-button:hover {
-  background-color: #c82333;
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  background: linear-gradient(135deg, #c82333, #b21f2d); /* Darker red gradient */
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
+  .addproduce-container {
+    margin-left: 20px; /* Adjusted for mobile */
+    margin-right: 20px;
+  }
+
+  .sidebar.open ~ .addproduce-container {
+    margin-left: 20px; /* Adjusted for mobile */
+    margin-right: 20px;
+  }
+
   .addproduce-market-buttons {
     flex-direction: column;
     gap: 10px;
@@ -204,6 +280,6 @@ margin-left: 130px;
   .addproduce-table th,
   .addproduce-table td {
     padding: 10px;
-  font-size: 14px;
+    font-size: 14px;
   }
 }

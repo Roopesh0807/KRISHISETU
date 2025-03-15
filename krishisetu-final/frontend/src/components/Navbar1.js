@@ -16,7 +16,7 @@ const Navbar1 = ({ isLoginPage = false, isAuthPage = false }) => {
   };
 
   return (
-    <nav className="navbar">
+    <nav className="navbar1">
       <div className="logo" onClick={handleHomeClick}>
         <img src={logo} alt="Logo" />
         <span className="navbar-name">KRISHISETU</span>

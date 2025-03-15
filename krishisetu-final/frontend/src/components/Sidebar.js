@@ -1,92 +1,17 @@
-// import React, { useState } from 'react';
-// import { useNavigate } from 'react-router-dom';
-// import './Sidebar.css'; // Styling for the sidebar
-
-// const Sidebar = () => {
-//   const navigate = useNavigate();
-//   const [isOpen, setIsOpen] = useState(false); // Sidebar closed by default
-
-//   // Toggle Sidebar
-//   const toggleSidebar = () => {
-//     setIsOpen(!isOpen);
-//   };
-
-//   // Handle right-click to close sidebar
-//   const handleRightClick = (e) => {
-//     e.preventDefault(); // Prevent default right-click context menu
-//     setIsOpen(false); // Close sidebar
-//   };
-
-//   return (
-//     <>
-//       {/* Left Vertical Bar (Open on Left Click) */}
-//       <div
-//         className="vertical-bar left-bar"
-//         onClick={toggleSidebar} // Open on left click
-//         title="Click to open sidebar" // Tooltip for left bar
-//       ></div>
-
-//       {/* Sidebar */}
-//       <div className={`sidebar ${isOpen ? 'open' : 'closed'}`}>
-//         {/* Sidebar Content */}
-//         <div className="sidebar-content">
-//           {/* Sidebar Header with Toggle Button */}
-//           <div className="sidebar-header">
-//             <h2>{isOpen ? 'Farmer Dashboard' : '☰'}</h2>
-//             {isOpen && (''
-//               // <button className="toggle-btn" onClick={toggleSidebar}>
-              
-//               // </button>
-//             )}
-//           </div>
-
-//           {/* Sidebar Buttons */}
-//           <button onClick={() => navigate('/farmer-dashboard')} title="Dashboard">
-//             {isOpen ? 'Dashboard' : '🏠'}
-//           </button>
-//           <button onClick={() => navigate('/view-profile')} title="View Profile">
-//             {isOpen ? 'View Profile' : '👤'}
-//           </button>
-//           <button onClick={() => navigate('/order-review')} title="Order Review">
-//             {isOpen ? 'Order Review' : '📝'}
-//           </button>
-//           <button onClick={() => navigate('/bargain_farmer')} title="Bargain">
-//             {isOpen ? 'Bargain' : '💬'}
-//           </button>
-//           <button onClick={() => navigate('/community')} title="Community">
-//             {isOpen ? 'Community' : '👥'}
-//           </button>
-//           <button onClick={() => navigate('/help')} title="Help and Support">
-//             {isOpen ? 'Help and Support' : '❓'}
-//           </button>
-//         </div>
-//       </div>
-
-//       {/* Right Vertical Bar (Close on Right Click) */}
-//       <div
-//         className="vertical-bar right-bar"
-//         onContextMenu={handleRightClick} // Close on right click
-//         title="Right-click to close sidebar" // Tooltip for right bar
-//       ></div>
-//     </>
-//   );
-// };
-
-// export default Sidebar;
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import './Sidebar.css'; // Styling for the sidebar
 
 const Sidebar = () => {
   const navigate = useNavigate();
+  const location = useLocation(); // Get current route
   const [isOpen, setIsOpen] = useState(false); // Sidebar closed by default
   const [showCommunity, setShowCommunity] = useState(false);
 
-  // Function to navigate to Bargain Chat
-  // const handleBargainClick = () => {
-  //   const farmerId = 1; // Replace with actual logged-in farmer ID
-  //   navigate(`/chat/${farmerId}`);
-  // };
+  // Toggle Sidebar
+  const toggleSidebar = () => {
+    setIsOpen(!isOpen);
+  };
 
   // Function to open Plant Disease Detection in a new tab
   const handlePlantDiseaseClick = () => {
@@ -96,89 +21,93 @@ const Sidebar = () => {
     );
   };
 
-  // Toggle Sidebar
-  const toggleSidebar = () => {
-    setIsOpen(!isOpen);
-  };
-
-  // Handle right-click to close sidebar
-  const handleRightClick = (e) => {
-    e.preventDefault(); // Prevent default right-click context menu
-    setIsOpen(false); // Close sidebar
+  // Check if a button is active based on the current route
+  const isActive = (path) => {
+    return location.pathname === path;
   };
 
   return (
     <>
-      {/* Left Vertical Bar (Open on Left Click) */}
-      <div
-        className="vertical-bar left-bar"
-        onClick={toggleSidebar} // Open on left click
-        title="Click to open sidebar" // Tooltip for left bar
-      ></div>
-
       {/* Sidebar */}
-      <div className={`sidebar ${isOpen ? 'open' : 'closed'}`}>
+      <div className={`sidebar ${isOpen ? 'open' : ''}`}>
         {/* Sidebar Content */}
         <div className="sidebar-content">
-          {/* Sidebar Header with Toggle Button */}
-          <div className="sidebar-header">
-            <h2>{isOpen ? 'Farmer Dashboard' : '☰'}</h2>
-          </div>
+          {/* Toggle Button */}
+          <button className="toggle-btn" onClick={toggleSidebar}>
+            {isOpen ? '✕' : '☰'} {/* Close icon when open, hamburger when closed */}
+          </button>
 
           {/* Sidebar Buttons */}
-          <button onClick={() => navigate('/farmer-dashboard')} title="Dashboard">
-            {isOpen ? 'Dashboard' : '🏠'}
+          <button
+            onClick={() => navigate('/farmer-dashboard')}
+            title="Dashboard"
+            className={isActive('/farmer-dashboard') ? 'active' : ''}
+          >
+            <i className="fas fa-home"></i> {/* Icon */}
+            {isOpen && 'Dashboard'} {/* Text only when open */}
           </button>
-          <button onClick={() => navigate('/view-profile')} title="View Profile">
-            {isOpen ? 'View Profile' : '👤'}
+          <button
+            onClick={() => navigate('/view-profile')}
+            title="View Profile"
+            className={isActive('/view-profile') ? 'active' : ''}
+          >
+            <i className="fas fa-user"></i>
+            {isOpen && 'View Profile'}
           </button>
-          <button onClick={() => navigate('/order-review')} title="Order Review">
-            {isOpen ? 'Order Review' : '📝'}
+          <button
+            onClick={() => navigate('/order-review')}
+            title="Order Review"
+            className={isActive('/order-review') ? 'active' : ''}
+          >
+            <i className="fas fa-clipboard-list"></i>
+            {isOpen && 'Order Review'}
           </button>
-          <button onClick={() => navigate('/bargain_farmer')} title="Bargain">
-            {isOpen ? 'Bargain' : '💬'}
+          <button
+            onClick={() => navigate('/bargain_farmer')}
+            title="Bargain"
+            className={isActive('/bargain_farmer') ? 'active' : ''}
+          >
+            <i className="fas fa-handshake"></i>
+            {isOpen && 'Bargain'}
           </button>
-          
-
-          {/* Plant Disease Detection Button */}
-          <button onClick={handlePlantDiseaseClick} title="Plant Disease Detection">
-            {isOpen ? 'Plant Disease Detection' : '🌱'}
+          <button
+            onClick={handlePlantDiseaseClick}
+            title="Plant Disease Detection"
+          >
+            <i className="fas fa-leaf"></i>
+            {isOpen && 'Plant Disease Detection'}
           </button>
-
-          {/* Farmer's Community Button */}
-{/* Farmer's Community Button */}
-<button onClick={() => setShowCommunity(!showCommunity)} title="Farmer's Community">
-  {isOpen ? "Farmer's Community" : '👥'}
-</button>
-
-{/* Farmer's Community Overlay */}
-{showCommunity && (
-  <div className="community-overlay active">
-    <button className="close-btn" onClick={() => setShowCommunity(false)}>Close</button>
-    <iframe
-      src="https://farmer-s-community.onrender.com"
-      className="community-iframe"
-      title="Farmer's Community"
-    ></iframe>
-
-
-  </div>
-)}
-
-<button onClick={() => navigate('/help')} title="Help and Support">
-            {isOpen ? 'Help and Support' : '❓'}
+          <button
+            onClick={() => setShowCommunity(true)}
+            title="Farmer's Community"
+          >
+            <i className="fas fa-users"></i>
+            {isOpen && "Farmer's Community"}
           </button>
-
+          <button
+            onClick={() => navigate('/Contact')}
+            title="Help and Support"
+            className={isActive('/help') ? 'active' : ''}
+          >
+            <i className="fas fa-question-circle"></i>
+            {isOpen && 'Help and Support'}
+          </button>
         </div>
       </div>
 
-     
-      {/* Right Vertical Bar (Close on Right Click) */}
-      <div
-        className="vertical-bar right-bar"
-        onContextMenu={handleRightClick} // Close on right click
-        title="Right-click to close sidebar" // Tooltip for right bar
-      ></div>
+      {/* Farmer's Community Overlay */}
+      {showCommunity && (
+        <div className="community-overlay">
+          <button className="close-btn" onClick={() => setShowCommunity(false)}>
+            Close
+          </button>
+          <iframe
+            src="https://farmer-s-community.onrender.com"
+            className="community-iframe"
+            title="Farmer's Community"
+          ></iframe>
+        </div>
+      )}
     </>
   );
 };

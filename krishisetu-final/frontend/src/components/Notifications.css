@@ -1,39 +1,85 @@
+/* Notification Container */
 .notification-container {
-  max-width: 600px;
-  margin: 50px auto;
-  background: #fff;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  max-width: 800px; /* Increased width for better readability */
+  margin: 80px auto 20px; /* Center the container horizontally */
+  background: rgba(255, 255, 255, 0.95); /* Semi-transparent background */
+  padding: 25px;
+  border-radius: 15px;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(15px); /* Glassmorphism effect */
+  animation: fadeIn 0.8s ease-in-out;
 }
 
-h2 {
-  font-size: 22px;
-  color: #2e7d32;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Adjust margin when sidebar is open */
+.sidebar.open ~ .notification-container {
+  margin-left: 240px; /* Adjusted for expanded sidebar width */
+  margin-right: auto; /* Center the container */
+}
+
+/* Header */
+.notification-container h2 {
+  font-size: 28px;
+  color: #2e7d32; /* Green text */
   text-align: center;
-  margin-bottom: 15px;
+  margin-bottom: 20px;
+  background: linear-gradient(135deg, #4CAF50, #81C784); /* Green gradient */
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: textGlow 2s infinite alternate;
 }
-.sidebar.open ~ .main-content .notification-container {
-  margin-left: 350px; /* Margin for open sidebar */
+
+@keyframes textGlow {
+  0% {
+    text-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+  }
+  100% {
+    text-shadow: 0 0 20px rgba(76, 175, 80, 0.8);
+  }
 }
+
+/* Notifications List */
 .notifications {
   display: flex;
   flex-direction: column;
   gap: 15px;
 }
 
+/* Notification Card */
 .notification-card {
   display: flex;
   align-items: center;
   padding: 15px;
-  border-radius: 8px;
-  transition: 0.3s ease;
+  border-radius: 10px;
+  transition: all 0.3s ease;
   cursor: pointer;
   border-left: 5px solid transparent;
+  background-color: rgba(255, 255, 255, 0.9); /* Semi-transparent background */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.notification-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
 }
 
 .notification-card .icon {
   margin-right: 15px;
+}
+
+.notification-card .icon svg {
+  width: 24px;
+  height: 24px;
 }
 
 .notification-card .text {
@@ -44,6 +90,7 @@ h2 {
   margin: 0;
   font-size: 16px;
   font-weight: 500;
+  color: #333;
 }
 
 .notification-card .text span {
@@ -53,7 +100,7 @@ h2 {
 
 /* 🛒 Order Accepted Notification */
 .notification-card.order {
-  background: #e6f8e8;
+  background: rgba(230, 248, 232, 0.9); /* Semi-transparent background */
   border-left-color: #28a745;
 }
 
@@ -63,7 +110,7 @@ h2 {
 
 /* 🌩️ Weather Alert */
 .notification-card.weather {
-  background: #e7f1ff;
+  background: rgba(231, 241, 255, 0.9); /* Semi-transparent background */
   border-left-color: #007bff;
 }
 
@@ -73,7 +120,7 @@ h2 {
 
 /* 📜 Government Scheme */
 .notification-card.scheme {
-  background: #fff9e6;
+  background: rgba(255, 249, 230, 0.9); /* Semi-transparent background */
   border-left-color: #ff9800;
 }
 
@@ -83,7 +130,7 @@ h2 {
 
 /* 🚨 Disease Detection */
 .notification-card.disease {
-  background: #ffe6e6;
+  background: rgba(255, 230, 230, 0.9); /* Semi-transparent background */
   border-left-color: #dc3545;
 }
 
@@ -93,7 +140,7 @@ h2 {
 
 /* 💰 Payment Update */
 .notification-card.payment {
-  background: #e6f7ff;
+  background: rgba(230, 247, 255, 0.9); /* Semi-transparent background */
   border-left-color: #17a2b8;
 }
 
@@ -105,4 +152,29 @@ h2 {
 .notification-card.read {
   opacity: 0.6;
   pointer-events: none;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .notification-container {
+    margin-left: 20px; /* Adjusted for mobile */
+    margin-right: 20px;
+  }
+
+  .sidebar.open ~ .notification-container {
+    margin-left: 20px; /* Adjusted for mobile */
+    margin-right: 20px;
+  }
+
+  .notification-container h2 {
+    font-size: 24px;
+  }
+
+  .notification-card .text p {
+    font-size: 14px;
+  }
+
+  .notification-card .text span {
+    font-size: 10px;
+  }
 }

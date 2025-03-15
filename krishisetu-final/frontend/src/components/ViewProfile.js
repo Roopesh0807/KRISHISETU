@@ -19,12 +19,13 @@ const ViewProfile = () => {
     landOwnershipProof: "",
     bankAccount: "",
     upiId: "",
-    IFSCcode:"",
+    IFSCcode: "",
     photo: "", // Add photo field
   });
 
   useEffect(() => {
-    axios.get("http://localhost:5000/api/farmer-profile")
+    axios
+      .get("http://localhost:5000/api/farmer-profile")
       .then((response) => {
         setProfile(response.data);
       })
@@ -34,7 +35,7 @@ const ViewProfile = () => {
   return (
     <div className="view-profile-page">
       <div className="profile-container">
-        <h2>The Face Behind the Fields</h2>
+        <h2 className="profile-title">The Face Behind the Fields</h2>
         <div className="profile">
           <div className="profile-header">
             <img
@@ -42,70 +43,103 @@ const ViewProfile = () => {
               alt="Farmer"
               className="profile-image"
             />
-            <h3>{profile.name || "Name"}</h3>
-            <p className="profile-id">ID: {profile.id }</p>
+            <h3 className="profile-name">{profile.name || "Name"}</h3>
+            <p className="profile-id">ID: {profile.id || "N/A"}</p>
           </div>
 
           <div className="profile-details">
-            <div className="detail-item">
-              <span className="detail-label">DOB:</span>
-              <span className="detail-value">{profile.dob }</span>
+            {/* Personal Details */}
+            <div className="detail-section">
+              <h4 className="section-title">Personal Details</h4>
+              <div className="detail-item">
+                <span className="detail-label">DOB:</span>
+                <span className="detail-value">{profile.dob || "N/A"}</span>
+              </div>
+              <div className="detail-item">
+                <span className="detail-label">Gender:</span>
+                <span className="detail-value">{profile.gender || "N/A"}</span>
+              </div>
+              <div className="detail-item">
+                <span className="detail-label">Contact No:</span>
+                <span className="detail-value">{profile.contact || "N/A"}</span>
+              </div>
+              <div className="detail-item">
+                <span className="detail-label">Aadhar No:</span>
+                <span className="detail-value">{profile.aadhar || "N/A"}</span>
+              </div>
             </div>
-            <div className="detail-item">
-              <span className="detail-label">Gender:</span>
-              <span className="detail-value">{profile.gender }</span>
+
+            {/* Farm Details */}
+            <div className="detail-section">
+              <h4 className="section-title">Farm Details</h4>
+              <div className="detail-item">
+                <span className="detail-label">Farm Address:</span>
+                <span className="detail-value">{profile.farmAddress || "N/A"}</span>
+              </div>
+              <div className="detail-item">
+                <span className="detail-label">Residential Address:</span>
+                <span className="detail-value">
+                  {profile.residentialAddress || "N/A"}
+                </span>
+              </div>
+              <div className="detail-item">
+                <span className="detail-label">Farm Size:</span>
+                <span className="detail-value">{profile.farmSize || "N/A"}</span>
+              </div>
+              <div className="detail-item">
+                <span className="detail-label">Types of Crops Grown:</span>
+                <span className="detail-value">{profile.cropsGrown || "N/A"}</span>
+              </div>
+              <div className="detail-item">
+                <span className="detail-label">Farming Method:</span>
+                <span className="detail-value">{profile.farmingMethod || "N/A"}</span>
+              </div>
             </div>
-            <div className="detail-item">
-              <span className="detail-label">Contact No:</span>
-              <span className="detail-value">{profile.contact }</span>
+
+            {/* Proofs and Documents */}
+            <div className="detail-section">
+              <h4 className="section-title">Proofs and Documents</h4>
+              <div className="detail-item">
+                <span className="detail-label">Aadhar Proof:</span>
+                <span className="detail-value">
+                  {profile.aadharProof ? (
+                    <a href={profile.aadharProof} download className="download-link">
+                      Download
+                    </a>
+                  ) : (
+                    "N/A"
+                  )}
+                </span>
+              </div>
+              <div className="detail-item">
+                <span className="detail-label">Land Ownership Proof:</span>
+                <span className="detail-value">
+                  {profile.landOwnershipProof ? (
+                    <a href={profile.landOwnershipProof} download className="download-link">
+                      Download
+                    </a>
+                  ) : (
+                    "N/A"
+                  )}
+                </span>
+              </div>
             </div>
-            <div className="detail-item">
-              <span className="detail-label">Aadhar No:</span>
-              <span className="detail-value">{profile.aadhar }</span>
-            </div>
-            <div className="detail-item">
-              <span className="detail-label">Farm Address:</span>
-              <span className="detail-value">{profile.farmAddress }</span>
-            </div>
-            <div className="detail-item">
-              <span className="detail-label">Residential Address:</span>
-              <span className="detail-value">{profile.residentialAddress }</span>
-            </div>
-            <div className="detail-item">
-              <span className="detail-label">Farm Size:</span>
-              <span className="detail-value">{profile.farmSize }</span>
-            </div>
-            <div className="detail-item">
-              <span className="detail-label">Types of Crops Grown:</span>
-              <span className="detail-value">{profile.cropsGrown}</span>
-            </div>
-            <div className="detail-item">
-              <span className="detail-label">Farming Method:</span>
-              <span className="detail-value">{profile.farmingMethod }</span>
-            </div>
-            <div className="detail-item">
-              <span className="detail-label">Aadhar Proof:</span>
-              <span className="detail-value">
-                {profile.aadharProof ? <a href={profile.aadharProof} download>Download</a> :""}
-              </span>
-            </div>
-            <div className="detail-item">
-              <span className="detail-label">Land Ownership Proof:</span>
-              <span className="detail-value">
-                {profile.landOwnershipProof ? <a href={profile.landOwnershipProof} download>Download</a> : ""}
-              </span>
-            </div>
-            <div className="detail-item">
-              <span className="detail-label">Bank Account No:</span>
-              <span className="detail-value">{profile.bankAccount || ""}</span>
-            </div>
-            <div className="detail-item">
-              <span className="detail-label">UPI ID:</span>
-              <span className="detail-value">{profile.upiId || ""}</span>
-            </div>
-            <div className="detail-item">
-              <span className="detail-label">IFSC code:</span>
-              <span className="detail-value">{profile.IFSCcode || ""}</span>
+
+            {/* Banking Details */}
+            <div className="detail-section">
+              <h4 className="section-title">Banking Details</h4>
+              <div className="detail-item">
+                <span className="detail-label">Bank Account No:</span>
+                <span className="detail-value">{profile.bankAccount || "N/A"}</span>
+              </div>
+              <div className="detail-item">
+                <span className="detail-label">UPI ID:</span>
+                <span className="detail-value">{profile.upiId || "N/A"}</span>
+              </div>
+              <div className="detail-item">
+                <span className="detail-label">IFSC Code:</span>
+                <span className="detail-value">{profile.IFSCcode || "N/A"}</span>
+              </div>
             </div>
           </div>
         </div>

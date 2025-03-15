@@ -1,120 +1,175 @@
 /* General Profile Page Styles */
 .profile-page {
-  font-family: Arial, sans-serif;
+  font-family: 'Poppins', Arial, sans-serif;
   padding: 20px;
   max-width: 900px;
-  margin: 0 auto;
-  background-color: #f8f8f8;
-  border-radius: 8px;
+  margin: 80px auto 20px; /* Center the container horizontally */
+  background: linear-gradient(135deg, #f8f8f8, #e6f5e6);
+  border-radius: 20px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(15px); /* Glassmorphism effect */
+  animation: fadeIn 0.8s ease-in-out;
 }
 
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Header */
 .profile-content {
-  padding: 20px;
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  padding: 30px;
+  background: rgba(255, 255, 255, 0.95); /* Semi-transparent background */
+  border-radius: 20px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.profile-content::before {
+  content: '';
+  position: absolute;
+  top: -50px;
+  right: -50px;
+  width: 200px;
+  height: 200px;
+  background: url('https://www.svgrepo.com/show/309334/leaf.svg') no-repeat center/contain;
+  opacity: 0.1;
+  pointer-events: none;
 }
 
 h2, h3 {
   color: #2a4d56;
+  font-weight: 700;
 }
 
 h2 {
   text-align: center;
-  font-size: 28px;
-  margin-bottom: 20px;
+  font-size: 36px;
+  margin-bottom: 25px;
+  color: #2a4d56;
+  position: relative;
+}
+
+h2::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 4px;
+  background: #4caf50;
+  border-radius: 2px;
 }
 
 h3 {
-  font-size: 24px;
-  margin-bottom: 15px;
+  font-size: 28px;
+  margin-bottom: 20px;
+  color: #2a4d56;
 }
 
 /* Profile Picture Section */
 .profile-pic-container {
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: 25px;
   position: relative;
 }
 
 .profile-img {
-  width: 150px;
-  height: 150px;
+  width: 160px;
+  height: 160px;
   object-fit: cover;
   border-radius: 50%;
+  border: 4px solid #4caf50;
   transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.profile-img:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
 }
 
 .no-photo-message {
   font-size: 16px;
   color: #999;
+  font-style: italic;
 }
 
 .photo-options-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 20px; /* Space between buttons */
-  margin-top: 10px;
+  gap: 20px;
+  margin-top: 15px;
 }
 
 .upload-btn, .remove-btn, .change-btn {
-  background-color: #4caf50;
+  background: linear-gradient(135deg, #4caf50, #45a049);
   color: white;
   border: none;
-  padding: 10px 20px;
+  padding: 12px 24px;
   font-size: 16px;
   cursor: pointer;
-  border-radius: 4px;
-  transition: background-color 0.3s ease, transform 0.2s ease;
-  min-width: 150px; /* Equal width for buttons */
-  min-height: 40px; /* Equal height for buttons */
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  min-width: 150px;
+  min-height: 40px;
+  font-weight: 500;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
 .upload-btn:hover, .remove-btn:hover, .change-btn:hover {
-  background-color: #45a049;
-}
-
-.upload-btn:focus, .remove-btn:focus, .change-btn:focus {
-  outline: none;
-  box-shadow: 0 0 5px rgba(0, 128, 0, 0.8);
+  background: linear-gradient(135deg, #45a049, #4caf50);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
 }
 
 .change-btn {
-  margin-left: 20px;
-  background-color: green; /* Different color for Change Photo */
+  background: linear-gradient(135deg, #ff9800, #e68900);
 }
 
 .change-btn:hover {
-  background-color: #e68900; /* Slightly darker color on hover */
+  background: linear-gradient(135deg, #e68900, #ff9800);
 }
 
 /* Tabs */
 .tabs {
   display: flex;
   justify-content: center;
-  gap: 10px;
-  margin-top: 20px;
+  gap: 15px;
+  margin-top: 25px;
 }
 
 .tabs button {
-  padding: 10px 20px;
-  background-color: #e1f7d5;
+  padding: 12px 24px;
+  background: #e1f7d5;
   border: none;
   font-size: 16px;
   cursor: pointer;
-  border-radius: 4px;
-  transition: background-color 0.3s ease;
-  flex: 1; /* Equal width for all tabs */
-  max-width: 200px; /* Limit maximum width */
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  flex: 1;
+  max-width: 200px;
+  font-weight: 500;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
 .tabs button:hover {
-  background-color: #c6f6a1;
+  background: #c6f6a1;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
 }
 
 .tabs button.active {
-  background-color: #4caf50;
+  background: linear-gradient(135deg, #4caf50, #45a049);
   color: white;
 }
 
@@ -122,28 +177,51 @@ h3 {
 .details-container {
   display: flex;
   flex-direction: column;
-  gap: 15px;
-  margin-top: 20px;
+  gap: 20px;
+  margin-top: 25px;
 }
 
 .details-box {
-  padding: 20px;
-  background-color: #f4f4f4;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: box-shadow 0.3s ease;
+  padding: 25px;
+  background: rgba(255, 255, 255, 0.95); /* Semi-transparent background */
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.details-box::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, #4caf50, #ff9800);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.details-box:hover::before {
+  opacity: 1;
+}
+
+.details-box:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
 }
 
 .details-box p {
   font-size: 16px;
   color: #333;
-  line-height: 1.5;
-  margin: 5px 0;
+  line-height: 1.6;
+  margin: 8px 0;
 }
 
 /* Form Styles */
 .personal-details-form, .farm-details-form {
-  margin-top: 20px;
+  margin-top: 25px;
   display: flex;
   flex-direction: column;
 }
@@ -151,91 +229,73 @@ h3 {
 .details-box label {
   display: block;
   font-size: 14px;
-  margin-bottom: 6px;
-  color: #333;
+  margin-bottom: 8px;
+  color: #555;
+  font-weight: 500;
 }
 
 .details-box input, .details-box textarea, .details-box select {
   width: 100%;
-  padding: 10px;
-  margin-bottom: 12px;
-  border-radius: 4px;
+  padding: 12px;
+  margin-bottom: 15px;
+  border-radius: 8px;
   border: 1px solid #ccc;
-  transition: border 0.3s ease;
+  transition: all 0.3s ease;
   font-size: 14px;
 }
 
 .details-box input:focus, .details-box select:focus, .details-box textarea:focus {
   border-color: #4caf50;
+  box-shadow: 0 0 8px rgba(76, 175, 80, 0.3);
 }
 
 .details-box textarea {
-  height: 100px;
+  height: 120px;
   resize: vertical;
 }
 
 .error {
-  color: red;
+  color: #ff4444;
   font-size: 14px;
   margin-top: 5px;
 }
 
 /* Save Button */
 .save-btn {
-  background-color: #4caf50;
+  background: linear-gradient(135deg, #4caf50, #45a049);
   color: white;
   border: none;
-  padding: 10px 20px;
+  padding: 12px 24px;
   font-size: 16px;
   cursor: pointer;
-  border-radius: 4px;
-  transition: background-color 0.3s ease, transform 0.2s ease;
-  margin-top: 20px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  margin-top: 25px;
   align-self: flex-start;
+  font-weight: 500;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
 .save-btn:hover {
-  background-color: #45a049;
+  background: linear-gradient(135deg, #45a049, #4caf50);
   transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
 }
 
 .save-btn:disabled {
-  background-color: #ccc;
+  background: #ccc;
   cursor: not-allowed;
-}
-
-/* Animations */
-@keyframes fadeIn {
-  0% {
-    opacity: 0;
-  }
-  100% {
-    opacity: 1;
-  }
-}
-
-.personal-details-form, .farm-details-form, .details-box {
-  animation: fadeIn 1s ease-out;
-}
-
-.details-box {
-  opacity: 0;
-  animation: fadeIn 0.8s ease-out forwards;
-}
-
-/* File Input */
-.details-box input[type="file"] {
-  display: none;
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
   .profile-page {
-    padding: 10px;
+    margin-left: 20px; /* Adjusted for mobile */
+    margin-right: 20px;
   }
 
   .profile-content {
-    padding: 15px;
+    padding: 20px;
   }
 
   .photo-options-container {
@@ -258,7 +318,7 @@ h3 {
   }
 
   .details-box {
-    padding: 15px;
+    padding: 20px;
   }
 
   .save-btn {
