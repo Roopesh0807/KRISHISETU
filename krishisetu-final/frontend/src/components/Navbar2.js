@@ -40,7 +40,7 @@ const Navbar2 = () => {
         </Link>
 
         {/* Profile */}
-        <Link to={`/profile/${farmer_id}`}className="icon-link" title="Profile">
+        <Link to={`/farmer/${farmer_id}/profile`}className="icon-link" title="Profile">
           <FaUser className="icon" aria-label="Profile" />
           <span className="icon-text">Profile</span>
         </Link>

@@ -162,7 +162,7 @@ const Main = () => {
           {/* 🛍️ Subscriptions & Cart */}
           <Route path="/subscribe" element={<Subscription />} />
           <Route path="/cart" element={<Cart />} />
-          <Route path="/profile/:farmer_id" element={<Profile />} />
+          <Route path="/farmer/:farmer_id/profile" element={<Profile />} />
           <Route path="/consumerprofile/:consumer_id" element={<ConsumerProfile />} />
 
           <Route path="/bargain/:farmer_id" element={<BargainChat />} />
