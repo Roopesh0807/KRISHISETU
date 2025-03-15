@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "../components/ConsumerDashboard.css";
-
+import { fetchProducts } from '../utils/api';
+// import { useCart } from '../context/CartContext';
 // Import images
 import Farmer from "../assets/farmer.jpeg";
 import OrganicBadge from "../assets/organic.jpg";
@@ -57,10 +58,17 @@ const ConsumerDashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [category, setCategory] = useState("");
   const [buyType, setBuyType] = useState("");
+  const [, setCart] = useState([]);
+  const [loading] = useState("");
+  const [isBargainPopupOpen, setIsBargainPopupOpen] = useState(false);
+  const [selectedFarmer, setSelectedFarmer] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [quantity, setQuantity] = useState(1);
   const [farmerSearchTerm, setFarmerSearchTerm] = useState("");
   const [sortPriceOrder, setSortPriceOrder] = useState(""); // State for price sorting
   const [sortProduceOrder, setSortProduceOrder] = useState(""); // State for produce type sorting
   const navigate = useNavigate();
+  
   useEffect(() => {
     // Fetch Products
     fetch("http://localhost:5000/api/products")
@@ -83,7 +91,82 @@ const ConsumerDashboard = () => {
       .then((data) => setFarmers(data))
       .catch((error) => console.error("Error fetching farmers:", error));
   }, []);
+// Fetch products when component mounts
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      const productData = await fetchProducts("/api/products");
+      setProducts(productData);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+    }
+  };
+  fetchData();
+}, []);
 
+// const handleBargainClick = (farmer_id) => {
+//   // Navigate to the Bargain page with farmer_id as a URL parameter
+//   navigate(`/bargain/${farmer_id}`);
+// };
+// Function to handle "Bargain Now" button click
+const handleBargainClick = (farmer) => {
+  console.log("Bargain clicked for farmer:", farmer); // Debugging
+  setSelectedFarmer(farmer); // Store full farmer details
+  setIsBargainPopupOpen(true); // Open popup
+};
+
+
+// Function to handle confirmation in the popup
+const handleBargainConfirm = () => {
+  if (selectedProduct && quantity > 0) {
+    setIsBargainPopupOpen(false); // Close the popup
+
+    // Navigate to chat window with selected product details
+    navigate(`/bargain/${selectedFarmer.farmer_id}`, {
+      state: {
+        productId: selectedProduct.product_id, 
+        productName: selectedProduct.produce_name,
+        quantity: quantity,
+        pricePerKg: selectedProduct.price_per_kg
+      },
+    });
+  } else {
+    alert("Please select a product and enter a valid quantity.");
+  }
+};
+
+// Function to close the popup
+const handleClosePopup = () => {
+  setIsBargainPopupOpen(false);
+};
+const addToCart = (product) => {
+  // Get the current cart from localStorage (or initialize it as an empty array if not present)
+  let currentCart = JSON.parse(localStorage.getItem('cart')) || [];
+
+  // Check if the product already exists in the cart
+  const productIndex = currentCart.findIndex(item => item.product_id === product.product_id);
+
+  if (productIndex === -1) {
+    // If product doesn't exist, add it to the cart with quantity 1
+    currentCart.push({ ...product, quantity: 1 });
+  } else {
+    // If product exists, just increase the quantity
+    currentCart[productIndex].quantity += 1;
+  }
+
+  // Update the cart in localStorage
+  localStorage.setItem('cart', JSON.stringify(currentCart));
+
+  // Update state with the new cart
+  setCart(currentCart);
+  // Show an alert and navigate to the cart page
+  alert(`${product.product_name} has been added to your cart!`);
+  navigate("/cart");
+
+};
+if (loading) {
+  return <div>Loading products...</div>;
+}
   // Filter products based on search term, category, and buy type
   const filteredProducts = products.filter((product) => {
     return (
@@ -92,32 +175,53 @@ const ConsumerDashboard = () => {
       (buyType === "" || product.buy_type.toLowerCase() === buyType.toLowerCase())
     );
   });
-
+  
   // Filter farmers based on search term and sort order
   const filteredFarmers = farmers
-  .filter((farmer) =>
-    farmer.farmer_name.toLowerCase().includes(farmerSearchTerm.toLowerCase()) ||
-    farmer.produce_name.toLowerCase().includes(farmerSearchTerm.toLowerCase()) ||
-    farmer.product_id.toLowerCase().includes(farmerSearchTerm.toLowerCase()) ||
-    farmer.user_id.toLowerCase().includes(farmerSearchTerm.toLowerCase()) ||
-    farmer.produce_type.toLowerCase().includes(farmerSearchTerm.toLowerCase())
-  )
+  .map((farmer) => {
+    // Ensure products is always an array
+    const parsedProducts = Array.isArray(farmer.products)
+      ? farmer.products
+      : JSON.parse(farmer.products || "[]");
+
+    return { ...farmer, products: parsedProducts };
+  })
+  .filter((farmer) => {
+    const searchTerm = farmerSearchTerm.toLowerCase();
+
+    return (
+      farmer.farmer_name?.toLowerCase().includes(searchTerm) ||
+      farmer.farmer_id?.toString().toLowerCase().includes(searchTerm) ||
+      farmer.products.some((product) =>
+        product.produce_name?.toLowerCase().includes(searchTerm) ||
+        product.produce_type?.toLowerCase().includes(searchTerm) ||
+        product.price_per_kg?.toString().includes(searchTerm) ||
+        product.product_id?.toString().includes(searchTerm)
+      )
+    );
+  })
   .sort((a, b) => {
-    // Sort by price
-    if (sortPriceOrder === "asc") {
-      return a.price_per_kg - b.price_per_kg; // Low to High
-    } else if (sortPriceOrder === "desc") {
-      return b.price_per_kg - a.price_per_kg; // High to Low
+    // Sorting by price (consider the lowest price product per farmer)
+    if (sortPriceOrder) {
+      const aMinPrice = Math.min(...a.products.map(p => p.price_per_kg));
+      const bMinPrice = Math.min(...b.products.map(p => p.price_per_kg));
+      return sortPriceOrder === "asc" ? aMinPrice - bMinPrice : bMinPrice - aMinPrice;
     }
 
-    if (sortProduceOrder === "asc") {
-      return a.produce_type.localeCompare(b.produce_type); // Organic first
-    } else if (sortProduceOrder === "desc") {
-      return b.produce_type.localeCompare(a.produce_type); // Standard first
+    // Sorting by produce type (first product in the list)
+    if (sortProduceOrder) {
+      const aProduceType = a.products[0]?.produce_type || "";
+      const bProduceType = b.products[0]?.produce_type || "";
+      return sortProduceOrder === "asc"
+        ? aProduceType.localeCompare(bProduceType)
+        : bProduceType.localeCompare(aProduceType);
     }
 
-    return 0; // Default: no sorting
+    return 0;
   });
+
+
+
   return (
     <div className="market-bargaining-container">
       {/* Product Section */}
@@ -162,7 +266,11 @@ const ConsumerDashboard = () => {
               <p><strong>Price:</strong> ₹{product.price_1kg} per 1kg</p>
               <p><strong>Price:</strong> ₹{product.price_2kg} per 2kg</p>
               <p><strong>Price:</strong> ₹{product.price_5kg} per 5kg</p>
-              <button className="product-button" onClick={() => navigate("/orderpage")}>Add to Cart</button>
+              <button onClick={() => navigate(`/productDetails/${product.product_id}`)}>
+  View Product
+</button>
+
+              <button onClick={() => addToCart(product)}>Add to Cart</button>
               <button className="product-button" onClick={() => navigate("/payment")}>Buy Now</button>
               <button className="product-button" onClick={() => navigate("/subscribe")}>Subscribe</button>
             </div>
@@ -200,53 +308,120 @@ const ConsumerDashboard = () => {
           <option value="desc">Standard</option>
         </select>
       </div>
-        <div className="farmers-container">
-          {filteredFarmers.map((farmer) => (
-            <div key={farmer.farmer_id} className="farmer-profile-card">
-            <div className="farmer-info">
-              <img src={Farmer} alt="Farmer" className="farmer-image" />
-              <div className="farmer-details">
-              <p><strong>Product ID:</strong> {farmer.product_id}</p>
-                <p><strong>Farmer ID:</strong> {farmer.user_id}</p>
-                <p><strong>Farmer Name:</strong> {farmer.farmer_name}</p>
-                <p><strong>Produce:</strong> {farmer.produce_name}</p>
-                <p><strong>Produce Type:</strong> {farmer.produce_type}</p>
-              </div>
-            </div>
-            <table className="produce-table">
-              <thead>
-                <tr>
-                  <th>Produce</th>
-                  <th>Price (₹/kg)</th>
-                  <th>Availability (kg)</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>{farmer.produce_name}</td>
-                  <td>₹{farmer.price_per_kg}</td>
-                  <td>{farmer.availability}</td>
-                </tr>
-              </tbody>
-            </table>
-            <div className="farmer-buttons">
-              <button
-                onClick={() => navigate(`/farmer/${farmer.farmer_id}`)}
-                className="farmer-button"
-              >
-                View Farmer
-              </button>
-              <button
-                onClick={() => navigate(`/negotiate/${farmer.farmer_id}`)}
-                className="farmer-button"
-              >
-                Bargain Now
-              </button>
-            </div>
+      <div className="farmers-container">
+  {filteredFarmers.map((farmer) => {
+    // Ensure products is always an array
+    const parsedProducts = Array.isArray(farmer.products)
+      ? farmer.products
+      : JSON.parse(farmer.products || "[]");
+
+    return (
+      <div key={farmer.farmer_id} className="farmer-profile-card">
+        <div className="farmer-info">
+          <img src={Farmer} alt="Farmer" className="farmer-image" />
+          <div className="farmer-details">
+            <p><strong>Farmer ID:</strong> {farmer.farmer_id}</p>
+            <p><strong>Farmer Name:</strong> {farmer.farmer_name}</p>
+            <p><strong>Farming Method:</strong> {farmer.produce_type}</p>
+            <p><strong>Ratings:</strong> {farmer.ratings} ⭐</p>
           </div>
-          ))}
+        </div>
+
+        {/* Table for multiple products */}
+        <table className="produce-table">
+          <thead>
+            <tr>
+              
+              <th>Produce</th>
+              <th>Type</th>
+              <th>Price (₹/kg)</th>
+              <th>Availability (kg)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {parsedProducts.map((product) => (
+              <tr key={product.product_id}>
+              
+                <td>{product.produce_name}</td>
+                <td>{product.produce_type}</td>
+                <td>₹{product.price_per_kg}</td>
+                <td>{product.availability}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {/* Action Buttons */}
+        <div className="farmer-buttons">
+          <button
+            onClick={() => navigate(`/farmerDetails/${farmer.farmer_id}`)}
+            className="farmer-button"
+          >
+            View Farmer
+          </button>
+          <button onClick={() => handleBargainClick(farmer)} className="farmer-button">
+            Bargain Now
+          </button>
         </div>
       </div>
+    );
+  })}
+</div>
+</div>
+      {/* Bargain Popup */}
+{isBargainPopupOpen && selectedFarmer && selectedFarmer.products ? (
+  <div className="bargain-popup">
+    <div className="bargain-popup-content">
+      <h3>Select Product and Quantity from {selectedFarmer.farmer_name}</h3>
+
+      {/* Product Selection Dropdown */}
+      <select
+        onChange={(e) => {
+          const selectedProductData = selectedFarmer.products.find(
+            (product) => product.produce_name === e.target.value
+          );
+          setSelectedProduct(selectedProductData || null);
+        }}
+      >
+        <option value="">Select a product</option>
+        {selectedFarmer.products.map((product) => (
+          <option key={product.product_id} value={product.produce_name}>
+            {product.produce_name} - ₹{product.price_per_kg}/kg
+          </option>
+        ))}
+      </select>
+
+      {/* Quantity Input */}
+      <input
+        type="number"
+        min="1"
+        value={quantity}
+        onChange={(e) => {
+          const enteredQuantity = Number(e.target.value);
+
+          if (!selectedProduct) {
+            alert("Please select a product first.");
+            return;
+          }
+
+          if (enteredQuantity > selectedProduct.availability) {
+            alert(`Only ${selectedProduct.availability} kg available!`);
+            return;
+          }
+
+          setQuantity(enteredQuantity);
+        }}
+        placeholder="Quantity (kg)"
+      />
+
+      {/* Confirm & Close Buttons */}
+      <button onClick={handleBargainConfirm}>Confirm</button>
+      <button onClick={handleClosePopup}>Close</button>
+    </div>
+  </div>
+) : null}
+
+
     </div>
   );
 };

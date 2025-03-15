@@ -24,15 +24,18 @@ const FarmerLogin = () => {
       });
 
       const data = await response.json();
-
       if (data.success) {
-        alert("✅ Login Successful! Redirecting to dashboard...");
+        localStorage.setItem("farmerID", data.farmer_id);
+        localStorage.setItem("farmerName", data.full_name); // ✅ Store full name
+        console.log("Stored Farmer Name:", data.full_name); // Debug log
+        window.alert("✅ Login Successful! Redirecting to dashboard...");
         setTimeout(() => navigate("/farmer-dashboard"), 1000);
       } else {
-        alert(`⚠️ Login Failed: ${data.message}`);
+        window.alert(`Login Failed: ${data.message}`);
       }
     } catch (error) {
-      alert("❌ Error connecting to server. Please try again later.");
+      console.error("Login Error:", error);
+      window.alert("Error connecting to server. Please try again later.");
     }
   };
 

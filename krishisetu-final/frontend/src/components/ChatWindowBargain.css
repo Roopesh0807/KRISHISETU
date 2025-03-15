@@ -1,48 +1,26 @@
+/* Chat Window Container */
 .chat-window {
   display: flex;
   flex-direction: column;
-  width: 1080px; /* Increased width */
-  height: 700px; /* Increased height */
+  height: 90vh; /* Increase height to fit everything on one screen */
+  width: 95%; /* Increase width to 95% of the screen */
+  max-width: 1200px; /* Wider for desktop */
+  margin: 20px auto; /* Center the chat window */
   border: 1px solid #ccc;
-  border-radius: 12px;
+  border-radius: 8px;
   overflow: hidden;
-  background-color: #fff;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  animation: fadeIn 0.5s ease-in-out;
-  margin-left: 28%;
-  position: fixed;
-  margin-bottom: 40px;
-  margin-top: 20px;
-}
-.chat-window-container {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background-color:white;
-  margin-left: 10px;
-  height: calc(100vh - 55px); /* Adjust height to account for margin-top */
-}
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  background-color: #f9f9f9;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Add shadow for depth */
 }
 
+/* Chat Header */
 .chat-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 15px;
-  background-color: #0073b1;
-  color: #fff;
-  border-bottom: 1px solid #ccc;
-
+  background-color: #4CAF50;
+  color: white;
 }
 
 .chat-header-content {
@@ -51,11 +29,10 @@
 }
 
 .avatar {
-  width: 50px;
+  width: 50px; /* Slightly larger avatar for desktop */
   height: 50px;
   border-radius: 50%;
-  margin-right: 10px;
-  border: 2px solid #fff;
+  margin-right: 15px;
 }
 
 .member-info {
@@ -64,33 +41,32 @@
 }
 
 .member-name {
+  width:200px;
   font-weight: bold;
-  font-size: 1.2em; /* Slightly larger font */
+  font-size: 1.2em; /* Larger font for desktop */
+  color: black; /* Font color set to black */
+  margin-bottom: 5px; /* Space between name and ID */
 }
 
-.member-status {
+.member-id {
   font-size: 0.9em;
-  color: #ddd;
+  color: black; /* Font color set to black */
 }
 
 .close-button {
   background: none;
   border: none;
-  color: #fff;
-  font-size: 1.5em;
+  color: white;
+  font-size: 1.5em; /* Larger close button for desktop */
   cursor: pointer;
-  transition: transform 0.2s ease;
 }
 
-.close-button:hover {
-  transform: scale(1.1);
-}
-
+/* Chat Messages */
 .chat-messages {
-  flex: 1;
+  flex: 1; /* Takes up most of the space */
   padding: 15px;
   overflow-y: auto;
-  background-color: #f9f9f9;
+  background-color: #fff;
   display: flex;
   flex-direction: column;
   gap: 10px; /* Space between messages */
@@ -98,84 +74,70 @@
 
 .no-messages {
   text-align: center;
-  color: #666;
-  font-size: 1.1em;
-  margin-top: 20px;
+  color: #888;
+  font-style: italic;
 }
 
 .message {
-  max-width: 80%;
-  padding: 10px;
-  border-radius: 12px;
-  animation: slideIn 0.3s ease-in-out;
-}
-
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  padding: 10px 15px;
+  border-radius: 8px;
+  max-width: 70%;
 }
 
 .message.sent {
-  background-color: #0073b1;
-  color: #fff;
+  background-color: #4CAF50;
+  color: white;
   align-self: flex-end;
 }
 
 .message.received {
-  background-color: #e1e1e1;
-  color: #fff;
+  background-color: #e0e0e0;
+  color: black;
   align-self: flex-start;
 }
 
 .message-text {
   word-wrap: break-word;
-  font-size: 1em; /* Slightly larger font */
 }
 
 .message-timestamp {
-  font-size: 0.75em;
+  font-size: 0.8em;
   color: #666;
   margin-top: 5px;
 }
 
+/* Chat Suggestions */
 .chat-suggestions {
-  display: flex;
-  flex-direction: column;
-  padding: 10px;
-  background-color: #fff;
+  padding: 10px; /* Reduced padding */
+  background-color: #f1f1f1;
   border-top: 1px solid #ccc;
+  max-height: 120px; /* Reduced height for suggestions */
+  overflow-y: hidden; /* Remove scrollbar */
 }
 
 .chat-suggestions h4 {
-  margin-bottom: 5px;
-  font-size: 1.1em;
-  color: #0073b1;
+  margin: 0 0 10px 0; /* Reduced margin */
+  font-size: 1em; /* Smaller font for suggestions */
+  color: #333;
 }
 
 .suggestion-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr); /* 2 columns */
-  gap: 5px; /* Space between buttons */
+  grid-template-columns: repeat(2, 1fr); /* 2 columns for suggestions */
+  gap: 8px; /* Reduced gap between suggestions */
 }
 
 .suggestion-button {
-  padding: 5px;
-  background-color: #0073b1;
+  padding: 6px; /* Reduced padding */
+  background-color: #4CAF50;
+  color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 4px;
   cursor: pointer;
-  text-align: left;
-  font-size: 0.95em; /* Slightly larger font */
-  transition: background-color 0.3s ease, transform 0.2s ease;
+  text-align: center;
+  font-size: 0.8em; /* Smaller font for suggestions */
 }
 
 .suggestion-button:hover {
-  background-color: #d1d1d1;
-  transform: translateX(5px);
+  background-color: #45a049;
 }

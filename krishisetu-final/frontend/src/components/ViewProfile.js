@@ -43,8 +43,8 @@ const ViewProfile = () => {
               alt="Farmer"
               className="profile-image"
             />
-            <h3 className="profile-name">{profile.name || "Name"}</h3>
-            <p className="profile-id">ID: {profile.id || "N/A"}</p>
+            <h3 className="profile-name">Name: {profile.name }</h3>
+            <p className="profile-id">ID: {profile.id }</p>
           </div>
 
           <div className="profile-details">
@@ -53,19 +53,19 @@ const ViewProfile = () => {
               <h4 className="section-title">Personal Details</h4>
               <div className="detail-item">
                 <span className="detail-label">DOB:</span>
-                <span className="detail-value">{profile.dob || "N/A"}</span>
+                <span className="detail-value">{profile.dob }</span>
               </div>
               <div className="detail-item">
                 <span className="detail-label">Gender:</span>
-                <span className="detail-value">{profile.gender || "N/A"}</span>
+                <span className="detail-value">{profile.gender }</span>
               </div>
               <div className="detail-item">
                 <span className="detail-label">Contact No:</span>
-                <span className="detail-value">{profile.contact || "N/A"}</span>
+                <span className="detail-value">{profile.contact }</span>
               </div>
               <div className="detail-item">
                 <span className="detail-label">Aadhar No:</span>
-                <span className="detail-value">{profile.aadhar || "N/A"}</span>
+                <span className="detail-value">{profile.aadhar }</span>
               </div>
             </div>
 
@@ -74,25 +74,25 @@ const ViewProfile = () => {
               <h4 className="section-title">Farm Details</h4>
               <div className="detail-item">
                 <span className="detail-label">Farm Address:</span>
-                <span className="detail-value">{profile.farmAddress || "N/A"}</span>
+                <span className="detail-value">{profile.farmAddress}</span>
               </div>
               <div className="detail-item">
                 <span className="detail-label">Residential Address:</span>
                 <span className="detail-value">
-                  {profile.residentialAddress || "N/A"}
+                  {profile.residentialAddress }
                 </span>
               </div>
               <div className="detail-item">
                 <span className="detail-label">Farm Size:</span>
-                <span className="detail-value">{profile.farmSize || "N/A"}</span>
+                <span className="detail-value">{profile.farmSize}</span>
               </div>
               <div className="detail-item">
                 <span className="detail-label">Types of Crops Grown:</span>
-                <span className="detail-value">{profile.cropsGrown || "N/A"}</span>
+                <span className="detail-value">{profile.cropsGrown }</span>
               </div>
               <div className="detail-item">
                 <span className="detail-label">Farming Method:</span>
-                <span className="detail-value">{profile.farmingMethod || "N/A"}</span>
+                <span className="detail-value">{profile.farmingMethod }</span>
               </div>
             </div>
 
@@ -107,7 +107,7 @@ const ViewProfile = () => {
                       Download
                     </a>
                   ) : (
-                    "N/A"
+                    ""
                   )}
                 </span>
               </div>
@@ -119,7 +119,7 @@ const ViewProfile = () => {
                       Download
                     </a>
                   ) : (
-                    "N/A"
+                    ""
                   )}
                 </span>
               </div>
@@ -130,15 +130,15 @@ const ViewProfile = () => {
               <h4 className="section-title">Banking Details</h4>
               <div className="detail-item">
                 <span className="detail-label">Bank Account No:</span>
-                <span className="detail-value">{profile.bankAccount || "N/A"}</span>
+                <span className="detail-value">{profile.bankAccount }</span>
               </div>
               <div className="detail-item">
                 <span className="detail-label">UPI ID:</span>
-                <span className="detail-value">{profile.upiId || "N/A"}</span>
+                <span className="detail-value">{profile.upiId }</span>
               </div>
               <div className="detail-item">
                 <span className="detail-label">IFSC Code:</span>
-                <span className="detail-value">{profile.IFSCcode || "N/A"}</span>
+                <span className="detail-value">{profile.IFSCcode }</span>
               </div>
             </div>
           </div>

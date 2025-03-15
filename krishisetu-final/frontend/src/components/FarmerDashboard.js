@@ -4,6 +4,7 @@ import { Line } from "react-chartjs-2";
 import { useTranslation } from "react-i18next"; // Import translation hook
 import "./../styles/FarmerDashboard.css";
 import LanguageSwitcher from "./LanguageSwitcher";
+import { useNavigate } from "react-router-dom";
 
 import {
   Chart as ChartJS,
@@ -24,26 +25,49 @@ const Dashboard = () => {
   const [priceComparison, setPriceComparison] = useState([]);
   const [farmerName, setFarmerName] = useState("");
   const [forecast, setForecast] = useState([]); // 4-day weather forecast
+  const navigate = useNavigate();
+
+
+  useEffect(() => {
+    const storedName = localStorage.getItem("farmerName");
+    console.log("Retrieved Farmer Name from Storage:", storedName); // Debug log
+
+    if (!storedName || storedName === "undefined") {
+      alert("Session expired. Please log in again.");
+      navigate("/farmer-login");
+    } else {
+      setFarmerName(storedName);
+    }
+  }, [navigate]);
 
   // ✅ Fetch Farmer Name
-  useEffect(() => {
-    const fetchFarmerDetails = async () => {
-      try {
-        const email = localStorage.getItem("farmerEmail"); // Fetch email from localStorage
-        if (!email) return;
+const fetchFarmerDetails = async () => {
+    const farmer_id = localStorage.getItem("farmerID");
 
-        const response = await axios.get(`http://localhost:5000/api/getFarmerDetails?email=${email}`);
+    if (!farmer_id) {
+      console.error("No farmer ID found in localStorage");
+      alert("Please log in again!");
+      return;
+    }
 
-        if (response.data.success) {
-          setFarmerName(response.data.farmerName);
-        }
-      } catch (error) {
-        console.error("Error fetching farmer details:", error);
+    try {
+      const response = await axios.get(`http://localhost:5000/api/getFarmerDetails?farmer_id=${farmer_id}`);
+      if (response.data.success) {
+        setFarmerName(response.data.farmerName);
+      } else {
+        console.error("Failed to fetch farmer details:", response.data.message);
       }
-    };
+    } catch (error) {
+      console.error("Error fetching farmer details:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchFarmerDetails();
+  useEffect(() => {
+    fetchFarmerDetails(); // Call the function to fetch data on component mount
   }, []);
+
 
   // ✅ Fetch Weather Data and Forecast
   useEffect(() => {
@@ -144,7 +168,7 @@ const Dashboard = () => {
       <div className="main-dashboard">
         <div className="dashboard-content">
           {/* Welcome Message */}
-          <h2>{t("welcome")}, {farmerName ? farmerName : t("farmer")}</h2>
+          <h2>Welcome, {farmerName || "Farmer"} </h2>
           <LanguageSwitcher />
 
           {/* 🌤 Weather Forecast Section */}

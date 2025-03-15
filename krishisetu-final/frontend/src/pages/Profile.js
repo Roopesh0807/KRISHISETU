@@ -1,308 +1,308 @@
 import React, { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import axios from "axios";
 import "./../styles/Profile.css";
 
-const Profile = ({ userId }) => {
-  const [profilePic, setProfilePic] = useState(null);
-  const [formData, setFormData] = useState({
-    email: "",
-    contact: "",
-    adharNo: "",
-    residentialAddress: "",
-    bankAccountNo: "",
-    ifscCode: "",
-    upiId: "",
-    AdharProof: "",
+const Profile = () => {
+  const { farmer_id } = useParams();
+  const [activeTab, setActiveTab] = useState("personal");
+  const [profilePhoto, setProfilePhoto] = useState(null);
+  const [editPersonal, setEditPersonal] = useState(false);
+  const [editFarm, setEditFarm] = useState(false);
+
+  // Personal Details State
+  const [personalDetails, setPersonalDetails] = useState({
     dob: "",
     gender: "",
-    farmAddress: "",
-    farmSize: "",
-    typesOfCrops: "",
-    farmingMethod: "",
-    soilType: "",
-    waterResources: "",
-    farmEquipment: "",
-    LandOwnerShipProof: "",
-    photoofFarm: "",
-    LandLeaseProof: "",
-    certifications: "",
+    contact_no: "",
+    aadhaar_no: "",
+    residential_address: "",
+    bank_account_no: "",
+    ifsc_code: "",
+    bank_branch: "",
+    upi_id: "",
   });
 
-  const [activeTab, setActiveTab] = useState("personal");
-  const [isEditingPersonal, setIsEditingPersonal] = useState(false);
-  const [isEditingFarm, setIsEditingFarm] = useState(false);
-  const [errors, setErrors] = useState({});
+  // Farm Details State
+  const [farmDetails, setFarmDetails] = useState({
+    farm_address: "",
+    farm_size: "",
+    crops_grown: "",
+    farming_method: "",
+    soil_type: "",
+    water_sources: "",
+    farm_equipment: "",
+    land_ownership_proof_pdf: null,
+    certification_pdf: null,
+    land_lease_agreement_pdf: null,
+    farm_photographs_pdf: null,
+  });
 
   useEffect(() => {
-    const fetchUserDetails = async () => {
-      try {
-        const response = await axios.get(`/api/getUserDetails/${userId}`);
-        setFormData(response.data);
-      } catch (error) {
-        console.error("Error fetching user details:", error);
-      }
-    };
-    if (userId) {
-      fetchUserDetails();
-    }
-  }, [userId]);
+    if (!farmer_id) return;
 
-  const handleInputChange = (e) => {
+    axios.get(`http://localhost:5000/farmer/${farmer_id}/personal-details`)
+        .then((res) => setPersonalDetails(res.data))
+        .catch((err) => console.error("Error fetching personal details:", err));
+
+    axios.get(`/farmer/${farmer_id}/farm-details`)
+        .then((res) => setFarmDetails(res.data))
+        .catch((err) => console.error("Error fetching farm details:", err));
+
+    axios.get(`/farmer/${farmer_id}/profile-photo`)
+        .then((res) => setProfilePhoto(res.data.photo))
+        .catch((err) => console.error("Error fetching profile photo:", err));
+}, [farmer_id]);
+
+const handlePersonalChange = (e) => {
+  const { name, value } = e.target;
+  setPersonalDetails((prevDetails) => ({ ...prevDetails, [name]: value }));
+
+  if (name === "ifsc_code" && value.length === 11) {
+    fetchBranchDetails(value);
+  }
+};
+
+const fetchBranchDetails = async (ifsc) => {
+  try {
+    const res = await axios.get(`https://ifsc.razorpay.com/${ifsc}`);
+    setPersonalDetails((prevDetails) => ({
+      ...prevDetails,
+      bank_branch: res.data.BRANCH || "Branch Not Found",
+    }));
+  } catch (error) {
+    console.error("Invalid IFSC Code", error);
+    setPersonalDetails((prevDetails) => ({
+      ...prevDetails,
+      bank_branch: "Invalid IFSC Code",
+    }));
+  }
+};
+
+
+  const handleFarmChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-    setErrors({ ...errors, [name]: "" }); // Clear error on change
+    setFarmDetails({ ...farmDetails, [name]: value });
   };
 
-  const handleProfilePicChange = (e) => {
+  const handleFileUpload = async (e, fieldName) => {
     const file = e.target.files[0];
-    if (file) {
-      setProfilePic(URL.createObjectURL(file));
-    }
-  };
-
-  const handleRemoveProfilePic = () => {
-    setProfilePic(null);
-  };
-
-  const validatePersonalDetails = () => {
-    const newErrors = {};
-    if (!formData.dob) newErrors.dob = "Date of Birth is required";
-    if (!formData.gender) newErrors.gender = "Gender is required";
-    if (!formData.contact) newErrors.contact = "Contact No is required";
-    if (!formData.adharNo) newErrors.adharNo = "Aadhar No is required";
-    if (!formData.residentialAddress) newErrors.residentialAddress = "Residential Address is required";
-    if (!formData.bankAccountNo) newErrors.bankAccountNo = "Bank Account No is required";
-    if (!formData.ifscCode) newErrors.ifscCode = "IFSC Code is required";
-    if (!formData.upiId) newErrors.upiId = "UPI ID is required";
-    return newErrors;
-  };
-
-  const handleSavePersonalDetails = async () => {
-    const newErrors = validatePersonalDetails();
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
-
+    if (!file) return;
+  
+    const formData = new FormData();
+    formData.append("file", file);
+  
     try {
-      await axios.post("/api/updatepersonaldetails", {
-        user_id: userId,
-        ...formData,
+      const res = await axios.post(`/api/farmer/${farmer_id}/upload-file`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
-      setIsEditingPersonal(false);
-      alert("Personal Details Updated Successfully!");
+  
+      // Assuming the API returns the uploaded file URL
+      setFarmDetails((prevDetails) => ({
+        ...prevDetails,
+        [fieldName]: res.data.fileUrl || file.name, // Store file URL if available
+      }));
+  
+      alert("File uploaded successfully!");
     } catch (error) {
-      console.error("Error updating personal details:", error);
-      alert("Failed to update personal details.");
+      console.error("Error uploading file", error);
+      alert("Failed to upload file. Please try again.");
     }
-  };
+  };  
 
-  const validateFarmDetails = () => {
-    const newErrors = {};
-    if (!formData.farmAddress) newErrors.farmAddress = "Farm Address is required";
-    if (!formData.farmSize) newErrors.farmSize = "Farm Size is required";
-    if (!formData.typesOfCrops) newErrors.typesOfCrops = "Types of Crops is required";
-    if (!formData.farmingMethod) newErrors.farmingMethod = "Farming Method is required";
-    if (!formData.soilType) newErrors.soilType = "Soil Type is required";
-    if (!formData.waterResources) newErrors.waterResources = "Water Resources is required";
-    if (!formData.farmEquipment) newErrors.farmEquipment = "Farm Equipment is required";
-    return newErrors;
-  };
-
-  const handleSaveFarmDetails = async () => {
-    const newErrors = validateFarmDetails();
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
-
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+  
+    const formData = new FormData();
+    formData.append("photo", file);
+  
     try {
-      await axios.post("/api/updatefarmdetails", {
-        user_id: userId,
-        ...formData,
+      // Show preview before uploading
+      const previewURL = URL.createObjectURL(file);
+      setProfilePhoto(previewURL);
+  
+      const res = await axios.post(`/api/farmer/${farmer_id}/upload-photo`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
-      setIsEditingFarm(false);
-      alert("Farm Details Updated Successfully!");
+  
+      // Update with actual image URL from backend
+      if (res.data.photo) {
+        setProfilePhoto(res.data.photo);
+      } else {
+        alert("Failed to get uploaded photo URL.");
+      }
     } catch (error) {
-      console.error("Error updating farm details:", error);
-      alert("Failed to update farm details.");
+      console.error("Error uploading photo", error);
+      alert("Photo upload failed. Try again.");
     }
   };
+  const handleRemovePhoto = async () => {
+    try {
+      await axios.delete(`/api/farmer/${farmer_id}/remove-photo`);
+      setProfilePhoto(null); // Replace with a default image
+    } catch (error) {
+      console.error("Error removing photo", error);
+      alert("Failed to remove photo. Please try again.");
+    }
+  };
+  
 
-  const renderPersonalDetails = () => (
-    <div className="personal-details">
-      <h3>Personal Details</h3>
-      <div className="details-container">
-        <div className="details-box">
-          <p><strong>Date of Birth:</strong> {formData.dob}</p>
-          <p><strong>Gender:</strong> {formData.gender}</p>
-          <p><strong>Contact No:</strong> {formData.contact}</p>
-          <p><strong>Aadhar No:</strong> {formData.adharNo}</p>
-          <p><strong>Adhar proof:</strong> {formData.AdharProof}</p>
-          <p><strong>Residential Address:</strong> {formData.residentialAddress}</p>
-          <p><strong>Bank Account No:</strong> {formData.bankAccountNo}</p>
-          <p><strong>IFSC Code:</strong> {formData.ifscCode}</p>
-          <p><strong>UPI ID:</strong> {formData.upiId}</p>
-          <button onClick={() => setIsEditingPersonal(true)}>Edit Personal Details</button>
-        </div>
-      </div>
-    </div>
-  );
 
-  const renderPersonalDetailsForm = () => (
-    <div className="personal-details-form">
-      <h3>Edit Personal Details</h3>
-      <div className="details-container">
-        <div className="details-box">
-          <label>Date of Birth</label>
-          <input type="date" name="dob" value={formData.dob} onChange={handleInputChange} />
-          {errors.dob && <span className="error">{errors.dob}</span>}
+const handlePersonalSubmit = (e) => {
+    e.preventDefault();
+    console.log("Updating data for farmer_id:", farmer_id); // Debugging
 
-          <label>Gender</label>
-          <select name="gender" value={formData.gender} onChange={handleInputChange}>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-            <option value="Other">Other</option>
-          </select>
-          {errors.gender && <span className="error">{errors.gender}</span>}
+    if (!farmer_id) {
+        alert("Farmer ID is missing!");
+        return;
+    }
 
-          <label>Contact No</label>
-          <input type="text" name="contact" value={formData.contact} onChange={handleInputChange} />
-          {errors.contact && <span className="error">{errors.contact}</span>}
+    axios.put(`/api/farmer/${farmer_id}/personal-details`, personalDetails)
+        .then(() => setEditPersonal(false))
+        .catch((err) => console.error("Error updating personal details:", err));
+};
 
-          <label>Aadhar No</label>
-          <input type="text" name="adharNo" value={formData.adharNo} onChange={handleInputChange} />
-          {errors.adharNo && <span className="error">{errors.adharNo}</span>}
 
-          <label>Residential Address</label>
-          <textarea name="residentialAddress" value={formData.residentialAddress} onChange={handleInputChange} />
-          {errors.residentialAddress && <span className="error">{errors.residentialAddress}</span>}
-
-          <label>Bank Account No</label>
-          <input type="text" name="bankAccountNo" value={formData.bankAccountNo} onChange={handleInputChange} />
-          {errors.bankAccountNo && <span className="error">{errors.bankAccountNo}</span>}
-
-          <label>IFSC Code</label>
-          <input type="text" name="ifscCode" value={formData.ifscCode} onChange={handleInputChange} />
-          {errors.ifscCode && <span className="error">{errors.ifscCode}</span>}
-
-          <label>UPI ID</label>
-          <input type="text" name="upiId" value={formData.upiId} onChange={handleInputChange} />
-          {errors.upiId && <span className="error">{errors.upiId}</span>}
-
-          <button onClick={handleSavePersonalDetails}>Save</button>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderFarmDetails = () => (
-    <div className="farm-details">
-      <h3>Farm Details</h3>
-      <div className="details-container">
-        <div className="details-box">
-          <p><strong>Farm Address:</strong> {formData.farmAddress}</p>
-          <p><strong>Farm Size:</strong> {formData.farmSize}</p>
-          <p><strong>Types of Crops Grown:</strong> {formData.typesOfCrops}</p>
-          <p><strong>Farming Method:</strong> {formData.farmingMethod}</p>
-          <p><strong>Soil Type:</strong> {formData.soilType}</p>
-          <p><strong>Water Resources:</strong> {formData.waterResources}</p>
-          <p><strong>Farm Equipment:</strong> {formData.farmEquipment}</p>
-          <p><strong>Certifications:</strong> {formData.certifications}</p>
-          <p><strong>Land ownership proof:</strong> {formData.LandOwnerShipProof}</p>
-          <p><strong>Land lease agreement proof:</strong> {formData.LandLeaseProof}</p>
-          <p><strong>Photo of a farm:</strong> {formData.photoofFarm}</p>
-          <button onClick={() => setIsEditingFarm(true)}>Edit Farm Details</button>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderFarmDetailsForm = () => (
-    <div className="farm-details-form">
-      <h3>Edit Farm Details</h3>
-      <div className="details-container">
-        <div className="details-box">
-          <label>Farm Address</label>
-          <input type="text" name="farmAddress" value={formData.farmAddress} onChange={handleInputChange} />
-          {errors.farmAddress && <span className="error">{errors.farmAddress}</span>}
-
-          <label>Farm Size</label>
-          <input type="text" name="farmSize" value={formData.farmSize} onChange={handleInputChange} />
-          {errors.farmSize && <span className="error">{errors.farmSize}</span>}
-
-          <label>Types of Crops Grown</label>
-          <input type="text" name="typesOfCrops" value={formData.typesOfCrops} onChange={handleInputChange} />
-          {errors.typesOfCrops && <span className="error">{errors.typesOfCrops}</span>}
-
-          <label>Farming Method</label>
-          <input type="text" name="farmingMethod" value={formData.farmingMethod} onChange={handleInputChange} />
-          {errors.farmingMethod && <span className="error">{errors.farmingMethod}</span>}
-
-          <label>Soil Type</label>
-          <input type="text" name="soilType" value={formData.soilType} onChange={handleInputChange} />
-          {errors.soilType && <span className="error">{errors.soilType}</span>}
-
-          <label>Water Resources</label>
-          <input type="text" name="waterResources" value={formData.waterResources} onChange={handleInputChange} />
-          {errors.waterResources && <span className="error">{errors.waterResources}</span>}
-
-          <label>Farm Equipment</label>
-          <input type="text" name="farmEquipment" value={formData.farmEquipment} onChange={handleInputChange} />
-          {errors.farmEquipment && <span className="error">{errors.farmEquipment}</span>}
-
-          <label>Certifications</label>
-          <input type="text" name="certifications" value={formData.certifications} onChange={handleInputChange} />
-          {errors.certifications && <span className="error">{errors.certifications}</span>}
-
-          <button onClick={handleSaveFarmDetails}>Save</button>
-        </div>
-      </div>
-    </div>
-  );
+  const handleFarmSubmit = (e) => {
+    e.preventDefault();
+    axios.put(`/api/farmer/${farmer_id}/farm-details`, farmDetails).then(() => {
+      setEditFarm(false);
+    });
+  };
 
   return (
-    <div className="profile-page">
-      <div className="profile-content">
-        <h2>Farmer Profile</h2>
-
-        {/* Profile Picture Section */}
-        <div className="profile-pic-container">
-          {!profilePic ? (
-            <div className="no-photo-message">No photo uploaded</div>
+    <div className="profile-container">
+      <h2>Farmer Profile</h2>
+      <div className="profile-photo-section">
+        <div className="profile-photo-wrapper">
+          {profilePhoto ? (
+            <img src={profilePhoto} alt="Profile" className="profile-photo" />
           ) : (
-            <img src={profilePic} alt="Profile" className="profile-img" />
+            <div className="placeholder-photo">No Photo</div>
           )}
         </div>
-
-        {/* Photo Options */}
-        <div className="photo-options-container">
-          {!profilePic ? (
-            <div className="photo-options">
-              <input type="file" accept="image/*" onChange={handleProfilePicChange} id="upload-photo" style={{ display: "none" }} />
-              <label htmlFor="upload-photo" className="upload-btn">Upload Photo</label>
-            </div>
+        <input type="file" id="fileInput" onChange={handlePhotoChange} accept="image/*" hidden />
+        <div className="photo-buttons">
+          {!profilePhoto ? (
+            <label htmlFor="fileInput" className="upload-btn">Upload Photo</label>
           ) : (
-            <div className="photo-options">
-              <button onClick={handleRemoveProfilePic} className="remove-btn">Remove Photo</button>
-              <input type="file" accept="image/*" onChange={handleProfilePicChange} id="change-photo" style={{ display: "none" }} />
-              <label htmlFor="change-photo" className="change-btn">Change Photo</label>
-            </div>
+            <>
+              <label htmlFor="fileInput" className="change-btn">Change Photo</label>
+              <button className="remove-btn" onClick={handleRemovePhoto}>Remove Photo</button>
+            </>
           )}
         </div>
-
-        {/* Tabs */}
-        <div className="tabs">
-          <button onClick={() => setActiveTab("personal")} className={activeTab === "personal" ? "active" : ""}>Personal Details</button>
-          <button onClick={() => setActiveTab("farm")} className={activeTab === "farm" ? "active" : ""}>Farm Details</button>
-        </div>
-
-        {/* Personal Details Section */}
-        {activeTab === "personal" && (isEditingPersonal ? renderPersonalDetailsForm() : renderPersonalDetails())}
-
-        {/* Farm Details Section */}
-        {activeTab === "farm" && (isEditingFarm ? renderFarmDetailsForm() : renderFarmDetails())}
       </div>
+
+      <div className="tab-buttons">
+        <button onClick={() => setActiveTab("personal")} className={activeTab === "personal" ? "active" : ""}>
+          Personal Details
+        </button>
+        <button onClick={() => setActiveTab("farm")} className={activeTab === "farm" ? "active" : ""}>
+          Farm Details
+        </button>
+      </div>
+
+      {/* Personal Details Section */}
+      {activeTab === "personal" && (
+        <div className="profile-form">
+          <h3>Personal Details</h3>
+          {!editPersonal ? (
+            <div>
+              <p>Date of Birth: {personalDetails.dob}</p>
+              <p>Gender: {personalDetails.gender}</p>
+              <p>Contact No: {personalDetails.contact_no}</p>
+              <p>Aadhaar No: {personalDetails.aadhaar_no}</p>
+              <p>Residential Address: {personalDetails.residential_address}</p>
+              <p>IFSC Code: {personalDetails.ifsc_code}</p>
+              <p>Bank Branch: {personalDetails.bank_branch}</p>
+              <button onClick={() => setEditPersonal(true)}>Edit</button>
+            </div>
+          ) : (
+            <form onSubmit={handlePersonalSubmit}>
+              <input type="date" name="dob" value={personalDetails.dob} onChange={handlePersonalChange} required />
+              <select name="gender" value={personalDetails.gender} onChange={handlePersonalChange} required>
+                <option value="">Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+              <input type="text" name="contact_no" placeholder="Contact No" value={personalDetails.contact_no} onChange={handlePersonalChange} required />
+              <input type="text" name="aadhaar_no" placeholder="Aadhaar No" value={personalDetails.aadhaar_no} onChange={handlePersonalChange} required />
+              <textarea name="residential_address" placeholder="Residential Address" value={personalDetails.residential_address} onChange={handlePersonalChange} required />
+              <input 
+  type="text"
+  name="ifsc_code"
+  placeholder="IFSC Code"
+  value={personalDetails.ifsc_code}
+  onChange={handlePersonalChange}
+  onBlur={() => fetchBranchDetails(personalDetails.ifsc_code)} // Fetch on blur
+  required
+/>
+
+              <input type="text" name="bank_branch" placeholder="Bank Branch" value={personalDetails.bank_branch} disabled />
+              <button type="submit">Save</button>
+              <button type="button" onClick={() => setEditPersonal(false)}>Cancel</button>
+            </form>
+          )}
+        </div>
+      )}
+
+      {/* Farm Details Section */}
+      {activeTab === "farm" && (
+        <div className="profile-form">
+          <h3>Farm Details</h3>
+          {!editFarm ? (
+            <div>
+              <p>Farm Address: {farmDetails.farm_address}</p>
+              <p>Farm Size: {farmDetails.farm_size}</p>
+              <p>Crops Grown: {farmDetails.crops_grown}</p>
+              <p>Farming Method: {farmDetails.farming_method}</p>
+              <p>Soil Type: {farmDetails.soil_type}</p>
+              <p>Water Sources: {farmDetails.water_sources}</p>
+              <p>Farm Equipment: {farmDetails.farm_equipment}</p>
+              <p>Land Ownership Proof: {farmDetails.land_ownership_proof_pdf ? "Uploaded" : "Not Uploaded"}</p>
+              <p>Certification: {farmDetails.certification_pdf ? "Uploaded" : "Not Uploaded"}</p>
+              <p>Land Lease Agreement: {farmDetails.land_lease_agreement_pdf ? "Uploaded" : "Not Uploaded"}</p>
+              <p>Farm Photographs: {farmDetails.farm_photographs_pdf ? "Uploaded" : "Not Uploaded"}</p>
+              <button onClick={() => setEditFarm(true)}>Edit</button>
+            </div>
+          ) : (
+            <form onSubmit={handleFarmSubmit}>
+              <input type="text" name="farm_address" placeholder="Farm Address" value={farmDetails.farm_address} onChange={handleFarmChange} required />
+              <input type="text" name="farm_size" placeholder="Farm Size (acres)" value={farmDetails.farm_size} onChange={handleFarmChange} required />
+              <textarea name="crops_grown" placeholder="Crops Grown" value={farmDetails.crops_grown} onChange={handleFarmChange} required />
+              <input type="text" name="farming_method" placeholder="Farming Method" value={farmDetails.farming_method} onChange={handleFarmChange} required />
+              <input type="text" name="soil_type" placeholder="Soil Type" value={farmDetails.soil_type} onChange={handleFarmChange} required />
+              <input type="text" name="water_sources" placeholder="Water Sources" value={farmDetails.water_sources} onChange={handleFarmChange} required />
+              <input type="text" name="farm_equipment" placeholder="Farm Equipment" value={farmDetails.farm_equipment} onChange={handleFarmChange} required />
+              <div>
+                <label>Land Ownership Proof:</label>
+                <input type="file" onChange={(e) => handleFileUpload(e, "land_ownership_proof_pdf")} />
+                {farmDetails.land_ownership_proof_pdf && <span>Uploaded</span>}
+              </div>
+              <div>
+                <label>Certification:</label>
+                <input type="file" onChange={(e) => handleFileUpload(e, "certification_pdf")} />
+                {farmDetails.certification_pdf && <span>Uploaded</span>}
+              </div>
+              <div>
+                <label>Land Lease Agreement:</label>
+                <input type="file" onChange={(e) => handleFileUpload(e, "land_lease_agreement_pdf")} />
+                {farmDetails.land_lease_agreement_pdf && <span>Uploaded</span>}
+              </div>
+              <div>
+                <label>Farm Photographs:</label>
+                <input type="file" onChange={(e) => handleFileUpload(e, "farm_photographs_pdf")} />
+                {farmDetails.farm_photographs_pdf && <span>Uploaded</span>}
+              </div>
+              <button type="submit">Save</button>
+              <button type="button" onClick={() => setEditFarm(false)}>Cancel</button>
+            </form>
+          )}
+        </div>
+      )}
     </div>
   );
 };

@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import logo from "../assets/logo.jpg";
 import "./Navbar3.css";
+import { AuthContext } from "../context/AuthContext";
 
 const Navbar3 = () => {
+  const { consumer } = useContext(AuthContext);
+  console.log("Consumer from AuthContext:", consumer);
+  const consumer_id = consumer ? consumer.consumer_id : null;
   const [isHovered, setIsHovered] = useState(null);
   const location = useLocation();
-
   const handleMouseEnter = (index) => setIsHovered(index);
   const handleMouseLeave = () => setIsHovered(null);
 
@@ -30,8 +33,8 @@ const Navbar3 = () => {
         </li>
         <li>
           <Link
-            to="/consumerprofile"
-            className={`navbar-link ${isHovered === 2 ? 'hover' : ''} ${isActive("/consumerprofile") ? 'active' : ''}`}
+             to={`/consumerprofile/${consumer_id}`} 
+            className={`navbar-link ${isHovered === 2 ? 'hover' : ''} ${isActive(`/consumerprofile/${consumer_id}`) ? 'active' : ''}`}
             onMouseEnter={() => handleMouseEnter(2)}
             onMouseLeave={handleMouseLeave}>
             Profile
@@ -39,8 +42,8 @@ const Navbar3 = () => {
         </li>
         <li>
           <Link
-            to="/bargain_consumer"
-            className={`navbar-link ${isHovered === 3 ? 'hover' : ''} ${isActive("/bargain_consumer") ? 'active' : ''}`}
+            to="/bargain"
+            className={`navbar-link ${isHovered === 3 ? 'hover' : ''} ${isActive("/bargain") ? 'active' : ''}`}
             onMouseEnter={() => handleMouseEnter(3)}
             onMouseLeave={handleMouseLeave}>
             Bargain

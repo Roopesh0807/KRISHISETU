@@ -1,66 +1,65 @@
 .krishisetu-container {
-    padding: 20px;
-    max-width: 700px;
-    margin: 0 auto;
-  }
-  
-  .krishisetu-container h2 {
-    text-align: center;
-    color: #e67e22;
-  }
-  
-  .krishisetu-container form {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    margin-bottom: 20px;
-  }
-  
-  .krishisetu-container label {
-    font-size: 16px;
-    color: #333;
-  }
-  
-  .krishisetu-container input {
-    padding: 10px;
-    font-size: 16px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-  }
-  
-  .krishisetu-container button {
-    background-color: #e67e22;
-    color: white;
-    padding: 10px 20px;
-    border: none;
-    cursor: pointer;
-    font-size: 16px;
-    border-radius: 5px;
-    transition: background-color 0.3s;
-  }
-  
-  .krishisetu-container button:hover {
-    background-color: #d35400;
-  }
-  
-  .krishisetu-container h3 {
-    margin-top: 20px;
-    color: #333;
-  }
-  
-  .krishisetu-container ul {
-    list-style-type: none;
-    padding: 0;
-  }
-  
-  .krishisetu-container ul li {
-    padding: 10px;
-    background-color: #f9f9f9;
-    margin: 5px 0;
-    border-radius: 5px;
-  }
-  
-  .krishisetu-container ul li:nth-child(even) {
-    background-color: #fce6e0;
-  }
-  
+  padding: 20px;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.krishisetu-container h2 {
+  text-align: center;
+  color: #e67e22;
+}
+
+.krishisetu-container form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.krishisetu-container label {
+  font-size: 16px;
+  color: #333;
+}
+
+.krishisetu-container input {
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.krishisetu-container button {
+  background-color: #e67e22;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  border-radius: 5px;
+  transition: background-color 0.3s;
+}
+
+.krishisetu-container button:hover {
+  background-color: #d35400;
+}
+
+.krishisetu-container h3 {
+  margin-top: 20px;
+  color: #333;
+}
+
+.krishisetu-container ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.krishisetu-container ul li {
+  padding: 10px;
+  background-color: #f9f9f9;
+  margin: 5px 0;
+  border-radius: 5px;
+}
+
+.krishisetu-container ul li:nth-child(even) {
+  background-color: #fce6e0;
+}

@@ -1,81 +1,77 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import './ChatWindowBargain.css';
 
-const ChatWindow = ({ farmer = {}, onClose }) => {
-  const [messages, setMessages] = useState([]);
-  const messagesEndRef = useRef(null);
+const ChatWindow = ({ farmer_id, full_name, farmer_photo, price, quantity, onClose }) => {
+  const [priceSuggestions, setPriceSuggestions] = useState([]);
+  
 
-  const suggestionMessages = [
-    "Hi, I'm interested in your product. Can we discuss the price?",
-    "Is there any discount for bulk orders?",
-    "Can you include delivery charges in the final price?",
-    "I’m a regular customer. Can you offer a better deal?",
-    "What’s the best price you can offer for this product?",
-    "Can you provide a sample before I place the order?",
-    "I’m comparing prices from other sellers. Can you match a lower price?",
-    "Can you offer a discount if I pay in advance?",
-    "I’m ready to place the order if we can agree on a fair price.",
-    "Thank you for your offer. I’ll get back to you after comparing with other sellers.",
-  ];
-
-  const handleSuggestionClick = (message) => {
-    setMessages([...messages, { text: message, sender: 'You', timestamp: new Date().toLocaleTimeString() }]);
-  };
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
+  // Generate price suggestions when product & quantity are selected
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (price && !isNaN(price)) {
+      const basePrice = parseFloat(price);
+      const suggestions = [
+        (basePrice * 0.93).toFixed(2), // 7% below
+        (basePrice * 0.97).toFixed(2), // 3% below
+        (basePrice * 1.03).toFixed(2), // 3% above
+        (basePrice * 1.07).toFixed(2), // 7% above
+      ];
+      setPriceSuggestions(suggestions);
+    } else {
+      console.error("Invalid price value:", price);
+    }
+  }, [price]);
+
+  const handleAccept = () => {
+    console.log("Accepted price, adding to cart...");
+    // Here, implement logic to add product to cart
+  };
+
+  const handleReject = () => {
+    console.log("Rejected price, navigating to dashboard...");
+    // Implement navigation logic to dashboard
+  };
 
   return (
     <div className="chat-window">
       <div className="chat-header">
         <div className="chat-header-content">
-          <img src={farmer.avatar || 'default-avatar.png'} alt={farmer.name || 'User'} className="avatar" />
+          <img src={farmer_photo || 'default-avatar.png'} alt={full_name || 'User'} className="avatar" />
           <div className="member-info">
-            <span className="member-name">{farmer.name || 'Unknown User'}</span>
-            <span className="member-status">{farmer.status || 'Offline'}</span>
+            <span className="member-name">{full_name}</span>
+            <span className="member-id">ID: {farmer_id}</span>
           </div>
         </div>
-        <button className="close-button" onClick={onClose}>
-          &#10005; {/* "X" mark */}
-        </button>
+        <button className="close-button" onClick={onClose}>&#10005;</button>
       </div>
-      <div className="chat-messages">
-        {messages.length === 0 ? (
-          <div className="no-messages">No messages yet. Start the conversation!</div>
+
+      <div className="bargain-section">
+        <h4>Choose a Bargain Price</h4>
+        {priceSuggestions.length > 0 ? (
+          <div className="price-options">
+            {priceSuggestions.map((suggestion, index) => (
+              <button key={index} className="price-button">₹{suggestion}</button>
+            ))}
+          </div>
         ) : (
-          messages.map((message, index) => (
-            <div
-              key={index}
-              className={`message ${message.sender === 'You' ? 'sent' : 'received'}`}
-            >
-              <div className="message-text">{message.text}</div>
-              <div className="message-timestamp">{message.timestamp}</div>
-            </div>
-          ))
+          <p>Loading price suggestions...</p>
         )}
-        <div ref={messagesEndRef} />
-      </div>
-      <div className="chat-suggestions">
-        <h4>Quick Suggestions</h4>
-        <div className="suggestion-grid">
-          {suggestionMessages.map((message, index) => (
-            <button
-              key={index}
-              className="suggestion-button"
-              onClick={() => handleSuggestionClick(message)}
-            >
-              {message}
-            </button>
-          ))}
+        <div className="bargain-actions">
+          <button className="accept-button" onClick={handleAccept}>Accept</button>
+          <button className="reject-button" onClick={handleReject}>Reject</button>
         </div>
       </div>
     </div>
   );
+};
+
+ChatWindow.propTypes = {
+  farmer_id: PropTypes.string.isRequired,
+  full_name: PropTypes.string.isRequired,
+  farmer_photo: PropTypes.string,
+  price: PropTypes.number.isRequired,
+  quantity: PropTypes.number.isRequired,
+  onClose: PropTypes.func.isRequired,
 };
 
 export default ChatWindow;

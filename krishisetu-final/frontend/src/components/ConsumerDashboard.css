@@ -1,6 +1,6 @@
 
  /* Full-screen layout */
-.market-bargaining-container {
+ .market-bargaining-container {
   display: flex;
   margin-top: 60px;
   width: 96vw; /* Full screen width */
@@ -423,4 +423,101 @@ select option {
 /* Style for dropdown options on hover */
 select option:hover {
   background-color: #f0f0f0; /* Light gray background on hover */
+}
+
+/* Popup Background */
+.bargain-popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+/* Popup Box */
+.bargain-popup-content {
+  background: #fff;
+  padding: 20px;
+  width: 400px;
+  max-width: 90%;
+  border-radius: 10px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Popup Title */
+.bargain-popup-content h3 {
+  margin-bottom: 15px;
+  font-size: 18px;
+  color: #333;
+}
+
+/* Select Dropdown */
+.bargain-popup-content select {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 16px;
+}
+
+/* Input Field */
+.bargain-popup-content input {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 15px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 16px;
+}
+
+/* Buttons */
+.bargain-popup-content button {
+  width: 48%;
+  padding: 10px;
+  margin: 5px;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.3s ease-in-out;
+}
+
+/* Confirm Button */
+.bargain-popup-content button:first-of-type {
+  background: #28a745;
+  color: white;
+}
+
+.bargain-popup-content button:first-of-type:hover {
+  background: #218838;
+}
+
+/* Close Button */
+.bargain-popup-content button:last-of-type {
+  background: #dc3545;
+  color: white;
+}
+
+.bargain-popup-content button:last-of-type:hover {
+  background: #c82333;
+}
+
+/* Fade-in Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

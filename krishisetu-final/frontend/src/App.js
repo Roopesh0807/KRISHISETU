@@ -6,6 +6,7 @@ import Navbar2 from "./components/Navbar2";
 import Navbar3 from "./components/Navbar3";
 import Cart from "./components/Cart";
 import { CartProvider } from "./context/CartContext";
+import { AuthProvider } from "./context/AuthContext";
 import HomePage from "./components/Home"; 
 import ScrollSection from "./components/ScrollSection";  
 import Contact from "./components/Contact";  
@@ -16,17 +17,16 @@ import ConsumerLogin from "./pages/ConsumerLogin";
 import ConsumerRegister from "./pages/ConsumerRegister";
 import FarmerDashboard from "./components/FarmerDashboard";
 import ConsumerDashboard from "./components/ConsumerDashboard";
-import ProdDetail from "./components/ProduDetail";
 import FarmerProfile from "./components/FarmerDetails";
+import FarmerDetails from "./components/FarmerDetails";
 import ConsumerProfile from "./components/Consumer-profile";
 import Profile from "./pages/Profile";
 import OrderReview from "./pages/OrderReview";
 import BargainChat from "./components/BargainingChat";
-import Community from "./pages/Community";
 import Help from "./components/Help";
 import Subscription from "./components/Subscribe";
 import AddProduce from "./components/AddProduce"; 
-import ProduceList from "./components/ProductList";  
+import ProductDetails from "./components/ProductDetails"; 
 import Sidebar from "./components/Sidebar"; 
 import Payment from "./components/payment";
 import "./components/styles.css";
@@ -35,17 +35,22 @@ import Notifications from "./components/Notifications";
 import Feeds from "./components/Feeds";
 import OrderPage from "./components/OrderPage";
 import Bargain from "./components/BargainChatF";
+import BargainChatC from "./components/ChatWindowBargainF";
+import Bargaining from "./components/BargainingChat"
 import Chatbot from "./components/Chatbot"; // Import the Chatbot component
 
 function App() {
   return (
+    <AuthProvider>
     <CartProvider>
       <Router>
         <Main />
       </Router>
     </CartProvider>
+  </AuthProvider>
   );
 }
+
 
 const Main = () => {
   const location = useLocation();
@@ -65,8 +70,12 @@ const Main = () => {
       path.startsWith("/order-review") ||
       path.startsWith("/notifications") ||
       path.startsWith("/feeds") ||
+      path.startsWith("/consumerprof") ||
       path.startsWith("/bargain_farmer") ||
-      path.startsWith("/chat")
+      path.startsWith("/chat") ||
+    /\/profile\/[A-Za-z0-9]+/.test(path) ||
+    /\/farmer\/[A-Za-z0-9]+\/personal-details/.test(path) ||
+    /\/farmer\/[A-Za-z0-9]+\/farm-details/.test(path)  
     ) {
       return <Navbar2 />;
     }
@@ -74,13 +83,15 @@ const Main = () => {
     // Navbar3 for Consumer Pages
     if (
       path.startsWith("/consumer-dashboard") ||
-      path.startsWith("/product/") ||
+      /\/productDetails\/[A-Za-z0-9]+/.test(path) ||
+      /\/consumerprofile\/[A-Za-z0-9]+/.test(path) || // Matches alphanumeric consumer_id
+      /\/farmerDetails\/[A-Za-z0-9]+/.test(path) || // Matches alphanumeric farmer_id
       path.startsWith("/farmer/") ||
-      path.startsWith("/consumerprofile") ||
       path.startsWith("/payment") ||
       path.startsWith("/orderpage") ||
       path.startsWith("/cart") ||
       path.startsWith("/bargain_consumer") ||
+      path.startsWith("/bargain") ||
       path === "/subscribe"
     ) {
       return <Navbar3 />;
@@ -146,30 +157,32 @@ const Main = () => {
           <Route path="/consumer-dashboard" element={<ConsumerDashboard />} />
 
           {/* 🛒 Products & Farmer Details */}
-          <Route path="/ProdDetail" element={<ProdDetail />} />
           <Route path="/farmer" element={<FarmerProfile />} />
 
           {/* 🛍️ Subscriptions & Cart */}
           <Route path="/subscribe" element={<Subscription />} />
           <Route path="/cart" element={<Cart />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/consumerprofile" element={<ConsumerProfile />} />
-          <Route path="/bargain_consumer" element={<BargainChat />} />
-          <Route path="/bargain_farmer" element={<Bargain />} />
+          <Route path="/profile/:farmer_id" element={<Profile />} />
+          <Route path="/consumerprofile/:consumer_id" element={<ConsumerProfile />} />
+
+          <Route path="/bargain/:farmer_id" element={<BargainChat />} />
+          <Route path="/consumerprof/:consumer_id" element={<BargainChatC />} />
+          <Route path="/bargain" element = {<Bargaining />} />
+          <Route path="/consumerprof" element={<Bargain />} />
+
 
           {/* 👤 Profile, Orders, Bargain, Community & Support */}
           <Route path="/view-profile" element={<ViewProfile />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/order-review" element={<OrderReview />} />
           <Route path="/chat" element={<Bargain />} />
-          <Route path="/community" element={<Community />} />
           <Route path="/feeds" element={<Feeds />} />
           <Route path="/help" element={<Help />} />
 
           {/* 🌿 Farmer Features */}
           <Route path="/add-produce" element={<AddProduce />} />
-          <Route path="/product-list" element={<ProduceList />} />
-
+          <Route path="/productDetails/:product_id" element={<ProductDetails />} />
+          <Route path="/farmerDetails/:farmer_id" element={<FarmerDetails />} />
           {/* 🤖 Chatbot */}
           <Route path="/chatbot" element={<Chatbot />} />
 

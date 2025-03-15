@@ -4,6 +4,8 @@ import { FaSeedling, FaPlus, FaBell, FaUser, FaSignOutAlt } from 'react-icons/fa
 import logo from '../assets/logo.jpg';
 import './Navbar2.css';
 
+const farmer_id = localStorage.getItem("farmer_id");
+
 const Navbar2 = () => {
   const navigate = useNavigate();
 
@@ -38,7 +40,7 @@ const Navbar2 = () => {
         </Link>
 
         {/* Profile */}
-        <Link to="/profile" className="icon-link" title="Profile">
+        <Link to={`/profile/${farmer_id}`}className="icon-link" title="Profile">
           <FaUser className="icon" aria-label="Profile" />
           <span className="icon-text">Profile</span>
         </Link>

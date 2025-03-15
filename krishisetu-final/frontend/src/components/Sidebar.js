@@ -63,9 +63,9 @@ const Sidebar = () => {
             {isOpen && 'Order Review'}
           </button>
           <button
-            onClick={() => navigate('/bargain_farmer')}
+            onClick={() => navigate(`/consumerprof`)}
             title="Bargain"
-            className={isActive('/bargain_farmer') ? 'active' : ''}
+            className={isActive(`/consumerprof`)? 'active' : ''}
           >
             <i className="fas fa-handshake"></i>
             {isOpen && 'Bargain'}
