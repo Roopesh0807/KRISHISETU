@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Navbar3 from '../components/Navbar3.js'; // Import Navbar3
-//import "../styles/CommunityDetails.css";
+import "../styles/CommunityDetails.css";
 
 function CommunityDetails() {
   const location = useLocation();
@@ -97,12 +97,12 @@ function CommunityDetails() {
   };
 
   return (
-    <div className="community-details">
+    <div className="krishi-community-details">
       {/* Navbar3 Integrated */}
       <Navbar3 />
 
       {showInstructions ? (
-        <div className="instructions-popup">
+        <div className="krishi-instructions-popup">
           <h2>Welcome to Your Community!</h2>
           <p>Here’s how it works:</p>
           <ul>
@@ -113,27 +113,48 @@ function CommunityDetails() {
             <li>Payments must be completed two days before delivery.</li>
             <li>If a member delays payment, you can remove them.</li>
           </ul>
-          <button onClick={handleAgree}>OK, I Agree</button>
+          <button onClick={handleAgree} className="krishi-agree-button">OK, I Agree</button>
         </div>
       ) : (
-        <div className="form-container">
+        <div className="krishi-form-container">
           <h2>Community Details</h2>
-          <div className="input-group">
-            <input type="text" placeholder="Address" value={address} onChange={(e) => setAddress(e.target.value)} />
-            <input type="date" value={deliveryDate} min={new Date().toISOString().split('T')[0]} onChange={(e) => setDeliveryDate(e.target.value)} />
-            <input type="time" value={deliveryTime} onChange={(e) => setDeliveryTime(e.target.value)} />
+          <div className="krishi-input-group">
+            <input
+              type="text"
+              placeholder="Address"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              className="krishi-input"
+            />
+            <input
+              type="date"
+              value={deliveryDate}
+              min={new Date().toISOString().split('T')[0]}
+              onChange={(e) => setDeliveryDate(e.target.value)}
+              className="krishi-input"
+            />
+            <input
+              type="time"
+              value={deliveryTime}
+              onChange={(e) => setDeliveryTime(e.target.value)}
+              className="krishi-input"
+            />
           </div>
-          {error && <p className="error-message">{error}</p>}
-          <button onClick={handleSave}>Save</button>
-          {saved && <button onClick={handleViewCommunity}>View Community</button>}
+          {error && <p className="krishi-error-message">{error}</p>}
+          <button onClick={handleSave} className="krishi-save-button">Save</button>
+          {saved && (
+            <button onClick={handleViewCommunity} className="krishi-view-button">
+              View Community
+            </button>
+          )}
         </div>
       )}
 
-      {/* Krishisetu Branding Element
-      <div className="krishisetu-branding">
+      {/* Krishisetu Branding Element */}
+      <div className="krishi-branding">
         <img src="./src/assets/logo.png" alt="Krishisetu Logo" />
         <p>Empowering Communities, One Order at a Time</p>
-      </div> */}
+      </div>
     </div>
   );
 }

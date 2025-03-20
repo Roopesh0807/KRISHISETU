@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import Navbar3 from "../components/Navbar3.js"; // Import the Navbar3 component
-//import "../styles/OrderPage.css";
+import "../styles/OrderPageC.css";
 
 function OrderPage() {
   const { communityId } = useParams();

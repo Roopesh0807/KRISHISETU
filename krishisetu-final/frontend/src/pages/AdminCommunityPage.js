@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Navbar3 from "../components/Navbar3.js"; // Import Navbar3
 import { FaEdit } from "react-icons/fa"; // Import Edit Icon
-//import "../styles/AdminCommunityPage.css";
+import "../styles/AdminCommunityPage.css";
 
 function AdminCommunityPage() {
   const { communityId } = useParams();
@@ -138,21 +138,21 @@ function AdminCommunityPage() {
   };
 
   return (
-    <div className="admin-community-page">
+    <div className="krishi-admin-community-page">
       {/* Navbar3 Integrated */}
       <Navbar3 />
 
       {/* Main Content */}
-      <div className="main-content">
+      <div className="krishi-main-content">
         {/* Community Details Section */}
-        <div className="community-details-section">
-          <div className="header">
+        <div className="krishi-community-details-section">
+          <div className="krishi-header">
             <h1>Community Name: {community?.name}</h1>
-            <button className="edit-button" onClick={() => setShowEditForm(!showEditForm)}>
+            <button className="krishi-edit-button" onClick={() => setShowEditForm(!showEditForm)}>
               <FaEdit /> Edit
             </button>
           </div>
-          <div className="details">
+          <div className="krishi-details">
             <p><strong>Admin:</strong> {community?.admin_name}</p>
             <p><strong>Address:</strong> {community?.address}</p>
             <p><strong>Delivery Date:</strong> {community?.delivery_date}</p>
@@ -160,7 +160,7 @@ function AdminCommunityPage() {
           </div>
 
           {showEditForm && (
-            <div className="edit-details-form">
+            <div className="krishi-edit-details-form">
               <h3>Edit Community Details</h3>
               <input
                 type="text"
@@ -184,8 +184,8 @@ function AdminCommunityPage() {
         </div>
 
         {/* Members Section */}
-        <div className="members-section">
-          <div className="search-section">
+        <div className="krishi-members-section">
+          <div className="krishi-search-section">
             <input
               type="text"
               placeholder="Search members..."
@@ -194,29 +194,29 @@ function AdminCommunityPage() {
             />
           </div>
 
-          <div className="members-list">
+          <div className="krishi-members-list">
             {filteredMembers.map((member, index) => (
-              <div key={member.id || `${member.name}-${index}`} className="member-card">
+              <div key={member.id || `${member.name}-${index}`} className="krishi-member-card">
                 <p><strong>{member.name}</strong></p>
                 <p>{member.phone}</p>
-                <button className="remove-button" onClick={() => handleRemoveMember(member.id)}>
+                <button className="krishi-remove-button" onClick={() => handleRemoveMember(member.id)}>
                   Remove
                 </button>
               </div>
             ))}
           </div>
 
-          <div className="action-buttons">
-            <button className="add-member-button" onClick={() => setShowAddMemberForm(!showAddMemberForm)}>
+          <div className="krishi-action-buttons">
+            <button className="krishi-add-member-button" onClick={() => setShowAddMemberForm(!showAddMemberForm)}>
               {showAddMemberForm ? "Cancel" : "Add Member"}
             </button>
-            <button className="order-button" onClick={() => navigate(`/order/${communityId}`)}>
+            <button className="krishi-order-button" onClick={() => navigate(`/order/${communityId}`)}>
               Place Order
             </button>
           </div>
 
           {showAddMemberForm && (
-            <div className="add-member-form">
+            <div className="krishi-add-member-form">
               <h3>Add New Member</h3>
               <input
                 type="text"

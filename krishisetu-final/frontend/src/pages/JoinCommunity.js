@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-//import '../styles/JoinCommunity.css';
+import Navbar3 from '../components/Navbar3.js'; // Import Navbar3
+import '../styles/JoinCommunity.css';
 
 function JoinCommunity() {
   const [communityName, setCommunityName] = useState('');
@@ -60,27 +61,41 @@ function JoinCommunity() {
   };
 
   return (
-    <div className="join-community">
-      <input
-        type="text"
-        placeholder="Community Name"
-        value={communityName}
-        onChange={(e) => setCommunityName(e.target.value)}
-      />
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
-      <input
-        type="email"
-        placeholder="Your Email"
-        value={userEmail}
-        onChange={(e) => setUserEmail(e.target.value)}
-      />
-      {error && <p className="error-message">{error}</p>}
-      <button onClick={handleJoin}>Join</button>
+    <div className="krishi-join-community">
+      {/* Navbar3 Integrated */}
+      <Navbar3 />
+
+      <div className="krishi-form-container">
+        <h1>Join a Community</h1>
+        <p className="krishi-subtitle">Connect with your community and start ordering together!</p>
+        <div className="krishi-input-group">
+          <input
+            type="text"
+            placeholder="Community Name"
+            value={communityName}
+            onChange={(e) => setCommunityName(e.target.value)}
+            className="krishi-input"
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="krishi-input"
+          />
+          <input
+            type="email"
+            placeholder="Your Email"
+            value={userEmail}
+            onChange={(e) => setUserEmail(e.target.value)}
+            className="krishi-input"
+          />
+        </div>
+        {error && <p className="krishi-error-message">{error}</p>}
+        <button onClick={handleJoin} className="krishi-join-button">
+          Join Community
+        </button>
+      </div>
     </div>
   );
 }

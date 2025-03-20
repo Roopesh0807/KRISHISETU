@@ -71,7 +71,7 @@ const Navbar3 = () => {
           <Link
             to="/community-home"
             className={`navbar-link ${isHovered === 3 ? 'hover' : ''} ${isActive("/communityHome") ? 'active' : ''}`}
-            onMouseEnter={() => handleMouseEnter(3)}
+            onMouseEnter={() => handleMouseEnter(4)}
             onMouseLeave={handleMouseLeave}>
             Community Orders
           </Link>
@@ -80,7 +80,7 @@ const Navbar3 = () => {
           <Link
             to="/subscribe"
             className={`navbar-link ${isHovered === 4 ? 'hover' : ''} ${isActive("/subscribe") ? 'active' : ''}`}
-            onMouseEnter={() => handleMouseEnter(4)}
+            onMouseEnter={() => handleMouseEnter(5)}
             onMouseLeave={handleMouseLeave}>
             Subscription
           </Link>
@@ -89,7 +89,7 @@ const Navbar3 = () => {
           <Link
             to="/cart"
             className={`navbar-link ${isHovered === 5 ? 'hover' : ''} ${isActive("/cart") ? 'active' : ''}`}
-            onMouseEnter={() => handleMouseEnter(5)}
+            onMouseEnter={() => handleMouseEnter(6)}
             onMouseLeave={handleMouseLeave}
           >
             <div className="cart-container">

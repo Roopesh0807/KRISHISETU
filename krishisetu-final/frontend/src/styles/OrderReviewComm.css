@@ -1,0 +1,101 @@
+/* Order Review Container */
+.krishi-order-review {
+    padding-top: 80px; /* Adjust for fixed Navbar3 */
+    background-color: #f9fafb; /* Light background */
+    min-height: 100vh;
+    font-family: 'Poppins', sans-serif; /* Modern font */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(129, 199, 132, 0.1)),
+                url('https://images.unsplash.com/photo-1464226184884-fa280b87c399?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80'); /* Farm background */
+    background-size: cover;
+    background-position: center;
+  }
+  
+  /* Order Container */
+  .krishi-order-container {
+    background-color: rgba(255, 255, 255, 0.95); /* Semi-transparent white */
+    padding: 40px;
+    border-radius: 15px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    max-width: 1200px;
+    width: 100%;
+    text-align: center;
+    animation: fadeInUp 1s ease-in-out;
+  }
+  
+  .krishi-order-container h2 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #2e7d32; /* Dark green */
+    margin-bottom: 30px;
+  }
+  
+  /* Order Table */
+  .krishi-order-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+  }
+  
+  .krishi-order-table th,
+  .krishi-order-table td {
+    padding: 12px;
+    border: 1px solid #ddd;
+    text-align: center;
+  }
+  
+  .krishi-order-table th {
+    background-color: #4caf50; /* Green */
+    color: #fff;
+    font-weight: 600;
+  }
+  
+  .krishi-order-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+  }
+  
+  .krishi-order-table tr:hover {
+    background-color: #f1f1f1;
+  }
+  
+  /* Status Styling */
+  .krishi-status-fulfilled {
+    color: #28a745; /* Green */
+    font-weight: 600;
+  }
+  
+  .krishi-status-unfulfilled {
+    color: #dc3545; /* Red */
+    font-weight: 600;
+  }
+  
+  /* Animations */
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .krishi-order-container {
+      padding: 20px;
+    }
+  
+    .krishi-order-container h2 {
+      font-size: 2rem;
+    }
+  
+    .krishi-order-table th,
+    .krishi-order-table td {
+      padding: 8px;
+    }
+  }

@@ -1,0 +1,263 @@
+/* Admin Community Page Container */
+.krishi-admin-community-page {
+    padding-top: 80px; /* Adjust for fixed Navbar3 */
+    background-color: #f9fafb; /* Light background */
+    min-height: 100vh;
+    font-family: 'Poppins', sans-serif; /* Modern font */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+  }
+  
+  /* Main Content */
+  .krishi-main-content {
+    width: 100%;
+    max-width: 1200px;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+  }
+  
+  /* Community Details Section */
+  .krishi-community-details-section {
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    animation: fadeInUp 1s ease-in-out;
+  }
+  
+  .krishi-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  
+  .krishi-header h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #2e7d32; /* Dark green */
+  }
+  
+  .krishi-edit-button {
+    background-color: #4caf50; /* Green */
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+  }
+  
+  .krishi-edit-button:hover {
+    background-color: #388e3c; /* Darker green */
+    transform: translateY(-3px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  }
+  
+  .krishi-details p {
+    font-size: 1.1rem;
+    color: #444;
+    margin-bottom: 10px;
+  }
+  
+  .krishi-edit-details-form {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .krishi-edit-details-form input {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+  }
+  
+  .krishi-edit-details-form input:focus {
+    border-color: #4caf50; /* Green */
+    outline: none;
+    box-shadow: 0 0 8px rgba(76, 175, 80, 0.3);
+  }
+  
+  .krishi-edit-details-form button {
+    background-color: #4caf50; /* Green */
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .krishi-edit-details-form button:hover {
+    background-color: #388e3c; /* Darker green */
+    transform: translateY(-3px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  }
+  
+  /* Members Section */
+  .krishi-members-section {
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    animation: fadeInUp 1s ease-in-out;
+  }
+  
+  .krishi-search-section input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+    margin-bottom: 20px;
+    transition: border-color 0.3s ease;
+  }
+  
+  .krishi-search-section input:focus {
+    border-color: #4caf50; /* Green */
+    outline: none;
+    box-shadow: 0 0 8px rgba(76, 175, 80, 0.3);
+  }
+  
+  .krishi-members-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+  }
+  
+  .krishi-member-card {
+    background-color: #f9fafb;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+  }
+  
+  .krishi-member-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+  }
+  
+  .krishi-member-card p {
+    font-size: 1rem;
+    color: #444;
+    margin-bottom: 10px;
+  }
+  
+  .krishi-remove-button {
+    background-color: #dc3545; /* Red */
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .krishi-remove-button:hover {
+    background-color: #b02a37; /* Darker red */
+    transform: translateY(-3px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  }
+  
+  .krishi-action-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+  }
+  
+  .krishi-add-member-button,
+  .krishi-order-button {
+    background-color: #4caf50; /* Green */
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .krishi-add-member-button:hover,
+  .krishi-order-button:hover {
+    background-color: #388e3c; /* Darker green */
+    transform: translateY(-3px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  }
+  
+  .krishi-add-member-form {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .krishi-add-member-form input {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+  }
+  
+  .krishi-add-member-form input:focus {
+    border-color: #4caf50; /* Green */
+    outline: none;
+    box-shadow: 0 0 8px rgba(76, 175, 80, 0.3);
+  }
+  
+  .krishi-add-member-form button {
+    background-color: #4caf50; /* Green */
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .krishi-add-member-form button:hover {
+    background-color: #388e3c; /* Darker green */
+    transform: translateY(-3px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  }
+  
+  /* Animations */
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .krishi-header h1 {
+      font-size: 2rem;
+    }
+  
+    .krishi-details p {
+      font-size: 1rem;
+    }
+  
+    .krishi-members-list {
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+  
+    .krishi-action-buttons {
+      flex-direction: column;
+      gap: 10px;
+    }
+  }
