@@ -1,5 +1,5 @@
 /* Profile Container */
-.profile-container {
+.farmer-profile-container {
   max-width: 800px;
   margin: 20px auto;
   padding: 20px;
@@ -10,7 +10,7 @@
 }
 
 /* Tab Navigation */
-.profile-tabs {
+.farmer-profile-tabs {
   display: flex;
   justify-content: space-around;
   margin-bottom: 20px;
@@ -18,7 +18,7 @@
   padding-bottom: 10px;
 }
 
-.profile-tabs button {
+.farmer-profile-tabs button {
   background: #f4f4f4;
   border: none;
   padding: 12px 20px;
@@ -29,7 +29,7 @@
   outline: none;
 }
 
-.profile-tabs button.active {
+.farmer-profile-tabs button.active {
   background: #007bff;
   color: white;
   font-weight: bold;
@@ -37,7 +37,7 @@
 }
 
 /* Profile Forms */
-.profile-form {
+.farmer-profile-form {
   padding: 25px;
   border-radius: 5px;
   background: #f9f9f9;
@@ -46,7 +46,7 @@
 }
 
 /* Profile Form Heading */
-.profile-form h3 {
+.farmer-profile-form h3 {
   margin-bottom: 20px;
   color: #333;
   text-align: center;
@@ -55,17 +55,17 @@
 }
 
 /* Profile Form Inputs */
-.profile-form p,
-.profile-form label {
+.farmer-profile-form p,
+.farmer-profile-form label {
   font-size: 14px;
   font-weight: bold;
   margin-bottom: 5px;
   color: #555;
 }
 
-.profile-form input,
-.profile-form select,
-.profile-form textarea {
+.farmer-profile-form input,
+.farmer-profile-form select,
+.farmer-profile-form textarea {
   width: 100%;
   padding: 10px;
   margin: 8px 0;
@@ -75,12 +75,12 @@
   background: white;
 }
 
-.profile-form input:disabled {
+.farmer-profile-form input:disabled {
   background: #e9ecef;
 }
 
 /* Buttons */
-.profile-form button {
+.farmer-profile-form button {
   background: #007bff;
   color: white;
   padding: 10px 15px;
@@ -92,46 +92,121 @@
   transition: background 0.3s;
 }
 
-.profile-form button:hover {
+.farmer-profile-form button:hover {
   background: #0056b3;
 }
 
-.profile-form button[type="button"] {
+.farmer-profile-form button[type="button"] {
   background: #dc3545;
 }
 
-.profile-form button[type="button"]:hover {
+.farmer-profile-form button[type="button"]:hover {
   background: #b02a37;
 }
 
 /* File Uploads */
-.file-upload {
+.farmer-profile-file-upload {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.file-upload input {
+.farmer-profile-file-upload input {
   width: auto;
+}
+
+/* Profile Photo Section */
+.farmer-profile-photo-section {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.farmer-profile-photo-wrapper {
+  display: inline-block;
+  border-radius: 50%;
+  overflow: hidden;
+  width: 150px;
+  height: 150px;
+  border: 3px solid #007bff;
+}
+
+.farmer-profile-photo-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.placeholder-photo {
+  width: 100%;
+  height: 100%;
+  background: #f4f4f4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: #555;
+}
+
+.photo-buttons {
+  margin-top: 10px;
+}
+
+.upload-btn,
+.change-btn,
+.remove-btn {
+  padding: 8px 12px;
+  margin: 5px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.3s;
+}
+
+.upload-btn {
+  background: #007bff;
+  color: white;
+}
+
+.change-btn {
+  background: #28a745;
+  color: white;
+}
+
+.remove-btn {
+  background: #dc3545;
+  color: white;
+}
+
+.upload-btn:hover {
+  background: #0056b3;
+}
+
+.change-btn:hover {
+  background: #218838;
+}
+
+.remove-btn:hover {
+  background: #b02a37;
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .profile-container {
+  .farmer-profile-container {
     width: 90%;
   }
 
-  .profile-tabs {
+  .farmer-profile-tabs {
     flex-direction: column;
   }
 
-  .profile-tabs button {
+  .farmer-profile-tabs button {
     width: 100%;
     text-align: center;
     margin-bottom: 5px;
   }
 
-  .profile-form {
+  .farmer-profile-form {
     padding: 15px;
   }
 }
