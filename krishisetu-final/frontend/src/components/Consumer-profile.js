@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect,useContext, } from "react";
 import { useParams } from "react-router-dom";
+import { AuthContext } from "../context/AuthContext";
 import "./ConsumerProfile.css";
 
 const ConsumerProfile = () => {
-  const { consumer_id } = useParams();
+  
 
+  const { consumer } = useContext(AuthContext);
+  const { consumer_id } = useParams();
   const [profile, setProfile] = useState({
     consumer_id: "",
     name: "",
@@ -25,7 +28,7 @@ const ConsumerProfile = () => {
   // const [selectedFile, setSelectedFile] = useState(null);
   useEffect(() => {
     console.log("Consumer ID in useEffect:", consumer_id);
-
+  
     if (!consumer_id) {
       setError("Consumer ID is missing.");
       setLoading(false);
@@ -34,17 +37,17 @@ const ConsumerProfile = () => {
   
     const fetchProfile = async () => {
       try {
-        console.log("Fetching Profile for:", consumer_id);  // ✅ Debugging Log
+        console.log("Fetching Profile for:", consumer_id); // Debug log
   
         const response = await fetch(`http://localhost:5000/api/consumer/${consumer_id}`);
-        console.log("Response Status:", response.status);  // ✅ Debugging Log
+        console.log("Response Status:", response.status); // Debug log
   
         if (!response.ok) {
           throw new Error(`Failed to fetch profile: ${response.statusText}`);
         }
   
         const data = await response.json();
-        console.log("Fetched Data:", data);  // ✅ Debugging Log
+        console.log("Fetched Data:", data); // Debug log
   
         setProfile({
           ...data,
@@ -61,7 +64,6 @@ const ConsumerProfile = () => {
     fetchProfile();
   }, [consumer_id]);
   
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     setProfile((prevProfile) => ({ ...prevProfile, [name]: value }));
@@ -250,6 +252,9 @@ const ConsumerProfile = () => {
     }
 };
 
+useEffect(() => {
+  console.log("Current Consumer in AuthContext:", consumer);
+}, [consumer]);
 
 
   // Handle save button click
@@ -262,7 +267,7 @@ const ConsumerProfile = () => {
   if (error) return <p>Error: {error}</p>;
 
   return (
-    <div className="profile-container">
+    <div className="profile-container1">
       <h2>Consumer Profile</h2>
       <div className="profile-photo">
       {profile.photo ? (

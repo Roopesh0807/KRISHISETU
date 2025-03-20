@@ -7,14 +7,19 @@ import { useCart } from "../context/CartContext";
 
 const Navbar3 = () => {
   const { consumer } = useContext(AuthContext);
-  console.log("Consumer from AuthContext:", consumer);
-  const consumer_id = consumer ? consumer.consumer_id : null;
+  console.log("Navbar3 Consumer Data:", consumer); 
+
   const [isHovered, setIsHovered] = useState(null);
   const location = useLocation();
   const { cartCount } = useCart();
   const [, setCartCount] = useState(0);
   const handleMouseEnter = (index) => setIsHovered(index);
   const handleMouseLeave = () => setIsHovered(null);
+  const [, setConsumerState] = useState(consumer);
+
+useEffect(() => {
+  setConsumerState(consumer);
+}, [consumer]);
 
   const isActive = (path) => location.pathname === path;
      // 🔹 Fetch cart count from localStorage on component mount
@@ -50,13 +55,18 @@ const Navbar3 = () => {
           </Link>
         </li>
         <li>
+        {consumer?.consumer_id && (
           <Link
-             to={`/consumerprofile/${consumer_id}`} 
-            className={`navbar-link ${isHovered === 2 ? 'hover' : ''} ${isActive(`/consumerprofile/${consumer_id}`) ? 'active' : ''}`}
+            to={`/consumerprofile/${consumer.consumer_id}`}
+            className={`navbar-link ${isHovered === 2 ? 'hover' : ''} ${isActive(`/consumerprofile/${consumer.consumer_id}`) ? 'active' : ''}`}
             onMouseEnter={() => handleMouseEnter(2)}
-            onMouseLeave={handleMouseLeave}>
+            onMouseLeave={handleMouseLeave}
+          >
             Profile
           </Link>
+        )}
+
+
         </li>
         <li>
           <Link
@@ -96,6 +106,15 @@ const Navbar3 = () => {
               Cart
               {cartCount > 0 && <span className="cart-count">{cartCount}</span>}
             </div>
+          </Link>
+        </li>
+        <li>
+          <Link
+            to="/"
+            className={`navbar-link ${isHovered === 3 ? 'hover' : ''} ${isActive("/") ? 'active' : ''}`}
+            onMouseEnter={() => handleMouseEnter(3)}
+            onMouseLeave={handleMouseLeave}>
+            Logout
           </Link>
         </li>
 

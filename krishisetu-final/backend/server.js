@@ -613,89 +613,103 @@ app.get("/api/getFarmerDetails", async (req, res) => {
 
 
 
-// ✅ Consumer Registration API (Without Hashing)
+// ✅ Consumer Registration API (With Hashing)
+
+
 app.post("/api/consumerregister", async (req, res) => {
-console.log("Consumer Registration API Called ✅");  // Debugging
+    console.log("Consumer Registration API Called ✅");  // Debugging
 
-const { first_name, last_name, email, phone_number, password, confirm_password } = req.body;
+    const { first_name, last_name, email, phone_number, password, confirm_password } = req.body;
 
-if (!first_name || !last_name || !email || !phone_number || !password || !confirm_password) {
-    return res.status(400).json({ success: false, message: "All fields are required" });
-}
-
-if (password !== confirm_password) {
-    return res.status(400).json({ success: false, message: "Passwords do not match" });
-}
-
-try {
-    // ✅ Insert into database
-    const result = await queryDatabase(
-        `INSERT INTO consumerregistration (first_name, last_name, email, phone_number, password, confirm_password) 
-         VALUES (?, ?, ?, ?, ?, ?);`,
-        [first_name, last_name, email, phone_number, password, confirm_password]
-    );
-
-    if (result.affectedRows === 0) {
-        return res.status(500).json({ success: false, message: "Registration failed" });
+    // ✅ Check for missing fields
+    if (!first_name || !last_name || !email || !phone_number || !password || !confirm_password) {
+        return res.status(400).json({ success: false, message: "All fields are required" });
     }
 
-    // ✅ Fetch the correct consumer_id
-    const consumerData = await queryDatabase(
-        `SELECT consumer_id FROM consumerregistration WHERE email = ?`, 
-        [email]
-    );
-
-    if (consumerData.length === 0) {
-        return res.status(500).json({ success: false, message: "Consumer ID retrieval failed" });
+    // ✅ Check if passwords match
+    if (password !== confirm_password) {
+        return res.status(400).json({ success: false, message: "Passwords do not match" });
     }
 
-    const consumer_id = consumerData[0].consumer_id;
+    try {
+        // ✅ Hash the password before storing
+        const hashedPassword = await bcrypt.hash(password, 10);
 
-    res.json({ success: true, message: "Consumer registered successfully", consumer_id });
-} catch (err) {
-    res.status(500).json({ success: false, message: "Database error", error: err.message });
-}
+        // ✅ Insert into database (store only hashed password)
+        const result = await queryDatabase(
+            `INSERT INTO consumerregistration (first_name, last_name, email, phone_number, password) 
+             VALUES (?, ?, ?, ?, ?);`,
+            [first_name, last_name, email, phone_number, hashedPassword]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(500).json({ success: false, message: "Registration failed" });
+        }
+
+        // ✅ Fetch the correct consumer_id
+        const consumerData = await queryDatabase(
+            `SELECT consumer_id FROM consumerregistration WHERE email = ?`, 
+            [email]
+        );
+
+        if (consumerData.length === 0) {
+            return res.status(500).json({ success: false, message: "Consumer ID retrieval failed" });
+        }
+
+        const consumer_id = consumerData[0].consumer_id;
+
+        res.json({ success: true, message: "Consumer registered successfully", consumer_id });
+
+    } catch (err) {
+        console.error("❌ Registration Error:", err);
+        res.status(500).json({ success: false, message: "Database error", error: err.message });
+    }
 });
 
 
 
 
-// ✅ Consumer Login API
+// ✅ Consumer Login Route
 app.post("/api/consumerlogin", async (req, res) => {
-const { emailOrPhone, password } = req.body;
+  const { emailOrPhone, password } = req.body;
 
-try {
+  try {
+    console.log("🔹 Login request received for:", emailOrPhone);
+
     const results = await queryDatabase(
-        "SELECT * FROM consumerregistration WHERE email = ? OR phone_number = ?",
-        [emailOrPhone, emailOrPhone]
+      "SELECT * FROM consumerregistration WHERE email = ? OR phone_number = ?",
+      [emailOrPhone, emailOrPhone]
     );
 
-    console.log("Login Query Results:", results);
+    console.log("🔹 Login Query Results:", results);
 
     if (results.length === 0) {
-        return res.status(401).json({ success: false, message: "Invalid credentials" });
+      return res.status(401).json({ success: false, message: "Invalid credentials" });
     }
 
-    const user = results[0];
-    console.log("User Retrieved:", user);
+    const consumer = results[0];
+    console.log("🔹 Consumer Retrieved:", consumer);
 
-    // Debug password
+    // ✅ Check password (for hashed passwords)
+    const isPasswordValid = await bcrypt.compare(password, consumer.password);
     console.log("Entered Password:", password);
-    console.log("Stored Password:", user.password);
+    console.log("Stored Password (Hashed):", consumer.password);
+    console.log("Password Match:", isPasswordValid);
 
-    // Check password
-    if (!user.password || password !== user.password) {
-        return res.status(401).json({ success: false, message: "Invalid password" });
+    if (!isPasswordValid) {
+      return res.status(401).json({ success: false, message: "Invalid password" });
     }
 
-    res.json({ success: true, message: "Login successful", user });
-} catch (err) {
-    console.error("Login Error:", err);
+    // ✅ Remove password before sending response
+    delete consumer.password;
+
+    res.json({ success: true, message: "Login successful", consumer });
+
+  } catch (err) {
+    console.error("❌ Login Error:", err);
     res.status(500).json({ success: false, message: "Database error", error: err.message });
-}
+  }
 });
-
-
 // ✅ Logout API (Clears JWT Cookie)
 app.post("/api/logout", (req, res) => {
   res.clearCookie("token");
@@ -963,6 +977,19 @@ app.get('/api/farmer/details/:farmer_id', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch farmer details' });
   }
 });
+app.post("/api/login", async (req, res) => {
+  const user = await findConsumer(req.body.email);
+  if (user) {
+    res.json({ 
+      consumer_id: user.id, 
+      name: user.name, 
+      email: user.email 
+    }); // ✅ Ensure `consumer_id` is sent
+  } else {
+    res.status(401).json({ message: "Invalid credentials" });
+  }
+});
+
 app.get("/api/products/:product_id", async (req, res) => {
   try {
     const { product_id } = req.params;
@@ -1003,21 +1030,20 @@ app.get("/api/product/:product_id", async (req, res) => {
   }
 });
 
-
-
-
 app.get('/api/farmer-profile', async (req, res) => {
   try {
-      const { rows } = await pool.query('SELECT * FROM farmerprofile WHERE farmer_id = $1', [1]); // Assuming you want to fetch profile for user_id = 1
-      res.json(rows[0]);
-  } catch (err) {
-      console.error(err);
-      res.status(500).send('Server error');
+    const farmerId = 1; // Change this to dynamic ID as needed
+    const result = await queryDatabase('SELECT * FROM farmerprofile WHERE farmer_id = $1', [farmerId]);
+
+    if (result.length === 0) {
+      return res.status(404).json({ message: 'Farmer profile not found' });
+    }
+
+    res.json(result[0]);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
   }
 });
-
-
-
 // ✅ **Get Consumer Profile by consumer_id**
 // ✅ Get Consumer Profile by consumer_id using queryDatabase
 // ✅ Get Consumer Profile by consumer_id using queryDatabase
