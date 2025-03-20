@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-//import "../styles/OrderPage.css";
+import Navbar3 from "../components/Navbar3.js"; // Import Navbar3
+import "../styles/OrderPageC.css";
 
 function MemberOrderPage() {
   const { communityId, memberId } = useParams();
@@ -49,57 +50,64 @@ function MemberOrderPage() {
   }
 
   return (
-    <div className="order-page">
-      <button className="back-btn" onClick={() => navigate("/krishisetu")}>
-        Back to Krishisetu
-      </button>
+    <div className="krishi-member-order-page">
+      {/* Navbar3 Integrated */}
+      <Navbar3 />
 
-      <h2>Order Details</h2>
+      <div className="krishi-order-container">
+        <button className="krishi-back-btn" onClick={() => navigate("/krishisetu")}>
+          Back to Krishisetu
+        </button>
 
-      <div className="order-summary">
-        <p><strong>Community Name:</strong> {orderDetails.communityName}</p>
-        <p><strong>Admin Name:</strong> {orderDetails.adminName}</p>
-        <p><strong>Address:</strong> {orderDetails.address}</p>
-        <p><strong>Delivery Date:</strong> {orderDetails.deliveryDate}</p>
-        <p><strong>Delivery Time:</strong> {orderDetails.deliveryTime}</p>
-      </div>
+        <h2>Order Details</h2>
 
-      <div className="member-details">
-        <h3>Member Details</h3>
-        <p><strong>Name:</strong> {orderDetails.memberName}</p>
-        <p><strong>Phone:</strong> {orderDetails.memberPhone}</p>
-      </div>
+        {/* Order Summary Section */}
+        <div className="krishi-order-summary">
+          <p><strong>Community Name:</strong> {orderDetails.communityName}</p>
+          <p><strong>Admin Name:</strong> {orderDetails.adminName}</p>
+          <p><strong>Address:</strong> {orderDetails.address}</p>
+          <p><strong>Delivery Date:</strong> {orderDetails.deliveryDate}</p>
+          <p><strong>Delivery Time:</strong> {orderDetails.deliveryTime}</p>
+        </div>
 
-      {/* Your Orders Section First */}
-      <div className="member-orders">
-        <h3>Your Orders</h3>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Product</th>
-              <th>Quantity</th>
-              <th>Price</th>
-            </tr>
-          </thead>
-          <tbody>
-            {orderDetails.orders.map((order) => (
-              <tr key={order.orderId}>
-                <td>{order.product}</td>
-                <td>{order.quantity}</td>
-                <td>${order.price}</td>
+        {/* Member Details Section */}
+        <div className="krishi-member-details">
+          <h3>Member Details</h3>
+          <p><strong>Name:</strong> {orderDetails.memberName}</p>
+          <p><strong>Phone:</strong> {orderDetails.memberPhone}</p>
+        </div>
+
+        {/* Your Orders Section */}
+        <div className="krishi-member-orders">
+          <h3>Your Orders</h3>
+          <table className="krishi-table">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Quantity</th>
+                <th>Price</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {orderDetails.orders.map((order) => (
+                <tr key={order.orderId}>
+                  <td>{order.product}</td>
+                  <td>{order.quantity}</td>
+                  <td>${order.price}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
-      {/* Payment Summary After Orders */}
-      <div className="payment-summary">
-        <h3>Payment Summary</h3>
-        <p><strong>Total:</strong> ${orderDetails.total}</p>
-        <p><strong>Discount:</strong> ${orderDetails.discount}</p>
-        <p><strong>Payment Amount:</strong> ${orderDetails.paymentAmount}</p>
-        <p><strong>Payment Status:</strong> {orderDetails.paymentStatus}</p>
+        {/* Payment Summary Section */}
+        <div className="krishi-payment-summary">
+          <h3>Payment Summary</h3>
+          <p><strong>Total:</strong> ${orderDetails.total}</p>
+          <p><strong>Discount:</strong> ${orderDetails.discount}</p>
+          <p><strong>Payment Amount:</strong> ${orderDetails.paymentAmount}</p>
+          <p><strong>Payment Status:</strong> {orderDetails.paymentStatus}</p>
+        </div>
       </div>
     </div>
   );

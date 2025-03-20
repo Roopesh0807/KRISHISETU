@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar3 from "../components/Navbar3.js"; // Import Navbar3
+import "../styles/CreateCommunity.css";
 
 function CreateCommunity() {
   const [name, setName] = useState("");
@@ -41,39 +42,65 @@ function CreateCommunity() {
   };
 
   return (
-    <div className="create-community">
+    <div className="krishi-create-community">
       {/* Navbar3 Integrated */}
       <Navbar3 />
 
-      <div className="form-container">
-        <h1>Create a New Community</h1>
-        <p className="subtitle">Bring people together and start something amazing!</p>
-        <input
-          type="text"
-          placeholder="Community Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <input
-          type="password"
-          placeholder="Confirm Password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-        />
-        <input
-          type="text"
-          placeholder="User ID"
-          value={userId}
-          onChange={(e) => setUserId(e.target.value)}
-        />
-        {error && <p className="error-message">{error}</p>}
-        <button onClick={handleCreate}>Create Community</button>
+      <div className="krishi-form-container">
+        <div className="krishi-form-header">
+          <h1>Create a New Community</h1>
+          <p className="krishi-subtitle">Bring people together and start something amazing!</p>
+        </div>
+        <div className="krishi-form-body">
+          <div className="krishi-input-group">
+            <label htmlFor="name">Community Name</label>
+            <input
+              type="text"
+              id="name"
+              placeholder="Enter community name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="krishi-input"
+            />
+          </div>
+          <div className="krishi-input-group">
+            <label htmlFor="password">Password</label>
+            <input
+              type="password"
+              id="password"
+              placeholder="Enter password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="krishi-input"
+            />
+          </div>
+          <div className="krishi-input-group">
+            <label htmlFor="confirmPassword">Confirm Password</label>
+            <input
+              type="password"
+              id="confirmPassword"
+              placeholder="Confirm password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="krishi-input"
+            />
+          </div>
+          <div className="krishi-input-group">
+            <label htmlFor="userId">User ID</label>
+            <input
+              type="text"
+              id="userId"
+              placeholder="Enter your user ID"
+              value={userId}
+              onChange={(e) => setUserId(e.target.value)}
+              className="krishi-input"
+            />
+          </div>
+          {error && <p className="krishi-error-message">{error}</p>}
+          <button onClick={handleCreate} className="krishi-create-button">
+            Create Community
+          </button>
+        </div>
       </div>
     </div>
   );

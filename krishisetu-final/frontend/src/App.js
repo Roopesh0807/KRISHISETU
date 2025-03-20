@@ -104,6 +104,7 @@ const Main = () => {
       path.startsWith("/cart") ||
       path.startsWith("/bargain_consumer") ||
       path.startsWith("/bargain") ||
+      path.startsWith("/community-home") ||
       path === "/subscribe"
     ) {
       return <Navbar3 />;
@@ -125,7 +126,7 @@ const Main = () => {
       path.startsWith("/add-produce") ||
       path.startsWith("/profile") ||
       path.startsWith("/help") ||
-      path.startsWith("/community") ||
+      //path.startsWith("/community") ||
       path.startsWith("/view-profile") ||
       path.startsWith("/order-review") ||
       path.startsWith("/notifications") ||

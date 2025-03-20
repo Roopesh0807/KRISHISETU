@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-//import "../styles/MemberCommunity.css";
+import Navbar3 from "../components/Navbar3.js"; // Import Navbar3
+import "../styles/MemberCommunity.css";
 
 function MemberCommunityPage() {
   const { communityId } = useParams();
@@ -44,10 +45,14 @@ function MemberCommunityPage() {
   );
 
   return (
-    <div className="community-page">
+    <div className="krishi-member-community-page">
+      {/* Navbar3 Integrated */}
+      <Navbar3 />
+
       {showInstructions ? (
-        <div className="instructions-popup">
-          <p>Instructions for the community...</p>
+        <div className="krishi-instructions-popup">
+          <h2>Welcome to Your Community!</h2>
+          <p>Here’s how it works:</p>
           <ul>
             <li>Enjoy exclusive offers and reduced delivery costs.</li>
             <li>Admin can add or remove members anytime.</li>
@@ -57,34 +62,53 @@ function MemberCommunityPage() {
             <li>Payments must be made two days before delivery.</li>
             <li>If unpaid, you can remove your cart, or the admin can remove you.</li>
           </ul>
-          <button onClick={handleAgree}>OK, I Agree</button>
+          <button onClick={handleAgree} className="krishi-agree-button">OK, I Agree</button>
         </div>
       ) : (
-        <>
-          <h1>{community?.name}</h1>
-          <p>Admin: {community?.admin_name}</p>
-          <p>Address: {community?.address}</p>
-          <p>Delivery Date: {community?.delivery_date}</p>
-          <p>Delivery Time: {community?.delivery_time}</p>
-
-          <div className="buttons">
-            <button onClick={() => navigate(`/order/${communityId}/member/${localStorage.getItem("userId")}`)}>Order</button>
-            <button onClick={() => navigate("/")}>Back to Krishisetu</button>
+        <div className="krishi-main-content">
+          {/* Community Details Section */}
+          <div className="krishi-community-details">
+            <h1>{community?.name}</h1>
+            <p><strong>Admin:</strong> {community?.admin_name}</p>
+            <p><strong>Address:</strong> {community?.address}</p>
+            <p><strong>Delivery Date:</strong> {community?.delivery_date}</p>
+            <p><strong>Delivery Time:</strong> {community?.delivery_time}</p>
           </div>
 
-          <div className="search-section">
-            <input type="text" placeholder="Search members..." value={searchQuery} onChange={handleSearch} />
+          {/* Action Buttons */}
+          <div className="krishi-action-buttons">
+            <button
+              onClick={() => navigate(`/order/${communityId}/member/${localStorage.getItem("userId")}`)}
+              className="krishi-order-button"
+            >
+              Place Order
+            </button>
+            <button onClick={() => navigate("/")} className="krishi-back-button">
+              Back to Krishisetu
+            </button>
           </div>
 
-          <div className="members-list">
+          {/* Search Section */}
+          <div className="krishi-search-section">
+            <input
+              type="text"
+              placeholder="Search members..."
+              value={searchQuery}
+              onChange={handleSearch}
+              className="krishi-search-input"
+            />
+          </div>
+
+          {/* Members List */}
+          <div className="krishi-members-list">
             {filteredMembers.map((member, index) => (
-              <div key={member.id || index} className="member">
-                <p>{member.name}</p>
+              <div key={member.id || index} className="krishi-member-card">
+                <p><strong>{member.name}</strong></p>
                 <p>{member.phone}</p>
               </div>
             ))}
           </div>
-        </>
+        </div>
       )}
     </div>
   );

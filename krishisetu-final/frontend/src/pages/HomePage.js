@@ -1,46 +1,56 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar3 from '../components/Navbar3.js'; // Import Navbar3
-//import '../styles/HomePage.css';
+import '../styles/HomePage.css';
 
 function HomePage() {
   const navigate = useNavigate();
 
   return (
-    <div className="home-page">
+    <div className="krishi-home-page">
       {/* Navbar3 Integrated */}
       <Navbar3 />
 
       {/* Hero Section */}
-      <div className="hero-section">
-        
-        <h1>Welcome to Community Orders</h1>
-        <p className="subtitle">Your Gateway to Seamless Group Purchasing</p>
-        <div className="button-container">
-          <button onClick={() => navigate('/join-community')} className="cta-button">
-            Join a Community
-          </button>
-          <button onClick={() => navigate('/create-community')} className="cta-button">
-            Create a Community
-          </button>
+      <div className="krishi-hero-section">
+        <div className="krishi-hero-content">
+          <h1>Welcome to KrishiSetu</h1>
+          <p className="krishi-subtitle">Empowering Farmers, Connecting Communities</p>
+          <div className="krishi-button-container">
+            <button onClick={() => navigate('/join-community')} className="krishi-cta-button">
+              Join a Community
+            </button>
+            <button onClick={() => navigate('/create-community')} className="krishi-cta-button">
+              Create a Community
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Features Section */}
-      <div className="features-section">
-        <h2>Why Choose Community Orders?</h2>
-        <div className="features-grid">
-          <div className="feature-card">
-            <h3>Group Discounts</h3>
-            <p>Enjoy exclusive discounts by pooling orders with your community.</p>
+      <div className="krishi-features-section">
+        <h2>Why Choose KrishiSetu?</h2>
+        <div className="krishi-features-grid">
+          <div className="krishi-feature-card">
+            <div className="krishi-feature-icon">
+              <i className="fas fa-tractor"></i> {/* Font Awesome icon */}
+            </div>
+            <h3>Farm-to-Table</h3>
+            <p>Directly connect with farmers and get fresh produce at your doorstep.</p>
           </div>
-          <div className="feature-card">
-            <h3>Convenient Delivery</h3>
-            <p>Get your orders delivered to a single location for easy pickup.</p>
+          <div className="krishi-feature-card">
+            <div className="krishi-feature-icon">
+              <i className="fas fa-hand-holding-usd"></i> {/* Font Awesome icon */}
+            </div>
+            <h3>Fair Pricing</h3>
+            <p>Transparent pricing ensures farmers get their fair share.</p>
           </div>
-          <div className="feature-card">
-            <h3>Transparent Pricing</h3>
-            <p>No hidden costs—see exactly what you're paying for.</p>
+          <div className="krishi-feature-card">
+            <div className="krishi-feature-icon">
+              <i className="fas fa-users"></i> {/* Font Awesome icon */}
+            </div>
+            <h3>Community Support</h3>
+            <p>Join a network of farmers and consumers working together.</p>
           </div>
         </div>
       </div>
