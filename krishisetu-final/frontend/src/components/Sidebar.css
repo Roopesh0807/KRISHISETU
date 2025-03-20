@@ -22,8 +22,8 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  padding: 20px 10px;
-  gap: 15px; /* Spacing between buttons */
+  padding: 15px 10px; /* Reduced padding */
+  gap: 8px; /* Further reduced spacing between buttons */
 }
 
 /* Toggle Button */
@@ -33,9 +33,10 @@
   color: white;
   font-size: 24px;
   cursor: pointer;
-  margin-bottom: 20px;
+  margin-bottom: 15px; /* Reduced margin */
   align-self: flex-start; /* Align to the left */
   transition: color 0.3s ease;
+  padding: 0; /* Remove padding for better alignment */
 }
 
 .toggle-btn:hover {
@@ -49,12 +50,12 @@
   border: none;
   color: white;
   text-align: left;
-  padding: 10px 15px;
+  padding: 8px 12px; /* Reduced padding */
   font-size: 16px;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 15px; /* Space between icon and text */
+  gap: 12px; /* Reduced space between icon and text */
   border-radius: 4px;
   transition: background 0.3s ease, transform 0.2s ease;
 }
@@ -72,8 +73,9 @@
 
 /* Icons */
 .sidebar button i {
-  font-size: 24px; /* Larger icon size */
+  font-size: 20px; /* Slightly smaller icon size */
   min-width: 24px; /* Ensure consistent width */
+  text-align: center; /* Center icons */
 }
 
 /* Tooltip for collapsed buttons */
@@ -142,16 +144,18 @@
   }
 
   .sidebar-content {
-    padding: 15px 5px; /* Reduce padding for mobile */
+    padding: 10px 5px; /* Further reduced padding for mobile */
+    gap: 6px; /* Further reduced spacing for mobile */
   }
 
   .sidebar button {
-    padding: 8px 10px; /* Reduce button padding for mobile */
+    padding: 6px 10px; /* Further reduced button padding for mobile */
     font-size: 14px; /* Reduce font size for mobile */
+    gap: 10px; /* Further reduced space between icon and text for mobile */
   }
 
   .sidebar button i {
-    font-size: 20px; /* Reduce icon size for mobile */
+    font-size: 18px; /* Reduce icon size for mobile */
   }
 
   .sidebar:not(.open) button::after {

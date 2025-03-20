@@ -30,14 +30,14 @@ const Home = () => {
   return (
     <div>
       {/* Home Section */}
-      <section id="home" className="hero-section">
-        <div className="hero-text">
+      <section id="home" className="hero-section1">
+        <div className="hero-text1">
           <h1>
             {text}
             {showCursor && <span className="cursor">|</span>} {/* Blinking cursor */}
           </h1>
           <p>Revolutionizing the Farm-to-table journey</p>
-          <button className="login-btn" onClick={() => navigate("/LoginPage")}>
+          <button className="login-btnhome" onClick={() => navigate("/LoginPage")}>
             Log in
           </button>
         </div>

@@ -11,7 +11,7 @@ body {
 }
 
 /* Hero Section */
-.hero-section {
+.hero-section1 {
   position: relative;
   width: 100%;
   height: 100vh; /* Full viewport height */
@@ -28,13 +28,13 @@ body {
   perspective: 1000px; /* For 3D effects */
 }
 
-.hero-text {
+.hero-text1 {
   text-align: center;
   animation: fadeIn 2s ease-in-out;
   transform-style: preserve-3d; /* Enable 3D transformations */
 }
 
-.hero-text h1 {
+.hero-text1 h1 {
   font-size: 5rem;
   margin-bottom: 20px;
   font-weight: 700;
@@ -54,7 +54,7 @@ body {
   }
 }
 
-.hero-text p {
+.hero-text1 p {
   font-size: 1.5rem;
   margin-bottom: 40px;
   text-shadow: 1px 1px 5px rgba(0, 104, 21, 0.5);
@@ -62,22 +62,34 @@ body {
 }
 
 /* Login Button */
-.login-btn {
-  padding: 15px 40px;
+.login-btnhome {
+  padding: 10px 20px; /* Fixed padding */
   font-size: 1.2rem;
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  border-radius: 30px;
+  background-color: #4CAF50; /* Green background */
+  color: white; /* Text color */
+  border: none; /* Remove border */
+  border-radius: 30px; /* Rounded corners */
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
   animation: bounce 2s infinite;
   position: relative;
   overflow: hidden;
+  text-align: center;
+  display: inline-block; /* Ensure the button wraps around the text */
+  white-space: nowrap; /* Prevent text from wrapping */
+  width: 120px; /* Fixed width for the button */
 }
 
-.login-btn::before {
+/* Hover effect */
+.login-btnhome:hover {
+  background-color: #45a049; /* Darker green on hover */
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Ripple effect */
+.login-btnhome::before {
   content: '';
   position: absolute;
   top: 50%;
@@ -89,16 +101,11 @@ body {
   transition: transform 0.5s ease;
 }
 
-.login-btn:hover::before {
+.login-btnhome:hover::before {
   transform: translate(-50%, -50%) scale(1);
 }
 
-.login-btn:hover {
-  background-color: #45a049;
-  transform: scale(1.05);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-}
-
+/* Bounce animation */
 @keyframes bounce {
   0%, 100% {
     transform: translateY(0);
@@ -350,11 +357,11 @@ body {
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .hero-text h1 {
+  .hero-text1 h1 {
     font-size: 3rem;
   }
 
-  .hero-text p {
+  .hero-text1 p {
     font-size: 1.2rem;
   }
 

@@ -4,8 +4,6 @@ import { FaSeedling, FaPlus, FaBell, FaUser, FaSignOutAlt } from 'react-icons/fa
 import logo from '../assets/logo.jpg';
 import './Navbar2.css';
 
-const farmer_id = localStorage.getItem("farmer_id");
-
 const Navbar2 = () => {
   const navigate = useNavigate();
 
@@ -23,40 +21,42 @@ const Navbar2 = () => {
       </div>
 
       {/* Right Aligned: Icons */}
-      <div className="navbar-icons">
+      <ul className="navbar-icons">
         {/* Add Produce */}
-        <Link to="/add-produce" className="icon-link" title="Add Produce">
-          <div className="icon-container">
-            <FaSeedling className="icon" aria-label="Add Produce" />
-            <FaPlus className="plus-icon" aria-label="Add" />
-          </div>
-          <span className="icon-text">Add Produce</span>
-        </Link>
+        <li>
+          <Link to="/add-produce" className="icon-link" title="Add Produce">
+            <div className="icon-container">
+              <FaSeedling className="icon" aria-label="Add Produce" />
+              <FaPlus className="plus-icon" aria-label="Add" />
+            </div>
+            <span className="icon-text">Add Produce</span>
+          </Link>
+        </li>
 
         {/* Notifications */}
-        <Link to="/notifications" className="icon-link" title="Notifications">
-          <FaBell className="icon" aria-label="Notifications" />
-          <span className="icon-text">Notifications</span>
-        </Link>
+        <li>
+          <Link to="/notifications" className="icon-link" title="Notifications">
+            <FaBell className="icon" aria-label="Notifications" />
+            <span className="icon-text">Notifications</span>
+          </Link>
+        </li>
 
         {/* Profile */}
-        <Link to={`/farmer/${farmer_id}/profile`}className="icon-link" title="Profile">
-          <FaUser className="icon" aria-label="Profile" />
-          <span className="icon-text">Profile</span>
-        </Link>
-
-        {/* Feeds
-        <Link to="/feeds" className="icon-link" title="Feeds">
-          <FaRss className="icon" aria-label="Feeds" />
-          <span className="icon-text">Feeds</span>
-        </Link> */}
+        <li>
+          <Link to="/profile" className="icon-link" title="Profile">
+            <FaUser className="icon" aria-label="Profile" />
+            <span className="icon-text">Profile</span>
+          </Link>
+        </li>
 
         {/* Logout */}
-        <button className="icon-link" title="Logout" onClick={handleLogout}>
-          <FaSignOutAlt className="icon" aria-label="Logout" />
-          <span className="icon-text">Logout</span>
-        </button>
-      </div>
+        <li>
+          <button className="icon-link logout" title="Logout" onClick={handleLogout}>
+            <FaSignOutAlt className="icon" aria-label="Logout" />
+            <span className="icon-text">Logout</span>
+          </button>
+        </li>
+      </ul>
     </nav>
   );
 };

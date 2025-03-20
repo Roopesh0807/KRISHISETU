@@ -68,7 +68,7 @@ const Chatbot = ({ userType }) => {
     "assistance": "How can I assist you today?",
     "customer care": "Our customer care team is here to help. What do you need assistance with?",
     "farmer support": "I'm here to support farmers. How can I assist you?",
-    "contact": "You can contact us at support@krishisetu.com or call us at +91-1234567890.",
+    "contact": "You can contact us at support@krishisetu.com or call us at +91-6361334856.",
     "FAQ": "You can find answers to common questions in our FAQ section at https://krishisetu.com/faq.",
     "how does it work": "KrishiSetu is a platform that connects farmers and consumers. Farmers can list their products, and consumers can buy directly from them. How can I assist you further?",
     "KrishiSetu help": "I'm here to help with KrishiSetu. What do you need assistance with?",
