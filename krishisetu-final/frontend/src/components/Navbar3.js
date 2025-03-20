@@ -1,8 +1,9 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import logo from "../assets/logo.jpg";
 import "./Navbar3.css";
 import { AuthContext } from "../context/AuthContext";
+import { useCart } from "../context/CartContext";
 
 const Navbar3 = () => {
   const { consumer } = useContext(AuthContext);
@@ -10,11 +11,28 @@ const Navbar3 = () => {
   const consumer_id = consumer ? consumer.consumer_id : null;
   const [isHovered, setIsHovered] = useState(null);
   const location = useLocation();
+  const { cartCount } = useCart();
+  const [, setCartCount] = useState(0);
   const handleMouseEnter = (index) => setIsHovered(index);
   const handleMouseLeave = () => setIsHovered(null);
 
   const isActive = (path) => location.pathname === path;
-
+     // 🔹 Fetch cart count from localStorage on component mount
+     useEffect(() => {
+      const fetchCartCount = () => {
+        const cartItems = JSON.parse(localStorage.getItem("cart")) || [];
+        setCartCount(cartItems.length);
+      };
+  
+      fetchCartCount(); // Initial load
+  
+      // 🔹 Listen for 'cartUpdated' event
+      window.addEventListener("cartUpdated", fetchCartCount);
+  
+      return () => {
+        window.removeEventListener("cartUpdated", fetchCartCount);
+      };
+    }, []);
   return (
     <nav className="navbar3">
       <div className="logo">
@@ -51,6 +69,15 @@ const Navbar3 = () => {
         </li>
         <li>
           <Link
+            to="/communityHome"
+            className={`navbar-link ${isHovered === 3 ? 'hover' : ''} ${isActive("/communityHome") ? 'active' : ''}`}
+            onMouseEnter={() => handleMouseEnter(3)}
+            onMouseLeave={handleMouseLeave}>
+            Community Orders
+          </Link>
+        </li>
+        <li>
+          <Link
             to="/subscribe"
             className={`navbar-link ${isHovered === 4 ? 'hover' : ''} ${isActive("/subscribe") ? 'active' : ''}`}
             onMouseEnter={() => handleMouseEnter(4)}
@@ -63,10 +90,15 @@ const Navbar3 = () => {
             to="/cart"
             className={`navbar-link ${isHovered === 5 ? 'hover' : ''} ${isActive("/cart") ? 'active' : ''}`}
             onMouseEnter={() => handleMouseEnter(5)}
-            onMouseLeave={handleMouseLeave}>
-            Cart
+            onMouseLeave={handleMouseLeave}
+          >
+            <div className="cart-container">
+              Cart
+              {cartCount > 0 && <span className="cart-count">{cartCount}</span>}
+            </div>
           </Link>
         </li>
+
       </ul>
     </nav>
   );

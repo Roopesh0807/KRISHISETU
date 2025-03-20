@@ -773,6 +773,7 @@ app.get("/api/farmers", async (req, res) => {
     CONCAT('[', 
         GROUP_CONCAT(
             JSON_OBJECT(
+                'product_id', p.product_id,
                 'produce_name', p.produce_name,
                 'availability', p.availability,
                 'price_per_kg', p.price_per_kg,
@@ -793,34 +794,66 @@ GROUP BY f.farmer_id;
     res.status(500).json({ message: "Server error fetching farmers", error: err });
   }
 });
-
 app.get("/api/farmers/simple", async (req, res) => {
   try {
-    // Fetch data from the database using queryDatabase
+    // Fetch farmers and their associated products from the database
     const farmers = await queryDatabase(`
       SELECT 
         f.farmer_id, 
         CONCAT(f.first_name, ' ', f.last_name) AS name,  -- Combine first_name and last_name
-        fp.profile_photo  -- Fetch profile_photo from farmerprofile
+        fp.profile_photo,  -- Fetch profile_photo from farmerprofile
+        ap.product_id  -- Fetch product_id from add_produce table
       FROM farmerregistration f
-      JOIN farmerprofile fp ON f.farmer_id = fp.farmer_id;  -- Join farmerprofile table
+      JOIN farmerprofile fp ON f.farmer_id = fp.farmer_id  -- Join farmerprofile table
+      LEFT JOIN add_produce ap ON f.farmer_id = ap.farmer_id  -- Join add_produce table to get product_id
     `);
 
-    // Convert BLOB to Base64 and rename profile_photo to profilephoto
-    const farmersWithBase64Photos = farmers.map((farmer) => {
-      const { profile_photo, ...rest } = farmer; // Remove profile_photo from the farmer object
-      return {
-        ...rest, // Include all other fields
-        profilephoto: profile_photo && profile_photo.length > 0
-          ? `data:image/jpeg;base64,${profile_photo.toString('base64')}`
-          : null, // Add the new profilephoto field
-      };
-    });
+    // Group products by farmer_id
+    const farmersWithProducts = farmers.reduce((acc, farmer) => {
+      // Check if the farmer already exists in the accumulator
+      if (!acc[farmer.farmer_id]) {
+        acc[farmer.farmer_id] = {
+          ...farmer,  // Spread the farmer data
+          profilephoto: farmer.profile_photo && farmer.profile_photo.length > 0
+            ? `data:image/jpeg;base64,${farmer.profile_photo.toString('base64')}` 
+            : null,  // Convert the profile photo to base64
+          products: [],  // Initialize the products array for the farmer
+        };
+      }
 
-    res.json(farmersWithBase64Photos); // Send JSON response
+      // If the product_id exists, add it to the farmer's products array
+      if (farmer.product_id) {
+        acc[farmer.farmer_id].products.push(farmer.product_id);
+      }
+
+      return acc;
+    }, {});
+
+    // Convert the accumulator into an array
+    const result = Object.values(farmersWithProducts);
+
+    res.json(result); // Send the final array of farmers with their products
   } catch (err) {
     console.error("🔥 Error fetching simplified farmers:", err); // Log the full error object
     res.status(500).json({ message: "Server error fetching simplified farmers", error: err.message || err });
+  }
+});
+
+app.get('/api/get-produce-price/:product_id', async (req, res) => {
+  const { product_id } = req.params;
+  try {
+    const query = "SELECT price_per_kg FROM add_produce WHERE product_id = ?";
+    const result = await queryDatabase(query, [product_id]);
+
+    if (result.length > 0) {
+      res.json({ price_per_kg: result[0].price_per_kg });
+    } else {
+      console.warn("No produce found for product_id:", product_id);
+      res.status(404).json({ error: "Produce not found" });
+    }
+  } catch (error) {
+    console.error("Error fetching produce price:", error.message); // Detailed error logging
+    res.status(500).json({ error: "Internal Server Error", details: error.message });
   }
 });
 
@@ -922,6 +955,22 @@ app.get("/api/products/:product_id", async (req, res) => {
   }
 });
 
+
+app.get("/api/product/:product_id", async (req, res) => {
+  try {
+    const { product_id } = req.params;
+    const [product] = await db.query("SELECT product_name, price_1kg, image FROM products WHERE product_id = ?", [product_id]);
+
+    if (!product) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+
+    res.json(product);
+  } catch (error) {
+    console.error("Error fetching product details:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+});
 
 
 

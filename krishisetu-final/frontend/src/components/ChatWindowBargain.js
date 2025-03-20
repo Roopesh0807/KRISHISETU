@@ -46,7 +46,7 @@ const ChatWindow = ({ farmer_id, full_name, farmer_photo, price, quantity, onClo
       </div>
 
       <div className="bargain-section">
-        <h4>Choose a Bargain Price</h4>
+        <h4>Choose a Bargain Price (1 kg) </h4>
         {priceSuggestions.length > 0 ? (
           <div className="price-options">
             {priceSuggestions.map((suggestion, index) => (
@@ -54,7 +54,13 @@ const ChatWindow = ({ farmer_id, full_name, farmer_photo, price, quantity, onClo
             ))}
           </div>
         ) : (
-          <p>Loading price suggestions...</p>
+          <p className="price-buttons-container">
+  <button className="price-button">₹18</button>
+  <button className="price-button">₹19</button>
+  <button className="price-button">₹21</button>
+  <button className="price-button">₹22</button>
+</p>
+
         )}
         <div className="bargain-actions">
           <button className="accept-button" onClick={handleAccept}>Accept</button>

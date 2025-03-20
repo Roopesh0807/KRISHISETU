@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
-import './ChatWindowBargain.css';
+import './cbargain.css';
 
 const ConsumerChatWindow = () => {
   const { consumer_id } = useParams(); // Get consumer ID from URL
@@ -14,16 +14,16 @@ const ConsumerChatWindow = () => {
 
   // Predefined suggestion messages
   const suggestionMessages = [
-    "Hi, I'm interested in your product. Can we discuss the price?",
-    "Is there any discount for bulk orders?",
-    "Can you include delivery charges in the final price?",
-    "I’m a regular customer. Can you offer a better deal?",
-    "What’s the best price you can offer for this product?",
-    "Can you provide a sample before I place the order?",
-    "I’m comparing prices from other sellers. Can you match a lower price?",
-    "Can you offer a discount if I pay in advance?",
-    "I’m ready to place the order if we can agree on a fair price.",
-    "Thank you for your offer. I’ll get back to you after comparing with other sellers.",
+    "I specialize in organic produce. Can I offer you a fresh discount?",
+    "I grow my products without chemicals. Would you like to try them?",
+    "We offer great deals for bulk purchases. Let me know your quantity!",
+    "How about a special discount if you buy from me regularly?",
+    "I'm known for high-quality produce. Would you like to see samples?",
+    "We source directly from the farm. Can I offer you a competitive price?",
+    "We deliver straight to your door. Would you prefer that?",
+    "I offer eco-friendly packaging. Are you interested in that?",
+    "Do you need delivery at a specific time? Let me know your preference.",
+    "Let me know what other products you're looking for, I may have them!"
   ];
 
   // Fetch consumer details
@@ -78,11 +78,10 @@ const ConsumerChatWindow = () => {
   }, [messages]);
 
   // Close and Redirect to Consumer Profile Page
- // Close and Redirect to Consumer Profile Page
-const handleClose = () => {
-  console.log("Closing chat window and redirecting...");
-  navigate('/consumerprof', { replace: true });  // Ensures proper redirection
-};
+  const handleClose = () => {
+    console.log("Closing chat window and redirecting...");
+    navigate('/consumerprof', { replace: true });  // Ensures proper redirection
+  };
 
   if (loading) return <p>Loading consumer details...</p>;
   if (error) return <p className="error">{error}</p>;
@@ -113,7 +112,7 @@ const handleClose = () => {
         <div ref={messagesEndRef} />
       </div>
       <div className="chat-suggestions">
-        <h4>Quick Suggestions</h4>
+        <h4>Farmer's Special Offers</h4>
         <div className="suggestion-grid">
           {suggestionMessages.map((message, index) => (
             <button key={index} className="suggestion-button" onClick={() => handleSuggestionClick(message)}>

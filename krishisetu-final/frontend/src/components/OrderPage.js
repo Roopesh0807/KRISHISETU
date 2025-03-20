@@ -61,6 +61,8 @@ const OrderPage = () => {
   
       fetchConsumerData();
   }, [consumer_id]);
+
+
   useEffect(() => {
     if (showAddressPopup) {
       axios
@@ -220,6 +222,7 @@ const OrderPage = () => {
       alert("Error placing order. Try again.");
     }
   };
+  
   // Success Popup Component
   const SuccessPopup = () => (
     <div className="success-popup">
@@ -232,30 +235,37 @@ const OrderPage = () => {
       </div>
     </div>
   );
+ // Function to get the correct image path
+ const getImagePath = (productName) => {
+  return `/images/${productName.toLowerCase().replace(/\s+/g, '-')}.jpg`;
+};
 
   return (
     <div className="order-page">
       <h2>Order Summary</h2>
 
-      {/* List of Products */}
-      <div className="order-products">
-        <h3>Products</h3>
-        {cart.map((product) => (
-          <div key={product.product_id} className="order-item">
-            <img
-              src={product.image || "/default-image.jpg"}
-              alt={product.product_name}
-              className="order-product-image"
-            />
-            <div className="order-product-details">
-              <h4>{product.product_name}</h4>
-              <p>₹ {product.price_1kg}/1 kg</p>
-              <p>Quantity: {product.quantity} Kg</p>
-              <p>Total: ₹ {product.price_1kg * product.quantity}</p>
-            </div>
-          </div>
-        ))}
+                  {/* List of Products */}
+          <div className="order-products">
+            <h3>Products</h3>
+            {cart.map((product) => (
+              <div key={product.product_id} className="order-item">
+                <img
+            src={getImagePath(product.product_name)}
+            alt={product.product_name}
+            className="order-product-image"
+            onError={(e) => { e.target.src = "/images/default-image.jpg"; }} 
+          />
+
+      <div className="order-product-details">
+        <h4>{product.product_name}</h4>
+        <p>₹ {product.price_1kg}/1 kg</p>
+        <p>Quantity: {product.quantity} Kg</p>
+        <p>Total: ₹ {product.price_1kg * product.quantity}</p>
       </div>
+    </div>
+  ))}
+</div>
+
 
       {/* Address Selection */}
       <div className="address-section">

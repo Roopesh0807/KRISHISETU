@@ -111,7 +111,27 @@
   .navbar3 .navbar-link:hover {
     color: #4CAF50; /* Green hover effect */
   }
-  
+  /* ✅ Cart Count - Properly Positioned */
+.cart-container {
+  position: relative;
+  display: inline-block;
+}
+
+.cart-count {
+  position: absolute;
+  top: 3px;
+  right: -27px;
+  background: red;
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+  padding: 4px 8px;
+  border-radius: 50%;
+  min-width: 20px;
+  text-align: center;
+}
+
+
   /* Responsive Design */
   @media (max-width: 768px) {
     .navbar3 {

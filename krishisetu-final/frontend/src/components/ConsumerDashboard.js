@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "../components/ConsumerDashboard.css";
 import { fetchProducts } from '../utils/api';
-// import { useCart } from '../context/CartContext';
+import { useCart } from '../context/CartContext';
 // Import images
 import Farmer from "../assets/farmer.jpeg";
 import OrganicBadge from "../assets/organic.jpg";
@@ -58,8 +58,9 @@ const ConsumerDashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [category, setCategory] = useState("");
   const [buyType, setBuyType] = useState("");
-  const [, setCart] = useState([]);
+  // const [, setCart] = useState([]);
   const [loading] = useState("");
+  const { addToCart } = useCart();
   const [isBargainPopupOpen, setIsBargainPopupOpen] = useState(false);
   const [selectedFarmer, setSelectedFarmer] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -68,7 +69,9 @@ const ConsumerDashboard = () => {
   const [sortPriceOrder, setSortPriceOrder] = useState(""); // State for price sorting
   const [sortProduceOrder, setSortProduceOrder] = useState(""); // State for produce type sorting
   const navigate = useNavigate();
-  
+  // const [selectedQuantity, setSelectedQuantity] = useState("1kg"); // Default selection
+  const [selectedQuantities, setSelectedQuantities] = useState({});
+
   useEffect(() => {
     // Fetch Products
     fetch("http://localhost:5000/api/products")
@@ -134,36 +137,39 @@ const handleBargainConfirm = () => {
     alert("Please select a product and enter a valid quantity.");
   }
 };
+const handleQuantityChange = (productId, event) => {
+  setSelectedQuantities((prev) => ({
+    ...prev,
+    [productId]: parseInt(event.target.value, 10),
+  }));
+};
+
+const handleBuyNow = (product) => {
+  const quantity = selectedQuantities[product.product_id] || 1; // Get selected quantity, default to 1kg
+  addToCart(product, quantity);
+  navigate("/cart");
+};
+
+
 
 // Function to close the popup
 const handleClosePopup = () => {
   setIsBargainPopupOpen(false);
 };
-const addToCart = (product) => {
-  // Get the current cart from localStorage (or initialize it as an empty array if not present)
-  let currentCart = JSON.parse(localStorage.getItem('cart')) || [];
+// const addToCart = (product) => {
+//   let currentCart = JSON.parse(localStorage.getItem("cart")) || [];
+//   const productIndex = currentCart.findIndex((item) => item.product_id === product.product_id);
 
-  // Check if the product already exists in the cart
-  const productIndex = currentCart.findIndex(item => item.product_id === product.product_id);
+//   if (productIndex === -1) {
+//     currentCart.push({ ...product, quantity: selectedQuantity });
+//   } else {
+//     currentCart[productIndex].quantity = selectedQuantity;
+//   }
 
-  if (productIndex === -1) {
-    // If product doesn't exist, add it to the cart with quantity 1
-    currentCart.push({ ...product, quantity: 1 });
-  } else {
-    // If product exists, just increase the quantity
-    currentCart[productIndex].quantity += 1;
-  }
+//   localStorage.setItem("cart", JSON.stringify(currentCart));
+//   alert(`${product.product_name} (x${selectedQuantity}) has been added to your cart!`);
+// };
 
-  // Update the cart in localStorage
-  localStorage.setItem('cart', JSON.stringify(currentCart));
-
-  // Update state with the new cart
-  setCart(currentCart);
-  // Show an alert and navigate to the cart page
-  alert(`${product.product_name} has been added to your cart!`);
-  navigate("/cart");
-
-};
 if (loading) {
   return <div>Loading products...</div>;
 }
@@ -193,6 +199,7 @@ if (loading) {
       farmer.farmer_name?.toLowerCase().includes(searchTerm) ||
       farmer.farmer_id?.toString().toLowerCase().includes(searchTerm) ||
       farmer.products.some((product) =>
+        product.produce_id?.toLowerCase().includes(searchTerm) ||
         product.produce_name?.toLowerCase().includes(searchTerm) ||
         product.produce_type?.toLowerCase().includes(searchTerm) ||
         product.price_per_kg?.toString().includes(searchTerm) ||
@@ -263,16 +270,33 @@ if (loading) {
               <p><strong>Name:</strong> {product.product_name}</p>
               <p><strong>Category:</strong> {product.category}</p>
               <p><strong>Buy Type:</strong> {product.buy_type}</p>
-              <p><strong>Price:</strong> ₹{product.price_1kg} per 1kg</p>
-              <p><strong>Price:</strong> ₹{product.price_2kg} per 2kg</p>
-              <p><strong>Price:</strong> ₹{product.price_5kg} per 5kg</p>
+              {/* Quantity Dropdown */}
+      <label><strong>Select Quantity:</strong></label>
+      <select
+      value={selectedQuantities[product.product_id] || 1} // Default 1kg
+      onChange={(e) => handleQuantityChange(product.product_id, e)}
+    >
+      <option value="1">1kg - ₹{product.price_1kg}</option>
+      <option value="2">2kg - ₹{product.price_2kg}</option>
+      <option value="5">5kg - ₹{product.price_5kg}</option>
+    </select>
+
               <button onClick={() => navigate(`/productDetails/${product.product_id}`)}>
   View Product
 </button>
 
-              <button onClick={() => addToCart(product)}>Add to Cart</button>
-              <button className="product-button" onClick={() => navigate("/payment")}>Buy Now</button>
-              <button className="product-button" onClick={() => navigate("/subscribe")}>Subscribe</button>
+<button onClick={() => addToCart(product, selectedQuantities[product.product_id] || 1)}>
+      Add to Cart
+    </button>
+
+    <button
+  onClick={() => handleBuyNow(product)}
+  className="btn btn-primary"
+>
+  Buy Now
+</button>
+
+  <button className="product-button" onClick={() => navigate("/subscribe")}>Subscribe</button>
             </div>
           ))}
         </div>
@@ -331,7 +355,7 @@ if (loading) {
         <table className="produce-table">
           <thead>
             <tr>
-              
+              <th>Product ID</th>
               <th>Produce</th>
               <th>Type</th>
               <th>Price (₹/kg)</th>
@@ -340,8 +364,8 @@ if (loading) {
           </thead>
           <tbody>
             {parsedProducts.map((product) => (
-              <tr key={product.product_id}>
-              
+              <tr key={`${product.product_id}-${product.produce_name}`}>
+                <td>{product.product_id}</td>
                 <td>{product.produce_name}</td>
                 <td>{product.produce_type}</td>
                 <td>₹{product.price_per_kg}</td>

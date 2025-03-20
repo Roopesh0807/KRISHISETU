@@ -37,6 +37,7 @@ const FarmerDetails = () => {
         <table className="produce-table">
           <thead>
             <tr>
+              <th>product ID</th>
               <th>Produce</th>
               <th>Type</th>
               <th>Price (₹/kg)</th>
@@ -46,6 +47,7 @@ const FarmerDetails = () => {
           <tbody>
             {farmer.products.map((product) => (
               <tr key={product.product_id}>
+                <td>{product.product_id}</td>
                 <td>{product.produce_name}</td>
                 <td>{product.produce_type}</td>
                 <td>₹{product.price_per_kg}</td>

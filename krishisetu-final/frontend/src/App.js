@@ -7,6 +7,7 @@ import Navbar3 from "./components/Navbar3";
 import Cart from "./components/Cart";
 import { CartProvider } from "./context/CartContext";
 import { AuthProvider } from "./context/AuthContext";
+import { ProductProvider } from "./context/ProductContext";
 import HomePage from "./components/Home"; 
 import ScrollSection from "./components/ScrollSection";  
 import Contact from "./components/Contact";  
@@ -41,6 +42,7 @@ import Chatbot from "./components/Chatbot"; // Import the Chatbot component
 
 function App() {
   return (
+    <ProductProvider>
     <AuthProvider>
     <CartProvider>
       <Router>
@@ -48,6 +50,7 @@ function App() {
       </Router>
     </CartProvider>
   </AuthProvider>
+  </ProductProvider>
   );
 }
 
