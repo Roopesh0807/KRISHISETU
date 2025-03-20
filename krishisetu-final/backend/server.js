@@ -14,6 +14,12 @@ const multer = require("multer");
 const orderRoutes = require("./src/routes/orderRoutes");
 const farmerRoutes = require("./src/routes/farmerRoutes");
 
+
+//const db = require(".src/config/db");
+const communityRoutes = require("./src/routes/communityRoutes");
+const memberRoutes = require("./src/routes/memberRoutes");
+const orderRoutesC = require("./src/routes/orderRoutesC");
+
 const fs = require("fs");
 const app = express();
 const server = http.createServer(app);
@@ -55,6 +61,11 @@ app.use(cors({
 app.use("/api", orderRoutes);
 
 app.use(cookieParser());
+
+app.use("/api/community", communityRoutes);
+app.use("/api/member", memberRoutes);
+app.use("/api/order", orderRoutesC);
+
 
 const SECRET_KEY = process.env.JWT_SECRET || "krishisetu_secret_key";
 const uploadDir = path.join(__dirname, "uploads"); // Correct path
@@ -198,6 +209,26 @@ app.delete("/remove-photo/:consumer_id", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
+
+
+app.get("/community/:communityId/members", async (req, res) => {
+  const { communityId } = req.params;
+  
+  try {
+    const members = await db.query(
+      "SELECT id, name, phone FROM Members WHERE community_id = ?",
+      [communityId]
+    );
+    
+    res.json(members);
+  } catch (error) {
+    console.error("Error fetching members:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+
 
 app.get('/api/upload/:id', (req, res) => {
   const { id } = req.params;
