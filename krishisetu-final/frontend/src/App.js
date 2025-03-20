@@ -40,6 +40,15 @@ import BargainChatC from "./components/ChatWindowBargainF";
 import Bargaining from "./components/BargainingChat"
 import Chatbot from "./components/Chatbot"; // Import the Chatbot component
 
+import HomePageC from './pages/HomePage';
+import JoinCommunity from './pages/JoinCommunity';
+import CreateCommunity from './pages/CreateCommunity';
+import CommunityDetails from './pages/CommunityDetails';
+import AdminCommunityPage from './pages/AdminCommunityPage';
+import MemberCommunityPage from './pages/MemberCommunityPage';
+import OrderPageC from './pages/OrderPage';
+import MemberOrderPage from "./pages/MemberOrderPage";
+
 function App() {
   return (
     <ProductProvider>
@@ -181,6 +190,15 @@ const Main = () => {
           <Route path="/chat" element={<Bargain />} />
           <Route path="/feeds" element={<Feeds />} />
           <Route path="/help" element={<Help />} />
+
+          <Route path="/community-home" element={<HomePageC />} />
+        <Route path="/join-community" element={<JoinCommunity />} />
+        <Route path="/create-community" element={<CreateCommunity />} />
+        <Route path="/community-details" element={<CommunityDetails />} />
+        <Route path="/community-page/:communityId/admin" element={<AdminCommunityPage />} />
+        <Route path="/community-page/:communityId/member" element={<MemberCommunityPage />} />
+        <Route path="/order/:communityId" element={<OrderPageC />} />
+        <Route path="/order/:communityId/member/:memberId" element={<MemberOrderPage />} />
 
           {/* 🌿 Farmer Features */}
           <Route path="/add-produce" element={<AddProduce />} />

@@ -69,7 +69,7 @@ const Navbar3 = () => {
         </li>
         <li>
           <Link
-            to="/communityHome"
+            to="/community-home"
             className={`navbar-link ${isHovered === 3 ? 'hover' : ''} ${isActive("/communityHome") ? 'active' : ''}`}
             onMouseEnter={() => handleMouseEnter(3)}
             onMouseLeave={handleMouseLeave}>
