@@ -33,7 +33,12 @@ function AdminCommunityPage() {
           return;
         }
 
-        setMembers(data.map((member, index) => ({
+        // Filter out the admin from the members list
+        const filteredMembers = data.filter(
+          (member) => member.consumer_id !== community?.admin_id
+        );
+
+        setMembers(filteredMembers.map((member, index) => ({
           id: member.id || member.member_id || index,
           name: member.name,
           phone: member.phone,
@@ -44,7 +49,7 @@ function AdminCommunityPage() {
     };
 
     fetchMembers();
-  }, [communityId]);
+  }, [communityId, community?.admin_id]); // Add community?.admin_id as a dependency
 
   const handleSearch = (e) => {
     setSearchQuery(e.target.value);
@@ -64,17 +69,37 @@ function AdminCommunityPage() {
       const response = await fetch(`http://localhost:5000/api/community/${communityId}/add-member`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...newMember, communityId, userId: localStorage.getItem("userId") }),
+        body: JSON.stringify({ 
+          communityId, 
+          name: newMember.name,
+          email: newMember.email,
+          phone: newMember.phone,
+        }),
       });
 
       const data = await response.json();
       if (response.ok) {
         alert("Member added successfully!");
+
+        // Fetch updated members list
         const updatedMembersResponse = await fetch(
           `http://localhost:5000/api/community/${communityId}/members`
         );
         const updatedMembers = await updatedMembersResponse.json();
-        setMembers(updatedMembers);
+
+        // Filter out the admin from the updated members list
+        const filteredMembers = updatedMembers.filter(
+          (member) => member.consumer_id !== community?.admin_id
+        );
+
+        // Update the state with the filtered members list
+        setMembers(filteredMembers.map((member, index) => ({
+          id: member.id || member.member_id || index,
+          name: member.name,
+          phone: member.phone,
+        })));
+
+        // Reset the form
         setNewMember({ name: "", email: "", phone: "" });
         setShowAddMemberForm(false);
       } else {
@@ -91,6 +116,9 @@ function AdminCommunityPage() {
       alert("Error: Member ID or Community ID is missing!");
       return;
     }
+
+    console.log("Removing member with ID:", memberId); // Debugging line
+    console.log("Community ID:", communityId); // Debugging line
 
     try {
       const response = await fetch(

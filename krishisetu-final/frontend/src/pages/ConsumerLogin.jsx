@@ -20,24 +20,29 @@ const ConsumerLogin = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
+
     try {
       const response = await fetch("http://localhost:5000/api/consumerlogin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
-    });
-    
-  
+      });
+
       const data = await response.json();
       console.log("API Response:", data);
-  
+
       if (data.success) {
         console.log("✅ Logged in Consumer:", data.consumer);
-  
+
+        // Store the consumer object in localStorage
         localStorage.setItem("consumer", JSON.stringify(data.consumer));
+
+        // Store the consumerId in localStorage
+        localStorage.setItem("consumerId", data.consumer.consumer_id); // ✅ Store consumerId
+
+        // Call the loginConsumer function from AuthContext
         loginConsumer(data.consumer);
-  
+
         alert("✅ Login Successful! Redirecting...");
         setTimeout(() => navigate("/consumer-dashboard"), 1000);
       } else {
@@ -47,7 +52,7 @@ const ConsumerLogin = () => {
       alert("❌ Error connecting to server.");
     }
   };
-  
+
   return (
     <div className="log-container">
       <main className="auth-container">

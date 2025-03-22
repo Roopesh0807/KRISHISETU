@@ -1,23 +1,73 @@
-const Community = require("../models/Community");
-const Member = require("../models/Member");
-const User = require("../models/User");
-const { queryDatabase } = require('../config/db'); // Adjust the path if needed
+const { queryDatabase } = require('../config/db');
+
+// ✅ Create Community
+// const { queryDatabase } = require('../config/db');
 
 // ✅ Create Community
 exports.createCommunity = async (req, res) => {
   try {
-    const { name, password, adminId } = req.body;
+    const { name, password, consumerId } = req.body;
 
-    if (!name || !password || !adminId) {
+    // Validate input
+    if (!name || !password || !consumerId) {
       return res.status(400).json({ error: "All fields are required." });
     }
 
-    const query = `INSERT INTO Communities (name, password, admin_id) VALUES (?, ?, ?)`;
-    const result = await queryDatabase(query, [name, password, adminId]);
+    // Insert the new community into the database
+    const query = `
+      INSERT INTO Communities (community_name, password, admin_id, address, delivery_date, delivery_time)
+      VALUES (?, ?, ?, '', CURDATE(), CURTIME())
+    `;
+    const result = await queryDatabase(query, [name, password, consumerId]);
 
-    res.status(201).json({
-      message: "Community created successfully!",
-      id: result.insertId
+    if (!result || !result.affectedRows) {
+      return res.status(500).json({ error: "Failed to create community. No rows affected." });
+    }
+
+    // Fetch the newly generated community_id
+    const fetchCommunityIdQuery = `
+      SELECT community_id 
+      FROM Communities 
+      WHERE community_name = ? AND admin_id = ?
+    `;
+    const communityIdResult = await queryDatabase(fetchCommunityIdQuery, [name, consumerId]);
+
+    if (communityIdResult.length === 0) {
+      return res.status(500).json({ error: "Failed to fetch community ID." });
+    }
+
+    const communityId = communityIdResult[0].community_id;
+
+    // Fetch the admin's details from consumerregistration
+    const fetchAdminDetailsQuery = `
+      SELECT first_name, last_name, email, phone_number 
+      FROM consumerregistration 
+      WHERE consumer_id = ?
+    `;
+    const adminDetails = await queryDatabase(fetchAdminDetailsQuery, [consumerId]);
+
+    if (adminDetails.length === 0) {
+      return res.status(404).json({ error: "Admin details not found." });
+    }
+
+    const { first_name, last_name, email, phone_number } = adminDetails[0];
+
+    // Add the admin as a member of the community
+    const addAdminAsMemberQuery = `
+      INSERT INTO members (community_id, consumer_id, member_name, member_email, phone_number)
+      VALUES (?, ?, ?, ?, ?)
+    `;
+    await queryDatabase(addAdminAsMemberQuery, [
+      communityId,
+      consumerId,
+      `${first_name} ${last_name}`,
+      email,
+      phone_number,
+    ]);
+
+    res.status(201).json({ 
+      message: "Community created successfully!", 
+      id: communityId // Return the communityId
     });
   } catch (error) {
     console.error("Error creating community:", error);
@@ -33,10 +83,10 @@ exports.getCommunityDetails = async (req, res) => {
     const query = `
       SELECT 
         Communities.*,
-        Users.name AS admin_name
+        consumerregistration.first_name AS admin_name
       FROM Communities
-      JOIN Users ON Communities.admin_id = Users.id
-      WHERE Communities.id = ?
+      JOIN consumerregistration ON Communities.admin_id = consumerregistration.consumer_id
+      WHERE Communities.community_id = ?
     `;
     const result = await queryDatabase(query, [communityId]);
 
@@ -52,17 +102,20 @@ exports.getCommunityDetails = async (req, res) => {
 };
 
 // ✅ Get Community Members
+// ✅ Get Community Members
 exports.getCommunityMembers = async (req, res) => {
   const { communityId } = req.params;
 
   try {
     const query = `
       SELECT 
-        Members.id,
-        Members.name,
-        Members.phone
-      FROM Members
-      WHERE Members.community_id = ?
+        members.member_id,  -- Include the member ID
+        members.consumer_id, -- Include the consumer_id
+        members.member_name AS name,
+        members.member_email AS email, -- Include the member_email
+        members.phone_number AS phone
+      FROM members
+      WHERE members.community_id = ?
     `;
     const result = await queryDatabase(query, [communityId]);
 
@@ -75,38 +128,50 @@ exports.getCommunityMembers = async (req, res) => {
 
 // ✅ Add Member to Community
 exports.addMember = async (req, res) => {
-  const { communityId, userId, name, email, phone } = req.body;
+  const { communityId, name, email, phone } = req.body;
 
-  if (!communityId || !userId || !name || !email || !phone) {
-    return res.status(400).json({ error: "All fields are required" });
+  if (!communityId || !name || !email || !phone) {
+    return res.status(400).json({ error: "All fields are required." });
   }
 
   try {
-    // Check if user exists
-    const userResult = await queryDatabase("SELECT * FROM Users WHERE email = ?", [email]);
+    // Check if the member exists in the consumerregistration table by email and phone
+    const consumerResult = await queryDatabase(
+      "SELECT * FROM consumerregistration WHERE email = ? AND phone_number = ?",
+      [email, phone]
+    );
 
-    let userIdToUse = userId;
+    if (consumerResult.length === 0) {
+      return res.status(404).json({ error: "Member not found. Please register first." });
+    }
 
-    if (userResult.length === 0) {
-      // If user doesn't exist, create a new user
-      const newUser = await queryDatabase(
-        "INSERT INTO Users (name, email, phone) VALUES (?, ?, ?)",
-        [name, email, phone]
-      );
-      userIdToUse = newUser.insertId;
-    } else {
-      userIdToUse = userResult[0].id;
+    const consumer = consumerResult[0];
+
+    // Check if the member is already part of the community
+    const memberExistsResult = await queryDatabase(
+      "SELECT * FROM Members WHERE community_id = ? AND consumer_id = ?",
+      [communityId, consumer.consumer_id]
+    );
+
+    if (memberExistsResult.length > 0) {
+      return res.status(400).json({ error: "Member is already part of this community." });
     }
 
     // Add member to the community
     const memberResult = await queryDatabase(
-      "INSERT INTO Members (community_id, user_id, name, email, phone) VALUES (?, ?, ?, ?, ?)",
-      [communityId, userIdToUse, name, email, phone]
+      "INSERT INTO Members (community_id, consumer_id, member_name, member_email, phone_number) VALUES (?, ?, ?, ?, ?)",
+      [
+        communityId,
+        consumer.consumer_id,
+        name,
+        email,
+        phone,
+      ]
     );
 
     res.status(201).json({
       message: "Member added successfully",
-      memberId: memberResult.insertId
+      memberId: memberResult.insertId,
     });
   } catch (error) {
     console.error("Error adding member:", error);
@@ -115,15 +180,19 @@ exports.addMember = async (req, res) => {
 };
 
 // ✅ Remove Member from Community
+// ✅ Remove Member from Community
 exports.removeMember = async (req, res) => {
   const { communityId, memberId } = req.params;
+
+  console.log("Community ID:", communityId); // Debugging line
+  console.log("Member ID:", memberId); // Debugging line
 
   if (!communityId || !memberId) {
     return res.status(400).json({ error: "Community ID and Member ID are required" });
   }
 
   try {
-    const query = "DELETE FROM Members WHERE id = ? AND community_id = ?";
+    const query = "DELETE FROM Members WHERE member_id = ? AND community_id = ?";
     const result = await queryDatabase(query, [memberId, communityId]);
 
     if (result.affectedRows === 0) {
@@ -150,7 +219,7 @@ exports.updateCommunityDetails = async (req, res) => {
     const query = `
       UPDATE Communities 
       SET address = ?, delivery_date = ?, delivery_time = ? 
-      WHERE id = ?
+      WHERE community_id = ?
     `;
     await queryDatabase(query, [address, deliveryDate, deliveryTime, communityId]);
 
@@ -162,6 +231,7 @@ exports.updateCommunityDetails = async (req, res) => {
 };
 
 // ✅ Join Community
+// ✅ Join Community
 exports.joinCommunity = async (req, res) => {
   const { communityName, password, userEmail } = req.body;
 
@@ -170,7 +240,11 @@ exports.joinCommunity = async (req, res) => {
   }
 
   try {
-    const userResult = await queryDatabase("SELECT * FROM Users WHERE email = ?", [userEmail]);
+    // Check if the user exists in the consumerregistration table
+    const userResult = await queryDatabase(
+      "SELECT * FROM consumerregistration WHERE email = ?",
+      [userEmail]
+    );
 
     if (userResult.length === 0) {
       return res.status(404).json({ error: "User not found. Please register first." });
@@ -178,7 +252,11 @@ exports.joinCommunity = async (req, res) => {
 
     const user = userResult[0];
 
-    const communityResult = await queryDatabase("SELECT * FROM Communities WHERE name = ?", [communityName]);
+    // Check if the community exists and the password matches
+    const communityResult = await queryDatabase(
+      "SELECT * FROM communities WHERE community_name = ?",
+      [communityName]
+    );
 
     if (communityResult.length === 0) {
       return res.status(404).json({ error: "Community not found" });
@@ -190,26 +268,64 @@ exports.joinCommunity = async (req, res) => {
       return res.status(401).json({ error: "Invalid password" });
     }
 
+    // Check if the user is the admin of the community
+    if (community.admin_id === user.consumer_id) {
+      return res.status(400).json({ error: "You are the admin of this community. Admins cannot join as members." });
+    }
+
+    // Check if the user is already a member of the community
     const memberResult = await queryDatabase(
-      "SELECT * FROM Members WHERE community_id = ? AND user_id = ?",
-      [community.id, user.id]
+      "SELECT * FROM members WHERE community_id = ? AND consumer_id = ?",
+      [community.community_id, user.consumer_id]
     );
 
     if (memberResult.length > 0) {
       return res.status(400).json({ error: "User is already a member of this community" });
     }
 
+    // Add the user as a member of the community
     await queryDatabase(
-      "INSERT INTO Members (community_id, user_id, name, email, phone) VALUES (?, ?, ?, ?, ?)",
-      [community.id, user.id, user.name, user.email, user.phone]
+      "INSERT INTO members (community_id, consumer_id, member_name, member_email, phone_number) VALUES (?, ?, ?, ?, ?)",
+      [
+        community.community_id,
+        user.consumer_id,
+        `${user.first_name} ${user.last_name}`, // Concatenate first and last name
+        user.email,
+        user.phone_number,
+      ]
     );
 
     res.status(200).json({
       message: "Joined community successfully",
-      communityId: community.id
+      communityId: community.community_id,
     });
   } catch (error) {
     console.error("Error joining community:", error);
     res.status(500).json({ error: "Error joining community" });
+  }
+};
+
+
+
+exports.getMemberOrders = async (req, res) => {
+  const { communityId, consumerId } = req.params;
+
+  try {
+    const query = `
+      SELECT 
+        o.order_id AS orderId,
+        o.product_id AS product,
+        o.quantity,
+        o.price
+      FROM orders o
+      JOIN members m ON o.member_id = m.member_id
+      WHERE o.community_id = ? AND m.consumer_id = ?;
+    `;
+
+    const orders = await queryDatabase(query, [communityId, consumerId]);
+    res.status(200).json(orders);
+  } catch (error) {
+    console.error("Error fetching member orders:", error);
+    res.status(500).json({ error: "Error fetching member orders" });
   }
 };
