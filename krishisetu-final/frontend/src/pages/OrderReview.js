@@ -1,83 +1,149 @@
 import React from "react";
-import Navbar3 from "../components/Navbar3.js"; // Import Navbar3
-import "./../styles/OrderReviewComm.css";
+import Navbar2 from "../components/Navbar2.js";
+import Sidebar from "../components/Sidebar.js";
+import "./../styles/OrderReview.css";
 
-// Sample data for orders
-const orders = [
-  {
-    id: "001",
-    date: "2025-02-06",
-    product: "Wheat",
-    quantity: "500 Kg",
-    amount: "250rs",
-    status: "fulfilled",
-  },
-  {
-    id: "002",
-    date: "2025-02-05",
-    product: "Rice",
-    quantity: "300 Kg",
-    amount: "180rs",
-    status: "unfulfilled",
-  },
-  {
-    id: "003",
-    date: "2025-02-04",
-    product: "Tomato",
-    quantity: "100 Kg",
-    amount: "60rs",
-    status: "fulfilled",
-  },
-  {
-    id: "004",
-    date: "2025-02-03",
-    product: "Onion",
-    quantity: "200 Kg",
-    amount: "120rs",
-    status: "unfulfilled",
-  },
-];
-
-// OrderRow component to render each row
-const OrderRow = ({ order }) => {
-  return (
-    <tr>
-      <td>{order.id}</td>
-      <td>{order.date}</td>
-      <td>{order.product}</td>
-      <td>{order.quantity}</td>
-      <td>{order.amount}</td>
-      <td className={`krishi-status-${order.status}`}>{order.status}</td>
-    </tr>
-  );
-};
-
-// OrderReview component
 const OrderReview = () => {
-  return (
-    <div className="krishi-order-review">
-      {/* Navbar3 Integrated */}
-      <Navbar3 />
+  const [sidebarOpen, setSidebarOpen] = React.useState(false);
 
-      <div className="krishi-order-container">
-        <h2>Order Overview</h2>
-        <table className="krishi-order-table">
-          <thead>
-            <tr>
-              <th>Order ID</th>
-              <th>Date</th>
-              <th>Product</th>
-              <th>Quantity</th>
-              <th>Amount</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {orders.map((order) => (
-              <OrderRow key={order.id} order={order} />
-            ))}
-          </tbody>
-        </table>
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
+
+  const orders = [
+    {
+      id: "KR-001",
+      date: "2025-02-06",
+      product: "Organic Wheat",
+      quantity: "500 Kg",
+      amount: "₹12,500",
+      status: "fulfilled",
+      location: "Punjab, India"
+    },
+    {
+      id: "KR-002",
+      date: "2025-02-05",
+      product: "Basmati Rice",
+      quantity: "300 Kg",
+      amount: "₹18,000",
+      status: "unfulfilled",
+      location: "Haryana, India"
+    },
+    {
+      id: "KR-003",
+      date: "2025-02-04",
+      product: "Cherry Tomatoes",
+      quantity: "100 Kg",
+      amount: "₹6,000",
+      status: "fulfilled",
+      location: "Maharashtra, India"
+    },
+  ];
+
+  const OrderItem = ({ order }) => {
+    return (
+      <tr className="order-track-item">
+        <td>
+          <span className="order-track-id">{order.id}</span>
+        </td>
+        <td>{order.date}</td>
+        <td>
+          <div className="order-product-meta">
+            <div className="order-product-icon">
+              <i className={`fas ${order.product.includes("Wheat") ? "fa-wheat" : 
+                            order.product.includes("Rice") ? "fa-rice" : 
+                            "fa-apple-alt"}`}></i>
+            </div>
+            <div>
+              <span className="order-product-name">{order.product}</span>
+              <span className="order-product-location">
+                <i className="fas fa-map-marker-alt"></i> {order.location}
+              </span>
+            </div>
+          </div>
+        </td>
+        <td>{order.quantity}</td>
+        <td className="order-track-amount">{order.amount}</td>
+        <td>
+          <span className={`order-status ${order.status}`}>
+            {order.status === "fulfilled" ? (
+              <>
+                <i className="fas fa-check-circle"></i> Completed
+              </>
+            ) : (
+              <>
+                <i className="fas fa-clock"></i> Pending
+              </>
+            )}
+          </span>
+        </td>
+      </tr>
+    );
+  };
+
+  return (
+    <div className={`order-track-app ${sidebarOpen ? "sidebar-active" : ""}`}>
+      <Navbar2 toggleSidebar={toggleSidebar} sidebarOpen={sidebarOpen} />
+      <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
+      
+      <div className={`order-track-content ${sidebarOpen ? "sidebar-shifted" : ""}`}>
+        <div className="order-track-wrapper">
+          <div className="order-track-summary">
+            <div className="order-track-title">
+              <h2>Order History</h2>
+              <p>Track your agricultural purchases and deliveries</p>
+            </div>
+            <div className="order-track-stats">
+              <div className="order-stat">
+                <div className="order-stat-icon total-orders">
+                  <i className="fas fa-clipboard-list"></i>
+                </div>
+                <div className="order-stat-info">
+                  <h3>{orders.length}</h3>
+                  <p>Total Orders</p>
+                </div>
+              </div>
+              <div className="order-stat">
+                <div className="order-stat-icon completed-orders">
+                  <i className="fas fa-check-circle"></i>
+                </div>
+                <div className="order-stat-info">
+                  <h3>{orders.filter(o => o.status === "fulfilled").length}</h3>
+                  <p>Completed</p>
+                </div>
+              </div>
+              <div className="order-stat">
+                <div className="order-stat-icon pending-orders">
+                  <i className="fas fa-clock"></i>
+                </div>
+                <div className="order-stat-info">
+                  <h3>{orders.filter(o => o.status === "unfulfilled").length}</h3>
+                  <p>Pending</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="order-track-table-container">
+            <table className="order-track-table">
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Date</th>
+                  <th>Product</th>
+                  <th>Quantity</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {orders.map((order) => (
+                  <OrderItem key={order.id} order={order} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   );

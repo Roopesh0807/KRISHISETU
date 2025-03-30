@@ -1,87 +1,401 @@
-/* Farmer Details Page Styling */
+/* Base Styles */
 .farmer-details-page {
-    max-width: 1000px;
-    margin: 30px auto;
-    padding: 20px;
-    background: #fff;
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  }
-  
-  /* Farmer Profile Card */
-  .farmer-profile-card {
-    background: #f8f9fa;
-    padding: 20px;
-    border-radius: 10px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-  }
-  
-  /* Farmer Information Section */
-  .farmer-info {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    width: 100%;
-    justify-content: center;
-  }
-  
-  .farmer-image {
-    width: 120px;
-    height: 120px;
-    border-radius: 10px;
-    object-fit: cover;
-    border: 2px solid #28a745;
-  }
-  
-  /* Farmer Details Text */
-  .farmer-details p {
-    font-size: 16px;
-    margin: 5px 0;
-    color: #333;
-  }
-  
-  .farmer-details strong {
-    color: black;
-  }
-  
-  /* Produce Table */
-  .produce-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-    background: white;
-  }
-  
-  .produce-table th,
-  .produce-table td {
-    padding: 12px;
-    text-align: left;
-    border: 1px solid #ddd;
-  }
-  
-  .produce-table th {
-    background: #28a745;
-    color: white;
-    font-weight: bold;
-  }
-  
-  .produce-table tr:nth-child(even) {
-    background: #f2f2f2;
-  }
-  
-  /* Responsive Design */
-  @media (max-width: 768px) {
-    .farmer-info {
-      flex-direction: column;
-      text-align: center;
-    }
-  
-    .farmer-image {
-      width: 100px;
-      height: 100px;
-    }
-  }
-  
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #333;
+}
+
+/* Farmer Profile Card */
+.farmer-profile-card {
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 25px;
+  margin-bottom: 30px;
+}
+
+.farmer-info {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  margin-bottom: 30px;
+}
+
+.farmer-image {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #4CAF50;
+}
+
+.farmer-details h2 {
+  margin: 0;
+  color: #2E7D32;
+  font-size: 28px;
+}
+
+.detail-label {
+  font-weight: 600;
+  color: #555;
+}
+
+/* Rating Styles */
+.rating-container {
+  margin-top: 15px;
+}
+
+.rating-stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.star-filled {
+  color: #FFD700;
+  font-size: 20px;
+}
+
+.star-empty {
+  color: #ddd;
+  font-size: 20px;
+}
+
+.rating-value {
+  margin-left: 8px;
+  font-size: 16px;
+  color: #666;
+}
+
+/* Products Table */
+.section-container {
+  margin: 30px 0;
+}
+
+.section-title {
+  color: #2E7D32;
+  border-bottom: 2px solid #4CAF50;
+  padding-bottom: 8px;
+  margin-bottom: 15px;
+}
+
+.produce-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.produce-table th, .produce-table td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.produce-table th {
+  background-color: #f5f5f5;
+  font-weight: 600;
+  color: #333;
+}
+
+.produce-table tr:hover {
+  background-color: #f9f9f9;
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin: 25px 0;
+}
+
+.action-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.back-button {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+.back-button:hover {
+  background-color: #e0e0e0;
+}
+
+.bargain-button {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.bargain-button:hover {
+  background-color: #3e8e41;
+}
+
+/* Reviews Section */
+.reviews-section {
+  margin-top: 40px;
+}
+
+.reviews-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.reviews-header h3 {
+  color: #2E7D32;
+  margin: 0;
+}
+
+.add-review-button {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.3s;
+}
+
+.add-review-button:hover {
+  background-color: #3e8e41;
+}
+
+/* Review Cards */
+.reviews-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.review-card {
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.review-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.reviewer-info h4 {
+  margin: 0;
+  color: #333;
+}
+
+.review-rating {
+  display: flex;
+  gap: 3px;
+  margin-top: 5px;
+}
+
+.review-rating .filled {
+  color: #FFD700;
+}
+
+.review-date {
+  color: #666;
+  font-size: 0.85rem;
+  font-style: italic;
+  margin-top: 4px;
+}
+.review-comment {
+  margin: 15px 0;
+  line-height: 1.6;
+  color: #444;
+}
+
+.review-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.review-images img {
+  border-radius: 5px;
+  transition: transform 0.3s;
+}
+
+.review-images img:hover {
+  transform: scale(1.05);
+}
+
+/* No Reviews Message */
+.no-reviews {
+  text-align: center;
+  padding: 30px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  color: #666;
+}
+
+/* Add Review Form */
+.add-review-form {
+  background-color: #f9f9f9;
+  padding: 25px;
+  border-radius: 8px;
+  margin: 25px 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.add-review-form h3 {
+  margin-top: 0;
+  color: #2E7D32;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #555;
+}
+
+.form-group input[type="text"],
+.form-group textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-family: inherit;
+}
+
+.readonly-input {
+  background-color: #f0f0f0;
+  cursor: not-allowed;
+}
+
+.form-group textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.star-rating {
+  display: flex;
+  gap: 10px;
+}
+
+.star-rating span {
+  font-size: 24px;
+  color: #ddd;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.star-rating span.selected {
+  color: #FFD700;
+}
+
+/* Image Upload */
+.image-previews {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.image-preview {
+  position: relative;
+  width: 100px;
+  height: 100px;
+}
+
+.image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 5px;
+}
+
+.remove-image {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background-color: #ff4444;
+  color: white;
+  border: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+/* Form Actions */
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.form-actions button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.form-actions button:first-child {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.form-actions button:first-child:hover {
+  background-color: #3e8e41;
+}
+
+.cancel-button {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+.cancel-button:hover {
+  background-color: #e0e0e0;
+}
+
+/* Loading States */
+.loading-container, .loading {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+}
+
+.error-message {
+  color: #d32f2f;
+  padding: 20px;
+  background-color: #ffebee;
+  border-radius: 5px;
+  margin: 20px 0;
+}
+
+.error-message button {
+  margin-top: 15px;
+  padding: 8px 16px;
+  background-color: #d32f2f;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}

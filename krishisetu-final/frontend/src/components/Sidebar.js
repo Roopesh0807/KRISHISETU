@@ -54,6 +54,7 @@ const Sidebar = () => {
             <i className="fas fa-user"></i>
             {isOpen && 'View Profile'}
           </button>
+          
           <button
             onClick={() => navigate('/order-review')}
             title="Order Review"
@@ -63,9 +64,17 @@ const Sidebar = () => {
             {isOpen && 'Order Review'}
           </button>
           <button
-            onClick={() => navigate(`/consumerprof`)}
+            onClick={() => navigate('/farmers/my-reviews')}
+            title="reviews"
+            className={isActive('/farmers/my-reviews') ? 'active' : ''}
+          >
+            <i className="fas fa-user"></i>
+            {isOpen && 'My Reviews'}
+          </button>
+          <button
+            onClick={() => navigate(`/farmer/bargain`)}
             title="Bargain"
-            className={isActive(`/consumerprof`)? 'active' : ''}
+            className={isActive(`/farmer/bargain`)? 'active' : ''}
           >
             <i className="fas fa-handshake"></i>
             {isOpen && 'Bargain'}

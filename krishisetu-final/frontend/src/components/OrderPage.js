@@ -1,16 +1,40 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./OrderPage.css"; // CSS for styling
+import { useAuth } from "../context/AuthContext";
 import logo from '../assets/logo.jpg';
-import axios from "axios"; // ✅ Import axios
+// import axios from "axios"; // ✅ Import axios
 
 const OrderPage = () => {
   const [cart, setCart] = useState([]);
+  const [, setConsumer] = useState(null);
   const [addresses, setAddresses] = useState([]);
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState("credit-card");
   const [showAddressPopup, setShowAddressPopup] = useState(false);
-  const [consumer_id, setConsumerId] = useState(null);
+  // const [consumer_id] = useState(null);
+  const [selectedCoupon, setSelectedCoupon] = useState(null);
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [couponInput, setCouponInput] = useState("");
+  const [couponError, setCouponError] = useState("");
+  const [couponApplied, setCouponApplied] = useState(false);
+  const { consumer } = useAuth(); // Make sure this hook is correctly providing the value
+
+  // List of available coupons
+  const coupons = [
+    { code: "KRISHI10", discount: 10 },
+    { code: "FARMFRESH15", discount: 15 },
+    { code: "HARVEST20", discount: 20 },
+    { code: "ORGANIC25", discount: 25 },
+    { code: "GREEN30", discount: 30 },
+    { code: "FRESH35", discount: 35 },
+    { code: "VEGGIE40", discount: 40 },
+    { code: "FARM50", discount: 50 },
+    { code: "AGRICULTURE5", discount: 5 },
+    { code: "NATURE12", discount: 12 },
+    { code: "ECO18", discount: 18 },
+    { code: "SOIL22", discount: 22 },
+  ];
   const [newAddress, setNewAddress] = useState({
     pincode: "",
     city: "",
@@ -24,62 +48,67 @@ const OrderPage = () => {
 
   // Fetch consumer profile and addresses
   useEffect(() => {
-    const storedId = localStorage.getItem("consumer_id");
-    if (storedId) {
-      setConsumerId(storedId); // Set the consumer_id state
+    // Load consumer from localStorage
+    const storedConsumer = localStorage.getItem("consumer");
+    
+    if (storedConsumer) {
+      const parsedConsumer = JSON.parse(storedConsumer);
+      console.log("✅ Loaded Consumer:", parsedConsumer);
+      
+      if (parsedConsumer?.consumer_id) {
+        setConsumer(parsedConsumer);
+
+        // Load cart based on consumer_id
+        const storedCart = localStorage.getItem(`cart_${parsedConsumer.consumer_id}`);
+        const parsedCart = storedCart ? JSON.parse(storedCart) : [];
+
+        console.log("🛒 Loaded Cart from localStorage:", parsedCart);
+        setCart(parsedCart);
+      } else {
+        console.warn("⚠ Consumer ID is missing in stored consumer data.");
+      }
+    } else {
+      console.warn("⚠ No consumer data found in localStorage.");
     }
   }, []);
- 
-    useEffect(() => {
-      if (!consumer_id) {
-        console.warn("⚠ Consumer ID is missing. Cannot fetch data.");
-        return;
-      }
-  
-      const fetchConsumerData = async () => {
-        try {
-          // Fetch Consumer Profile
-          const profileResponse = await fetch(`http://localhost:5000/api/consumerdetails/${consumer_id}`);
-          if (!profileResponse.ok) throw new Error("Failed to fetch consumer profile");
-          const profileData = await profileResponse.json();
-          console.log("✅ Fetched Consumer Profile:", profileData);
-  
-          // Fetch Consumer Address
-          const addressResponse = await fetch(`http://localhost:5000/api/consumeraddress/${consumer_id}`);
-          if (!addressResponse.ok) throw new Error("Failed to fetch addresses");
-          const addressData = await addressResponse.json();
-          console.log("✅ Fetched Addresses:", addressData);
-  
-          // Update State
-          setConsumerProfile(profileData);
-          setAddresses(addressData);
-  
-        } catch (error) {
-          console.error("❌ Error fetching consumer data:", error);
-        }
-      };
-  
-      fetchConsumerData();
-  }, [consumer_id]);
+  useEffect(() => {
+    // Ensure consumer exists and has a valid consumer_id before attempting to fetch data
+    if (!consumer || !consumer.consumer_id) {
+      console.log("❌ consumer_id is missing, cannot fetch data");
+      return; // Return early if consumer_id is null or undefined
+    }
 
+    const fetchConsumerData = async () => {
+      try {
+        console.log(`Fetching consumer data for ID: ${consumer.consumer_id}`);
+        const response = await fetch(`http://localhost:5000/api/addresses/${consumer.consumer_id}`);
+        if (!response.ok) throw new Error("Failed to fetch data");
+        const data = await response.json();
+
+        setConsumerProfile(data.consumerProfile || null);
+        setAddresses(data.address ? [data.address] : []);
+      } catch (error) {
+        console.error("❌ Error fetching consumer data:", error);
+      }
+    };
+
+    fetchConsumerData();
+  }, [consumer]);  // Dependency array: This effect will run when 'consumer' changes
 
   useEffect(() => {
-    if (showAddressPopup) {
-      axios
-        .get("http://localhost:5000/api/consumerdetails/KRST01CS011")
-        .then((response) => {
-          setConsumerProfile(response.data); // Assuming response.data contains consumer details
-        })
-        .catch((error) => {
-          console.error("Error fetching consumer profile:", error);
-        });
+    if (showAddressPopup && consumerprofile.consumer_id) {
+      console.log("✅ Using existing consumer profile:", consumerprofile);
     }
-  }, [showAddressPopup]); 
+  }, [showAddressPopup, consumerprofile]);
+  
   // Fetch cart from localStorage
   useEffect(() => {
-    const storedCart = JSON.parse(localStorage.getItem("cart")) || [];
-    setCart(storedCart);
-  }, []);
+    // Ensure consumer and consumer.consumer_id are available before attempting to fetch the cart
+    if (consumer && consumer.consumer_id) {
+      const storedCart = localStorage.getItem(`cart_${consumer.consumer_id}`);
+      setCart(storedCart ? JSON.parse(storedCart) : []);
+    }
+  }, [consumer]);  // Re-run effect when consumer changes
 
   // Handle pincode input change
   const handlePincodeChange = (e) => {
@@ -89,9 +118,30 @@ const OrderPage = () => {
       fetchAddressDetails(pincode);
     }
   };
+  // const handleCouponSelect = (coupon) => {
+  //   setSelectedCoupon(coupon);
+  // };
+  // Handle coupon input change
+  const handleCouponInputChange = (e) => {
+    setCouponInput(e.target.value);
+    setCouponError("");
+  };
 
+  // Apply coupon
+  const applyCoupon = () => {
+    const coupon = coupons.find((c) => c.code === couponInput.toUpperCase());
+    if (coupon) {
+      setSelectedCoupon(coupon);
+      setDiscountAmount(cart.reduce((total, product) => total + product.price_1kg * product.quantity, 0) * coupon.discount / 100);
+      setCouponApplied(true); // Set coupon applied status to true
+      setCouponError("");
+    } else {
+      setCouponError("Invalid coupon code. Please try again.");
+    }
+  };
   // Fetch address details using Pincode API
   const fetchAddressDetails = async (pincode) => {
+    if (newAddress.pincode === pincode) return;
     try {
       const response = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
       const data = await response.json();
@@ -122,7 +172,7 @@ const OrderPage = () => {
     const newAddressObj = {
       consumer_id: consumerprofile.consumer_id,  
       name: consumerprofile.name || "",          
-      phone_number: consumerprofile.phone_number || "", 
+      mobile_number: consumerprofile.mobile_number || "", 
       pincode: newAddress.pincode || "", 
       city: newAddress.city || "",
       state: newAddress.state || "",
@@ -130,12 +180,18 @@ const OrderPage = () => {
       landmark: newAddress.landmark || ""
     };
 
-    console.log("Consumer Profile:", consumerprofile);
+    // Validate address data before submitting
+  if (!newAddressObj.pincode || !newAddressObj.city || !newAddressObj.state || !newAddressObj.street) {
+    alert("Please fill in all address fields.");
+    return;
+  }
+   
     console.log("Final Address Object:", newAddressObj);
-    console.log("Sending data to:", "http://localhost:5000/api/addresses");
+    console.log("Sending data to:", `http://localhost:5000/api/addresses/${consumerprofile.consumer_id}`);
+   
 
     try {
-      const response = await fetch("http://localhost:5000/api/addresses", {
+      const response = await fetch(`http://localhost:5000/api/addresses/${consumerprofile.consumer_id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newAddressObj),
@@ -162,6 +218,15 @@ const OrderPage = () => {
       alert("Something went wrong. Please try again later.");
     }
 };
+ // Calculate final price
+ const calculateFinalPrice = () => {
+  const totalPrice = cart.reduce((total, product) => total + product.price_1kg * product.quantity, 0);
+  let discountAmount = 0;
+  if (selectedCoupon) {
+    discountAmount = (totalPrice * selectedCoupon.discount) / 100;
+  }
+  return totalPrice - discountAmount;
+};
 
   // Handle place order
   const handlePlaceOrder = async () => {
@@ -171,7 +236,7 @@ const OrderPage = () => {
     }
   
     // Ensure consumerprofile is populated
-    if (!consumerprofile.consumer_id || !consumerprofile.name || !consumerprofile.mobile_number || !consumerprofile.email) {
+    if (!consumerprofile.consumer_id || !consumerprofile.name || !consumerprofile.mobile_number) {
       alert("Consumer profile data is incomplete. Please try again.");
       return;
     }
@@ -186,10 +251,10 @@ const OrderPage = () => {
       }
   
       const orderData = {
-        consumer_id: consumerprofile.consumer_id, // Use consumerprofile
-        name: consumerprofile.name, // Use consumerprofile
-        mobile_number: consumerprofile.mobile_number, // Use consumerprofile
-        email: consumerprofile.email, // Use consumerprofile
+        consumer_id: consumerprofile.consumer_id,
+        name: consumerprofile.name,
+        mobile_number: consumerprofile.mobile_number,
+        email: consumerprofile.email,
         address: `${selectedAddrObj.street}, ${selectedAddrObj.landmark}, ${selectedAddrObj.city}, ${selectedAddrObj.state}`,
         pincode: selectedAddrObj.pincode,
         produce_name: cart.map((product) => product.product_name).join(", "),
@@ -199,7 +264,7 @@ const OrderPage = () => {
         payment_status: "Pending",
       };
   
-      console.log("Sending order data:", orderData); // Log the order data
+      console.log("Sending order data:", orderData);
   
       const response = await fetch("http://localhost:5000/api/place-order", {
         method: "POST",
@@ -208,6 +273,8 @@ const OrderPage = () => {
       });
   
       const data = await response.json();
+      console.log("Order response:", data);
+  
       if (data.success) {
         setShowSuccessPopup(true);
         setTimeout(() => {
@@ -265,31 +332,58 @@ const OrderPage = () => {
     </div>
   ))}
 </div>
-
+{/* Coupon Section */}
+<div className="coupon-section">
+        <h3>Apply Coupon</h3>
+        <div className="coupon-options">
+          {/* Combined Input and Datalist for Coupons */}
+          <input
+            type="text"
+            list="coupon-list"
+            placeholder="Enter or select a coupon"
+            value={couponInput}
+            onChange={handleCouponInputChange}
+            disabled={couponApplied} // Disable input if coupon is applied
+          />
+          <datalist id="coupon-list">
+            {coupons.map((coupon) => (
+              <option key={coupon.code} value={coupon.code}>
+                {coupon.code} - {coupon.discount}% OFF
+              </option>
+            ))}
+          </datalist>
+          <button onClick={applyCoupon} disabled={couponApplied}>
+            Apply
+          </button>
+        </div>
+        {couponApplied && <p className="coupon-success">Coupon applied successfully!</p>}
+        {couponError && <p className="coupon-error">{couponError}</p>}
+      </div>
 
       {/* Address Selection */}
       <div className="address-section">
   <h3>Select Delivery Address</h3>
-  {addresses.length === 0 ? (
+  {
+  addresses.length === 0 ? (
     <p>No addresses found. Please add a new address.</p>
   ) : (
-    addresses.map((address) => (
-      <div key={address.id} className="address-card">
+    addresses.map((address, index) => (
+      <div key={`${address.consumer_id}-${address.pincode}-${index}`} className="address-card">
         <label>
           <input
             type="radio"
             name="address"
-            value={address.id}
-            checked={selectedAddress === address.id}
-            onChange={() => setSelectedAddress(address.id)}
+            value={address.consumer_id}
+            checked={selectedAddress === address.consumer_id}
+            onChange={() => setSelectedAddress(address.consumer_id)}
           />
-         <div className="address-details">
-                  <h4>Name: {consumerprofile.name}</h4>
-                  <p>Phone: {consumerprofile.phone_number}</p>
-                  <p>Consumer ID: {consumerprofile.consumer_id}</p>
-                  <p>{address.street}, {address.landmark}</p>
-                  <p>{address.city}, {address.state} - {address.pincode}</p>
-          </div>
+          <div className="address-details">
+        <h4>Name: {consumerprofile?.name || "Loading..."}</h4>
+        <p>Phone: {consumerprofile?.mobile_number || "Loading..."}</p>
+        <p>Consumer ID: {consumerprofile?.consumer_id || "Loading..."}</p>
+        <p>{address?.street || "N/A"}, {address?.landmark || "N/A"}</p>
+        <p>{address?.city || "N/A"}, {address?.state || "N/A"} - {address?.pincode || "N/A"}</p>
+      </div>
         </label>
       </div>
     ))
@@ -303,9 +397,9 @@ const OrderPage = () => {
   <div className="address-popup">
     <div className="popup-content1">
       <h3>Add New Address</h3>
-      <p><strong>Consumer ID:</strong> {consumerprofile?.consumer_id || "N/A"}</p>
-      <p><strong>Name:</strong> {consumerprofile?.name || "N/A"}</p>
-      <p><strong>Phone Number:</strong> {consumerprofile?.phone_number || "N/A"}</p>
+      <p><strong>Consumer ID:</strong> {consumerprofile?.consumer_id || "Fetching..."}</p>
+      <p><strong>Name:</strong> {consumerprofile?.name || "Fetching..."}</p>
+      <p><strong>Phone Number:</strong> {consumerprofile?.mobile_number || "Fetching..."}</p>
 
       <input
         type="text"
@@ -313,18 +407,8 @@ const OrderPage = () => {
         value={newAddress.pincode}
         onChange={handlePincodeChange}
       />
-      <input
-        type="text"
-        placeholder="City"
-        value={newAddress.city}
-        readOnly
-      />
-      <input
-        type="text"
-        placeholder="State"
-        value={newAddress.state}
-        readOnly
-      />
+      <input type="text" placeholder="City" value={newAddress.city} readOnly />
+      <input type="text" placeholder="State" value={newAddress.state} readOnly />
       <input
         type="text"
         placeholder="Street"
@@ -343,6 +427,7 @@ const OrderPage = () => {
   </div>
 )}
 
+     
 
       {/* Payment Method Selection */}
       <div className="payment-section">
@@ -384,10 +469,10 @@ const OrderPage = () => {
       {/* Order Summary */}
       <div className="order-summary">
         <h3>Order Summary</h3>
-        <p>Total Items: {cart.length}</p>
         <p>Total Price: ₹ {cart.reduce((total, product) => total + product.price_1kg * product.quantity, 0)}</p>
+        <p>Discount: ₹ {discountAmount}</p>
+        <p><strong>Final Price: ₹ {calculateFinalPrice()}</strong></p>
       </div>
-
       {/* Place Order Button */}
       <button className="place-order-btn" onClick={handlePlaceOrder}>
         Place Order

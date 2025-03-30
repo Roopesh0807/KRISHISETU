@@ -1,6 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const bodyParser = require('body-parser');
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
@@ -8,8 +9,11 @@ const { queryDatabase } = require('./src/config/db');
 const http = require("http");
 const socketIo = require("socket.io");
 const path = require("path");
-const FarmerModel = require('./src/models/farmerModels');  // ✅ Ensure this path is correct
-const pool = require('./src/config/db');  // Ensure this line is present
+const { authenticateToken } = require("./src/middlewares/authMiddleware");
+const { initiateBargain } = require("./src/controllers/bargainController"); // Correct file
+
+// const FarmerModel = require('./src/models/farmerModels');  // ✅ Ensure this path is correct
+// const pool = require('./src/config/db');  // Ensure this line is present
 const multer = require("multer");
 const orderRoutes = require("./src/routes/orderRoutes");
 const farmerRoutes = require("./src/routes/farmerRoutes");
@@ -19,17 +23,78 @@ const farmerRoutes = require("./src/routes/farmerRoutes");
 const communityRoutes = require("./src/routes/communityRoutes");
 const memberRoutes = require("./src/routes/memberRoutes");
 const orderRoutesC = require("./src/routes/orderRoutesC");
+
+//bargainroutes
+const bargainRoutes = require("./src/routes/bargainRoutes");
+const reviewsRoutes = require('./src/routes/reviews');
+
+
+
 const fs = require("fs");
 const app = express();
+const { Server } = require("socket.io");
 const server = http.createServer(app);
-const io = socketIo(server, {
-  cors: { origin: "*", methods: ["GET", "POST"] }
+
+// ✅ WebSocket Setup
+const io = new Server(server, {
+  cors: {
+      origin: "*",
+      methods: ["GET", "POST"]
+  }
 });
+io.on("connection", (socket) => {
+  console.log(`User connected: ${socket.id}`);
+
+  // ✅ Join Bargaining Room
+  socket.on("joinRoom", (room_id) => {
+      socket.join(room_id);
+      console.log(`User joined room: ${room_id}`);
+  });
+
+  // ✅ Handle Sending Bargain Messages
+  socket.on("sendBargainMessage", async ({ room_id, sender_id, message_type, message_text, price_offer }) => {
+      try {
+          await queryDatabase(
+              "INSERT INTO bargain_messages (room_id, sender_id, message_type, message_text, price_offer) VALUES (?, ?, ?, ?, ?)",
+              [room_id, sender_id, message_type, message_text, price_offer]
+          );
+
+          // ✅ Broadcast to the room
+          io.to(room_id).emit("receiveBargainMessage", { sender_id, message_type, message_text, price_offer });
+
+      } catch (error) {
+          console.error("Error inserting message:", error);
+      }
+  });
+
+  // ✅ Handle Bargain Finalization
+  socket.on("finalizeBargain", async ({ room_id, final_price, quantity }) => {
+      try {
+          await queryDatabase(
+              "INSERT INTO bargain_finalized (room_id, final_price, quantity) VALUES (?, ?, ?)",
+              [room_id, final_price, quantity]
+          );
+
+          // ✅ Notify all users in the room
+          io.to(room_id).emit("bargainFinalized", { final_price, quantity });
+
+      } catch (error) {
+          console.error("Error finalizing bargain:", error);
+      }
+  });
+
+  socket.on("disconnect", () => {
+      console.log(`User disconnected: ${socket.id}`);
+  });
+});
+
+
 const mysql = require("mysql");
 
 const INSTAMOJO_API_KEY = process.env.INSTAMOJO_API_KEY;
 const INSTAMOJO_AUTH_TOKEN = process.env.INSTAMOJO_AUTH_TOKEN;
 const REDIRECT_URL = "http://localhost:3000/payment-success";
+
 
 const querydatabase = mysql.createConnection({
   host: "localhost",
@@ -45,18 +110,75 @@ querydatabase.connect((err) => {
   }
   console.log("Connected to MySQL database");
 });
-
 app.use(express.json());
+const session = require("express-session"); 
+// ✅ Session Middleware (Add This Before Routes)
+app.use(session({
+  secret: process.env.SESSION_SECRET || "your_secret", // Store in .env
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: false, httpOnly: true }
+}));
+app.use('/api/reviews', reviewsRoutes);
+app.use((req, res, next) => {
+  console.log("Session Data:", req.session);
+  next();
+});
+app.get("/test-session", (req, res) => {
+  console.log("Session Data:", req.session); // 🔍 Debugging
+
+  if (!req.session.consumer_id) {
+    return res.status(401).json({ error: "Session expired or not found" });
+  }
+
+  res.json({
+    session_id: req.session.id,
+    consumer_id: req.session.consumer_id
+  });
+});
+
+
+
+
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/uploads", express.static("uploads"));
 app.use("/api", farmerRoutes);
-
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Something went wrong!' });
+});
+app.use((req, res, next) => {
+  console.log("Session Middleware - Current Session:", req.session);
+  next();
+});
 app.use(cors({
-  origin: "*",  // Allow requests from React frontend
-  methods: ["GET", "POST", "PUT", "DELETE"],  // Allow these HTTP methods
+  origin: "http://localhost:3000",  // Allow requests from React frontend
+ methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allow these HTTP methods
   allowedHeaders: ["Content-Type", "Authorization"],  // Allow these headers
   credentials: true  // ✅ Important if you're using cookies or authentication
 }));
+
+const corsOptions = {
+  origin: 'http://localhost:3000',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+};
+// Apply CORS middleware
+app.use(cors(corsOptions));
+
+// Explicitly handle OPTIONS requests
+app.options('*', cors(corsOptions)); // Enable preflight for all routes
+// ✅ Middleware setup
+app.use(bodyParser.json());
+app.use(express.urlencoded({ extended: true })); 
+app.use('/api/bargain', require('./src/routes/bargainRoutes'));
+// Debugging Middleware for Logging Headers
+app.use((req, res, next) => {
+  console.log('Request Headers:', req.headers);
+  next();
+});
 app.use("/api", orderRoutes);
 
 app.use(cookieParser());
@@ -65,7 +187,7 @@ app.use("/api/community", communityRoutes);
 app.use("/api/member", memberRoutes);
 app.use("/api/order", orderRoutesC);
 
-
+const SECRETE_KEY = process.env.SECRET_KEY;
 const SECRET_KEY = process.env.JWT_SECRET || "krishisetu_secret_key";
 const uploadDir = path.join(__dirname, "uploads"); // Correct path
 if (!fs.existsSync(uploadDir)) {
@@ -208,8 +330,71 @@ app.delete("/remove-photo/:consumer_id", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+//bargain sessions
+// Fetch bargain session and messages
+app.get("/api/bargain/:session_id", async (req, res) => {
+  try {
+    console.log("🔍 Incoming Headers:", req.headers);
 
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      console.error("❌ No Authorization header!");
+      return res.status(401).json({ error: "Authorization token required" });
+    }
 
+    const token = authHeader.split(" ")[1];
+    console.log("🔍 Extracted Token:", token);
+
+    if (!token) {
+      console.error("❌ Token is missing in Authorization header!");
+      return res.status(401).json({ error: "Authorization token required" });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log("✅ Token Decoded:", decoded);
+
+    const { session_id } = req.params;
+    console.log("🔍 Checking bargain session for ID:", session_id);
+
+    const session = await queryDatabase(
+      "SELECT * FROM bargain_sessions WHERE bargain_id = ?",
+      [session_id]
+    );
+
+    if (session.length === 0) {
+      console.error("❌ Session not found in DB!");
+      return res.status(404).json({ error: "Session not found" });
+    }
+
+    res.json({ success: true, session: session[0] });
+
+  } catch (error) {
+    console.error("🔥 Auth Error:", error.stack);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// Submit an offer
+app.post("/api/bargain/:session_id/offer", async (req, res) => {
+  try {
+    const { session_id } = req.params;
+    const { price } = req.body;
+
+    if (!price) {
+      return res.status(400).json({ error: "Price is required" });
+    }
+
+    const newMessage = { session_id, sender: "consumer", text: `Offered ₹${price}`, timestamp: new Date() };
+    await queryDatabase("INSERT INTO bargain_messages (session_id, sender, text, timestamp) VALUES (?, ?, ?, ?)",
+      [session_id, "consumer", `Offered ₹${price}`, new Date()]
+    );
+
+    res.json({ newMessage });
+  } catch (err) {
+    console.error("Error submitting offer:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
 app.get("/community/:communityId/members", async (req, res) => {
   const { communityId } = req.params;
@@ -237,6 +422,84 @@ app.get('/api/upload/:id', (req, res) => {
   });
 });
 
+// 
+// app.post('/bargain/initiate', async (req, res) => {
+//   try {
+//     console.log("🔹 Received Bargain Request:", req.body);
+//     const { consumer_id, farmer_id, product_id, quantity, original_price } = req.body;
+
+//     // Validate input
+//     if (!consumer_id || !farmer_id || !product_id || !quantity || !original_price) {
+//       return res.status(400).json({ error: 'Missing required fields' });
+//     }
+
+//     // Create new bargain session
+//     const newSession = new BargainSession({
+//       consumer_id,  // No longer checking authentication
+//       farmer_id,
+//       product_id,
+//       quantity,
+//       original_price,
+//       status: 'requested'
+//     });
+
+//     await newSession.save();
+
+//     res.status(201).json({
+//       message: 'Bargain session initiated',
+//       session_id: newSession._id,
+//       farmer_id,
+//       product_id
+//     });
+//   } catch (error) {
+//     console.error('Error creating bargain session:', error);
+//     res.status(500).json({ error: 'Internal server error' });
+//   }
+// });
+// In your bargain route file
+// app.post('/api/bargain/initiate', authenticateToken, async (req, res) => {
+//   try {
+//     console.log("🔹 Authenticated User:", req.user); // Debug log
+    
+//     const { farmer_id, product_id, quantity, original_price } = req.body;
+//     const { consumer_id } = req.user; // From middleware
+
+//     if (!farmer_id || !product_id || !quantity || !original_price) {
+//       return res.status(400).json({ error: "Missing required fields" });
+//     }
+
+//     await pool.query(
+//       `INSERT INTO bargain_requests 
+//        (consumer_id, farmer_id, product_id, quantity, original_price, status) 
+//        VALUES (?, ?, ?, ?, ?, 'pending')`,
+//       [consumer_id, farmer_id, product_id, quantity, original_price]
+//     );
+
+//     res.json({ success: true });
+    
+//   } catch (err) {
+//     console.error("❌ Bargain Error:", err);
+//     res.status(500).json({ error: "Server error" });
+//   }
+// });
+
+// app.get('/api/bargain/sessions/:consumer_id', async (req, res) => {
+//   try {
+//     const { consumer_id } = req.params;
+//     console.log("🔹 Fetching Bargain Sessions for Consumer:", consumer_id);
+
+//     if (!consumer_id) {
+//       return res.status(400).json({ error: "Consumer ID is required" });
+//     }
+
+//     const sessions = await BargainSession.find({ consumer_id });
+
+//     res.status(200).json({ sessions });
+//   } catch (error) {
+//     console.error("❌ Error fetching bargain sessions:", error);
+//     res.status(500).json({ error: "Internal server error" });
+//   }
+// });
 
 // **Get Consumer Profile API**
 app.get("/api/profile/:id", (req, res) => {
@@ -392,10 +655,10 @@ app.get("/api/consumerdetails/:id", async (req, res) => {
     const consumer_id = req.params.id;
     console.log("Fetching consumer details for ID:", consumer_id);
 
-    // Fetch Consumer Profile from consumerprofile table
+    // Fetch Consumer Profile from consumer_addresses table instead of consumerprofile
     const query = `
-      SELECT consumer_id, name, mobile_number AS phone_number 
-      FROM consumerprofile 
+      SELECT consumer_id, name, phone_number 
+      FROM consumer_addresses 
       WHERE consumer_id = ?;
     `;
     const result = await queryDatabase(query, [consumer_id]);
@@ -405,10 +668,80 @@ app.get("/api/consumerdetails/:id", async (req, res) => {
       return res.status(404).json({ message: "Consumer not found" });
     }
 
-    res.json(result[0]);
+    res.json(result[0]); // ✅ Send correct consumer data
   } catch (error) {
     console.error("❌ Error fetching consumer details:", error);
     res.status(500).json({ error: "Failed to fetch consumer details" });
+  }
+});
+
+
+// Fetch consumer's address
+app.get("/api/addresses/:consumer_id", async (req, res) => {
+  try {
+      const { consumer_id } = req.params;
+
+      // Fetch consumer details with concatenated name
+      const consumerQuery = `
+          SELECT consumer_id, 
+                  name, 
+                 mobile_number 
+          FROM consumerprofile
+          WHERE consumer_id = ?`;
+      const consumer = await queryDatabase(consumerQuery, [consumer_id]);
+
+      if (consumer.length === 0) {
+          return res.status(404).json({ error: "Consumer not found" });
+      }
+
+      // Fetch stored address
+      const addressQuery = "SELECT * FROM consumer_addresses WHERE consumer_id = ?";
+      const address = await queryDatabase(addressQuery, [consumer_id]);
+
+      res.json({
+          consumerProfile: consumer[0],  // Renamed consumer to consumerProfile
+          address: address.length > 0 ? address[0] : null,
+      });
+
+  } catch (error) {
+      console.error("Error fetching consumer address:", error);
+      res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// Add or update consumer address
+app.post("/api/addresses/:consumer_id", async (req, res) => {
+  try {
+    const { consumer_id } = req.params;
+    const { name, mobile_number, pincode, city, state, street, landmark } = req.body;
+
+    // Validation: Ensure all required fields are provided
+    if (!consumer_id || !name || !mobile_number || !pincode || !city || !state || !street) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    // Check if the address already exists
+    const existingAddressQuery = `
+      SELECT * FROM consumer_addresses
+      WHERE consumer_id = ? AND pincode = ? AND street = ?
+    `;
+    const existingAddress = await queryDatabase(existingAddressQuery, [consumer_id, pincode, street]);
+
+    if (existingAddress.length > 0) {
+      return res.status(400).json({ error: "Address already exists" });
+    }
+
+    // Insert the new address
+    const insertQuery = `
+      INSERT INTO consumer_addresses (consumer_id, name, mobile_number, pincode, city, state, street, landmark)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+    await queryDatabase(insertQuery, [consumer_id, name, mobile_number, pincode, city, state, street, landmark]);
+
+    res.status(200).json({ message: "Address added successfully", consumer_id, name, pincode, city, street, landmark });
+  } catch (error) {
+    console.error("Error adding address:", error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
@@ -423,43 +756,6 @@ app.get("/api/orders/:consumer_id", async (req, res) => {
       res.json(products);
   } catch (error) {
       res.status(500).json({ error: "Failed to fetch order products" });
-  }
-});
-app.get("/api/addresses/:consumer_id?", async (req, res) => {
-  try {
-    const { consumer_id } = req.params;
-    const query = consumer_id
-      ? "SELECT * FROM placeorder WHERE consumer_id = ?"
-      : "SELECT * FROM placeorder";
-    const result = await queryDatabase(query, consumer_id ? [consumer_id] : []);
-    res.json(result);
-  } catch (error) {
-    console.error("Error fetching addresses:", error);
-    res.status(500).json({ error: "Failed to fetch addresses" });
-  }
-});
-
-app.post("/api/addresses", async (req, res) => {
-  const { consumer_id, name, phone_number, pincode, city, state, street, landmark } = req.body;
-
-  console.log("Received address data:", req.body); // Log the incoming request
-
-  // Validate required fields
-  if (!consumer_id || !name || !phone_number || !pincode || !city || !state || !street) {
-    console.error("Missing required fields:", req.body);
-    return res.status(400).json({ error: "All fields are required" });
-  }
-
-  try {
-    const query = `
-      INSERT INTO placeorder (consumer_id, name, mobile_number, pincode, city, state, street, landmark)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `;
-    await queryDatabase(query, [consumer_id, name, phone_number, pincode, city, state, street, landmark]);
-    res.status(201).json({ message: "Address added successfully" });
-  } catch (error) {
-    console.error("Database error:", error);
-    res.status(500).json({ error: "Failed to add address", details: error.message });
   }
 });
 
@@ -549,42 +845,54 @@ app.post("/api/farmerlogin", async (req, res) => {
   const { emailOrPhone, password } = req.body;
 
   try {
-      const results = await queryDatabase(
-          "SELECT farmer_id, first_name, last_name, password FROM farmerregistration WHERE email = ? OR phone_number = ?",
-          [emailOrPhone, emailOrPhone]
-      );
+    const results = await queryDatabase(
+      "SELECT farmer_id, first_name, last_name, password FROM farmerregistration WHERE email = ? OR phone_number = ?",
+      [emailOrPhone, emailOrPhone]
+    );
 
-      console.log("Login Query Results:", results);
+    console.log("Login Query Results:", results);
 
-      if (results.length === 0) {
-          return res.status(401).json({ success: false, message: "Invalid credentials" });
-      }
+    if (results.length === 0) {
+      return res.status(401).json({ success: false, message: "Invalid credentials" });
+    }
 
-      const user = results[0];
-      console.log("User Retrieved:", user);
+    const user = results[0];
+    console.log("User Retrieved:", user);
 
-      // Debug password
-      console.log("Entered Password:", password);
-      console.log("Stored Password:", user.password);
+    // Debug password
+    console.log("Entered Password:", password);
+    console.log("Stored Password:", user.password);
 
-      // Check password
-      if (!user.password || password !== user.password) {
-          return res.status(401).json({ success: false, message: "Invalid password" });
-      }
+    // Password check
+    if (!user.password || password !== user.password) {
+      return res.status(401).json({ success: false, message: "Invalid password" });
+    }
 
-      // ✅ Concatenate `first_name` and `last_name`
-      const fullName = `${user.first_name} ${user.last_name}`;
+    // ✅ Generate JWT Token
+  // When a FARMER logs in:
+const token = jwt.sign(
+  {
+    farmer_id: user.farmer_id,  // Different ID field
+    userType: "farmer", 
+    email: user.email,        // Explicit type
+                            // Other claims
+  },
+  process.env.JWT_SECRET,
+  { expiresIn: "1h" }
+);
 
-      // ✅ Send `farmer_id` & `full_name` in response
-      res.json({ 
-          success: true, 
-          farmer_id: user.farmer_id, 
-          full_name: fullName, 
-          message: "Login successful" 
-      });
+    // ✅ Send response with token
+    res.json({ 
+      success: true, 
+      token, 
+      farmer_id: user.farmer_id, 
+      full_name: `${user.first_name} ${user.last_name}`, 
+      message: "Login successful" 
+    });
+
   } catch (err) {
-      console.error("Login Error:", err);
-      res.status(500).json({ success: false, message: "Database error", error: err.message });
+    console.error("❌ Farmer Login Database Error:", err);
+    res.status(500).json({ success: false, message: "Database error", error: err.message });
   }
 });
 app.get("/api/getFarmerDetails", async (req, res) => {
@@ -673,42 +981,55 @@ app.post("/api/consumerlogin", async (req, res) => {
   const { emailOrPhone, password } = req.body;
 
   try {
-    console.log("🔹 Login request received for:", emailOrPhone);
-
     const results = await queryDatabase(
-      "SELECT * FROM consumerregistration WHERE email = ? OR phone_number = ?",
+      "SELECT consumer_id, email, phone_number, first_name , last_name, password FROM consumerregistration WHERE email = ? OR phone_number = ?",
       [emailOrPhone, emailOrPhone]
     );
-
-    console.log("🔹 Login Query Results:", results);
-
+    console.log("🔍 Query Results:", results);
     if (results.length === 0) {
       return res.status(401).json({ success: false, message: "Invalid credentials" });
     }
 
     const consumer = results[0];
-    console.log("🔹 Consumer Retrieved:", consumer);
-
-    // ✅ Check password (for hashed passwords)
+    console.log("🔍 API Returning Consumer Data:", consumer);
     const isPasswordValid = await bcrypt.compare(password, consumer.password);
-    console.log("Entered Password:", password);
-    console.log("Stored Password (Hashed):", consumer.password);
-    console.log("Password Match:", isPasswordValid);
 
     if (!isPasswordValid) {
-      return res.status(401).json({ success: false, message: "Invalid password" });
+      return res.status(401).json({ success: false, message: "Invalid credentials" });
     }
 
-    // ✅ Remove password before sending response
-    delete consumer.password;
+    // ✅ Store consumer_id in session
+    req.session.consumer_id = consumer.consumer_id;
 
-    res.json({ success: true, message: "Login successful", consumer });
+    // ✅ Debugging
+    console.log("Session set:", req.session);
+
+    const token = jwt.sign(
+      { consumer_id: consumer.consumer_id, userType: "consumer" },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    res.json({
+      success: true,
+      token,
+      
+        consumer_id: consumer.consumer_id,
+        first_name: consumer.first_name,
+        last_name: consumer.last_name,
+        email: consumer.email,
+        phone_number: consumer.phone_number,
+       
+    
+    });
 
   } catch (err) {
-    console.error("❌ Login Error:", err);
-    res.status(500).json({ success: false, message: "Database error", error: err.message });
+    console.error("Login error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 });
+
+
 // ✅ Logout API (Clears JWT Cookie)
 app.post("/api/logout", (req, res) => {
   res.clearCookie("token");
@@ -1011,6 +1332,31 @@ app.get("/api/products/:product_id", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+app.get('/api/farmers-ratings', async (req, res) => {
+  try {
+      const query = `
+          SELECT farmer_id, 
+                 COALESCE(AVG(rating), 0) AS average_rating
+          FROM reviews 
+          GROUP BY farmer_id;
+      `;
+
+      const ratings = await queryDatabase(query);
+
+      console.log("Fetched Farmer Ratings:", ratings); // Debugging Log
+
+      // Ensure ratings are returned as float numbers
+      const formattedRatings = ratings.map(rating => ({
+          farmer_id: rating.farmer_id,
+          average_rating: parseFloat(rating.average_rating) // Convert to float
+      }));
+
+      res.json(formattedRatings);
+  } catch (error) {
+      console.error("Error fetching farmer ratings:", error);
+      res.status(500).json({ error: "Internal Server Error", details: error.message });
+  }
+});
 
 
 app.get("/api/product/:product_id", async (req, res) => {
@@ -1261,6 +1607,197 @@ app.get('/consumers', async (req, res) => {
   } catch (error) {
     console.error('Error fetching consumers:', error);
     res.status(500).json({ error: 'Failed to fetch consumers' });
+  }
+});
+// Fetch logged-in farmer details
+app.get('/api/farmer-details/:farmer_id', async (req, res) => {
+  try {
+    const farmerId = req.params.farmer_id; // Extract farmer_id from URL
+
+    if (!farmerId) {
+      return res.status(400).json({ error: 'Farmer ID is required' });
+    }
+
+    // Fetch farmer details using farmer_id
+    const query = `
+      SELECT farmer_id, CONCAT(first_name, ' ', last_name) AS farmer_name
+      FROM farmerregistration
+      WHERE farmer_id = ?;
+    `;
+    
+    const result = await queryDatabase(query, [farmerId]);
+
+    if (result.length === 0) {
+      return res.status(404).json({ error: 'Farmer not found' });
+    }
+
+    res.json(result[0]);
+  } catch (error) {
+    console.error('Error fetching farmer details:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+// app.get("/reviews", async (req, res) => {
+//   const farmerId = req.query.farmer_id;
+
+//   if (!farmerId) {
+//     return res.status(400).json({ error: "farmer_id is required" });
+//   }
+
+//   try {
+//     const reviews = await queryDatabase(
+//       `SELECT r.review_id, r.consumer_name, r.rating, r.comment, r.created_at,
+//               JSON_ARRAYAGG(ri.image_url) AS image_urls
+//        FROM reviews r
+//        LEFT JOIN review_images ri ON r.review_id = ri.review_id
+//        WHERE r.farmer_id = ?
+//        GROUP BY r.review_id`,
+//       [farmerId]
+//     );
+
+//     if (reviews.length === 0) {
+//       return res.status(404).json({ error: "No reviews found" });
+//     }
+
+//     // Convert `null` to an empty array in case of no images
+//     const formattedReviews = reviews.map(review => ({
+//       ...review,
+//       image_urls: review.image_urls[0] ? JSON.parse(review.image_urls) : []
+//     }));
+
+//     res.json(formattedReviews);
+//   } catch (err) {
+//     console.error("Error fetching reviews:", err);
+//     res.status(500).json({ error: "Error fetching reviews" });
+//   }
+// });
+// In your backend code (Node.js/Express)
+app.get("/reviews/:farmer_id", async (req, res) => {
+  const { farmer_id } = req.params;
+  console.log("Fetching reviews for farmer:", farmer_id);
+  
+  // Validate farmer_id
+  if (!farmer_id || farmer_id.trim() === "" || farmer_id === "0") {
+    return res.status(400).json({ error: "Invalid Farmer ID" });
+  }
+  try {
+    // 1. Verify the farmer_id is being received correctly
+  
+    // 2. Check the actual query being executed
+    const reviewsQuery = `
+      SELECT r.* 
+      FROM reviews r
+      WHERE CAST(r.farmer_id AS CHAR) = ?
+      ORDER BY r.created_at DESC
+    `;
+    console.log("Executing query:", reviewsQuery.replace(/\s+/g, ' ').trim());
+    console.log("With parameters:", [farmer_id]);
+
+    const reviews = await queryDatabase(reviewsQuery, [farmer_id]);
+    console.log("Database returned:", reviews);
+
+    // 3. Verify image fetching
+    const reviewsWithImages = await Promise.all(reviews.map(async (review) => {
+      console.log(`Fetching images for review ${review.review_id}`);
+      const imagesQuery = `SELECT image_url FROM review_images WHERE review_id = ?`;
+      const images = await queryDatabase(imagesQuery, [review.review_id]);
+      return {
+        ...review,
+        image_urls: images.map(img => img.image_url)
+      };
+    }));
+
+    console.log("Final response data:", reviewsWithImages);
+    res.json(reviewsWithImages);
+  } catch (error) {
+    console.error("Full error stack:", error);
+    res.status(500).json({ 
+      error: "Internal Server Error",
+      message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});  
+// API to add a review with an image
+app.post("/reviews", upload.array("images", 5), async (req, res) => {
+  console.log("🛠️ Received review data:", req.body);
+  const { farmer_id, consumer_name, rating, comment } = req.body;
+
+  console.log("📌 Extracted Data:");
+  console.log("Farmer ID:", farmer_id);
+  console.log("Consumer Name:", consumer_name);
+  console.log("Rating:", rating);
+  console.log("Comment:", comment);
+
+  if (!farmer_id || farmer_id === "0") {
+    return res.status(400).json({ error: "Farmer ID is required" });
+  }
+  try {
+    // Start transaction
+    await queryDatabase("START TRANSACTION");
+
+    // Insert review
+    // Insert review
+    const reviewSql = `
+      INSERT INTO reviews (farmer_id, consumer_name, rating, comment)
+      VALUES (?, ?, ?, ?)
+    `;
+    const reviewResult = await queryDatabase(reviewSql, [farmer_id, consumer_name, rating, comment]);
+
+    console.log("✅ Inserted Review with farmer_id:", farmer_id);
+
+    // Insert images
+    if (req.files?.length > 0) {
+      for (const file of req.files) {
+        await queryDatabase(
+          `INSERT INTO review_images (review_id, image_url) VALUES (?, ?)`,
+          [reviewResult.insertId, `/uploads/${file.filename}`]
+        );
+      }
+    }
+
+    await queryDatabase("COMMIT");
+    res.json({ success: true, reviewId: reviewResult.insertId });
+
+  } catch (error) {
+    await queryDatabase("ROLLBACK");
+    console.error("Database error:", error);
+    res.status(500).json({ error: "Failed to save review" });
+  }
+});
+app.get("/consumerregistration/:consumer_id", async (req, res) => {
+  const { consumer_id } = req.params;
+
+  try {
+    const consumer = await queryDatabase(
+      "SELECT first_name, last_name FROM consumerregistration WHERE consumer_id = ?",
+      [consumer_id]
+    );
+
+    if (consumer.length === 0) {
+      return res.status(404).json({ error: "Consumer not found" });
+    }
+
+    res.json(consumer[0]);
+  } catch (error) {
+    console.error("Error fetching consumer:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// Add produce to add_produce table
+app.post('/api/add-produce', async (req, res) => {
+  try {
+    const { farmer_id, farmer_name, produce_name, availability, price_per_kg, market_type } = req.body;
+
+    await queryDatabase(
+      'INSERT INTO add_produce (farmer_id, farmer_name, produce_name, availability, price_per_kg, market_type) VALUES (?, ?, ?, ?, ?, ?)',
+      [farmer_id, farmer_name, produce_name, availability, price_per_kg, market_type]
+    );
+
+    res.json({ message: 'Produce added successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to add produce' });
   }
 });
 

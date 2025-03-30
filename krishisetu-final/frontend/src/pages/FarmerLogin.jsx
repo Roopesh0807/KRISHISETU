@@ -15,29 +15,34 @@ const FarmerLogin = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
+    console.log("🟡 Form Data Being Sent:", formData);
+  
     try {
       const response = await fetch("http://localhost:5000/api/farmerlogin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
-
+  
       const data = await response.json();
+      console.log("🟢 Server Response:", data);
+  
       if (data.success) {
+        localStorage.setItem("token", data.token);  // ✅ Store JWT token
         localStorage.setItem("farmerID", data.farmer_id);
-        localStorage.setItem("farmerName", data.full_name); // ✅ Store full name
-        console.log("Stored Farmer Name:", data.full_name); // Debug log
+        localStorage.setItem("farmerName", data.full_name);
         window.alert("✅ Login Successful! Redirecting to dashboard...");
         setTimeout(() => navigate("/farmer-dashboard"), 1000);
       } else {
         window.alert(`Login Failed: ${data.message}`);
       }
     } catch (error) {
-      console.error("Login Error:", error);
+      console.error("❌ Login Error:", error);
       window.alert("Error connecting to server. Please try again later.");
     }
   };
+  
 
   return (
     <div className="log-container">

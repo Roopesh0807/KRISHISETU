@@ -240,6 +240,7 @@ const ProductDetail = () => {
   const [product, setProduct] = useState(null);
   const [error, setError] = useState(null);
   const { addToCart } = useCart();
+<<<<<<< HEAD
   const [selectedQuantity, setSelectedQuantity] = useState(1);
   const [communities, setCommunities] = useState([]);
   const [selectedCommunity, setSelectedCommunity] = useState("");
@@ -247,6 +248,9 @@ const ProductDetail = () => {
   const [addedToCommunityCart, setAddedToCommunityCart] = useState(false);
   const [showCommunityOptions, setShowCommunityOptions] = useState(false);
   const { consumer } = React.useContext(AuthContext); // Use AuthContext to check login status
+=======
+  const [selectedQuantity, setSelectedQuantity] = useState(1); // ✅ Default is number
+>>>>>>> c5dcc411bded4fe9dc37060cf5b2b6332e1f57ec
 
   useEffect(() => {
     fetch(`http://localhost:5000/api/products/${product_id}`)
@@ -256,12 +260,17 @@ const ProductDetail = () => {
           setError("Product not found");
         } else {
           setProduct(data);
+<<<<<<< HEAD
           setSelectedQuantity(1);
+=======
+          setSelectedQuantity(1); // ✅ Ensuring default selection is 1
+>>>>>>> c5dcc411bded4fe9dc37060cf5b2b6332e1f57ec
         }
       })
       .catch(() => setError("Error fetching product"));
   }, [product_id]);
 
+<<<<<<< HEAD
   const handleAddToCommunityCart = async () => {
     // Check login status using AuthContext
     if (!consumer) {
@@ -274,6 +283,10 @@ const ProductDetail = () => {
       navigate("/member-order-page");
       return;
     }
+=======
+  if (error) return <p className="error-message">{error}</p>;
+  if (!product) return <p className="loading-text">Loading product details...</p>;
+>>>>>>> c5dcc411bded4fe9dc37060cf5b2b6332e1f57ec
 
     try {
       const response = await fetch(`http://localhost:5000/api/consumer-communities/${consumer.consumer_id}`);
@@ -370,6 +383,13 @@ const ProductDetail = () => {
   const handleAddToCart = () => {
     addToCart(product, selectedQuantity);
     navigate("/cart");
+<<<<<<< HEAD
+=======
+  };
+
+  const handleAddToCommunityCart = () => {
+    console.log("Added to community cart:", product.product_name, selectedQuantity);
+>>>>>>> c5dcc411bded4fe9dc37060cf5b2b6332e1f57ec
   };
 
   const handleBuyNow = () => {
@@ -382,6 +402,7 @@ const ProductDetail = () => {
   };
 
   const handleIncrease = () => {
+<<<<<<< HEAD
     setSelectedQuantity((prev) => Math.max(1, prev + 1));
   };
 
@@ -393,6 +414,16 @@ const ProductDetail = () => {
 
   if (error) return <p className="error-message">{error}</p>;
   if (!product) return <p className="loading-text">Loading product details...</p>;
+=======
+    setSelectedQuantity((prev) => Math.max(1, prev + 1)); // ✅ Always valid
+  };
+
+  const handleDecrease = () => {
+    setSelectedQuantity((prev) => Math.max(1, prev - 1)); // ✅ Prevent negative
+  };
+
+  const totalPrice = selectedQuantity * (product?.price_1kg || 0); // ✅ Fixing NaN issue
+>>>>>>> c5dcc411bded4fe9dc37060cf5b2b6332e1f57ec
 
   return (
     <div className="container">
@@ -421,6 +452,7 @@ const ProductDetail = () => {
           </div>
         </div>
 
+<<<<<<< HEAD
         {showCommunitySelect && !addedToCommunityCart && (
           <div className="communitySection">
             <div className="communitySelector">
@@ -467,6 +499,8 @@ const ProductDetail = () => {
           </div>
         )}
 
+=======
+>>>>>>> c5dcc411bded4fe9dc37060cf5b2b6332e1f57ec
         <p className="totalPrice"><strong>Total Price: ₹ {totalPrice}</strong></p>
 
         <div className="buttonsContainer">
