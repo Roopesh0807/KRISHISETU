@@ -149,22 +149,16 @@ const ConsumerLogin = () => {
       [name]: type === 'checkbox' ? checked : value
     }));
   };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-<<<<<<< HEAD
     setLoading(true);
     setError("");
   
-=======
-
->>>>>>> d46bb94e03c449675e53d15e27842cafd1815b28
     try {
       const response = await fetch("http://localhost:5000/api/consumerlogin", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-<<<<<<< HEAD
         body: JSON.stringify({
           emailOrPhone: formData.emailOrPhone,
           password: formData.password
@@ -172,40 +166,17 @@ const ConsumerLogin = () => {
       });
   
       const data = await response.json();
+      console.log("API Response:", data);
   
       if (!response.ok) {
         throw new Error(data.message || "Login failed");
-=======
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
-      console.log("API Response:", data);
-
-      if (data.success) {
-        console.log("✅ Logged in Consumer:", data.consumer);
-
-        // Store the consumer object in localStorage
-        localStorage.setItem("consumer", JSON.stringify(data.consumer));
-
-        // Store the consumerId in localStorage
-        localStorage.setItem("consumerId", data.consumer.consumer_id); // ✅ Store consumerId
-
-        // Call the loginConsumer function from AuthContext
-        loginConsumer(data.consumer);
-
-        alert("✅ Login Successful! Redirecting...");
-        setTimeout(() => navigate("/consumer-dashboard"), 1000);
-      } else {
-        alert(`⚠️ Login Failed: ${data.message}`);
->>>>>>> d46bb94e03c449675e53d15e27842cafd1815b28
       }
-
-      // Verify token exists
+  
+      // Verify token exists first
       if (!data.token) {
         throw new Error("No authentication token received");
       }
-
+  
       // Extract payload from token
       const payload = JSON.parse(atob(data.token.split('.')[1]));
       
@@ -213,20 +184,26 @@ const ConsumerLogin = () => {
       if (!payload.consumer_id) {
         throw new Error("Invalid token format - missing consumer ID");
       }
-
+  
       // Prepare consumer data for context
       const consumerData = {
         token: data.token,
         consumer_id: payload.consumer_id,
-        email: data.consumer?.email,
-        phone_number: data.consumer?.phone_number
+        email: data.email || payload.email || "",
+        phone_number: data.phone_number || payload.phone_number || "",
+        first_name: data.first_name || payload.first_name || "",
+        last_name: data.last_name || payload.last_name || "",
       };
-
-      // Call AuthContext login function
-      loginConsumer(consumerData, formData.rememberMe);
-      
-      // Redirect to dashboard
-      navigate("/consumer-dashboard");
+  
+      // Store the consumer data
+      localStorage.setItem("consumer", JSON.stringify(consumerData));
+      localStorage.setItem("consumerId", consumerData.consumer_id);
+  
+      // Call the loginConsumer function from AuthContext
+      loginConsumer(consumerData);
+  
+      alert("✅ Login Successful! Redirecting...");
+      setTimeout(() => navigate("/consumer-dashboard"), 1000);
   
     } catch (error) {
       console.error("Login Error:", error);
@@ -239,7 +216,6 @@ const ConsumerLogin = () => {
       setLoading(false);
     }
   };
-
   return (
     <div className="log-container">
       <main className="auth-container">
