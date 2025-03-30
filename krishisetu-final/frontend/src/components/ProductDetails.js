@@ -2,6 +2,7 @@
 // import { useParams, Link, useNavigate } from "react-router-dom";
 // import "./ProductDetails.css";
 // import { useCart } from "../context/CartContext";
+// import { AuthContext } from "../context/AuthContext"; // Import AuthContext
 
 // const ProductDetail = () => {
 //   const { product_id } = useParams();
@@ -9,12 +10,17 @@
 //   const [product, setProduct] = useState(null);
 //   const [error, setError] = useState(null);
 //   const { addToCart } = useCart();
+
 //   const [selectedQuantity, setSelectedQuantity] = useState(1);
 //   const [communities, setCommunities] = useState([]);
 //   const [selectedCommunity, setSelectedCommunity] = useState("");
 //   const [showCommunitySelect, setShowCommunitySelect] = useState(false);
 //   const [addedToCommunityCart, setAddedToCommunityCart] = useState(false);
-//   const consumer_id = localStorage.getItem("consumer_id");
+//   const [showCommunityOptions, setShowCommunityOptions] = useState(false);
+//   const { consumer } = React.useContext(AuthContext); // Use AuthContext to check login status
+
+//   // const [selectedQuantity, setSelectedQuantity] = useState(1); // ✅ Default is number
+
 
 //   useEffect(() => {
 //     fetch(`http://localhost:5000/api/products/${product_id}`)
@@ -24,46 +30,45 @@
 //           setError("Product not found");
 //         } else {
 //           setProduct(data);
+
 //           setSelectedQuantity(1);
+
 //         }
 //       })
 //       .catch(() => setError("Error fetching product"));
 //   }, [product_id]);
 
-//   const fetchCommunities = () => {
-//     fetch(`http://localhost:5000/api/consumer-communities/${consumer_id}`)
-//       .then(res => res.json())
-//       .then(data => {
-//         if (data.length > 0) {
-//           setCommunities(data);
-//           setShowCommunitySelect(true);
-//         } else {
-//           alert("You are not a member of any community");
-//         }
-//       })
-//       .catch(err => console.error("Error fetching communities:", err));
-//   };
 
 //   const handleAddToCommunityCart = async () => {
+//     // Check login status using AuthContext
+//     if (!consumer) {
+//       alert("Please login first");
+//       navigate("/consumer-login");
+//       return;
+//     }
+
 //     if (addedToCommunityCart) {
 //       navigate("/member-order-page");
 //       return;
 //     }
-  
+
+//   if (error) return <p className="error-message">{error}</p>;
+//   if (!product) return <p className="loading-text">Loading product details...</p>;
+
+
 //     try {
-//       // First fetch communities
-//       const response = await fetch(`http://localhost:5000/api/consumer-communities/${consumer_id}`);
+//       const response = await fetch(`http://localhost:5000/api/consumer-communities/${consumer.consumer_id}`);
 //       const data = await response.json();
       
 //       if (response.ok) {
 //         if (data.error === "Consumer not found") {
-//           alert("Please register as a consumer first");
+//           alert("Your session might be expired. Please login again.");
+//           navigate("/consumer-login");
 //           return;
 //         }
         
 //         if (data.length === 0) {
-//           alert("You need to join a community first. Would you like to create one?");
-//           navigate("/create-community");
+//           setShowCommunityOptions(true);
 //           return;
 //         }
         
@@ -72,14 +77,18 @@
 //       } else {
 //         throw new Error(data.error || "Failed to fetch communities");
 //       }
-//     } catch (err) {
-//       console.error("Error:", err);
-//       alert(err.message);
+//     } catch (error) {
+//       console.error("Error:", error);
+//       alert(error.message);
+      
+//       if (error.message.includes("Consumer not found") || 
+//           error.message.includes("session")) {
+//         navigate("/consumer-login");
+//       }
 //     }
 //   };
-  
-//   // Then modify the actual add to cart function:
-//   const confirmAddToCommunityCart = async () => {
+
+//   const handleConfirmAddToCommunityCart = async () => {
 //     if (!selectedCommunity) {
 //       alert("Please select a community first");
 //       return;
@@ -94,7 +103,7 @@
 //         body: JSON.stringify({
 //           community_id: selectedCommunity,
 //           product_id: product.product_id,
-//           consumer_id: consumer_id,
+//           consumer_id: consumer.consumer_id, // Use consumer from AuthContext
 //           quantity: selectedQuantity,
 //           price: selectedQuantity * product.price_1kg
 //         })
@@ -102,19 +111,39 @@
       
 //       const data = await response.json();
       
-//       if (response.ok && data.success) {
-//         setAddedToCommunityCart(true);
-//         // Find the community name for the message
-//         const community = communities.find(c => c.community_id === selectedCommunity);
-//         alert(`Added to ${community?.community_name || 'community'} cart!`);
-//       } else {
+//     if (!response.ok) {
+//       throw new Error(data.error || "Failed to add to community cart");
+//     }
+//       if (!response.ok) {
+//         if (data.error === "Consumer not found") {
+//           alert("Your account wasn't found. Please log in again.");
+//           navigate("/consumer-login");
+//           return;
+//         }
+//         if (data.error === "Membership not found") {
+//           alert("You need to join this community first");
+//           setShowCommunityOptions(true);
+//           setShowCommunitySelect(false);
+//           return;
+//         }
 //         throw new Error(data.error || "Failed to add to community cart");
 //       }
-//     } catch (err) {
-//       console.error("Error:", err);
-//       alert(err.message);
+  
+//       setAddedToCommunityCart(true);
+//       alert(`Added to ${data.community_name || 'community'} cart!`);
+//     } catch (error) {
+//       console.error("Error:", error);
+//       alert(error.message);
+      
+//       if (error.message.includes("not a member") || 
+//           error.message.includes("Membership not found")) {
+//         setShowCommunityOptions(true);
+//         setShowCommunitySelect(false);
+//       }
 //     }
 //   };
+
+//   // Rest of the component remains exactly the same
 //   const handleSubscribe = () => {
 //     navigate("/subscribe", { state: { product, quantity: selectedQuantity } });
 //   };
@@ -122,7 +151,14 @@
 //   const handleAddToCart = () => {
 //     addToCart(product, selectedQuantity);
 //     navigate("/cart");
+
+
 //   };
+
+//   // const handleAddToCommunityCart = () => {
+//   //   console.log("Added to community cart:", product.product_name, selectedQuantity);
+
+//   // };
 
 //   const handleBuyNow = () => {
 //     addToCart(product, selectedQuantity);
@@ -145,6 +181,16 @@
 
 //   if (error) return <p className="error-message">{error}</p>;
 //   if (!product) return <p className="loading-text">Loading product details...</p>;
+
+//     setSelectedQuantity((prev) => Math.max(1, prev + 1)); // ✅ Always valid
+//   };
+
+//   const handleDecrease = () => {
+//     setSelectedQuantity((prev) => Math.max(1, prev - 1)); // ✅ Prevent negative
+//   };
+
+//   const totalPrice = selectedQuantity * (product?.price_1kg || 0); // ✅ Fixing NaN issue
+
 
 //   return (
 //     <div className="container">
@@ -173,40 +219,54 @@
 //           </div>
 //         </div>
 
+
 //         {showCommunitySelect && !addedToCommunityCart && (
-//           <div className="communitySelector">
-//             <label className="quantityLabel"><strong>Select Community:</strong></label>
-//             <select
-//               value={selectedCommunity}
-//               onChange={(e) => setSelectedCommunity(e.target.value)}
-//               className="communitySelect"
+//           <div className="communitySection">
+//             <div className="communitySelector">
+//               <label className="quantityLabel"><strong>Select Community:</strong></label>
+//               <select
+//                 value={selectedCommunity}
+//                 onChange={(e) => setSelectedCommunity(e.target.value)}
+//                 className="communitySelect"
+//               >
+//                 <option value="">Select a community</option>
+//                 {communities.map(community => (
+//                   <option key={community.community_id} value={community.community_id}>
+//                     {community.community_name}
+//                   </option>
+//                 ))}
+//               </select>
+//             </div>
+//             <button 
+//               className="cardButton confirmButton"
+//               onClick={handleConfirmAddToCommunityCart}
 //             >
-//               <option value="">Select a community</option>
-//               {communities.map(community => (
-//                 <option key={community.community_id} value={community.community_id}>
-//                   {community.community_name}
-//                 </option>
-//               ))}
-//             </select>
+//               Confirm Selection
+//             </button>
 //           </div>
 //         )}
-//         {communities.length === 0 && !showCommunitySelect && (
-//   <div className="communityPrompt">
-//     <p>You're not part of any community yet.</p>
-//     <button 
-//       className="cardButton"
-//       onClick={() => navigate("/create-community")}
-//     >
-//       Create a Community
-//     </button>
-//     <button 
-//       className="cardButton"
-//       onClick={() => navigate("/join-community")}
-//     >
-//       Join Existing Community
-//     </button>
-//   </div>
-// )}
+
+//         {showCommunityOptions && !showCommunitySelect && (
+//           <div className="communityPrompt">
+//             <p>You're not part of any community yet.You need to join a community to use this feature.</p>
+//             <div className="communityActionButtons">
+//               <button 
+//                 className="cardButton"
+//                 onClick={() => navigate("/create-community")}
+//               >
+//                 Create a Community
+//               </button>
+//               <button 
+//                 className="cardButton"
+//                 onClick={() => navigate("/join-community")}
+//               >
+//                 Join Existing Community
+//               </button>
+//             </div>
+//           </div>
+//         )}
+
+
 //         <p className="totalPrice"><strong>Total Price: ₹ {totalPrice}</strong></p>
 
 //         <div className="buttonsContainer">
@@ -218,6 +278,12 @@
 //           <button className="cardButton" onClick={handleBuyNow}>Buy Now</button>
 //         </div>
 
+//         {/* {communities.length === 0 && !showCommunitySelect && (
+//           <div className="communityPrompt">
+//             <p>You're not part of any community yet.</p>
+//           </div>
+//         )} */}
+
 //         <Link to="/consumer-dashboard" className="backButton">Back to Dashboard</Link>
 //       </div>
 //     </div>
@@ -225,14 +291,11 @@
 // };
 
 // export default ProductDetail;
-
-
-
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import "./ProductDetails.css";
 import { useCart } from "../context/CartContext";
-import { AuthContext } from "../context/AuthContext"; // Import AuthContext
+import { AuthContext } from "../context/AuthContext";
 
 const ProductDetail = () => {
   const { product_id } = useParams();
@@ -240,17 +303,13 @@ const ProductDetail = () => {
   const [product, setProduct] = useState(null);
   const [error, setError] = useState(null);
   const { addToCart } = useCart();
-<<<<<<< HEAD
   const [selectedQuantity, setSelectedQuantity] = useState(1);
   const [communities, setCommunities] = useState([]);
   const [selectedCommunity, setSelectedCommunity] = useState("");
   const [showCommunitySelect, setShowCommunitySelect] = useState(false);
   const [addedToCommunityCart, setAddedToCommunityCart] = useState(false);
   const [showCommunityOptions, setShowCommunityOptions] = useState(false);
-  const { consumer } = React.useContext(AuthContext); // Use AuthContext to check login status
-=======
-  const [selectedQuantity, setSelectedQuantity] = useState(1); // ✅ Default is number
->>>>>>> c5dcc411bded4fe9dc37060cf5b2b6332e1f57ec
+  const { consumer } = React.useContext(AuthContext);
 
   useEffect(() => {
     fetch(`http://localhost:5000/api/products/${product_id}`)
@@ -260,19 +319,13 @@ const ProductDetail = () => {
           setError("Product not found");
         } else {
           setProduct(data);
-<<<<<<< HEAD
           setSelectedQuantity(1);
-=======
-          setSelectedQuantity(1); // ✅ Ensuring default selection is 1
->>>>>>> c5dcc411bded4fe9dc37060cf5b2b6332e1f57ec
         }
       })
       .catch(() => setError("Error fetching product"));
   }, [product_id]);
 
-<<<<<<< HEAD
   const handleAddToCommunityCart = async () => {
-    // Check login status using AuthContext
     if (!consumer) {
       alert("Please login first");
       navigate("/consumer-login");
@@ -283,10 +336,6 @@ const ProductDetail = () => {
       navigate("/member-order-page");
       return;
     }
-=======
-  if (error) return <p className="error-message">{error}</p>;
-  if (!product) return <p className="loading-text">Loading product details...</p>;
->>>>>>> c5dcc411bded4fe9dc37060cf5b2b6332e1f57ec
 
     try {
       const response = await fetch(`http://localhost:5000/api/consumer-communities/${consumer.consumer_id}`);
@@ -335,7 +384,7 @@ const ProductDetail = () => {
         body: JSON.stringify({
           community_id: selectedCommunity,
           product_id: product.product_id,
-          consumer_id: consumer.consumer_id, // Use consumer from AuthContext
+          consumer_id: consumer.consumer_id,
           quantity: selectedQuantity,
           price: selectedQuantity * product.price_1kg
         })
@@ -343,9 +392,6 @@ const ProductDetail = () => {
       
       const data = await response.json();
       
-    if (!response.ok) {
-      throw new Error(data.error || "Failed to add to community cart");
-    }
       if (!response.ok) {
         if (data.error === "Consumer not found") {
           alert("Your account wasn't found. Please log in again.");
@@ -375,7 +421,6 @@ const ProductDetail = () => {
     }
   };
 
-  // Rest of the component remains exactly the same
   const handleSubscribe = () => {
     navigate("/subscribe", { state: { product, quantity: selectedQuantity } });
   };
@@ -383,13 +428,6 @@ const ProductDetail = () => {
   const handleAddToCart = () => {
     addToCart(product, selectedQuantity);
     navigate("/cart");
-<<<<<<< HEAD
-=======
-  };
-
-  const handleAddToCommunityCart = () => {
-    console.log("Added to community cart:", product.product_name, selectedQuantity);
->>>>>>> c5dcc411bded4fe9dc37060cf5b2b6332e1f57ec
   };
 
   const handleBuyNow = () => {
@@ -402,7 +440,6 @@ const ProductDetail = () => {
   };
 
   const handleIncrease = () => {
-<<<<<<< HEAD
     setSelectedQuantity((prev) => Math.max(1, prev + 1));
   };
 
@@ -410,20 +447,10 @@ const ProductDetail = () => {
     setSelectedQuantity((prev) => Math.max(1, prev - 1));
   };
 
-  const totalPrice = selectedQuantity * (product?.price_1kg || 0);
-
   if (error) return <p className="error-message">{error}</p>;
   if (!product) return <p className="loading-text">Loading product details...</p>;
-=======
-    setSelectedQuantity((prev) => Math.max(1, prev + 1)); // ✅ Always valid
-  };
 
-  const handleDecrease = () => {
-    setSelectedQuantity((prev) => Math.max(1, prev - 1)); // ✅ Prevent negative
-  };
-
-  const totalPrice = selectedQuantity * (product?.price_1kg || 0); // ✅ Fixing NaN issue
->>>>>>> c5dcc411bded4fe9dc37060cf5b2b6332e1f57ec
+  const totalPrice = selectedQuantity * (product.price_1kg || 0);
 
   return (
     <div className="container">
@@ -452,7 +479,6 @@ const ProductDetail = () => {
           </div>
         </div>
 
-<<<<<<< HEAD
         {showCommunitySelect && !addedToCommunityCart && (
           <div className="communitySection">
             <div className="communitySelector">
@@ -499,8 +525,6 @@ const ProductDetail = () => {
           </div>
         )}
 
-=======
->>>>>>> c5dcc411bded4fe9dc37060cf5b2b6332e1f57ec
         <p className="totalPrice"><strong>Total Price: ₹ {totalPrice}</strong></p>
 
         <div className="buttonsContainer">
@@ -511,12 +535,6 @@ const ProductDetail = () => {
           <button className="cardButton" onClick={handleSubscribe}>Subscribe</button>
           <button className="cardButton" onClick={handleBuyNow}>Buy Now</button>
         </div>
-
-        {/* {communities.length === 0 && !showCommunitySelect && (
-          <div className="communityPrompt">
-            <p>You're not part of any community yet.</p>
-          </div>
-        )} */}
 
         <Link to="/consumer-dashboard" className="backButton">Back to Dashboard</Link>
       </div>

@@ -1,11 +1,11 @@
-<<<<<<< HEAD
+
 /* .container {
     background: linear-gradient(to right, #f8f9fa, #e9ecef);
     padding: 50px 0;
     display: flex;
     justify-content: center;
     align-items: center;
-=======
+
 /* Global Styles */
 body {
   font-family: 'Poppins', sans-serif;
@@ -37,7 +37,7 @@ body {
   from {
     opacity: 0;
     transform: translateY(-15px);
->>>>>>> c5dcc411bded4fe9dc37060cf5b2b6332e1f57ec
+
   }
   to {
     opacity: 1;
@@ -189,7 +189,6 @@ body {
   .quantityControls {
     flex-direction: column;
   }
-<<<<<<< HEAD
   
   .productDetailContainer:hover {
     transform: scale(1.02);
@@ -532,6 +531,6 @@ body {
 .confirmButton:hover {
   background-color: #0b7dda;
 }
-=======
+
 }
->>>>>>> c5dcc411bded4fe9dc37060cf5b2b6332e1f57ec
+

@@ -161,29 +161,27 @@ const calculateAverageRating = (reviews) => {
   };
   
   const handleAddReview = async () => {
-   
     if (!consumer) {
       alert("Please login to submit a review");
       navigate("/consumer-login");
       return;
     }
   
-    if ( !newReview.rating || !newReview.comment) {
+    if (!newReview.rating || !newReview.comment) {
       alert("Please fill all required fields");
       return;
     }
-   
+  
     if (!farmer_id || farmer_id === '0') {
       alert("Invalid farmer selection");
       return;
     }
     const formData = new FormData();
     formData.append("farmer_id", farmer_id);
-    formData.append("consumer_id", consumer.consumer_id); // From AuthContext
-    formData.append("consumer_name", consumer.name); // From AuthContext// ✅ Use stored consumer name
+    formData.append("consumer_id", consumer.consumer_id);
+    formData.append("consumer_name", consumer.full_name || "Anonymous"); // Use full_name from context
     formData.append("rating", newReview.rating);
     formData.append("comment", newReview.comment);
-
     images.forEach((image) => {
       formData.append("images", image);
 
@@ -304,10 +302,10 @@ const calculateAverageRating = (reviews) => {
           
           {/* Name Input */}
           <div className="form-group">
-          <label>Your Name *</label>
+            <label>Your Name *</label>
             <input
               type="text"
-              value={consumer ? consumer.name : "Guest (please login)"}
+              value={consumer?.full_name || "Guest (please login)"}
               readOnly
               className="readonly-input"
             />

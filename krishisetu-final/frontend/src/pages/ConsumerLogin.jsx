@@ -123,7 +123,7 @@
 //   );
 // };
 
-// export default ConsumerLogin;
+// export default ConsumerLogin;import React, { useState, useContext } from "react";
 import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
@@ -149,6 +149,7 @@ const ConsumerLogin = () => {
       [name]: type === 'checkbox' ? checked : value
     }));
   };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -167,47 +168,21 @@ const ConsumerLogin = () => {
   
       const data = await response.json();
       console.log("API Response:", data);
-<<<<<<< HEAD
 
-      if (data.success) {
-        console.log("✅ Logged in Consumer:", data.consumer);
-
-        // Store the consumer object in localStorage
-        localStorage.setItem("consumer", JSON.stringify(data.consumer));
-
-        // Store the consumerId in localStorage
-        localStorage.setItem("consumerId", data.consumer.consumer_id); // ✅ Store consumerId
-        // Key change here
-        localStorage.setItem("userEmail", data.consumer.email);
-        localStorage.setItem("userName", `${data.consumer.first_name} ${data.consumer.last_name}`);
-        // Call the loginConsumer function from AuthContext
-        loginConsumer(data.consumer);
-
-        alert("✅ Login Successful! Redirecting...");
-        setTimeout(() => navigate("/consumer-dashboard"), 1000);
-      } else {
-        alert(`⚠️ Login Failed: ${data.message}`);
-=======
-  
       if (!response.ok) {
         throw new Error(data.message || "Login failed");
->>>>>>> c5dcc411bded4fe9dc37060cf5b2b6332e1f57ec
       }
   
-      // Verify token exists first
       if (!data.token) {
         throw new Error("No authentication token received");
       }
   
-      // Extract payload from token
       const payload = JSON.parse(atob(data.token.split('.')[1]));
       
-      // Validate token structure
       if (!payload.consumer_id) {
         throw new Error("Invalid token format - missing consumer ID");
       }
   
-      // Prepare consumer data for context
       const consumerData = {
         token: data.token,
         consumer_id: payload.consumer_id,
@@ -217,11 +192,11 @@ const ConsumerLogin = () => {
         last_name: data.last_name || payload.last_name || "",
       };
   
-      // Store the consumer data
       localStorage.setItem("consumer", JSON.stringify(consumerData));
       localStorage.setItem("consumerId", consumerData.consumer_id);
+      localStorage.setItem("userEmail", consumerData.email);
+      localStorage.setItem("userName", `${consumerData.first_name} ${consumerData.last_name}`);
   
-      // Call the loginConsumer function from AuthContext
       loginConsumer(consumerData);
   
       alert("✅ Login Successful! Redirecting...");
@@ -238,17 +213,14 @@ const ConsumerLogin = () => {
       setLoading(false);
     }
   };
+
   return (
     <div className="log-container">
       <main className="auth-container">
         <div className="auth-card">
           <h2>CONSUMER LOGIN</h2>
           
-          {error && (
-            <div className="error-message">
-              {error}
-            </div>
-          )}
+          {error && <div className="error-message">{error}</div>}
 
           <form onSubmit={handleSubmit}>
             <div className="form-group">

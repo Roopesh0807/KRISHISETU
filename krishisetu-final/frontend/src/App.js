@@ -216,8 +216,7 @@ const Main = () => {
         <Route path="/community-page/:communityId/member" element={<MemberCommunityPage />} />
         <Route path="/order/:communityId" element={<OrderPageC />} />
         <Route path="/order/:communityId/member/:memberId" element={<MemberOrderPage />} />
-<<<<<<< HEAD
-=======
+
 
 
         <Route path="/bargain" element={<ConsumerChatList />} />
@@ -228,7 +227,7 @@ const Main = () => {
         <Route path="/farmer/bargain" element={<FarmerChatList />} />
         {/* // In your router configuration */}
         <Route path="/farmer/chat/:session_id" element={<FarmerChatWindow />} />
->>>>>>> c5dcc411bded4fe9dc37060cf5b2b6332e1f57ec
+
           {/* 🌿 Farmer Features */}
 
           <Route path="/add-produce" element={<AddProduce />} />
