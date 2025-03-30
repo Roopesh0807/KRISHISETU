@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "../components/ConsumerDashboard.css";
 import { fetchProducts } from '../utils/api';
 import { useCart } from '../context/CartContext';
+<<<<<<< HEAD
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faShoppingCart, 
@@ -16,6 +17,9 @@ import {
   faStarHalfAlt,
   faTimes
 } from '@fortawesome/free-solid-svg-icons';
+=======
+
+>>>>>>> 9bc2a9681eb8780ed9dc47bbf484b5a8bad79dc7
 
 // Import images
 import Farmer from "../assets/farmer.jpeg";
@@ -81,7 +85,14 @@ const ConsumerDashboard = () => {
   const [sortPriceOrder, setSortPriceOrder] = useState("");
   const [sortProduceOrder, setSortProduceOrder] = useState("");
   const navigate = useNavigate();
+<<<<<<< HEAD
   const [selectedQuantities, setSelectedQuantities] = useState({});
+=======
+ 
+
+  // const [selectedQuantity, setSelectedQuantity] = useState("1kg"); // Default selection
+  const [selectedQuantities, setSelectedQuantities] = useState("10kg");
+>>>>>>> 9bc2a9681eb8780ed9dc47bbf484b5a8bad79dc7
 
   useEffect(() => {
     fetch("http://localhost:5000/api/products")
@@ -96,14 +107,34 @@ const ConsumerDashboard = () => {
   }, []);
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/farmers")
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch farmers");
-        return res.json();
-      })
-      .then((data) => setFarmers(data))
-      .catch((error) => console.error("Error fetching farmers:", error));
+    const fetchFarmers = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/farmers', {
+          credentials: 'include' // Important for CORS
+        });
+  
+        if (!response.ok) {
+          throw new Error('Failed to fetch farmers');
+        }
+  
+        const data = await response.json();
+  
+        // Ensure farmers have a default rating if missing
+        const formattedData = data.map(farmer => ({
+          ...farmer,
+          average_rating: farmer.average_rating || 0 // Default to 0 if missing
+        }));
+  
+        setFarmers(formattedData);
+      } catch (error) {
+        console.error("Error fetching farmers:", error);
+        alert("Failed to load farmers. Please refresh the page.");
+      }
+    };
+  
+    fetchFarmers();
   }, []);
+<<<<<<< HEAD
 
   useEffect(() => {
     const fetchData = async () => {
@@ -136,9 +167,46 @@ const ConsumerDashboard = () => {
       });
     } else {
       alert("Please select a product and enter a valid quantity.");
+=======
+  
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        if (payload.farmer_id) {
+          alert("Farmers cannot initiate bargains");
+          localStorage.clear();
+          navigate("/consumer-login");
+        }
+      } catch (e) {
+        localStorage.removeItem("token");
+      }
+    }
+  }, [navigate]);
+  const handleQuantityChange = (productId, event) => {
+    const value = parseInt(event.target.value, 10);
+    if (!isNaN(value)) {
+      setSelectedQuantities(prev => ({
+        ...prev,
+        [productId]: value
+      }));
+    }
+  };
+  
+// Fetch products when component mounts
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      const productData = await fetchProducts("/api/products");
+      setProducts(productData);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+>>>>>>> 9bc2a9681eb8780ed9dc47bbf484b5a8bad79dc7
     }
   };
 
+<<<<<<< HEAD
   const handleQuantityChange = (productId, event) => {
     setSelectedQuantities((prev) => ({
       ...prev,
@@ -160,6 +228,72 @@ const ConsumerDashboard = () => {
   const handleProductClick = (productId) => {
     navigate(`/productDetails/${productId}`);
   };
+=======
+const handleBargainClick = (farmer) => {
+  console.log("Bargain clicked for farmer:", farmer); // Debugging
+  setSelectedFarmer(farmer); // Store full farmer details
+  setIsBargainPopupOpen(true); // Open popup
+};
+
+const handleBargainConfirm = async () => {
+  console.log("Selected Farmer:", selectedFarmer);
+  console.log("Selected Product:", selectedProduct);
+  console.log("Quantity:", quantity);
+
+  if (!selectedFarmer?.farmer_id || !selectedProduct?.product_id || !quantity || !selectedProduct?.price_per_kg) {
+    alert("Missing required fields!");
+    return;
+  }
+
+  try {
+    const response = await fetch("http://localhost:5000/api/bargain/initiate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({
+        farmer_id: selectedFarmer.farmer_id,
+        product_id: selectedProduct.product_id,
+        quantity: quantity,
+        original_price: selectedProduct.price_per_kg
+      })
+    });
+
+    console.log("Response status:", response.status);
+
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await response.text();
+      console.error("Unexpected response:", text);  // 🔍 Log non-JSON responses
+      throw new Error(`Server returned ${response.status}: ${text.substring(0, 100)}`);
+    }
+
+    const data = await response.json();
+    console.log("Full Response Data:", data);  // 🔍 Log full response
+
+    if (!response.ok) throw new Error(data.error || "Bargain failed");
+
+    console.log("Success:", data);
+    alert("Bargain initiated!");
+
+    // Ensure `bargainId` exists before navigating
+    if (data.bargainId) {
+      navigate(`/bargain/${data.bargainId}`);
+    } else {
+      console.error("❌ Backend did not return a valid bargain session ID!");
+      alert("Something went wrong! Bargain ID is missing.");
+    }
+
+  } catch (error) {
+    console.error("Request failed:", error);
+    alert(error.message.includes("<!DOCTYPE html>")
+      ? "API endpoint not found (404)"
+      : error.message
+    );
+  }
+};
+>>>>>>> 9bc2a9681eb8780ed9dc47bbf484b5a8bad79dc7
 
   const handleFarmerClick = (farmerId) => {
     navigate(`/farmerDetails/${farmerId}`);
@@ -297,6 +431,7 @@ const ConsumerDashboard = () => {
                   className="ks-product-image"
                 />
               </div>
+<<<<<<< HEAD
               <div className="ks-product-details">
                 <h3 className="ks-product-name">{product.product_name}</h3>
                 <div className="ks-product-meta">
@@ -354,6 +489,39 @@ const ConsumerDashboard = () => {
                   </button>
                 </div>
               </div>
+=======
+              <p><strong>Product ID:</strong> {product.product_id}</p>
+              <p><strong>Name:</strong> {product.product_name}</p>
+              <p><strong>Category:</strong> {product.category}</p>
+              <p><strong>Buy Type:</strong> {product.buy_type}</p>
+              {/* Quantity Dropdown */}
+      <label><strong>Select Quantity:</strong></label>
+      <select
+      value={selectedQuantities[product.product_id] || 10} // Default 1kg
+      onChange={(e) => handleQuantityChange(product.product_id, e)}
+    >
+      <option value="1">1kg - ₹{product.price_1kg}</option>
+      <option value="2">2kg - ₹{product.price_2kg}</option>
+      <option value="5">5kg - ₹{product.price_5kg}</option>
+    </select>
+
+              <button onClick={() => navigate(`/productDetails/${product.product_id}`)}>
+  View Product
+</button>
+
+<button onClick={() => addToCart(product, selectedQuantities[product.product_id] || 1)}>
+      Add to Cart
+    </button>
+
+    <button
+  onClick={() => handleBuyNow(product)}
+  className="btn btn-primary"
+>
+  Buy Now
+</button>
+
+  <button className="product-button" onClick={() => navigate("/subscribe")}>Subscribe</button>
+>>>>>>> 9bc2a9681eb8780ed9dc47bbf484b5a8bad79dc7
             </div>
           ))}
         </div>
@@ -462,6 +630,7 @@ const ConsumerDashboard = () => {
 
       {/* Bargain Popup */}
       {isBargainPopupOpen && selectedFarmer && selectedFarmer.products && (
+<<<<<<< HEAD
         <div className="ks-bargain-modal">
           <div className="ks-bargain-modal-content">
             <button 
@@ -518,6 +687,66 @@ const ConsumerDashboard = () => {
           </div>
         </div>
       )}
+=======
+  <div className="bargain-popup">
+    <div className="bargain-popup-content">
+      <h3>Select Product and Quantity from {selectedFarmer.farmer_name}</h3>
+      
+      <select
+        onChange={(e) => {
+          const selectedId = e.target.value;
+          const product = selectedFarmer.products.find(p => p.product_id === selectedId);
+          setSelectedProduct(product);
+          setQuantity(10); // Set default quantity to 10kg when product changes
+        }}
+      >
+        <option value="">Select a product</option>
+        {selectedFarmer.products.map((product) => (
+          <option 
+            key={product.product_id} 
+            value={product.product_id}
+            disabled={product.availability <= 0}
+          >
+            {product.produce_name} - ₹{product.price_per_kg}/kg 
+            ({product.availability}kg available)
+          </option>
+        ))}
+      </select>
+
+      <input
+        type="number"
+        min="1"
+        max={selectedProduct?.availability || 10}
+        value={quantity}
+        onChange={(e) => {
+          const val = Math.max(1, Math.min(
+            selectedProduct?.availability || 10, 
+            Number(e.target.value)
+          ));
+          setQuantity(val);
+        }}
+        placeholder={`Quantity (1-${selectedProduct?.availability || 10}kg)`}
+        disabled={!selectedProduct}
+      />
+
+      <p className="price-preview">
+        {selectedProduct ? (
+          `Estimated Total: ₹${(selectedProduct.price_per_kg * quantity).toFixed(2)}`
+        ) : (
+          "Estimated Total: ₹0.00"
+        )}
+      </p>
+
+      <div className="popup-buttons">
+        <button onClick={handleBargainConfirm} disabled={!selectedProduct}>
+          Start Bargaining
+        </button>
+        <button onClick={handleClosePopup}>Cancel</button>
+      </div>
+    </div>
+  </div>
+)}
+>>>>>>> 9bc2a9681eb8780ed9dc47bbf484b5a8bad79dc7
     </div>
   );
 };

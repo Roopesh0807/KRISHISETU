@@ -1,0 +1,66 @@
+.farmer-reviews {
+    max-width: 800px;
+    margin: 80px auto;
+    padding: 20px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.farmer-reviews h2 {
+    color: #333;
+    font-size: 24px;
+    margin-bottom: 15px;
+}
+
+.review-card {
+    background: #f9f9f9;
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    text-align: left;
+}
+
+.review-card h3 {
+    margin: 0;
+    font-size: 18px;
+    color: #007b5e;
+}
+
+.review-card .rating {
+    font-size: 16px;
+    color: #f39c12;
+    font-weight: bold;
+    margin: 5px 0;
+}
+
+.review-card p {
+    color: #555;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .farmer-reviews {
+        padding: 15px;
+    }
+
+    .review-card {
+        padding: 12px;
+    }
+
+    .review-card h3 {
+        font-size: 16px;
+    }
+
+    .review-card .rating {
+        font-size: 14px;
+    }
+
+    .review-card p {
+        font-size: 13px;
+    }
+}
