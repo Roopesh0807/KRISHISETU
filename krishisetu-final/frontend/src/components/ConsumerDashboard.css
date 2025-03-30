@@ -1,397 +1,618 @@
-/* Full-screen layout */
-.market-bargaining-container {
+/* Main Container - Modern Green Theme */
+.ks-consumer-dashboard {
   display: flex;
   margin-top: 60px;
-  width: 96vw; /* Full screen width */
-  height: 100vh; /* Full screen height */
+  width: 100vw;
+  min-height: calc(100vh - 60px);
   padding: 20px;
   gap: 20px;
-  background: #f5f5f5; /* Light background for the entire container */
+  background: #f5f9f5;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-/* Market section takes 65% */
-.market-section {
+/* Market Section - Modern Card Design */
+.ks-market-section {
   width: 65%;
-  padding: 20px;
+  padding: 25px;
   background: #ffffff;
-  border-radius: 15px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  overflow-y: auto; /* Scroll if content is too long */
-}
-
-.market-section h2 {
-  text-align: center;
-  color: #4CAF50; /* Green color for headings */
-  font-size: 24px;
-  margin-bottom: 20px;
-}
-
-/* Search Input */
-.market-section input {
-  width: 95%;
-  border: 2px solid #4CAF50;
-  padding: 12px;
-  margin-bottom: 15px;
-  border-radius: 8px;
-  font-size: 16px;
-  outline: none;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
-}
-
-.market-section input:focus {
-  border-color: #45a049;
-  box-shadow: 0 0 8px rgba(72, 207, 173, 0.5);
-}
-
-/* Filters */
-.filters {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 15px;
-  gap: 10px;
-}
-
-.filters select {
-  width: 48%;
-  padding: 12px;
-  border: 2px solid #4CAF50;
-  border-radius: 8px;
-  font-size: 16px;
-  background-color: white;
-  color: #333;
-  cursor: pointer;
-  outline: none;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
-}
-
-.filters select:hover {
-  border-color: #45a049;
-}
-
-.filters select:focus {
-  border-color: #45a049;
-  box-shadow: 0 0 8px rgba(72, 207, 173, 0.5);
-}
-
-/* Products Grid - 3 Products Per Row */
-.products-container {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(200px, 1fr)); /* 3 products in a row */
-  gap: 20px;
-  width: 100%;
-}
-
-/* Product Card */
-.product-card {
-  position: relative;
-  padding: 15px;
-  background: #ffffff;
-  border-radius: 10px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  text-align: center;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  cursor: pointer;
-}
-
-.product-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
-}
-
-/* Product Image */
-.product-image {
-  width: 100%;
-  height: 200px;
-  object-fit: cover;
-  border-radius: 5px;
-}
-
-/* Organic Badge */
-.organic-badge {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 50px;
-  height: 50px;
-  z-index: 2;
-}
-
-/* Product Buttons */
-.product-button {
-  width: 100%;
-  padding: 10px;
-  margin-top: 10px;
-  border: none;
-  border-radius: 5px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background 0.3s ease, transform 0.2s ease;
-}
-
-.product-button:nth-child(1) {
-  background-color: #28a745; /* Green for View Product */
-  color: white;
-}
-
-.product-button:nth-child(2) {
-  background-color: #007bff; /* Blue for Add to Cart */
-  color: white;
-}
-
-.product-button:nth-child(3) {
-  background-color: #ffc107; /* Yellow for Buy Now */
-  color: black;
-}
-
-.product-button:hover {
-  transform: scale(1.05);
-  opacity: 0.9;
-}
-
-.product-button:active {
-  transform: scale(0.95);
-}
-
-/* Bargaining section takes 35% */
-.bargaining-section {
-  width: 35%;
-  padding: 20px;
-  background: #ffffff;
-  border-radius: 15px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
   overflow-y: auto;
 }
 
-.bargaining-section h2 {
+/* Section Title with KrishiSetu Branding */
+.ks-section-title {
   text-align: center;
-  color: #4CAF50; /* Green color for headings */
-  font-size: 24px;
-  margin-bottom: 20px;
+  color: #1a5c1e;
+  font-size: 2rem;
+  margin-bottom: 1.8rem;
+  font-weight: 700;
+  position: relative;
+  padding-bottom: 12px;
+  font-family: 'Montserrat', sans-serif;
 }
 
-/* Search Bar */
-.bargaining-section input[type="text"] {
-  width: 90%;
-  padding: 12px;
-  border: 2px solid #4CAF50;
-  border-radius: 8px;
-  font-size: 16px;
-  outline: none;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
-  margin-bottom: 15px;
+.ks-section-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100px;
+  height: 4px;
+  background: linear-gradient(90deg, #1a5c1e, #4caf50);
+  border-radius: 4px;
 }
 
-.bargaining-section input[type="text"]:focus {
-  border-color: #45a049;
-  box-shadow: 0 0 8px rgba(72, 207, 173, 0.5);
+/* Search and Filter - Modern Design */
+.ks-search-filter-container {
+  margin-bottom: 2rem;
 }
 
-/* Farmers Grid - 1 Farmer Per Row */
-.farmers-container {
-  display: grid;
-  grid-template-columns: 1fr; /* 1 farmer profile per row */
-  gap: 15px;
+.ks-search-input {
   width: 100%;
+  padding: 14px 24px;
+  border: 1px solid #e0e7e1;
+  border-radius: 10px;
+  font-size: 1rem;
+  margin-bottom: 1.2rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  background-color: #f8fbf8;
 }
 
-/* Farmer Profile Cards */
-.farmer-profile-card {
-  background: #ffffff;
-  padding: 20px;
-  border-radius: 15px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+.ks-search-input:focus {
+  border-color: #2e7d32;
+  box-shadow: 0 2px 12px rgba(46, 125, 50, 0.15);
+  outline: none;
+}
+
+.ks-filter-group {
+  display: flex;
+  gap: 15px;
+}
+
+.ks-filter-select {
+  flex: 1;
+  padding: 14px 18px;
+  border: 1px solid #e0e7e1;
+  border-radius: 10px;
+  font-size: 1rem;
+  background-color: #f8fbf8;
   cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  color: #2d3b2e;
+}
+
+.ks-filter-select:focus {
+  border-color: #2e7d32;
+  box-shadow: 0 2px 12px rgba(46, 125, 50, 0.15);
+  outline: none;
+}
+
+/* Products Grid - Modern Card Layout */
+.ks-products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 25px;
+}
+
+.ks-product-card {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  border: 1px solid #e8f5e9;
+  position: relative;
 }
 
-.farmer-profile-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+.ks-product-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  border-color: #c8e6c9;
 }
 
-/* Farmer Info Section (Image + Details) */
-.farmer-info {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-/* Farmer Image */
-.farmer-image {
-  width: 120px; /* Increased image size */
-  height: 120px; /* Increased image size */
-  border-radius: 10%;
-  object-fit: cover;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-/* Farmer Details */
-.farmer-details {
-  flex: 1;
-  text-align: left;
-}
-
-.farmer-details p {
-  margin: 8px 0;
-  font-size: 16px;
-  color: #333;
-}
-
-/* Produce Table */
-.produce-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 10px;
-  background-color: #f9f9f9; /* Light background for the table */
-  border-radius: 10px;
+.ks-product-image-container {
+  position: relative;
+  height: 220px;
   overflow: hidden;
 }
 
-.produce-table th,
-.produce-table td {
+.ks-product-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.ks-product-card:hover .ks-product-image {
+  transform: scale(1.08);
+}
+
+.ks-organic-badge {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  width: 50px;
+  height: 50px;
+  z-index: 2;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.16));
+}
+
+.ks-product-details {
+  padding: 20px;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.ks-product-name {
+  font-size: 1.3rem;
+  margin: 0 0 12px 0;
+  color: #1a3e1c;
+  font-weight: 600;
+}
+
+.ks-product-meta {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.ks-product-type {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.ks-product-type.organic {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.ks-product-type.standard {
+  background-color: #fff8e1;
+  color: #ff8f00;
+}
+
+.ks-product-category {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  background-color: #e3f2fd;
+  color: #1565c0;
+}
+
+.ks-price-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.ks-price-label {
+  font-size: 0.9rem;
+  color: #607d8b;
+}
+
+.ks-price-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #1a5c1e;
+}
+
+.ks-quantity-selector {
+  margin: 15px 0;
+}
+
+.ks-quantity-dropdown {
+  width: 100%;
+  padding: 10px 15px;
+  border: 1px solid #e0e7e1;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  background-color: #f8fbf8;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.ks-quantity-dropdown:focus {
+  border-color: #2e7d32;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.2);
+}
+
+.ks-product-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-top: auto;
+}
+
+.ks-action-btn {
   padding: 12px;
-  text-align: center;
-  border: 1px solid #ddd;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-weight: 600;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
 }
 
-.produce-table th {
-  background-color: #4CAF50; /* Green header */
+.ks-action-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+}
+
+.ks-action-btn:active {
+  transform: translateY(0);
+}
+
+.ks-cart-btn {
+  background-color: #ff9800;
   color: white;
-  font-weight: bold;
 }
 
-.produce-table td {
-  background-color: #ffffff;
+.ks-buy-btn {
+  background-color: #2e7d32;
+  color: white;
 }
 
-/* Farmer Buttons */
-.farmer-buttons {
+.ks-community-btn {
+  background-color: #5c6bc0;
+  color: white;
+}
+
+.ks-subscribe-btn {
+  background-color: #ab47bc;
+  color: white;
+}
+
+/* Farmer Bargaining Section - Professional Design */
+.ks-bargaining-section {
+  width: 35%;
+  padding: 25px;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  overflow-y: auto;
+}
+
+.ks-farmer-search-container {
+  margin-bottom: 2rem;
+}
+
+.ks-farmer-filters {
+  display: flex;
+  gap: 15px;
+  margin-top: 1.2rem;
+}
+
+/* Farmer Card - Interactive Design */
+.ks-farmer-card {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+  border: 1px solid #e8f5e9;
+  margin-bottom: 20px;
+  cursor: pointer;
+}
+
+.ks-farmer-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  border-color: #c8e6c9;
+}
+
+.ks-farmer-header {
+  display: flex;
+  padding: 20px;
+  background: linear-gradient(135deg, #f5f9f5 0%, #e8f5e9 100%);
+  align-items: center;
+  gap: 15px;
+  transition: all 0.3s ease;
+}
+
+.ks-farmer-card:hover .ks-farmer-header {
+  background: linear-gradient(135deg, #e8f5e9 0%, #d7e8d8 100%);
+}
+
+.ks-farmer-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid white;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+}
+
+.ks-farmer-basic-info {
+  flex-grow: 1;
+}
+
+.ks-farmer-name {
+  margin: 0;
+  font-size: 1.3rem;
+  color: #1a3e1c;
+  font-weight: 600;
+}
+
+.ks-farmer-meta {
   display: flex;
   justify-content: space-between;
-  gap: 15px;
-  margin-top: 15px;
+  margin-top: 8px;
+  font-size: 0.9rem;
+  color: #546e7a;
 }
 
-.farmer-button {
-  padding: 12px;
-  background-color: #4CAF50;
-  color: white;
+.ks-farmer-rating {
+  color: #ffb300;
+  font-weight: 600;
+}
+
+.ks-star {
+  color: #e0e0e0;
+}
+
+.ks-star-filled {
+  color: #ffb300;
+}
+
+/* Products Table - Clean Design */
+.ks-products-table-container {
+  padding: 0 20px;
+  margin: 15px 0;
+}
+
+.ks-products-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.ks-products-table th {
+  background-color: #f5f9f5;
+  padding: 10px 15px;
+  text-align: left;
+  font-weight: 600;
+  color: #2e7d32;
+  border-bottom: 2px solid #e8f5e9;
+}
+
+.ks-products-table td {
+  padding: 10px 15px;
+  border-bottom: 1px solid #f0f7f1;
+  color: #455a64;
+}
+
+.ks-products-table tr:hover td {
+  background-color: #f5f9f5;
+}
+
+/* Remove the profile button styles since we're only keeping one button now */
+.ks-farmer-actions {
+  display: flex;
+  padding: 15px 20px;
+  gap: 10px;
+  border-top: 1px solid #f0f7f1;
+  background-color: #f9fdf9;
+  justify-content: center; /* Center the single button */
+}
+
+.ks-farmer-action-btn {
+  padding: 12px 24px; /* Make the button wider */
   border: none;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
   border-radius: 8px;
-  font-size: 16px;
-  flex: 1;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+  width: auto; /* Let the button size according to content */
 }
 
-.farmer-button:hover {
-  background-color: #45a049;
+/* Remove the specific view-farmer-btn styles since we're removing that button */
+
+.ks-farmer-action-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
 }
 
-.farmer-button:nth-child(1) {
-  background-color: #27ae60; /* Green for View Farmer */
+.ks-farmer-action-btn:active {
+  transform: translateY(0);
 }
 
-.farmer-button:nth-child(2) {
-  background-color: #007bff; /* Blue for Bargain Now */
+.ks-view-farmer-btn {
+  background-color: #607d8b;
+  color: white;
 }
 
-/* Popup Background */
-.bargain-popup {
+.ks-bargain-btn {
+  background-color: #7b1fa2;
+  color: white;
+}
+
+/* Bargain Modal - Professional Popup */
+.ks-bargain-modal {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  backdrop-filter: blur(5px);
 }
 
-/* Popup Box */
-.bargain-popup-content {
-  background: #fff;
-  padding: 20px;
-  width: 400px;
-  max-width: 90%;
-  border-radius: 10px;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
-  text-align: center;
-  animation: fadeIn 0.3s ease-in-out;
+.ks-bargain-modal-content {
+  background: white;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 500px;
+  padding: 30px;
+  position: relative;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  animation: ks-modal-fadeIn 0.3s ease-out;
+  border: 1px solid #e8f5e9;
 }
 
-/* Popup Title */
-.bargain-popup-content h3 {
-  margin-bottom: 15px;
-  font-size: 18px;
-  color: #333;
-}
-
-/* Select Dropdown */
-.bargain-popup-content select {
-  width: 100%;
-  padding: 8px;
-  margin-bottom: 10px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  font-size: 16px;
-}
-
-/* Input Field */
-.bargain-popup-content input {
-  width: 100%;
-  padding: 8px;
-  margin-bottom: 15px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  font-size: 16px;
-}
-
-/* Buttons */
-.bargain-popup-content button {
-  width: 48%;
-  padding: 10px;
-  margin: 5px;
+.ks-modal-close-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: none;
   border: none;
-  border-radius: 5px;
-  font-size: 16px;
+  font-size: 1.8rem;
   cursor: pointer;
-  transition: background 0.3s ease-in-out;
+  color: #78909c;
+  transition: color 0.2s ease;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
 }
 
-/* Confirm Button */
-.bargain-popup-content button:first-of-type {
-  background: #28a745;
+.ks-modal-close-btn:hover {
+  color: #455a64;
+  background-color: #f5f9f5;
+}
+
+.ks-modal-title {
+  margin-top: 0;
+  margin-bottom: 25px;
+  color: #1a5c1e;
+  font-size: 1.6rem;
+  text-align: center;
+  font-weight: 700;
+}
+
+.ks-modal-form-group {
+  margin-bottom: 25px;
+}
+
+.ks-modal-label {
+  display: block;
+  margin-bottom: 10px;
+  font-weight: 600;
+  color: #455a64;
+  font-size: 0.95rem;
+}
+
+.ks-modal-select, .ks-modal-input {
+  width: 100%;
+  padding: 14px 18px;
+  border: 1px solid #e0e7e1;
+  border-radius: 10px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background-color: #f8fbf8;
+}
+
+.ks-modal-select:focus, .ks-modal-input:focus {
+  border-color: #2e7d32;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.2);
+}
+
+.ks-modal-actions {
+  margin-top: 30px;
+  display: flex;
+  justify-content: center;
+}
+
+.ks-modal-confirm-btn {
+  padding: 14px 40px;
+  background: linear-gradient(135deg, #2e7d32, #1b5e20);
   color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 1.05rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(46, 125, 50, 0.3);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-.bargain-popup-content button:first-of-type:hover {
-  background: #218838;
+.ks-modal-confirm-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(46, 125, 50, 0.4);
+  background: linear-gradient(135deg, #1b5e20, #2e7d32);
 }
 
-/* Close Button */
-.bargain-popup-content button:last-of-type {
-  background: #dc3545;
-  color: white;
+.ks-modal-confirm-btn:active {
+  transform: translateY(0);
 }
 
-.bargain-popup-content button:last-of-type:hover {
-  background: #c82333;
-}
-
-/* Fade-in Animation */
-@keyframes fadeIn {
+@keyframes ks-modal-fadeIn {
   from {
     opacity: 0;
-    transform: translateY(-10px);
+    transform: translateY(30px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .ks-consumer-dashboard {
+    flex-direction: column;
+  }
+  
+  .ks-market-section, .ks-bargaining-section {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .ks-products-grid {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  }
+  
+  .ks-filter-group, .ks-farmer-filters {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .ks-product-actions {
+    grid-template-columns: 1fr;
+  }
+  
+  .ks-farmer-header {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .ks-farmer-meta {
+    flex-direction: column;
+    gap: 5px;
+    align-items: center;
   }
 }
