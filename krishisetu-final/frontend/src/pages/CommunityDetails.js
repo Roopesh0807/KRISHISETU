@@ -15,11 +15,14 @@ function CommunityDetails() {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    console.log("Location State:", location.state); // Debugging line
     if (location.state?.showInstructions) {
       setShowInstructions(true);
     }
     if (location.state?.communityId) {
       setCommunityId(location.state.communityId);
+    } else {
+      console.error("Community ID is missing in location.state");
     }
   }, [location.state]);
 
@@ -75,17 +78,19 @@ function CommunityDetails() {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/community/${communityId}/`);
+      // Fetch community details to check if the logged-in consumer is the admin
+      const response = await fetch(`http://localhost:5000/api/community/${communityId}`);
       const data = await response.json();
 
       if (response.ok) {
-        const adminId = data.admin_id;
-        const userId = localStorage.getItem("userId");
+        const adminId = data.admin_id; // Admin ID of the community
+        const loggedInConsumerId = localStorage.getItem("consumerId"); // Logged-in consumer's ID
 
-        if (userId && userId.toString() === adminId.toString()) {
-          navigate(`/community-page/${communityId}/admin`);
+        // Navigate to the appropriate page based on the admin check
+        if (loggedInConsumerId && loggedInConsumerId.toString() === adminId.toString()) {
+          navigate(`/community-page/${communityId}/admin`); // Navigate to Admin Page
         } else {
-          navigate(`/community-page/${communityId}/member`);
+          navigate(`/community-page/${communityId}/member`); // Navigate to Member Page
         }
       } else {
         alert(data.error || "Error fetching community details");
@@ -95,6 +100,9 @@ function CommunityDetails() {
       alert("An error occurred while fetching community details.");
     }
   };
+
+
+
 
   return (
     <div className="krishi-community-details">
@@ -149,12 +157,6 @@ function CommunityDetails() {
           )}
         </div>
       )}
-
-      {/* Krishisetu Branding Element */}
-      <div className="krishi-branding">
-        <img src="./src/assets/logo.png" alt="Krishisetu Logo" />
-        <p>Empowering Communities, One Order at a Time</p>
-      </div>
     </div>
   );
 }

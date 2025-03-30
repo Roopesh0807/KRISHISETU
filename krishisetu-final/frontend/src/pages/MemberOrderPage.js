@@ -1,52 +1,57 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Navbar3 from "../components/Navbar3.js"; // Import Navbar3
-import "../styles/OrderPageC.css";
+// import "../styles/MemberOrder.css";
 
 function MemberOrderPage() {
-  const { communityId, memberId } = useParams();
+  const { communityId, consumerId } = useParams(); // Extract communityId and consumerId from the URL
   const navigate = useNavigate();
-  const [orderDetails, setOrderDetails] = useState(null);
+  const [member, setMember] = useState(null);
+  const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        console.log("Fetching orders for communityId:", communityId, "and memberId:", memberId);
-        const response = await fetch(`http://localhost:5000/api/order/${communityId}/member/${memberId}`);
-        console.log("Response status:", response.status);
-
+    // Fetch member details based on consumer_id
+    fetch(`http://localhost:5000/api/member/${consumerId}`)
+      .then((response) => {
         if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(errorText || "Failed to fetch orders");
+          throw new Error("Failed to fetch member details");
         }
+        return response.json();
+      })
+      .then((data) => {
+        console.log("Member Data:", data); // Debugging: Log member data
+        setMember(data);
 
-        const data = await response.json();
-        console.log("Fetched data:", data);
-
-        setOrderDetails(data);
-      } catch (error) {
-        console.error("Error fetching orders:", error);
+        // Fetch orders for the member
+        return fetch(`http://localhost:5000/api/order/${communityId}/member/${consumerId}`);
+      })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Failed to fetch orders");
+        }
+        return response.json();
+      })
+      .then((ordersData) => {
+        console.log("Orders Data:", ordersData); // Debugging: Log orders data
+        setOrders(ordersData);
+      })
+      .catch((error) => {
+        console.error("Error:", error); // Debugging: Log errors
         setError(error.message);
-      } finally {
+      })
+      .finally(() => {
         setLoading(false);
-      }
-    };
-
-    fetchOrders();
-  }, [communityId, memberId]);
+      });
+  }, [communityId, consumerId]);
 
   if (loading) {
-    return <p>Loading...</p>;
+    return <div>Loading...</div>;
   }
 
   if (error) {
-    return <p style={{ color: "red" }}>Error: {error}</p>;
-  }
-
-  if (!orderDetails) {
-    return <p>No order details found.</p>;
+    return <div>Error: {error}</div>;
   }
 
   return (
@@ -54,60 +59,37 @@ function MemberOrderPage() {
       {/* Navbar3 Integrated */}
       <Navbar3 />
 
-      <div className="krishi-order-container">
-        <button className="krishi-back-btn" onClick={() => navigate("/krishisetu")}>
-          Back to Krishisetu
-        </button>
-
-        <h2>Order Details</h2>
-
-        {/* Order Summary Section */}
-        <div className="krishi-order-summary">
-          <p><strong>Community Name:</strong> {orderDetails.communityName}</p>
-          <p><strong>Admin Name:</strong> {orderDetails.adminName}</p>
-          <p><strong>Address:</strong> {orderDetails.address}</p>
-          <p><strong>Delivery Date:</strong> {orderDetails.deliveryDate}</p>
-          <p><strong>Delivery Time:</strong> {orderDetails.deliveryTime}</p>
-        </div>
-
+      <div className="krishi-main-content">
         {/* Member Details Section */}
         <div className="krishi-member-details">
-          <h3>Member Details</h3>
-          <p><strong>Name:</strong> {orderDetails.memberName}</p>
-          <p><strong>Phone:</strong> {orderDetails.memberPhone}</p>
+          <h1>{member.member_name}</h1>
+          <p><strong>Email:</strong> {member.member_email}</p>
+          <p><strong>Phone:</strong> {member.phone_number}</p>
         </div>
 
-        {/* Your Orders Section */}
-        <div className="krishi-member-orders">
-          <h3>Your Orders</h3>
-          <table className="krishi-table">
-            <thead>
-              <tr>
-                <th>Product</th>
-                <th>Quantity</th>
-                <th>Price</th>
-              </tr>
-            </thead>
-            <tbody>
-              {orderDetails.orders.map((order) => (
-                <tr key={order.orderId}>
-                  <td>{order.product}</td>
-                  <td>{order.quantity}</td>
-                  <td>${order.price}</td>
-                </tr>
+        {/* Orders Section */}
+        <div className="krishi-orders-section">
+          <h2>Your Orders</h2>
+          {orders.length > 0 ? (
+            <ul className="krishi-orders-list">
+              {orders.map((order) => (
+                <li key={order.orderId} className="krishi-order-item">
+                  <p><strong>Order ID:</strong> {order.orderId}</p>
+                  <p><strong>Product:</strong> {order.product}</p>
+                  <p><strong>Quantity:</strong> {order.quantity}</p>
+                  <p><strong>Price:</strong> ${order.price.toFixed(2)}</p>
+                </li>
               ))}
-            </tbody>
-          </table>
+            </ul>
+          ) : (
+            <p>No orders found.</p>
+          )}
         </div>
 
-        {/* Payment Summary Section */}
-        <div className="krishi-payment-summary">
-          <h3>Payment Summary</h3>
-          <p><strong>Total:</strong> ${orderDetails.total}</p>
-          <p><strong>Discount:</strong> ${orderDetails.discount}</p>
-          <p><strong>Payment Amount:</strong> ${orderDetails.paymentAmount}</p>
-          <p><strong>Payment Status:</strong> {orderDetails.paymentStatus}</p>
-        </div>
+        {/* Back Button */}
+        <button onClick={() => navigate(-1)} className="krishi-back-button">
+          Back to Community
+        </button>
       </div>
     </div>
   );

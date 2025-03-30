@@ -1,34 +1,67 @@
-const db = require("../config/db");
+const { queryDatabase } = require("../config/db");
 
 class Member {
-  static addMember({ communityId, userId, name, email, phone }, callback) {
-  const checkQuery = `
-    SELECT * FROM Members WHERE community_id = ? AND email = ?
-  `;
-
-  db.query(checkQuery, [communityId, email], (err, results) => {
-    if (err) {
-      return callback(err, null);
-    }
-
-    if (results.length > 0) {
-      return callback(new Error("Member with this email already exists in the community"), null);
-    }
-
-    // Insert new member if email is unique within the community
-    const insertQuery = `
-      INSERT INTO Members (community_id, user_id, name, email, phone)
-      VALUES (?, ?, ?, ?, ?)
+  // Add a new member to the community
+  static async addMember({ communityId, userId, name, email, phone }) {
+    const checkQuery = `
+      SELECT * FROM Members WHERE community_id = ? AND email = ?
     `;
 
-    db.query(insertQuery, [communityId, userId, name, email, phone], callback);
-  });
-}
+    try {
+      // Check if the member already exists in the community
+      const existingMember = await queryDatabase(checkQuery, [communityId, email]);
 
+      if (existingMember.length > 0) {
+        throw new Error("Member with this email already exists in the community");
+      }
 
-  static removeMember(memberId, callback) {
+      // Insert new member if email is unique within the community
+      const insertQuery = `
+        INSERT INTO Members (community_id, user_id, name, email, phone)
+        VALUES (?, ?, ?, ?, ?)
+      `;
+
+      const result = await queryDatabase(insertQuery, [communityId, userId, name, email, phone]);
+      return result;
+    } catch (error) {
+      console.error("Error adding member:", error);
+      throw error;
+    }
+  }
+
+  // Remove a member from the community
+  static async removeMember(memberId) {
     const query = `DELETE FROM Members WHERE id = ?`;
-    db.query(query, [memberId], callback);
+
+    try {
+      const result = await queryDatabase(query, [memberId]);
+      return result;
+    } catch (error) {
+      console.error("Error removing member:", error);
+      throw error;
+    }
+  }
+
+  // Fetch members by community ID
+  static async findByCommunity(communityId) {
+    const query = `
+      SELECT 
+        members.member_id, 
+        members.consumer_id, 
+        members.member_name AS name, 
+        members.member_email AS email, 
+        members.phone_number AS phone
+      FROM members
+      WHERE members.community_id = ?
+    `;
+
+    try {
+      const members = await queryDatabase(query, [communityId]);
+      return members;
+    } catch (error) {
+      console.error("Error fetching members by community ID:", error);
+      throw error;
+    }
   }
 }
 

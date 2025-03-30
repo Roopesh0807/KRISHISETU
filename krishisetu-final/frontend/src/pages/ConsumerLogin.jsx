@@ -152,14 +152,19 @@ const ConsumerLogin = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+<<<<<<< HEAD
     setLoading(true);
     setError("");
   
+=======
+
+>>>>>>> d46bb94e03c449675e53d15e27842cafd1815b28
     try {
       const response = await fetch("http://localhost:5000/api/consumerlogin", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
+<<<<<<< HEAD
         body: JSON.stringify({
           emailOrPhone: formData.emailOrPhone,
           password: formData.password
@@ -170,6 +175,30 @@ const ConsumerLogin = () => {
   
       if (!response.ok) {
         throw new Error(data.message || "Login failed");
+=======
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+      console.log("API Response:", data);
+
+      if (data.success) {
+        console.log("✅ Logged in Consumer:", data.consumer);
+
+        // Store the consumer object in localStorage
+        localStorage.setItem("consumer", JSON.stringify(data.consumer));
+
+        // Store the consumerId in localStorage
+        localStorage.setItem("consumerId", data.consumer.consumer_id); // ✅ Store consumerId
+
+        // Call the loginConsumer function from AuthContext
+        loginConsumer(data.consumer);
+
+        alert("✅ Login Successful! Redirecting...");
+        setTimeout(() => navigate("/consumer-dashboard"), 1000);
+      } else {
+        alert(`⚠️ Login Failed: ${data.message}`);
+>>>>>>> d46bb94e03c449675e53d15e27842cafd1815b28
       }
 
       // Verify token exists

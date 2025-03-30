@@ -17,40 +17,23 @@ function JoinCommunity() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ communityName, password, userEmail }),
       });
-
+  
       const data = await response.json();
       if (response.ok) {
         alert("Joined community successfully!");
-
-        // Fetch community details to check if the user is an admin
-        const communityResponse = await fetch(`http://localhost:5000/api/community/${data.communityId}`);
-        const communityData = await communityResponse.json();
-
-        if (communityResponse.ok) {
-          const adminId = communityData.admin_id; // Get adminId from the community details
-          const userId = localStorage.getItem("userId"); // Get userId from localStorage
-
-          // Debugging logs
-          console.log("Admin ID from community data:", adminId);
-          console.log("User ID from localStorage:", userId);
-
-          // Ensure both adminId and userId are strings for comparison
-          const adminIdStr = adminId.toString();
-          const userIdStr = userId.toString();
-
-          // Compare userId with adminId
-          if (userIdStr === adminIdStr) {
-            console.log("User is the admin. Redirecting to Admin Community Page.");
-            navigate(`/community-page/${data.communityId}/admin`); // Redirect to Admin Community Page
-          } else {
-            console.log("User is not the admin. Redirecting to Member Community Page.");
-            navigate(`/community-page/${data.communityId}/member`, {
-              state: { showInstructions: true, communityId: data.communityId },
-            }); // Redirect to Member Community Page
-          }
+  
+        // Store the consumerId in localStorage
+        if (data.consumerId) {
+          localStorage.setItem("consumerId", data.consumerId); // Ensure the API returns consumerId
+          localStorage.setItem("userEmail", userEmail); // Store userEmail for reference
         } else {
-          alert("Error fetching community details after joining.");
+          console.error("consumerId not found in the API response");
         }
+  
+        // Redirect to the member community page
+        navigate(`/community-page/${data.communityId}/member`, {
+          state: { showInstructions: true, communityId: data.communityId },
+        });
       } else {
         setError(data.error || "Error joining community");
       }

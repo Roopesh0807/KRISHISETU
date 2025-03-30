@@ -7,9 +7,11 @@ function CreateCommunity() {
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [userId, setUserId] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
+
+  // Fetch the logged-in consumer's ID from localStorage
+  const consumerId = localStorage.getItem("consumerId");
 
   const handleCreate = async () => {
     if (password !== confirmPassword) {
@@ -17,27 +19,34 @@ function CreateCommunity() {
       return;
     }
 
+    if (!name || !password || !consumerId) {
+      setError("All fields are required!");
+      return;
+    }
+
+    console.log("Consumer ID being sent:", consumerId); // Debugging: Log the consumerId
+
+
     try {
       const response = await fetch("http://localhost:5000/api/community/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, password, adminId: userId }),
+        body: JSON.stringify({ name, password, consumerId }), // Send the consumerId along with the community details
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to create community");
-      }
 
       const data = await response.json();
-      alert("Community created successfully!");
-      localStorage.setItem("userId", userId);
-      navigate("/community-details", {
-        state: { showInstructions: true, communityId: data.id }, // Fix here
-      });
+      if (response.ok) {
+        alert(`Community created successfully! your community ID is : ${data.id}`);
+        console.log("Community Created with ID:", data.id); // Debugging line
+
+        // Navigate to CommunityDetails with the communityId from the backend
+        navigate("/community-details", { state: { showInstructions: true, communityId: data.id } });
+      } else {
+        setError(data.error || "Error creating community");
+      }
     } catch (error) {
       console.error("Error creating community:", error);
-      setError(error.message || "An error occurred while creating the community.");
+      setError("An error occurred while creating the community.");
     }
   };
 
@@ -82,17 +91,6 @@ function CreateCommunity() {
               placeholder="Confirm password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="krishi-input"
-            />
-          </div>
-          <div className="krishi-input-group">
-            <label htmlFor="userId">User ID</label>
-            <input
-              type="text"
-              id="userId"
-              placeholder="Enter your user ID"
-              value={userId}
-              onChange={(e) => setUserId(e.target.value)}
               className="krishi-input"
             />
           </div>

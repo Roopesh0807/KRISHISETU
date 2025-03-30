@@ -1,5 +1,5 @@
-const Order = require("../models/Order");
-const db = require("../config/db");
+// controllers/orderController.js
+// const { queryDatabase } = require("../config/db"); // Import queryDatabase from db.js
 
 exports.getOrders = async (req, res) => {
   const { communityId } = req.params;
@@ -8,21 +8,21 @@ exports.getOrders = async (req, res) => {
     // SQL query to fetch community details and admin name
     const communityQuery = `
       SELECT 
-        c.name AS communityName,
-        u.name AS adminName,
+        c.community_name AS communityName,
+        cr.first_name AS adminName,
         c.address,
         c.delivery_date AS deliveryDate,
         c.delivery_time AS deliveryTime
       FROM 
-        Communities c
+        communities c
       JOIN 
-        Users u ON c.admin_id = u.id
+        consumerregistration cr ON c.admin_id = cr.consumer_id
       WHERE 
-        c.id = ?;
+        c.community_id = ?;
     `;
 
-    // Execute the community query
-    const [communityResult] = await db.query(communityQuery, [communityId]);
+    // Execute the community query using queryDatabase
+    const communityResult = await queryDatabase(communityQuery, [communityId]);
 
     // Check if the community exists
     if (communityResult.length === 0) {
@@ -32,24 +32,24 @@ exports.getOrders = async (req, res) => {
     // SQL query to fetch orders for the given communityId
     const ordersQuery = `
       SELECT 
-        o.id AS orderId,
-        o.product,
+        o.order_id AS orderId,
+        o.product_id AS product,
         o.quantity,
         o.price,
-        o.payment_status AS paymentStatus,
-        m.id AS memberId,
-        m.name AS memberName,
-        m.phone
+        'unpaid' AS paymentStatus,  -- Assuming payment status is not stored in the orders table
+        m.member_id AS memberId,
+        m.member_name AS memberName,
+        m.phone_number AS phone
       FROM 
-        Orders o
+        orders o
       JOIN 
-        Members m ON o.member_id = m.id
+        members m ON o.member_id = m.member_id
       WHERE 
         o.community_id = ?;
     `;
 
-    // Execute the orders query
-    const [orders] = await db.query(ordersQuery, [communityId]);
+    // Execute the orders query using queryDatabase
+    const orders = await queryDatabase(ordersQuery, [communityId]);
 
     // Group orders by member
     const membersMap = new Map();
@@ -114,97 +114,29 @@ exports.getOrders = async (req, res) => {
   }
 };
 
+const { queryDatabase } = require("../config/db");
 
 
+// Get orders for a specific member using consumer_id
 exports.getMemberOrders = async (req, res) => {
-  const { communityId, memberId } = req.params;
+  const { communityId, consumerId } = req.params;
 
   try {
-    // SQL query to fetch community details and admin name
-    const communityQuery = `
+    const query = `
       SELECT 
-        c.name AS communityName,
-        u.name AS adminName,
-        c.address,
-        c.delivery_date AS deliveryDate,
-        c.delivery_time AS deliveryTime
-      FROM 
-        Communities c
-      JOIN 
-        Users u ON c.admin_id = u.id
-      WHERE 
-        c.id = ?;
-    `;
-
-    // Execute the community query
-    const [communityResult] = await db.query(communityQuery, [communityId]);
-
-    // Check if the community exists
-    if (communityResult.length === 0) {
-      return res.status(404).json({ detail: "Community not found." });
-    }
-
-    // SQL query to fetch member details (name and phone)
-    const memberQuery = `
-      SELECT 
-        name AS memberName,
-        phone AS memberPhone
-      FROM 
-        Members
-      WHERE 
-        id = ?;
-    `;
-
-    // Execute the member query
-    const [memberResult] = await db.query(memberQuery, [memberId]);
-
-    // Check if the member exists
-    if (memberResult.length === 0) {
-      return res.status(404).json({ detail: "Member not found." });
-    }
-
-    // SQL query to fetch orders for the given memberId
-    const ordersQuery = `
-      SELECT 
-        o.id AS orderId,
-        o.product,
+        o.order_id AS orderId,
+        o.product_id AS product,
         o.quantity,
-        o.price,
-        o.payment_status AS paymentStatus
-      FROM 
-        Orders o
-      WHERE 
-        o.community_id = ? AND o.member_id = ?;
+        o.price
+      FROM orders o
+      JOIN members m ON o.member_id = m.member_id
+      WHERE o.community_id = ? AND m.consumer_id = ?;
     `;
 
-    // Execute the orders query
-    const [orders] = await db.query(ordersQuery, [communityId, memberId]);
-
-    // Calculate total, discount, and payment amount for the member
-    const total = orders.reduce((sum, order) => sum + order.price * order.quantity, 0);
-    const discount = 0; // You can add logic to calculate discounts if needed
-    const paymentAmount = total - discount;
-
-    // Format the response
-    const response = {
-      communityName: communityResult[0].communityName,
-      adminName: communityResult[0].adminName,
-      address: communityResult[0].address,
-      deliveryDate: communityResult[0].deliveryDate,
-      deliveryTime: communityResult[0].deliveryTime,
-      memberName: memberResult[0].memberName,
-      memberPhone: memberResult[0].memberPhone,
-      total,
-      discount,
-      paymentAmount,
-      paymentStatus: orders.length > 0 ? orders[0].paymentStatus : "No orders",
-      orders,
-    };
-
-    // Send the response back to the client
-    res.json(response);
+    const orders = await queryDatabase(query, [communityId, consumerId]);
+    res.status(200).json(orders);
   } catch (error) {
     console.error("Error fetching member orders:", error);
-    res.status(500).json({ detail: "Internal Server Error" });
+    res.status(500).json({ error: "Error fetching member orders" });
   }
 };

@@ -23,11 +23,14 @@ const farmerRoutes = require("./src/routes/farmerRoutes");
 const communityRoutes = require("./src/routes/communityRoutes");
 const memberRoutes = require("./src/routes/memberRoutes");
 const orderRoutesC = require("./src/routes/orderRoutesC");
+<<<<<<< HEAD
 //bargainroutes
 const bargainRoutes = require("./src/routes/bargainRoutes");
 const reviewsRoutes = require('./src/routes/reviews');
 
 
+=======
+>>>>>>> d46bb94e03c449675e53d15e27842cafd1815b28
 const fs = require("fs");
 const app = express();
 const { Server } = require("socket.io");
