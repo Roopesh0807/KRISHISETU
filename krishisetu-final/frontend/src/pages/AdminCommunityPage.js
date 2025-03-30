@@ -77,6 +77,8 @@ function AdminCommunityPage() {
         }),
       });
 
+
+      
       const data = await response.json();
       if (response.ok) {
         alert("Member added successfully!");
@@ -240,6 +242,9 @@ function AdminCommunityPage() {
             </button>
             <button className="krishi-order-button" onClick={() => navigate(`/order/${communityId}`)}>
               Place Order
+            </button>
+            <button className="krishi-back-button" onClick={() => navigate("/consumer-dashboard")}>
+              Back to Dashboard
             </button>
           </div>
 

@@ -134,9 +134,41 @@ exports.getMemberOrders = async (req, res) => {
     `;
 
     const orders = await queryDatabase(query, [communityId, consumerId]);
-    res.status(200).json(orders);
+    res.status(200).json({ orders });
   } catch (error) {
     console.error("Error fetching member orders:", error);
     res.status(500).json({ error: "Error fetching member orders" });
+  }
+};
+
+
+
+// Assuming you have a function to create an order
+exports.createOrder = async (req, res) => {
+  const { communityId, productId, quantity, price, memberId, paymentMethod } = req.body;
+
+  try {
+    // SQL query to insert a new order including the payment method
+    const query = `
+      INSERT INTO orders (community_id, product_id, quantity, price, member_id, payment_method)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `;
+
+    const result = await queryDatabase(query, [
+      communityId,
+      productId,
+      quantity,
+      price,
+      memberId,
+      paymentMethod, // Include the payment method here
+    ]);
+
+    res.status(201).json({
+      message: "Order created successfully",
+      orderId: result.insertId,
+    });
+  } catch (error) {
+    console.error("Error creating order:", error);
+    res.status(500).json({ error: "Error creating order" });
   }
 };

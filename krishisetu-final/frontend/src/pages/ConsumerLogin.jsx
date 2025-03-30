@@ -167,9 +167,31 @@ const ConsumerLogin = () => {
   
       const data = await response.json();
       console.log("API Response:", data);
+<<<<<<< HEAD
+
+      if (data.success) {
+        console.log("✅ Logged in Consumer:", data.consumer);
+
+        // Store the consumer object in localStorage
+        localStorage.setItem("consumer", JSON.stringify(data.consumer));
+
+        // Store the consumerId in localStorage
+        localStorage.setItem("consumerId", data.consumer.consumer_id); // ✅ Store consumerId
+        // Key change here
+        localStorage.setItem("userEmail", data.consumer.email);
+        localStorage.setItem("userName", `${data.consumer.first_name} ${data.consumer.last_name}`);
+        // Call the loginConsumer function from AuthContext
+        loginConsumer(data.consumer);
+
+        alert("✅ Login Successful! Redirecting...");
+        setTimeout(() => navigate("/consumer-dashboard"), 1000);
+      } else {
+        alert(`⚠️ Login Failed: ${data.message}`);
+=======
   
       if (!response.ok) {
         throw new Error(data.message || "Login failed");
+>>>>>>> c5dcc411bded4fe9dc37060cf5b2b6332e1f57ec
       }
   
       // Verify token exists first

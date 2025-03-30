@@ -80,27 +80,63 @@ exports.getCommunityDetails = async (req, res) => {
   const { communityId } = req.params;
 
   try {
-    const query = `
-      SELECT 
-        Communities.*,
-        consumerregistration.first_name AS admin_name
-      FROM Communities
-      JOIN consumerregistration ON Communities.admin_id = consumerregistration.consumer_id
-      WHERE Communities.community_id = ?
-    `;
-    const result = await queryDatabase(query, [communityId]);
-
-    if (result.length === 0) {
-      return res.status(404).json({ error: "Community not found" });
+    // Validate input
+    if (!communityId) {
+      return res.status(400).json({
+        success: false,
+        message: "Community ID is required",
+        data: null
+      });
     }
 
-    res.status(200).json(result[0]);
+    const query = `
+      SELECT 
+        c.community_id,
+        c.community_name,
+        c.address,
+        c.delivery_date,
+        c.delivery_time,
+        cr.first_name AS admin_name,
+        cr.consumer_id AS admin_id
+      FROM Communities c
+      JOIN consumerregistration cr ON c.admin_id = cr.consumer_id
+      WHERE c.community_id = ?
+    `;
+
+    const [results] = await queryDatabase(query, [communityId]);
+
+    if (!results || results.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Community not found",
+        data: null
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Community details retrieved",
+      data: {
+        community_id: results[0].community_id,
+        community_name: results[0].community_name,
+        address: results[0].address,
+        delivery_date: results[0].delivery_date,
+        delivery_time: results[0].delivery_time,
+        admin_name: results[0].admin_name,
+        admin_id: results[0].admin_id
+      }
+    });
+
   } catch (error) {
-    console.error("Error fetching community details:", error);
-    res.status(500).json({ error: "Error fetching community details" });
+    console.error("Error fetching community:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to load community",
+      error: error.message,
+      data: null
+    });
   }
 };
-
 // ✅ Get Community Members
 // ✅ Get Community Members
 exports.getCommunityMembers = async (req, res) => {
@@ -124,7 +160,28 @@ exports.getCommunityMembers = async (req, res) => {
     console.error("Error fetching community members:", error);
     res.status(500).json({ error: "Error fetching community members" });
   }
-};
+};// In getCommunityMembers function:
+// exports.getCommunityMembers = async (req, res) => {
+//   const { communityId } = req.params;
+
+//   try {
+//     const query = `
+//       SELECT 
+//         members.member_id,
+//         members.consumer_id,  -- Ensure this is included
+//         members.member_name AS name,
+//         members.member_email AS email,
+//         members.phone_number AS phone
+//       FROM members
+//       WHERE members.community_id = ?
+//     `;
+//     const result = await queryDatabase(query, [communityId]);
+//     res.status(200).json(result);
+//   } catch (error) {
+//     console.error("Error fetching community members:", error);
+//     res.status(500).json({ error: "Error fetching community members" });
+//   }
+// };
 
 // ✅ Add Member to Community
 exports.addMember = async (req, res) => {
@@ -327,5 +384,87 @@ exports.getMemberOrders = async (req, res) => {
   } catch (error) {
     console.error("Error fetching member orders:", error);
     res.status(500).json({ error: "Error fetching member orders" });
+  }
+};
+
+// Verify community access for a consumer
+// Verify community access for a consumer
+exports.verifyCommunityAccess = async (req, res) => {
+  const { communityName, password, consumerId } = req.body;
+
+  try {
+    // Fetch the community by name
+    const communityQuery = `
+      SELECT * FROM Communities 
+      WHERE community_name = ?
+    `;
+    const [community] = await queryDatabase(communityQuery, [communityName]);
+
+    if (!community) {
+      return res.status(404).json({ error: 'Community not found' });
+    }
+
+    // Verify the password
+    if (community.password !== password) {
+      return res.status(401).json({ error: 'Incorrect password' });
+    }
+
+    // Check if the consumer is a member of the community
+    const memberQuery = `
+      SELECT * FROM Members 
+      WHERE community_id = ? AND consumer_id = ?
+    `;
+    const [member] = await queryDatabase(memberQuery, [community.community_id, consumerId]);
+
+    if (!member) {
+      return res.status(403).json({ error: 'You are not a member of this community' });
+    }
+
+    // Return success if all checks pass
+    res.json({ 
+      success: true, 
+      community_id: community.community_id, 
+      isAdmin: community.admin_id === consumerId 
+    });
+  } catch (error) {
+    console.error('Error verifying access:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+// Fetch communities where the consumer is an admin or a member
+// Fetch communities where the consumer is an admin or a member
+exports.getConsumerCommunities = async (req, res) => {
+  const { consumerId } = req.params;
+
+  try {
+    const query = `
+      SELECT 
+        c.community_id,
+        c.community_name,
+        c.password,
+        c.admin_id,
+        CASE 
+          WHEN c.admin_id = ? THEN TRUE 
+          ELSE FALSE 
+        END AS isAdmin,
+        CASE 
+          WHEN m.consumer_id IS NOT NULL THEN TRUE 
+          ELSE FALSE 
+        END AS isMember
+      FROM Communities c
+      LEFT JOIN Members m ON c.community_id = m.community_id AND m.consumer_id = ?
+      WHERE c.admin_id = ? OR m.consumer_id = ?
+    `;
+
+    console.log('Executing query:', query); // Debugging: Log the query
+    console.log('Parameters:', [consumerId, consumerId, consumerId, consumerId]); // Debugging: Log the parameters
+
+    const communities = await queryDatabase(query, [consumerId, consumerId, consumerId, consumerId]);
+    console.log('Fetched communities:', communities); // Debugging: Log the fetched data
+
+    res.status(200).json(communities);
+  } catch (error) {
+    console.error('Error fetching consumer communities:', error);
+    res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 };
