@@ -39,7 +39,9 @@ const ConsumerLogin = () => {
 
         // Store the consumerId in localStorage
         localStorage.setItem("consumerId", data.consumer.consumer_id); // ✅ Store consumerId
-
+        // Key change here
+        localStorage.setItem("userEmail", data.consumer.email);
+        localStorage.setItem("userName", `${data.consumer.first_name} ${data.consumer.last_name}`);
         // Call the loginConsumer function from AuthContext
         loginConsumer(data.consumer);
 

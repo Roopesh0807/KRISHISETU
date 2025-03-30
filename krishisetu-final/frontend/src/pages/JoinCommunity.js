@@ -19,15 +19,16 @@ function JoinCommunity() {
       });
   
       const data = await response.json();
-      if (response.ok) {
-        alert("Joined community successfully!");
+      console.log("Backend response:", data); // Debugging
   
-        // Store the consumerId in localStorage
-        if (data.consumerId) {
-          localStorage.setItem("consumerId", data.consumerId); // Ensure the API returns consumerId
+      if (response.ok) {
+        // Store the memberId and userEmail in localStorage
+        if (data.memberId) {
+          localStorage.setItem("memberId", data.memberId); // Ensure the API returns memberId
           localStorage.setItem("userEmail", userEmail); // Store userEmail for reference
+          console.log("Stored memberId in localStorage:", data.memberId); // Debugging
         } else {
-          console.error("consumerId not found in the API response");
+          console.error("memberId not found in the API response");
         }
   
         // Redirect to the member community page

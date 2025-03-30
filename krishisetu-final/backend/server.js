@@ -1137,7 +1137,120 @@ result[0].photo = result[0].photo && !result[0].photo.startsWith("http")
 
 // Serve static files in production (for React app)
 
+// Get communities for a consumer
+// Updated community check endpoint
+app.get("/api/consumer-communities/:consumer_id", async (req, res) => {
+  try {
+    const { consumer_id } = req.params;
+    
+    // First verify consumer exists
+    const consumerCheck = await queryDatabase(
+      "SELECT consumer_id FROM consumerregistration WHERE consumer_id = ?", 
+      [consumer_id]
+    );
+    
+    if (consumerCheck.length === 0) {
+      return res.status(404).json({ error: "Consumer not found" });
+    }
 
+    // Then get communities
+    const query = `
+      SELECT c.community_id, c.community_name 
+      FROM communities c
+      JOIN members m ON c.community_id = m.community_id
+      WHERE m.consumer_id = ?;
+    `;
+    const results = await queryDatabase(query, [consumer_id]);
+    
+    if (results.length === 0) {
+      return res.status(200).json([]); // Return empty array instead of error
+    }
+    
+    res.json(results);
+  } catch (error) {
+    console.error("Error fetching consumer communities:", error);
+    res.status(500).json({ error: "Failed to fetch communities" });
+  }
+});
+
+// Add to community cart
+// Updated community cart endpoint
+// Updated community cart endpoint with better consumer verification
+app.post("/api/community-cart", async (req, res) => {
+  console.log("Received community cart request with body:", req.body);
+  const { community_id, product_id, consumer_id, quantity, price } = req.body;
+  
+  // Validate all required fields
+  if (!community_id || !product_id || !consumer_id || !quantity || !price) {
+    return res.status(400).json({ error: "All fields are required" });
+  }
+
+  try {
+    console.log(`Checking consumer with ID: ${consumer_id}`);
+    
+    // First verify the consumer exists
+    const [consumer] = await queryDatabase(
+      "SELECT consumer_id, CONCAT(first_name, ' ', last_name) AS name FROM consumerregistration WHERE consumer_id = ?",
+      [consumer_id]
+    );
+
+    if (!consumer) {
+      console.error(`Consumer not found with ID: ${consumer_id}`);
+      return res.status(404).json({ 
+        error: "Consumer not found",
+        details: `No consumer found with ID: ${consumer_id}`,
+        suggestion: "Please ensure you're logged in with a valid account"
+      });
+    }
+
+    // Then verify the community exists
+    const [community] = await queryDatabase(
+      "SELECT community_id, community_name FROM communities WHERE community_id = ?",
+      [community_id]
+    );
+    
+    if (!community) {
+      return res.status(404).json({ error: "Community not found" });
+    }
+
+    // Get member info (including verification that consumer belongs to community)
+    const [member] = await queryDatabase(
+      `SELECT m.member_id, m.consumer_id, m.community_id
+       FROM members m
+       WHERE m.consumer_id = ? 
+       AND m.community_id = ?`,
+      [consumer_id, community_id]
+    );
+    
+    if (!member) {
+      return res.status(403).json({ 
+        error: "Membership not found",
+        details: `Consumer ${consumer.consumer_id} is not a member of community ${community_id}`
+      });
+    }
+
+    // Insert the order
+    const result = await queryDatabase(
+      `INSERT INTO orders (community_id, product_id, quantity, price, member_id, payment_method)
+       VALUES (?, ?, ?, ?, ?, 'Pending')`,
+      [community_id, product_id, quantity, price, member.member_id]
+    );
+    
+    res.json({ 
+      success: true, 
+      message: "Added to community cart",
+      community_id: community.community_id,
+      community_name: community.community_name,
+      order_id: result.insertId
+    });
+  } catch (error) {
+    console.error("Error adding to community cart:", error);
+    res.status(500).json({ 
+      error: "Failed to add to community cart",
+      details: error.message 
+    });
+  }
+});
 
 
 // GET /api/consumers - Fetch consumers from the database

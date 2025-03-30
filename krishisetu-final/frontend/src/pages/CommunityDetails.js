@@ -78,19 +78,27 @@ function CommunityDetails() {
     }
 
     try {
-      // Fetch community details to check if the logged-in consumer is the admin
       const response = await fetch(`http://localhost:5000/api/community/${communityId}`);
       const data = await response.json();
 
       if (response.ok) {
-        const adminId = data.admin_id; // Admin ID of the community
-        const loggedInConsumerId = localStorage.getItem("consumerId"); // Logged-in consumer's ID
+        // Check the response structure and access admin_id correctly
+        const adminId = data.data?.admin_id || data.admin_id;
+        const loggedInConsumerId = localStorage.getItem("consumerId");
 
-        // Navigate to the appropriate page based on the admin check
-        if (loggedInConsumerId && loggedInConsumerId.toString() === adminId.toString()) {
-          navigate(`/community-page/${communityId}/admin`); // Navigate to Admin Page
+        if (!adminId) {
+          throw new Error("Admin ID not found in response");
+        }
+
+        if (!loggedInConsumerId) {
+          throw new Error("Logged-in consumer ID not found");
+        }
+
+        // Navigate based on admin status
+        if (loggedInConsumerId === adminId.toString()) {
+          navigate(`/community-page/${communityId}/admin`);
         } else {
-          navigate(`/community-page/${communityId}/member`); // Navigate to Member Page
+          navigate(`/community-page/${communityId}/member`);
         }
       } else {
         alert(data.error || "Error fetching community details");
@@ -100,7 +108,6 @@ function CommunityDetails() {
       alert("An error occurred while fetching community details.");
     }
   };
-
 
 
 
@@ -116,10 +123,7 @@ function CommunityDetails() {
           <ul>
             <li>You manage the group, adding/removing members.</li>
             <li>You set and control the delivery date and address.</li>
-            <li>Each member gets a separate bill, with a shared total.</li>
-            <li>Cart closes one day before delivery.</li>
-            <li>Payments must be completed two days before delivery.</li>
-            <li>If a member delays payment, you can remove them.</li>
+            <li>Each member gets a separate bill.</li>
           </ul>
           <button onClick={handleAgree} className="krishi-agree-button">OK, I Agree</button>
         </div>
