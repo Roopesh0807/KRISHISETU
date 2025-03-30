@@ -7,9 +7,9 @@ const ProductDetail = () => {
   const { product_id } = useParams();
   const navigate = useNavigate();
   const [product, setProduct] = useState(null);
-  const [selectedQuantity, setSelectedQuantity] = useState(null);
   const [error, setError] = useState(null);
   const { addToCart } = useCart();
+  const [selectedQuantity, setSelectedQuantity] = useState(1); // ✅ Default is number
 
   useEffect(() => {
     fetch(`http://localhost:5000/api/products/${product_id}`)
@@ -19,43 +19,46 @@ const ProductDetail = () => {
           setError("Product not found");
         } else {
           setProduct(data);
-          setSelectedQuantity("1kg"); // Default selection
+          setSelectedQuantity(1); // ✅ Ensuring default selection is 1
         }
       })
       .catch(() => setError("Error fetching product"));
   }, [product_id]);
 
-  if (error) {
-    return <p className="error-message">{error}</p>;
-  }
-
-  if (!product) {
-    return <p className="loading-text">Loading product details...</p>;
-  }
+  if (error) return <p className="error-message">{error}</p>;
+  if (!product) return <p className="loading-text">Loading product details...</p>;
 
   const handleSubscribe = () => {
     navigate("/subscribe", { state: { product, quantity: selectedQuantity } });
   };
 
   const handleAddToCart = () => {
-  const quantity = parseInt(selectedQuantity.replace("kg", ""), 10); // Convert "5kg" to 5
-  addToCart(product, quantity); // Add item with correct quantity
-  navigate("/cart"); // Navigate to cart page after alert
-};
+    addToCart(product, selectedQuantity);
+    navigate("/cart");
+  };
 
   const handleAddToCommunityCart = () => {
     console.log("Added to community cart:", product.product_name, selectedQuantity);
   };
 
   const handleBuyNow = () => {
-    const quantity = parseInt(selectedQuantity.replace("kg", ""), 10);
-    addToCart(product, quantity);
+    addToCart(product, selectedQuantity);
     navigate("/cart");
   };
-  
+
   const getImagePath = (productName) => {
     return `/images/${productName.toLowerCase().replace(/\s+/g, '-')}.jpg`;
   };
+
+  const handleIncrease = () => {
+    setSelectedQuantity((prev) => Math.max(1, prev + 1)); // ✅ Always valid
+  };
+
+  const handleDecrease = () => {
+    setSelectedQuantity((prev) => Math.max(1, prev - 1)); // ✅ Prevent negative
+  };
+
+  const totalPrice = selectedQuantity * (product?.price_1kg || 0); // ✅ Fixing NaN issue
 
   return (
     <div className="container">
@@ -76,17 +79,15 @@ const ProductDetail = () => {
         </div>
 
         <div className="quantitySelector">
-          <label className="quantityLabel">Select Quantity: </label>
-          <select 
-            value={selectedQuantity} 
-            onChange={(e) => setSelectedQuantity(e.target.value)} 
-            className="quantitySelect"
-          >
-            <option value="1kg">1kg - ₹{product.price_1kg}</option>
-            <option value="2kg">2kg - ₹{product.price_2kg}</option>
-            <option value="5kg">5kg - ₹{product.price_5kg}</option>
-          </select>
+          <label className="quantityLabel"><strong>Select Quantity:</strong></label>
+          <div className="quantityControls">
+            <button onClick={handleDecrease} className="quantityButton">-</button>
+            <span className="quantityValue">{selectedQuantity} kg</span>
+            <button onClick={handleIncrease} className="quantityButton">+</button>
+          </div>
         </div>
+
+        <p className="totalPrice"><strong>Total Price: ₹ {totalPrice}</strong></p>
 
         <div className="buttonsContainer">
           <button className="cardButton" onClick={handleAddToCart}>Add to Cart</button>

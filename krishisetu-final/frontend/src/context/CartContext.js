@@ -5,45 +5,92 @@ const CartContext = createContext();
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
   const [cartCount, setCartCount] = useState(0);
-  const [consumer, setConsumer] = useState(null); // 👤 Track logged-in consumer
+  const [consumer, setConsumer] = useState(null);
 
-  // Load cart from localStorage when component mounts
-  useEffect(() => {
-    const storedConsumer = JSON.parse(localStorage.getItem("consumer")); // Get logged-in user
-    setConsumer(storedConsumer);
-
-    if (storedConsumer) {
-      const storedCart = JSON.parse(localStorage.getItem(`cart_${storedConsumer.consumer_id}`)) || [];
-      setCart(storedCart);
-      setCartCount(storedCart.length);
+ // Load consumer from localStorage when the app starts
+useEffect(() => {
+  const storedConsumer = localStorage.getItem("consumer");
+  if (storedConsumer) {
+    try {
+      const parsedConsumer = JSON.parse(storedConsumer);
+      if (parsedConsumer?.consumer_id) {
+        setConsumer(parsedConsumer);
+      } else {
+        console.warn("⚠ Consumer data is invalid:", parsedConsumer);
+      }
+    } catch (error) {
+      console.error("❌ Error parsing consumer data:", error);
     }
-  }, []);
+  }
+}, []);
 
-  // ✅ Function to update cart count
+// Load cart from localStorage when consumer is available
+// Load cart when consumer is available
+useEffect(() => {
+  if (!consumer || !consumer.consumer_id) return;  // ✅ Ensure consumer is valid
+  
+  const storedCart = localStorage.getItem(`cart_${consumer.consumer_id}`);
+  
+  if (storedCart) {
+    try {
+      const parsedCart = JSON.parse(storedCart);
+      console.log(`✅ Loaded Cart for ${consumer.consumer_id}:`, parsedCart);
+      
+      // Check if cart is actually empty or contains products
+      if (Array.isArray(parsedCart) && parsedCart.length > 0) {
+        setCart(parsedCart);  // ✅ Set cart if data is found
+        setCartCount(parsedCart.length);
+      } else {
+        console.warn("⚠ Cart is empty in localStorage!");
+        setCart([]);  // ✅ Ensure empty cart is handled correctly
+      }
+    } catch (error) {
+      console.error("❌ Error parsing cart data:", error);
+    }
+  } else {
+    console.warn("⚠ No cart data found in localStorage!");
+  }
+}, [consumer]);  // ✅ Only run when consumer updates
+  // ✅ Only run when consumer updates
+
+ // ✅ Depend on the full consumer object, not just consumer_id
+
+// Save cart to localStorage whenever it changes
+useEffect(() => {
+  if (!consumer || !consumer.consumer_id) return; // Ensure consumer is valid
+  localStorage.setItem(`cart_${consumer.consumer_id}`, JSON.stringify(cart));
+}, [cart, consumer]); // ✅ Include consumer in dependencies
+
+
+  // Update cart count
   const updateCartCount = (cartItems) => {
-    setCartCount(cartItems.length);
+    setCartCount(cartItems.length); // ✅ Use cart length instead of summing quantities
+  };
+  
+  // Calculate total price
+  const calculateTotal = () => {
+    return cart.reduce((total, item) => total + item.price_1kg * item.quantity, 0);
   };
 
-  // ✅ Add to cart function (Now stores cart per user)
+  // Add to cart function
   const addToCart = (product, selectedQuantity) => {
     if (!consumer) {
       alert("Please log in first!");
       return;
     }
-
-    console.log("Adding to cart:", product, "Quantity:", selectedQuantity); // Debugging
-
-    if (!selectedQuantity || isNaN(selectedQuantity)) {
+  
+    if (!selectedQuantity || isNaN(selectedQuantity) || selectedQuantity <= 0) {
       alert("Please select a valid quantity!");
       return;
     }
-
+  
     setCart((prevCart) => {
       const storedCart = JSON.parse(localStorage.getItem(`cart_${consumer.consumer_id}`)) || [];
+      console.log("Before Adding:", storedCart);  // 🛠 Debugging Log
+  
       const productIndex = storedCart.findIndex((item) => item.product_id === product.product_id);
-
       let updatedCart;
-
+  
       if (productIndex === -1) {
         updatedCart = [...storedCart, { ...product, quantity: selectedQuantity }];
       } else {
@@ -53,30 +100,31 @@ export const CartProvider = ({ children }) => {
             : item
         );
       }
-
+  
+      console.log("After Adding:", updatedCart);  // 🛠 Debugging Log
       localStorage.setItem(`cart_${consumer.consumer_id}`, JSON.stringify(updatedCart));
-      window.dispatchEvent(new Event("cartUpdated"));
-      updateCartCount(updatedCart);
+      
+      // ✅ Ensure cartCount always reflects unique product count
+      setCartCount(updatedCart.length);
+  
       return updatedCart;
     });
-
+  
     alert(`${selectedQuantity} Kg ${product.product_name} has been added to your cart!`);
-  };
-
-  // ✅ Remove from cart function (Now removes from correct user)
+  };  
+  // Remove from cart function
   const removeFromCart = (id) => {
     if (!consumer) return;
 
     setCart((prevCart) => {
       const updatedCart = prevCart.filter((item) => item.product_id !== id);
       localStorage.setItem(`cart_${consumer.consumer_id}`, JSON.stringify(updatedCart));
-      window.dispatchEvent(new Event("cartUpdated"));
       updateCartCount(updatedCart);
       return updatedCart;
     });
   };
 
-  // ✅ Update quantity function
+  // Update quantity function
   const updateQuantity = (id, change) => {
     if (!consumer) return;
 
@@ -88,18 +136,25 @@ export const CartProvider = ({ children }) => {
       );
 
       localStorage.setItem(`cart_${consumer.consumer_id}`, JSON.stringify(updatedCart));
-      window.dispatchEvent(new Event("cartUpdated"));
       updateCartCount(updatedCart);
       return updatedCart;
     });
   };
 
-  return (
-    <CartContext.Provider value={{ cart, cartCount, addToCart, removeFromCart, updateQuantity }}>
-      {children}
-    </CartContext.Provider>
-  );
+  const value = {
+    cart,
+    setCart,  // ✅ Ensure setCart is included
+    cartCount,
+    setCartCount,
+    addToCart,
+    removeFromCart,
+    updateQuantity,
+    calculateTotal,
+  };
+
+  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 };
 
 // Custom hook to use the cart context
 export const useCart = () => useContext(CartContext);
+

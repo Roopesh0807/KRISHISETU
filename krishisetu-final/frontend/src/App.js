@@ -1,4 +1,5 @@
 import React from "react";
+
 import "../src/i18n";
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import Navbar1 from "./components/Navbar1"; 
@@ -23,22 +24,31 @@ import FarmerDetails from "./components/FarmerDetails";
 import ConsumerProfile from "./components/Consumer-profile";
 import Profile from "./pages/Profile";
 import OrderReview from "./pages/OrderReview";
-import BargainChat from "./components/BargainingChat";
+// import BargainChat from "./components/bargaining/ConsumerChatList";
 import Help from "./components/Help";
 import Subscription from "./components/Subscribe";
 import AddProduce from "./components/AddProduce"; 
 import ProductDetails from "./components/ProductDetails"; 
 import Sidebar from "./components/Sidebar"; 
+import FarmerReviews from "./components/FarmerReview";
 import Payment from "./components/payment";
 import "./components/styles.css";
 import ViewProfile from "./components/ViewProfile";
 import Notifications from "./components/Notifications";
 import Feeds from "./components/Feeds";
 import OrderPage from "./components/OrderPage";
-import Bargain from "./components/BargainChatF";
-import BargainChatC from "./components/ChatWindowBargainF";
-import Bargaining from "./components/BargainingChat"
+// import Bargain from "./components/bargaining/FarmerChatList";
+// import BargainChatC from "./components/bargaining/FarmerChatWindow";
+// import Bargaining from "./components/bargaining/ConsumerChatList"
 import Chatbot from "./components/Chatbot"; // Import the Chatbot component
+
+//bargaining
+import ConsumerChatList from './components/bargaining/ConsumerChatList';
+import ConsumerChatWindow from './components/bargaining/ConsumerChatWindow';
+import FarmerChatList from './components/bargaining/FarmerChatList';
+import FarmerChatWindow from './components/bargaining/FarmerChatWindow';
+
+
 
 import HomePageC from './pages/HomePage';
 import JoinCommunity from './pages/JoinCommunity';
@@ -50,6 +60,7 @@ import OrderPageC from './pages/OrderPage';
 import MemberOrderPage from "./pages/MemberOrderPage";
 
 function App() {
+  
   return (
     <ProductProvider>
     <AuthProvider>
@@ -131,6 +142,7 @@ const Main = () => {
       path.startsWith("/order-review") ||
       path.startsWith("/notifications") ||
       path.startsWith("/feeds") ||
+      path.startsWith("/farmers/my-reviews") ||
       path.startsWith("/chat")
     );
   };
@@ -143,6 +155,7 @@ const Main = () => {
       path.startsWith("/consumer-dashboard")
     );
   };
+
 
   return (
     <div>
@@ -178,17 +191,20 @@ const Main = () => {
           <Route path="/farmer/:farmer_id/profile" element={<Profile />} />
           <Route path="/consumerprofile/:consumer_id" element={<ConsumerProfile />} />
 
-          <Route path="/bargain/:farmer_id" element={<BargainChat />} />
+          {/* <Route path="/bargain/:farmer_id" element={<BargainChat />} />
           <Route path="/consumerprof/:consumer_id" element={<BargainChatC />} />
           <Route path="/bargain" element = {<Bargaining />} />
-          <Route path="/consumerprof" element={<Bargain />} />
+          <Route path="/consumerprof" element={<Bargain />} /> */}
 
 
           {/* 👤 Profile, Orders, Bargain, Community & Support */}
+         
+                    <Route path="/farmers/my-reviews" element={<FarmerReviews />} />
+               
           <Route path="/view-profile" element={<ViewProfile />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/order-review" element={<OrderReview />} />
-          <Route path="/chat" element={<Bargain />} />
+          {/* <Route path="/chat" element={<Bargain />} /> */}
           <Route path="/feeds" element={<Feeds />} />
           <Route path="/help" element={<Help />} />
 
@@ -201,7 +217,17 @@ const Main = () => {
         <Route path="/order/:communityId" element={<OrderPageC />} />
         <Route path="/order/:communityId/member/:memberId" element={<MemberOrderPage />} />
 
+
+        <Route path="/bargain" element={<ConsumerChatList />} />
+        <Route path="/bargain/:session_id" element={<ConsumerChatWindow />} />
+
+
+        {/* Farmer Routes */}
+        <Route path="/farmer/bargain" element={<FarmerChatList />} />
+        {/* // In your router configuration */}
+        <Route path="/farmer/chat/:session_id" element={<FarmerChatWindow />} />
           {/* 🌿 Farmer Features */}
+
           <Route path="/add-produce" element={<AddProduce />} />
           <Route path="/productDetails/:product_id" element={<ProductDetails />} />
           <Route path="/farmerDetails/:farmer_id" element={<FarmerDetails />} />

@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import "../components/ConsumerDashboard.css";
 import { fetchProducts } from '../utils/api';
 import { useCart } from '../context/CartContext';
+
+
 // Import images
 import Farmer from "../assets/farmer.jpeg";
 import OrganicBadge from "../assets/organic.jpg";
@@ -69,8 +71,10 @@ const ConsumerDashboard = () => {
   const [sortPriceOrder, setSortPriceOrder] = useState(""); // State for price sorting
   const [sortProduceOrder, setSortProduceOrder] = useState(""); // State for produce type sorting
   const navigate = useNavigate();
+ 
+
   // const [selectedQuantity, setSelectedQuantity] = useState("1kg"); // Default selection
-  const [selectedQuantities, setSelectedQuantities] = useState({});
+  const [selectedQuantities, setSelectedQuantities] = useState("10kg");
 
   useEffect(() => {
     // Fetch Products
@@ -86,14 +90,59 @@ const ConsumerDashboard = () => {
   }, []);
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/farmers")
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch farmers");
-        return res.json();
-      })
-      .then((data) => setFarmers(data))
-      .catch((error) => console.error("Error fetching farmers:", error));
+    const fetchFarmers = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/farmers', {
+          credentials: 'include' // Important for CORS
+        });
+  
+        if (!response.ok) {
+          throw new Error('Failed to fetch farmers');
+        }
+  
+        const data = await response.json();
+  
+        // Ensure farmers have a default rating if missing
+        const formattedData = data.map(farmer => ({
+          ...farmer,
+          average_rating: farmer.average_rating || 0 // Default to 0 if missing
+        }));
+  
+        setFarmers(formattedData);
+      } catch (error) {
+        console.error("Error fetching farmers:", error);
+        alert("Failed to load farmers. Please refresh the page.");
+      }
+    };
+  
+    fetchFarmers();
   }, []);
+  
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        if (payload.farmer_id) {
+          alert("Farmers cannot initiate bargains");
+          localStorage.clear();
+          navigate("/consumer-login");
+        }
+      } catch (e) {
+        localStorage.removeItem("token");
+      }
+    }
+  }, [navigate]);
+  const handleQuantityChange = (productId, event) => {
+    const value = parseInt(event.target.value, 10);
+    if (!isNaN(value)) {
+      setSelectedQuantities(prev => ({
+        ...prev,
+        [productId]: value
+      }));
+    }
+  };
+  
 // Fetch products when component mounts
 useEffect(() => {
   const fetchData = async () => {
@@ -107,41 +156,69 @@ useEffect(() => {
   fetchData();
 }, []);
 
-// const handleBargainClick = (farmer_id) => {
-//   // Navigate to the Bargain page with farmer_id as a URL parameter
-//   navigate(`/bargain/${farmer_id}`);
-// };
-// Function to handle "Bargain Now" button click
 const handleBargainClick = (farmer) => {
   console.log("Bargain clicked for farmer:", farmer); // Debugging
   setSelectedFarmer(farmer); // Store full farmer details
   setIsBargainPopupOpen(true); // Open popup
 };
 
+const handleBargainConfirm = async () => {
+  console.log("Selected Farmer:", selectedFarmer);
+  console.log("Selected Product:", selectedProduct);
+  console.log("Quantity:", quantity);
 
-// Function to handle confirmation in the popup
-const handleBargainConfirm = () => {
-  if (selectedProduct && quantity > 0) {
-    setIsBargainPopupOpen(false); // Close the popup
-
-    // Navigate to chat window with selected product details
-    navigate(`/bargain/${selectedFarmer.farmer_id}`, {
-      state: {
-        productId: selectedProduct.product_id, 
-        productName: selectedProduct.produce_name,
-        quantity: quantity,
-        pricePerKg: selectedProduct.price_per_kg
-      },
-    });
-  } else {
-    alert("Please select a product and enter a valid quantity.");
+  if (!selectedFarmer?.farmer_id || !selectedProduct?.product_id || !quantity || !selectedProduct?.price_per_kg) {
+    alert("Missing required fields!");
+    return;
   }
-};
-const handleQuantityChange = (productId, event) => {
-  setSelectedQuantities((prev) => ({
-    ...prev,
-    [productId]: parseInt(event.target.value, 10),
-  }));
+
+  try {
+    const response = await fetch("http://localhost:5000/api/bargain/initiate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({
+        farmer_id: selectedFarmer.farmer_id,
+        product_id: selectedProduct.product_id,
+        quantity: quantity,
+        original_price: selectedProduct.price_per_kg
+      })
+    });
+
+    console.log("Response status:", response.status);
+
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await response.text();
+      console.error("Unexpected response:", text);  // 🔍 Log non-JSON responses
+      throw new Error(`Server returned ${response.status}: ${text.substring(0, 100)}`);
+    }
+
+    const data = await response.json();
+    console.log("Full Response Data:", data);  // 🔍 Log full response
+
+    if (!response.ok) throw new Error(data.error || "Bargain failed");
+
+    console.log("Success:", data);
+    alert("Bargain initiated!");
+
+    // Ensure `bargainId` exists before navigating
+    if (data.bargainId) {
+      navigate(`/bargain/${data.bargainId}`);
+    } else {
+      console.error("❌ Backend did not return a valid bargain session ID!");
+      alert("Something went wrong! Bargain ID is missing.");
+    }
+
+  } catch (error) {
+    console.error("Request failed:", error);
+    alert(error.message.includes("<!DOCTYPE html>")
+      ? "API endpoint not found (404)"
+      : error.message
+    );
+  }
 };
 
 const handleBuyNow = (product) => {
@@ -273,7 +350,7 @@ if (loading) {
               {/* Quantity Dropdown */}
       <label><strong>Select Quantity:</strong></label>
       <select
-      value={selectedQuantities[product.product_id] || 1} // Default 1kg
+      value={selectedQuantities[product.product_id] || 10} // Default 1kg
       onChange={(e) => handleQuantityChange(product.product_id, e)}
     >
       <option value="1">1kg - ₹{product.price_1kg}</option>
@@ -393,59 +470,65 @@ if (loading) {
 </div>
 </div>
       {/* Bargain Popup */}
-{isBargainPopupOpen && selectedFarmer && selectedFarmer.products ? (
+      {isBargainPopupOpen && selectedFarmer && selectedFarmer.products && (
   <div className="bargain-popup">
     <div className="bargain-popup-content">
       <h3>Select Product and Quantity from {selectedFarmer.farmer_name}</h3>
-
-      {/* Product Selection Dropdown */}
+      
       <select
         onChange={(e) => {
-          const selectedProductData = selectedFarmer.products.find(
-            (product) => product.produce_name === e.target.value
-          );
-          setSelectedProduct(selectedProductData || null);
+          const selectedId = e.target.value;
+          const product = selectedFarmer.products.find(p => p.product_id === selectedId);
+          setSelectedProduct(product);
+          setQuantity(10); // Set default quantity to 10kg when product changes
         }}
       >
         <option value="">Select a product</option>
         {selectedFarmer.products.map((product) => (
-          <option key={product.product_id} value={product.produce_name}>
-            {product.produce_name} - ₹{product.price_per_kg}/kg
+          <option 
+            key={product.product_id} 
+            value={product.product_id}
+            disabled={product.availability <= 0}
+          >
+            {product.produce_name} - ₹{product.price_per_kg}/kg 
+            ({product.availability}kg available)
           </option>
         ))}
       </select>
 
-      {/* Quantity Input */}
       <input
         type="number"
         min="1"
+        max={selectedProduct?.availability || 10}
         value={quantity}
         onChange={(e) => {
-          const enteredQuantity = Number(e.target.value);
-
-          if (!selectedProduct) {
-            alert("Please select a product first.");
-            return;
-          }
-
-          if (enteredQuantity > selectedProduct.availability) {
-            alert(`Only ${selectedProduct.availability} kg available!`);
-            return;
-          }
-
-          setQuantity(enteredQuantity);
+          const val = Math.max(1, Math.min(
+            selectedProduct?.availability || 10, 
+            Number(e.target.value)
+          ));
+          setQuantity(val);
         }}
-        placeholder="Quantity (kg)"
+        placeholder={`Quantity (1-${selectedProduct?.availability || 10}kg)`}
+        disabled={!selectedProduct}
       />
 
-      {/* Confirm & Close Buttons */}
-      <button onClick={handleBargainConfirm}>Confirm</button>
-      <button onClick={handleClosePopup}>Close</button>
+      <p className="price-preview">
+        {selectedProduct ? (
+          `Estimated Total: ₹${(selectedProduct.price_per_kg * quantity).toFixed(2)}`
+        ) : (
+          "Estimated Total: ₹0.00"
+        )}
+      </p>
+
+      <div className="popup-buttons">
+        <button onClick={handleBargainConfirm} disabled={!selectedProduct}>
+          Start Bargaining
+        </button>
+        <button onClick={handleClosePopup}>Cancel</button>
+      </div>
     </div>
   </div>
-) : null}
-
-
+)}
     </div>
   );
 };
