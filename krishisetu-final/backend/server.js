@@ -1378,7 +1378,7 @@ app.get("/api/product/:product_id", async (req, res) => {
 app.get('/api/farmer-profile', async (req, res) => {
   try {
     const farmerId = 1; // Change this to dynamic ID as needed
-    const result = await queryDatabase('SELECT * FROM farmerprofile WHERE farmer_id = $1', [farmerId]);
+    const result = await queryDatabase('SELECT * FROM farmerprofile WHERE farmer_id = ?', [farmerId]);
 
     if (result.length === 0) {
       return res.status(404).json({ message: 'Farmer profile not found' });
