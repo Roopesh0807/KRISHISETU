@@ -1719,8 +1719,55 @@ app.get("/reviews/:farmer_id", async (req, res) => {
   }
 });  
 // API to add a review with an image
+app.get("/reviews/:farmer_id", async (req, res) => {
+  const { farmer_id } = req.params;
+  console.log("Fetching reviews for farmer:", farmer_id);
+  
+  // Validate farmer_id
+  if (!farmer_id || farmer_id.trim() === "" || farmer_id === "0") {
+    return res.status(400).json({ error: "Invalid Farmer ID" });
+  }
+  try {
+    // 1. Verify the farmer_id is being received correctly
+  
+    // 2. Check the actual query being executed
+    const reviewsQuery = `
+      SELECT r.* 
+      FROM reviews r
+      WHERE CAST(r.farmer_id AS CHAR) = ?
+      ORDER BY r.created_at DESC
+    `;
+    console.log("Executing query:", reviewsQuery.replace(/\s+/g, ' ').trim());
+    console.log("With parameters:", [farmer_id]);
+
+    const reviews = await queryDatabase(reviewsQuery, [farmer_id]);
+    console.log("Database returned:", reviews);
+
+    // 3. Verify image fetching
+    const reviewsWithImages = await Promise.all(reviews.map(async (review) => {
+      console.log(`Fetching images for review ${review.review_id}`);
+      const imagesQuery = `SELECT image_url FROM review_images WHERE review_id = ?`;
+      const images = await queryDatabase(imagesQuery, [review.review_id]);
+      return {
+        ...review,
+        image_urls: images.map(img => img.image_url)
+      };
+    }));
+
+    console.log("Final response data:", reviewsWithImages);
+    res.json(reviewsWithImages);
+  } catch (error) {
+    console.error("Full error stack:", error);
+    res.status(500).json({ 
+      error: "Internal Server Error",
+      message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});  
+// API to add a review with an image
 app.post("/reviews", upload.array("images", 5), async (req, res) => {
-  console.log("🛠️ Received review data:", req.body);
+  console.log("🛠 Received review data:", req.body);
   const { farmer_id, consumer_name, rating, comment } = req.body;
 
   console.log("📌 Extracted Data:");
