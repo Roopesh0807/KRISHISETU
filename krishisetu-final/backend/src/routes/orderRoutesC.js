@@ -6,6 +6,9 @@ const router = express.Router();
 router.get("/:communityId", orderController.getOrders);
 router.get("/:communityId/member/:consumerId", orderController.getMemberOrders); // Use consumerId
 router.post("/create", orderController.createOrder);
+// Add this to orderRoutes.js
+// router.delete("/:orderId", orderController.deleteOrder);
+router.delete('/delete/:orderId', orderController.deleteOrder); // Changed path
 router.get('/:communityId', async (req, res) => {
   try {
     const { communityId } = req.params;
@@ -107,4 +110,36 @@ router.get("/order/:communityId/member/:memberId", async (req, res) => {
   });
 
 
+
+
+
+  // router.get('/community/:communityId/member/:memberId', async (req, res) => {
+  //   try {
+  //     const { communityId, memberId } = req.params;
+  
+  //     // Find orders for this member in this community
+  //     const orders = await Order.find({
+  //       community_id: communityId,
+  //       member_id: memberId
+  //     }).populate('product_id', 'name price'); // Assuming you're using MongoDB and want product details
+  
+  //     if (!orders || orders.length === 0) {
+  //       return res.status(404).json({ 
+  //         success: false,
+  //         message: 'No orders found for this member in the community'
+  //       });
+  //     }
+  
+  //     res.status(200).json({
+  //       success: true,
+  //       data: orders
+  //     });
+  //   } catch (err) {
+  //     console.error(err);
+  //     res.status(500).json({
+  //       success: false,
+  //       message: 'Server error'
+  //     });
+  //   }
+  // });
 module.exports = router;

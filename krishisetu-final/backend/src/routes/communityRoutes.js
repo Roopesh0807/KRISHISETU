@@ -28,6 +28,10 @@ router.delete("/:communityId/remove-member/:memberId", communityController.remov
 router.put("/:communityId/update-details", communityController.updateCommunityDetails);
 router.post("/join", communityController.joinCommunity);
 router.post('/verify-access', communityController.verifyCommunityAccess);
+// Add this route in communityRoutes.js
+// router.get("/:communityId/member/:memberId", communityController.getMemberOrders);
+// Update this in communityRoutes.js
+router.get("/:communityId/member/:memberId/orders", communityController.getMembersOrders);
 router.get('/consumer/:consumerId/communities', communityController.getConsumerCommunities);
 router.get("/community/create", async (req, res) => {
     try {
@@ -193,4 +197,29 @@ router.get("/test/:communityId", async (req, res) => {
   }
 });
 
+
+// // Add this route to communityRoutes.js
+
+// Add this route to verify email matches consumer ID
+router.post("/verify-email", async (req, res) => {
+  const { consumerId, email } = req.body;
+
+  try {
+    const query = "SELECT email FROM consumerregistration WHERE consumer_id = ?";
+    const [user] = await queryDatabase(query, [consumerId]);
+
+    if (!user) {
+      return res.status(404).json({ match: false, error: "User not found" });
+    }
+
+    if (user.email !== email) {
+      return res.json({ match: false });
+    }
+
+    res.json({ match: true });
+  } catch (error) {
+    console.error("Error verifying email:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 module.exports = router;
