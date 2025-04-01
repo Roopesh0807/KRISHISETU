@@ -345,53 +345,100 @@ function MemberCommunityPage() {
     }
   }, [location.state]);
 
-  useEffect(() => {
-    const fetchCommunityDetails = async () => {
-      try {
-        const response = await fetch(`http://localhost:5000/api/community/${communityId}`);
-        if (!response.ok) throw new Error("Failed to fetch community details");
-        const data = await response.json();
-        setCommunity(data);
-      } catch (err) {
-        console.error("Error fetching community details:", err);
-        setError(err.message);
-      }
-    };
+  // useEffect(() => {
+  //   const fetchCommunityDetails = async () => {
+  //     try {
+  //       const response = await fetch(`http://localhost:5000/api/community/${communityId}`);
+  //       if (!response.ok) throw new Error("Failed to fetch community details");
+  //       const data = await response.json();
+  //       setCommunity(data);
+  //     } catch (err) {
+  //       console.error("Error fetching community details:", err);
+  //       setError(err.message);
+  //     }
+  //   };
 
-    const fetchMembers = async () => {
-      try {
-        const response = await fetch(`http://localhost:5000/api/community/${communityId}/members`);
-        if (!response.ok) throw new Error("Failed to fetch members");
-        const data = await response.json();
+  //   const fetchMembers = async () => {
+  //     try {
+  //       const response = await fetch(`http://localhost:5000/api/community/${communityId}/members`);
+  //       if (!response.ok) throw new Error("Failed to fetch members");
+  //       const data = await response.json();
         
-        const filteredMembers = data.filter(
-          member => String(member.member_id) !== String(community?.admin_id)
-        );
-        setMembers(filteredMembers);
+  //       const filteredMembers = data.filter(
+  //         member => String(member.member_id) !== String(community?.admin_id)
+  //       );
+  //       setMembers(filteredMembers);
 
+  //       const loggedInMemberId = localStorage.getItem("memberId");
+  //       const loggedInUserEmail = localStorage.getItem("userEmail");
+
+  //       const foundMember = data.find(
+  //         member =>
+  //           (loggedInMemberId && String(member.member_id) === String(loggedInMemberId)) ||
+  //           (loggedInUserEmail && member.email === loggedInUserEmail)
+  //       );
+
+  //       if (foundMember) {
+  //         setLoggedInMember(foundMember);
+  //       }
+  //     } catch (err) {
+  //       console.error("Error fetching members:", err);
+  //       setError(err.message);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+
+  //   fetchCommunityDetails();
+  //   fetchMembers();
+  // }, [communityId, community?.admin_id]);
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError("");
+        
+        // Fetch community details
+        const communityRes = await fetch(
+          `http://localhost:5000/api/community/${communityId}`
+        );
+        if (!communityRes.ok) throw new Error("Failed to fetch community details");
+        const communityData = await communityRes.json();
+        setCommunity(communityData.data || communityData);
+
+        // Fetch members
+        const membersRes = await fetch(
+          `http://localhost:5000/api/community/${communityId}/members`
+        );
+        if (!membersRes.ok) throw new Error("Failed to fetch members");
+        const membersData = await membersRes.json();
+        
+        // Filter out admin if needed (the controller might already do this)
+        setMembers(Array.isArray(membersData) ? membersData : []);
+
+        // Find logged in member
         const loggedInMemberId = localStorage.getItem("memberId");
         const loggedInUserEmail = localStorage.getItem("userEmail");
-
-        const foundMember = data.find(
+        
+        const foundMember = membersData.find(
           member =>
-            (loggedInMemberId && String(member.member_id) === String(loggedInMemberId)) ||
-            (loggedInUserEmail && member.email === loggedInUserEmail)
+            (loggedInMemberId && String(member.id) === String(loggedInMemberId)) ||
+            (loggedInUserEmail && member.member_email === loggedInUserEmail)
         );
-
+        
         if (foundMember) {
           setLoggedInMember(foundMember);
         }
       } catch (err) {
-        console.error("Error fetching members:", err);
+        console.error("Error fetching data:", err);
         setError(err.message);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchCommunityDetails();
-    fetchMembers();
-  }, [communityId, community?.admin_id]);
+    fetchData();
+  }, [communityId]);
 
   const handleAgree = () => {
     setShowInstructions(false);
@@ -457,13 +504,13 @@ function MemberCommunityPage() {
             <h2>Community Members</h2>
             <div className="members-grid">
               {members.map((member) => (
-                <div key={member.member_id} className="member-card">
-                  <h3>{member.name}</h3>
-                  <p className="phone">
-                    {member.phone ? `Phone: ••••••${member.phone.slice(-2)}` : "Phone not available"}
-                  </p>
-                </div>
-              ))}
+  <div key={member.id || member.member_id} className="member-card">
+    <h3>{member.name}</h3>
+    <p className="phone">
+      {member.phone ? `Phone: ••••••${member.phone.slice(-2)}` : "Phone not available"}
+    </p>
+  </div>
+))}
             </div>
           </div>
         </div>

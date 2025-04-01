@@ -76,36 +76,37 @@ function CommunityDetails() {
       alert("Community ID is missing.");
       return;
     }
-
+  
     try {
       const response = await fetch(`http://localhost:5000/api/community/${communityId}`);
       const data = await response.json();
-
-      if (response.ok) {
-        // Check the response structure and access admin_id correctly
-        const adminId = data.data?.admin_id || data.admin_id;
-        const loggedInConsumerId = localStorage.getItem("consumerId");
-
-        if (!adminId) {
-          throw new Error("Admin ID not found in response");
-        }
-
-        if (!loggedInConsumerId) {
-          throw new Error("Logged-in consumer ID not found");
-        }
-
-        // Navigate based on admin status
-        if (loggedInConsumerId === adminId.toString()) {
-          navigate(`/community-page/${communityId}/admin`);
-        } else {
-          navigate(`/community-page/${communityId}/member`);
-        }
+  
+      if (!response.ok) {
+        throw new Error(data.message || "Error fetching community details");
+      }
+  
+      // Ensure we're accessing the data correctly
+      const communityData = data.data || data;
+      const adminId = communityData.admin_id;
+      const loggedInConsumerId = localStorage.getItem("consumerId");
+  
+      if (!adminId) {
+        throw new Error("Admin ID not found in response");
+      }
+  
+      if (!loggedInConsumerId) {
+        throw new Error("Logged-in consumer ID not found");
+      }
+  
+      // Navigate based on admin status
+      if (loggedInConsumerId === adminId.toString()) {
+        navigate(`/community-page/${communityId}/admin`);
       } else {
-        alert(data.error || "Error fetching community details");
+        navigate(`/community-page/${communityId}/member`);
       }
     } catch (error) {
       console.error("Error fetching community details:", error);
-      alert("An error occurred while fetching community details.");
+      alert(error.message || "An error occurred while fetching community details.");
     }
   };
 

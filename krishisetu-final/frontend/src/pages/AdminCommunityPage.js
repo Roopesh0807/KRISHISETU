@@ -14,42 +14,116 @@ function AdminCommunityPage() {
   const [editDetails, setEditDetails] = useState({ address: "", deliveryDate: "", deliveryTime: "" });
   const [showEditForm, setShowEditForm] = useState(false);
   const [showAddMemberForm, setShowAddMemberForm] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  // useEffect(() => {
+  //   const fetchData = async () => {
+  //     try {
+  //       setIsLoading(true);
+        
+  //       // Fetch community details
+  //       const communityResponse = await fetch(`http://localhost:5000/api/community/${communityId}`);
+  //       if (!communityResponse.ok) throw new Error("Failed to fetch community");
+  //       const communityData = await communityResponse.json();
+  //       setCommunity(communityData);
+        
+  //       // Set edit form values
+  //       setEditDetails({
+  //         address: communityData.address || "",
+  //         deliveryDate: communityData.delivery_date || "",
+  //         deliveryTime: communityData.delivery_time || ""
+  //       });
+        
+  //       // Fetch members (automatically excludes admin)
+  //       const membersResponse = await fetch(`http://localhost:5000/api/community/${communityId}/members`);
+  //       if (!membersResponse.ok) throw new Error("Failed to fetch members");
+  //       const membersData = await membersResponse.json();
+  //       setMembers(membersData);
+        
+  //     } catch (error) {
+  //       console.error("Error:", error);
+  //       setError(error.message);
+  //     } finally {
+  //       setIsLoading(false);
+  //     }
+  //   };
 
-  useEffect(() => {
-    fetch(`http://localhost:5000/api/community/${communityId}`)
-      .then((response) => response.json())
-      .then((data) => setCommunity(data))
-      .catch((error) => console.error("Error fetching community details:", error));
-  }, [communityId]);
+  //   fetchData();
+  // }, [communityId]);
 
+  // useEffect(() => {
+  //   const fetchMembers = async () => {
+  //     try {
+  //       const response = await fetch(`http://localhost:5000/api/community/${communityId}/members`);
+  //       const data = await response.json();
+
+  //       if (!Array.isArray(data)) {
+  //         console.error("Unexpected data format:", data);
+  //         return;
+  //       }
+
+  //       // Filter out the admin from the members list
+  //       const filteredMembers = data.filter(
+  //         (member) => member.consumer_id !== community?.admin_id
+  //       );
+
+  //       setMembers(filteredMembers.map((member, index) => ({
+  //         id: member.id || member.member_id || index,
+  //         name: member.name,
+  //         phone: member.phone,
+  //       })));
+  //     } catch (error) {
+  //       console.error("Error fetching members:", error);
+  //     }
+  //   };
+
+  //   fetchMembers();
+  // }, [communityId, community?.admin_id]); // Add community?.admin_id as a dependency
+
+
+  
   useEffect(() => {
-    const fetchMembers = async () => {
+    const fetchCommunityData = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/community/${communityId}/members`);
+        setIsLoading(true);
+        setError(null);
+        
+        // Fetch community details
+        const response = await fetch(`http://localhost:5000/api/community/${communityId}`);
         const data = await response.json();
-
-        if (!Array.isArray(data)) {
-          console.error("Unexpected data format:", data);
-          return;
+        
+        if (!response.ok || !data.success) {
+          throw new Error(data.message || "Failed to fetch community");
         }
 
-        // Filter out the admin from the members list
-        const filteredMembers = data.filter(
-          (member) => member.consumer_id !== community?.admin_id
-        );
+        setCommunity(data.data);
+        setEditDetails({
+          address: data.data.address || "",
+          deliveryDate: data.data.delivery_date || "",
+          deliveryTime: data.data.delivery_time || ""
+        });
 
-        setMembers(filteredMembers.map((member, index) => ({
-          id: member.id || member.member_id || index,
-          name: member.name,
-          phone: member.phone,
-        })));
+        // Fetch members
+        const membersResponse = await fetch(`http://localhost:5000/api/community/${communityId}/members`);
+        const membersData = await membersResponse.json();
+        
+        if (!membersResponse.ok) {
+          throw new Error("Failed to fetch members");
+        }
+
+        setMembers(membersData);
+
       } catch (error) {
-        console.error("Error fetching members:", error);
+        console.error("Error:", error);
+        setError(error.message);
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    fetchMembers();
-  }, [communityId, community?.admin_id]); // Add community?.admin_id as a dependency
+    fetchCommunityData();
+  }, [communityId]);
+
 
   const handleSearch = (e) => {
     setSearchQuery(e.target.value);
@@ -167,6 +241,11 @@ function AdminCommunityPage() {
     }
   };
 
+  if (isLoading) return <div className="krishi-admin-community-page">Loading...</div>;
+  if (error) return <div className="krishi-admin-community-page">Error: {error}</div>;
+  if (!community) return <div className="krishi-admin-community-page">Community not found</div>;
+
+
   return (
     <div className="krishi-admin-community-page">
       {/* Navbar3 Integrated */}
@@ -177,16 +256,16 @@ function AdminCommunityPage() {
         {/* Community Details Section */}
         <div className="krishi-community-details-section">
           <div className="krishi-header">
-            <h1>Community Name: {community?.name}</h1>
+          <h1>{community.name}</h1>
             <button className="krishi-edit-button" onClick={() => setShowEditForm(!showEditForm)}>
               <FaEdit /> Edit
             </button>
           </div>
           <div className="krishi-details">
-            <p><strong>Admin:</strong> {community?.admin_name}</p>
-            <p><strong>Address:</strong> {community?.address}</p>
-            <p><strong>Delivery Date:</strong> {community?.delivery_date}</p>
-            <p><strong>Delivery Time:</strong> {community?.delivery_time}</p>
+          <p><strong>Admin:</strong> {community.admin_name}</p>
+            <p><strong>Address:</strong> {community.address || "Not specified"}</p>
+            <p><strong>Delivery Date:</strong> {community.delivery_date || "Not set"}</p>
+            <p><strong>Delivery Time:</strong> {community.delivery_time || "Not set"}</p>
           </div>
 
           {showEditForm && (

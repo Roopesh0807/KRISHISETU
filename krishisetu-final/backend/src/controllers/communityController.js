@@ -76,11 +76,12 @@ exports.createCommunity = async (req, res) => {
 };
 
 // ✅ Get Community Details
+// In communityController.js - update getCommunityDetails
+// Update getCommunityDetails in communityController.js
 exports.getCommunityDetails = async (req, res) => {
   const { communityId } = req.params;
 
   try {
-    // Validate input
     if (!communityId) {
       return res.status(400).json({
         success: false,
@@ -91,21 +92,21 @@ exports.getCommunityDetails = async (req, res) => {
 
     const query = `
       SELECT 
-        c.community_id,
+        c.community_id as id,
         c.community_name,
         c.address,
-        c.delivery_date,
-        c.delivery_time,
-        cr.first_name AS admin_name,
-        cr.consumer_id AS admin_id
+        DATE_FORMAT(c.delivery_date, '%Y-%m-%d') as delivery_date,
+        TIME_FORMAT(c.delivery_time, '%H:%i') as delivery_time,
+        CONCAT(cr.first_name, ' ', cr.last_name) AS admin_name,
+        c.admin_id
       FROM Communities c
       JOIN consumerregistration cr ON c.admin_id = cr.consumer_id
       WHERE c.community_id = ?
     `;
 
-    const [results] = await queryDatabase(query, [communityId]);
+    const [community] = await queryDatabase(query, [communityId]);
 
-    if (!results || results.length === 0) {
+    if (!community) {
       return res.status(404).json({
         success: false,
         message: "Community not found",
@@ -117,13 +118,13 @@ exports.getCommunityDetails = async (req, res) => {
       success: true,
       message: "Community details retrieved",
       data: {
-        community_id: results[0].community_id,
-        community_name: results[0].community_name,
-        address: results[0].address,
-        delivery_date: results[0].delivery_date,
-        delivery_time: results[0].delivery_time,
-        admin_name: results[0].admin_name,
-        admin_id: results[0].admin_id
+        id: community.id,
+        name: community.community_name,
+        address: community.address || "Not specified",
+        delivery_date: community.delivery_date || "Not set",
+        delivery_time: community.delivery_time || "Not set",
+        admin_name: community.admin_name,
+        admin_id: community.admin_id
       }
     });
 
@@ -136,25 +137,42 @@ exports.getCommunityDetails = async (req, res) => {
       data: null
     });
   }
-};
+};;
 // ✅ Get Community Members
 // ✅ Get Community Members
 exports.getCommunityMembers = async (req, res) => {
   const { communityId } = req.params;
 
   try {
+    console.log('Fetching members for community:', communityId); // Debug log
+    
+    // First get the admin ID
+    const adminQuery = `SELECT admin_id FROM Communities WHERE community_id = ?`;
+    const [community] = await queryDatabase(adminQuery, [communityId]);
+
+    if (!community) {
+      console.log('Community not found'); // Debug log
+      return res.status(404).json({ error: "Community not found" });
+    }
+
+    const adminId = community.admin_id;
+    console.log('Admin ID:', adminId); // Debug log
+
+    // Get all members except admin
     const query = `
       SELECT 
-        members.member_id,  -- Include the member ID
-        members.consumer_id, -- Include the consumer_id
-        members.member_name AS name,
-        members.member_email AS email, -- Include the member_email
-        members.phone_number AS phone
-      FROM members
-      WHERE members.community_id = ?
+        m.member_id as id,
+        m.member_name as name,
+        m.phone_number as phone,
+        m.member_email,
+        m.consumer_id
+      FROM members m
+      WHERE m.community_id = ? AND m.consumer_id != ?
     `;
-    const result = await queryDatabase(query, [communityId]);
-
+    
+    const result = await queryDatabase(query, [communityId, adminId]);
+    console.log('Members found:', result); // Debug log
+    
     res.status(200).json(result);
   } catch (error) {
     console.error("Error fetching community members:", error);

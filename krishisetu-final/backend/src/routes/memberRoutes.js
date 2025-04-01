@@ -11,6 +11,7 @@ router.delete("/:id", memberController.removeMember);
 // router.get("/api/member/:consumerId", memberController.getMemberByConsumerId);
 router.get("/member/:memberId", memberController.getMemberByMemberId);
 router.get("/:memberId", memberController.getMemberByMemberId);
+// router.get('/find-member', memberController.findMember);
 // Fetch member details by email
 router.get("/member/email/:email", async (req, res) => {
     const { email } = req.params;
