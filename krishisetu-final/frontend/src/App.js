@@ -220,8 +220,9 @@ const Main = () => {
 
 
         <Route path="/bargain" element={<ConsumerChatList />} />
-        <Route path="/bargain/:session_id" element={<ConsumerChatWindow />} />
+        {/* <Route path="/bargain/:session_id" element={<ConsumerChatWindow />} /> */}
 
+        <Route path="/bargain/:bargainId" element={<ConsumerChatWindow />} />
 
         {/* Farmer Routes */}
         <Route path="/farmer/bargain" element={<FarmerChatList />} />
