@@ -84,6 +84,7 @@ const Main = () => {
 
     // Navbar2 for Farmer Pages
     if (
+      path.startsWith("/farmer/") ||
       path.startsWith("/farmer-dashboard") ||
       path.startsWith("/add-produce") ||
       path.startsWith("/profile") ||
@@ -93,7 +94,7 @@ const Main = () => {
       path.startsWith("/order-review") ||
       path.startsWith("/notifications") ||
       path.startsWith("/feeds") ||
-      path.startsWith("/consumerprof") ||
+      //path.startsWith("/consumerprof") ||
       path.startsWith("/bargain_farmer") ||
       path.startsWith("/chat") ||
     /\/profile\/[A-Za-z0-9]+/.test(path) ||
@@ -109,9 +110,10 @@ const Main = () => {
       /\/productDetails\/[A-Za-z0-9]+/.test(path) ||
       /\/consumerprofile\/[A-Za-z0-9]+/.test(path) || // Matches alphanumeric consumer_id
       /\/farmerDetails\/[A-Za-z0-9]+/.test(path) || // Matches alphanumeric farmer_id
-      path.startsWith("/farmer/") ||
+      
       path.startsWith("/payment") ||
       path.startsWith("/orderpage") ||
+      path.startsWith("/consumerprofile")||
       path.startsWith("/cart") ||
       path.startsWith("/bargain_consumer") ||
       path.startsWith("/bargain") ||
@@ -134,6 +136,7 @@ const Main = () => {
     const path = location.pathname;
     return (
       path.startsWith("/farmer-dashboard") ||
+      path.startsWith("/farmer/") ||
       path.startsWith("/add-produce") ||
       path.startsWith("/profile") ||
       path.startsWith("/help") ||

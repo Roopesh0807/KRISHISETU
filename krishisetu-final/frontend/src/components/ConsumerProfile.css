@@ -1,128 +1,585 @@
-/* ConsumerProfile.css */
+/* Krishisetu Profile Styles - Unique prefix 'ks-' to avoid collisions */
 
-.profile-container1 {
-  max-width: 600px;
-  margin: 40px auto;
-  padding: 20px;
+.ks-profile-container {
+  padding: 2rem 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  margin-top: 80px; /* Account for fixed navbar */
+}
+
+.ks-profile-card {
   background: #ffffff;
   border-radius: 12px;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-  font-family: Arial, sans-serif;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  transition: all 0.3s ease;
 }
 
-h2 {
+.ks-profile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  background: linear-gradient(135deg, #4b6cb7 0%, #182848 100%);
+  color: white;
+}
+
+.ks-profile-title {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 600;
+}
+
+.ks-profile-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.ks-profile-action-btn {
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  border: none;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.ks-edit-btn {
+  background-color: #ffffff;
+  color: #182848;
+}
+
+.ks-edit-btn:hover {
+  background-color: #f0f0f0;
+  transform: translateY(-2px);
+}
+
+.ks-save-btn {
+  background-color: #28a745;
+  color: white;
+}
+
+.ks-save-btn:hover {
+  background-color: #218838;
+  transform: translateY(-2px);
+}
+
+.ks-profile-content {
+  display: flex;
+  flex-direction: column;
+  padding: 2rem;
+}
+
+.ks-profile-photo-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.ks-profile-avatar-wrapper {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+.ks-profile-avatar {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 5px solid #f8f9fa;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.ks-profile-avatar:hover {
+  transform: scale(1.05);
+}
+
+.ks-profile-avatar-placeholder {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: #e9ecef;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6c757d;
+  font-size: 3rem;
+  border: 5px solid #f8f9fa;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.ks-profile-photo-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.ks-photo-upload-input {
+  display: none;
+}
+
+.ks-photo-upload-btn, .ks-photo-remove-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.ks-photo-upload-btn {
+  background-color: #4b6cb7;
+  color: white;
+  border: none;
+}
+
+.ks-photo-upload-btn:hover {
+  background-color: #3a5aa0;
+  transform: translateY(-2px);
+}
+
+.ks-photo-remove-btn {
+  background-color: #f8f9fa;
+  color: #dc3545;
+  border: 1px solid #dc3545;
+}
+
+.ks-photo-remove-btn:hover {
+  background-color: #f1f1f1;
+  transform: translateY(-2px);
+}
+
+.ks-profile-details {
+  width: 100%;
+}
+
+.ks-profile-detail-group {
+  margin-bottom: 2rem;
+}
+
+.ks-profile-section-title {
+  font-size: 1.3rem;
+  color: #4b6cb7;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.ks-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.ks-profile-field {
+  margin-bottom: 1rem;
+}
+
+.ks-profile-label {
+  display: block;
+  font-weight: 500;
+  color: #495057;
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.ks-profile-value {
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 6px;
+  color: #212529;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+}
+
+.ks-profile-input, .ks-profile-select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.ks-profile-input:focus, .ks-profile-select:focus {
+  border-color: #4b6cb7;
+  outline: 0;
+  box-shadow: 0 0 0 0.2rem rgba(75, 108, 183, 0.25);
+}
+
+.ks-profile-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1em;
+}
+
+.ks-profile-loading, .ks-profile-error {
+  padding: 2rem;
   text-align: center;
-  color: #333;
-  margin-bottom: 20px;
+  font-size: 1.2rem;
+  margin-top: 80px;
 }
 
-.profile-photo {
+.ks-profile-error {
+  color: #dc3545;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .ks-profile-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.5rem;
+  }
+  
+  .ks-profile-content {
+    padding: 1.5rem;
+  }
+  
+  .ks-profile-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .ks-profile-photo-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .ks-photo-upload-btn, .ks-photo-remove-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}/* Krishisetu Profile Styles */
+:root {
+  --ks-green: #2e7d32;
+  --ks-green-dark: #1b5e20;
+  --ks-green-light: #81c784;
+  --ks-orange: #ff8f00;
+  --ks-light: #f8f9fa;
+  --ks-dark: #212121;
+  --ks-text: #333;
+  --ks-border: #e0e0e0;
+}
+
+.ks-profile-container {
+  padding: 2rem 1rem;
+  max-width: 1000px;
+  margin: 0 auto;
+  margin-top: 80px;
+  font-family: 'Roboto', sans-serif;
+}
+
+.ks-profile-card {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  border: 1px solid var(--ks-border);
+}
+
+.ks-profile-header {
+  background: linear-gradient(135deg, var(--ks-green), var(--ks-green-dark));
+  color: white;
+  padding: 1.5rem 2rem;
+  position: relative;
+}
+
+.ks-profile-header-content {
+  position: relative;
+  z-index: 1;
+}
+
+.ks-profile-title {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.ks-title-icon {
+  font-size: 1.8rem;
+}
+
+.ks-profile-subtitle {
+  margin: 0.25rem 0 0;
+  opacity: 0.9;
+  font-size: 0.95rem;
+}
+
+.ks-profile-actions {
+  position: absolute;
+  right: 2rem;
+  top: 1.5rem;
+}
+
+.ks-profile-action-btn {
+  padding: 0.6rem 1.25rem;
+  border-radius: 50px;
+  border: none;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+  font-size: 0.95rem;
+}
+
+.ks-edit-btn {
+  background-color: white;
+  color: var(--ks-green-dark);
+}
+
+.ks-save-btn {
+  background-color: var(--ks-orange);
+  color: white;
+}
+
+.ks-profile-content {
+  padding: 2rem;
+}
+
+/* Profile Photo Section */
+.ks-profile-photo-section {
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: 2rem;
 }
 
-.profile-photo img {
+.ks-profile-avatar-wrapper {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 1rem;
+}
+
+.ks-profile-avatar {
   width: 120px;
   height: 120px;
   border-radius: 50%;
   object-fit: cover;
-  border: 3px solid #007bff;
+  border: 4px solid white;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-.photo-placeholder {
+.ks-profile-avatar-placeholder {
   width: 120px;
   height: 120px;
   border-radius: 50%;
-  background: #ccc;
+  background: var(--ks-light);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
-  color: #666;
-  border: 3px dashed #aaa;
+  color: var(--ks-green);
+  font-size: 2.5rem;
+  border: 4px solid white;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-.photo-buttons {
-  margin-top: 10px;
-}
-
-.upload-photo-btn {
-  display: inline-block;
-  background: #007bff;
+.ks-profile-avatar-edit {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background: var(--ks-orange);
   color: white;
-  padding: 8px 12px;
-  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  margin-right: 10px;
 }
 
-.upload-photo-btn:hover {
-  background: #0056b3;
+.ks-profile-photo-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
 }
 
-.btn-danger {
-  background: #dc3545;
+.ks-photo-upload-btn, .ks-photo-remove-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 50px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.ks-photo-upload-btn {
+  background-color: var(--ks-green);
   color: white;
-  padding: 8px 12px;
   border: none;
-  border-radius: 6px;
-  cursor: pointer;
 }
 
-.btn-danger:hover {
-  background: #c82333;
+.ks-photo-remove-btn {
+  background-color: white;
+  color: #dc3545;
+  border: 1px solid #dc3545;
 }
 
-.profile-fields {
+/* Profile Details */
+.ks-profile-section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--ks-border);
+}
+
+.ks-section-icon {
+  color: var(--ks-green);
+  font-size: 1.25rem;
+}
+
+.ks-profile-section-title {
+  margin: 0;
+  font-size: 1.25rem;
+  color: var(--ks-green-dark);
+}
+
+.ks-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.25rem;
+}
+
+.ks-profile-field {
+  margin-bottom: 1.25rem;
+}
+
+.ks-profile-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+  color: var(--ks-dark);
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.ks-field-icon {
+  color: var(--ks-green);
+  width: 20px;
+  text-align: center;
+}
+
+.ks-profile-value {
+  padding: 0.75rem;
+  background: var(--ks-light);
+  border-radius: 8px;
+  color: var(--ks-text);
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+}
+
+.ks-profile-input, .ks-profile-select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--ks-border);
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.ks-profile-input:focus, .ks-profile-select:focus {
+  border-color: var(--ks-green);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+}
+
+/* Loading and Error States */
+.ks-profile-loading {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  gap: 1rem;
 }
 
-.profile-fields label {
-  font-weight: bold;
-  color: #555;
-  display: block;
-  margin-bottom: 5px;
+.ks-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(46, 125, 50, 0.1);
+  border-radius: 50%;
+  border-top-color: var(--ks-green);
+  animation: spin 1s linear infinite;
 }
 
-.profile-fields p {
-  background: #f7f7f7;
-  padding: 8px;
-  border-radius: 6px;
-  color: #333;
+.ks-profile-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  gap: 1rem;
+  color: #dc3545;
 }
 
-.profile-fields input,
-.profile-fields select {
-  width: 100%;
-  padding: 8px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-}
-
-.edit-save-btn {
-  display: block;
-  width: 100%;
-  padding: 10px;
-  background: #28a745;
+.ks-error-icon {
+  width: 40px;
+  height: 40px;
+  background: #dc3545;
   color: white;
-  text-align: center;
-  font-size: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-weight: bold;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-  margin-top: 20px;
 }
 
-.edit-save-btn:hover {
-  background: #218838;
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
+/* Responsive Adjustments */
 @media (max-width: 768px) {
-  .profile-container1 {
-    max-width: 90%;
-    padding: 15px;
+  .ks-profile-header {
+    padding: 1.25rem;
+    text-align: center;
+  }
+  
+  .ks-profile-actions {
+    position: static;
+    margin-top: 1rem;
+    justify-content: center;
+  }
+  
+  .ks-profile-content {
+    padding: 1.5rem;
+  }
+  
+  .ks-profile-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .ks-profile-photo-actions {
+    flex-direction: column;
+  }
+  
+  .ks-photo-upload-btn, .ks-photo-remove-btn {
+    width: 100%;
+    justify-content: center;
   }
 }

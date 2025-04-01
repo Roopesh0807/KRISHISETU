@@ -1,0 +1,547 @@
+/* Farmer Profile Specific Styles */
+.farmer-profile-container {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 80px);
+  margin-top: 80px;
+  margin-left: 80px;
+  padding: 2rem;
+  background-color: #f8f9fa;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.farmer-profile-container.sidebar-expanded {
+  margin-left: 250px;
+}
+
+/* Header */
+.farmer-profile-header {
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+.farmer-profile-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.farmer-profile-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+}
+
+.farmer-profile-title-highlight {
+  color: #27ae60;
+}
+
+.farmer-profile-sidebar-toggle-btn {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  color: #27ae60;
+}
+
+.farmer-profile-sidebar-toggle-btn:hover {
+  background: #f1f5f9;
+  transform: translateY(-1px);
+  color: #2ecc71;
+}
+
+/* Tabs */
+.farmer-profile-tabs {
+  display: flex;
+  border-bottom: 1px solid #e2e8f0;
+  gap: 0.5rem;
+}
+
+.farmer-profile-tab {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #7f8c8d;
+  transition: all 0.2s;
+  border-bottom: 2px solid transparent;
+  border-radius: 8px 8px 0 0;
+}
+
+.farmer-profile-tab:hover {
+  color: #34495e;
+  background: rgba(39, 174, 96, 0.1);
+}
+
+.farmer-profile-tab-active {
+  color: #27ae60;
+  border-bottom-color: #27ae60;
+  background: rgba(39, 174, 96, 0.1);
+  font-weight: 600;
+}
+
+.farmer-profile-tab-icon {
+  margin-right: 0.5rem;
+}
+
+/* Content */
+.farmer-profile-content-wrapper {
+  display: flex;
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.farmer-profile-photo-section {
+  flex: 0 0 280px;
+}
+
+.farmer-profile-photo-card {
+  background: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 1px solid #e0e0e0;
+  height: fit-content;
+  position: sticky;
+  top: 1rem;
+}
+
+.farmer-profile-photo-container {
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f5f9;
+  border: 4px solid #e0f2fe;
+  margin-bottom: 1rem;
+}
+
+.farmer-profile-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.farmer-profile-photo-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #7f8c8d;
+}
+
+.farmer-profile-photo-actions {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.farmer-profile-photo-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  gap: 0.5rem;
+}
+
+.farmer-profile-upload-btn {
+  background: #27ae60;
+  color: white;
+}
+
+.farmer-profile-upload-btn:hover {
+  background: #2ecc71;
+  transform: translateY(-1px);
+}
+
+.farmer-profile-remove-btn {
+  background: #f8fafc;
+  color: #e74c3c;
+  border: 1px solid #e2e8f0;
+}
+
+.farmer-profile-remove-btn:hover {
+  background: #fee2e2;
+  transform: translateY(-1px);
+}
+
+/* Details Section */
+.farmer-profile-details-section {
+  flex: 1;
+}
+
+.farmer-profile-details-card {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e0e0e0;
+}
+
+.farmer-profile-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.farmer-profile-card-header h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+}
+
+.farmer-profile-edit-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #34495e;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.farmer-profile-edit-btn:hover {
+  background: rgba(39, 174, 96, 0.1);
+  color: #27ae60;
+  border-color: rgba(39, 174, 96, 0.3);
+}
+
+/* Details Grid */
+.farmer-profile-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.farmer-profile-detail-item {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.farmer-profile-detail-item:hover {
+  background: #f1f8fe;
+}
+
+.farmer-profile-detail-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #7f8c8d;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.farmer-profile-field-icon {
+  color: #27ae60;
+  font-size: 0.9rem;
+}
+
+.farmer-profile-detail-value {
+  font-size: 0.9375rem;
+  color: #2c3e50;
+  font-weight: 500;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.farmer-profile-empty {
+  color: #95a5a6;
+  font-style: italic;
+}
+
+.farmer-profile-uploaded {
+  color: #27ae60;
+  font-weight: 600;
+}
+
+.farmer-profile-not-uploaded {
+  color: #e74c3c;
+}
+
+/* Forms */
+.farmer-profile-edit-form {
+  margin-top: 1rem;
+}
+
+.farmer-profile-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.farmer-profile-form-group {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.farmer-profile-form-group label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #34495e;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.farmer-profile-form-input,
+.farmer-profile-form-textarea {
+  padding: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+  background: white;
+  font-family: 'Inter', sans-serif;
+}
+
+.farmer-profile-form-input:focus,
+.farmer-profile-form-textarea:focus {
+  outline: none;
+  border-color: #27ae60;
+  box-shadow: 0 0 0 3px rgba(39, 174, 96, 0.1);
+}
+
+.farmer-profile-form-textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.farmer-profile-file-upload-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.farmer-profile-file-upload-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #34495e;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.farmer-profile-file-upload-btn:hover {
+  background: #f1f5f9;
+  border-color: #27ae60;
+  color: #27ae60;
+}
+
+.farmer-profile-file-name {
+  font-size: 0.75rem;
+  color: #7f8c8d;
+  margin-top: 0.5rem;
+  word-break: break-all;
+}
+
+.farmer-profile-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.farmer-profile-save-btn {
+  background: #27ae60;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.farmer-profile-save-btn:hover {
+  background: #2ecc71;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.farmer-profile-cancel-btn {
+  background: #f8fafc;
+  color: #34495e;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.farmer-profile-cancel-btn:hover {
+  background: #f1f5f9;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Loading State */
+.farmer-profile-loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.farmer-profile-loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #e2e8f0;
+  border-top-color: #27ae60;
+  border-radius: 50%;
+  animation: farmer-profile-spin 1s linear infinite;
+}
+
+@keyframes farmer-profile-spin {
+  to { transform: rotate(360deg); }
+}
+
+.farmer-profile-loading-overlay p {
+  margin-top: 1rem;
+  color: #34495e;
+  font-weight: 500;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .farmer-profile-content-wrapper {
+    flex-direction: column;
+  }
+  
+  .farmer-profile-photo-section {
+    flex: 0 0 auto;
+    margin-bottom: 2rem;
+  }
+  
+  .farmer-profile-photo-card {
+    position: static;
+  }
+}
+
+@media (max-width: 768px) {
+  .farmer-profile-container {
+    margin-left: 0;
+    padding: 1rem;
+  }
+  
+  .farmer-profile-container.sidebar-expanded {
+    margin-left: 0;
+  }
+  
+  .farmer-profile-header-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .farmer-profile-tabs {
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    scrollbar-width: none;
+  }
+  
+  .farmer-profile-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .farmer-profile-details-grid,
+  .farmer-profile-form-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .farmer-profile-form-actions {
+    flex-direction: column;
+  }
+  
+  .farmer-profile-save-btn,
+  .farmer-profile-cancel-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Accessibility */
+.farmer-profile-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}

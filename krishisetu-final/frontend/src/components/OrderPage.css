@@ -1,226 +1,491 @@
-/* General Styling */
-.order-page {
-  max-width: 850px;
-  margin: auto;
+/* Main Container */
+.krishi-order-container {
+  max-width: 1200px;
+  margin: 0 auto;
   padding: 20px;
+  padding-top: 100px; /* Account for fixed navbar */
   font-family: 'Poppins', sans-serif;
-  background-color: #f4f4f4;
-  border-radius: 12px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  color: #2d3436;
 }
 
-h2, h3 {
+/* Header */
+.krishi-order-header {
   text-align: center;
-  color: #333;
-  margin-bottom: 15px;
+  margin-bottom: 30px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(39, 174, 96, 0.1), rgba(46, 204, 113, 0.1));
+  border-radius: 12px;
 }
 
-/* Order Products Section */
-.order-products {
-  background: #fff;
-  border-radius: 10px;
-  padding: 15px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.order-item {
+.krishi-order-header h1 {
+  font-size: 2.2rem;
+  color: #27ae60;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid #e0e0e0;
-  padding: 12px 0;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 10px;
 }
 
-.order-item:last-child {
+.krishi-header-icon {
+  font-size: 1.8rem;
+}
+
+.krishi-order-subtitle {
+  color: #636e72;
+  font-size: 1rem;
+}
+
+/* Grid Layout */
+.krishi-order-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 25px;
+}
+
+@media (min-width: 992px) {
+  .krishi-order-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Products Section */
+.krishi-products-section {
+  background: white;
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+}
+
+.krishi-section-title {
+  font-size: 1.3rem;
+  color: #2d3436;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.krishi-section-icon {
+  color: #27ae60;
+}
+
+.krishi-order-item {
+  display: flex;
+  gap: 15px;
+  padding: 15px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.krishi-order-item:last-child {
   border-bottom: none;
 }
 
-.order-product-image {
-  width: 70px;
-  height: 70px;
+.krishi-product-image {
+  width: 80px;
+  height: 80px;
   object-fit: cover;
   border-radius: 8px;
-  border: 1px solid #ddd;
+  border: 1px solid #e0e0e0;
 }
 
-.order-product-details {
+.krishi-product-details {
   flex: 1;
-  margin-left: 15px;
 }
 
-.order-product-details h4 {
-  font-size: 16px;
+.krishi-product-details h4 {
   margin: 0;
-  color: #222;
+  font-size: 1rem;
+  color: #2d3436;
 }
 
-.order-product-details p {
-  font-size: 14px;
-  color: #666;
-  margin: 4px 0;
+.krishi-product-meta {
+  display: flex;
+  gap: 15px;
+  margin-top: 8px;
+  font-size: 0.9rem;
+  color: #636e72;
+}
+
+.krishi-product-price, .krishi-product-total {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* Summary Section */
+.krishi-summary-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Cards */
+.krishi-coupon-card,
+.krishi-address-card,
+.krishi-payment-card,
+.krishi-total-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+}
+
+.krishi-card-title {
+  font-size: 1.1rem;
+  color: #2d3436;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 0;
+  margin-bottom: 15px;
+}
+
+.krishi-card-icon {
+  color: #27ae60;
 }
 
 /* Coupon Section */
-.coupon-section {
-  background: #fff;
-  border-radius: 10px;
-  padding: 15px;
-  margin-top: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+.krishi-coupon-input-group {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 
-.coupon-options {
+.krishi-coupon-input {
+  flex: 1;
+  padding: 10px 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.krishi-coupon-btn {
+  background: #27ae60;
+  color: white;
+  border: none;
+  padding: 0 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.krishi-coupon-btn:disabled {
+  background: #95a5a6;
+  cursor: not-allowed;
+}
+
+.krishi-coupon-btn:hover:not(:disabled) {
+  background: #219653;
+}
+
+.krishi-coupon-success {
+  color: #27ae60;
+  font-size: 0.9rem;
   display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 5px 0 0;
+}
+
+.krishi-coupon-error {
+  color: #e74c3c;
+  font-size: 0.9rem;
+  margin: 5px 0 0;
+}
+
+/* Address Section */
+.krishi-no-address {
+  color: #95a5a6;
+  font-style: italic;
+  text-align: center;
+  padding: 15px 0;
+}
+
+.krishi-address-list {
+  display: flex;
+  flex-direction: column;
   gap: 10px;
 }
 
-.coupon-options input {
-  flex: 1;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-}
-
-.apply-coupon-btn {
-  background: #ff9800;
-  color: #fff;
-  padding: 10px 15px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-  transition: background 0.3s ease-in-out;
-}
-
-.apply-coupon-btn:hover {
-  background: #e68900;
-}
-
-.coupon-error {
-  color: red;
-  font-size: 13px;
-  margin-top: 5px;
-}
-
-/* Address Selection */
-.address-section {
-  background: #fff;
-  border-radius: 10px;
+.krishi-address-item {
   padding: 15px;
-  margin-top: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
 }
 
-.address-list {
+.krishi-address-item:hover {
+  border-color: #27ae60;
+}
+
+.krishi-address-item.krishi-selected {
+  border-color: #27ae60;
+  background-color: rgba(39, 174, 96, 0.05);
+}
+
+.krishi-address-details h4 {
+  margin: 0 0 8px 0;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.krishi-address-details p {
+  margin: 5px 0;
+  font-size: 0.9rem;
+  color: #636e72;
+}
+
+.krishi-add-address-btn {
+  width: 100%;
+  padding: 12px;
+  margin-top: 15px;
+  background: transparent;
+  color: #27ae60;
+  border: 1px dashed #27ae60;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.krishi-add-address-btn:hover {
+  background: rgba(39, 174, 96, 0.1);
+}
+
+/* Payment Section */
+.krishi-payment-options {
   display: flex;
   flex-direction: column;
+  gap: 10px;
 }
 
-.address-item {
+.krishi-payment-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 12px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  margin-bottom: 8px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
   cursor: pointer;
-  background: #fafafa;
-  transition: all 0.3s ease;
+  transition: all 0.3s;
 }
 
-.address-item:hover,
-.address-item.selected {
-  background: #d4edda;
-  border-color: #28a745;
+.krishi-payment-option:hover {
+  border-color: #27ae60;
 }
 
-/* Place Order Button */
-.place-order-btn {
+.krishi-payment-option input {
+  margin: 0;
+}
+
+/* Order Total Section */
+.krishi-total-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.krishi-total-row:last-child {
+  border-bottom: none;
+}
+
+.krishi-discount {
+  color: #27ae60;
+}
+
+.krishi-grand-total {
+  font-weight: 600;
+  font-size: 1.1rem;
+  margin: 10px 0;
+}
+
+.krishi-place-order-btn {
   width: 100%;
-  padding: 14px;
-  margin-top: 20px;
-  background: #007bff;
-  color: #fff;
+  padding: 15px;
+  margin-top: 15px;
+  background: linear-gradient(135deg, #27ae60, #2ecc71);
+  color: white;
   border: none;
   border-radius: 8px;
-  font-size: 16px;
+  font-weight: 600;
+  font-size: 1rem;
   cursor: pointer;
-  font-weight: bold;
-  transition: background 0.3s ease-in-out;
+  transition: all 0.3s;
+  box-shadow: 0 4px 10px rgba(46, 204, 113, 0.3);
 }
 
-.place-order-btn:hover {
-  background: #0056b3;
+.krishi-place-order-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(46, 204, 113, 0.4);
+}
+
+/* Address Popup */
+.krishi-address-popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.krishi-popup-content {
+  background: white;
+  border-radius: 12px;
+  padding: 25px;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 5px 25px rgba(0,0,0,0.2);
+}
+
+.krishi-popup-content h3 {
+  margin-top: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #2d3436;
+}
+
+.krishi-popup-field {
+  margin-bottom: 15px;
+}
+
+.krishi-popup-field label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 0.9rem;
+  color: #636e72;
+}
+
+.krishi-popup-field input {
+  width: 100%;
+  padding: 10px 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.krishi-popup-field span {
+  display: block;
+  padding: 10px 15px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.krishi-popup-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.krishi-popup-cancel {
+  flex: 1;
+  padding: 12px;
+  background: #f5f5f5;
+  color: #636e72;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.krishi-popup-save {
+  flex: 1;
+  padding: 12px;
+  background: #27ae60;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
 }
 
 /* Success Popup */
-.success-popup {
+.krishi-success-popup {
   position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: #fff;
-  padding: 20px;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.krishi-popup-content {
+  background: white;
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  padding: 30px;
   text-align: center;
-  animation: fadeIn 0.3s ease-in-out;
+  max-width: 400px;
+  animation: krishi-fadeIn 0.3s ease-out;
 }
 
-.success-popup .popup-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.success-popup .logo-text-container {
+.krishi-logo-text-container {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 20px;
 }
 
-.success-popup .logo {
+.krishi-logo {
   width: 50px;
   height: 50px;
+  border-radius: 50%;
 }
 
-@keyframes fadeIn {
+.krishi-success-icon {
+  font-size: 3rem;
+  color: #27ae60;
+  margin: 15px 0;
+}
+
+@keyframes krishi-fadeIn {
   from {
     opacity: 0;
-    transform: translate(-50%, -55%);
+    transform: translateY(20px);
   }
   to {
     opacity: 1;
-    transform: translate(-50%, -50%);
+    transform: translateY(0);
   }
 }
 
-/* Responsive Design */
+/* Responsive Adjustments */
 @media (max-width: 768px) {
-  .order-page {
-    width: 95%;
+  .krishi-order-header h1 {
+    font-size: 1.8rem;
+  }
+  
+  .krishi-order-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .krishi-products-section,
+  .krishi-coupon-card,
+  .krishi-address-card,
+  .krishi-payment-card,
+  .krishi-total-card {
     padding: 15px;
   }
-
-  .order-item {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .order-product-image {
-    width: 100%;
-    height: auto;
-    margin-bottom: 10px;
-  }
-
-  .coupon-options {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .apply-coupon-btn {
-    width: 100%;
-  }
-
-  .place-order-btn {
-    font-size: 14px;
+  
+  .krishi-popup-content {
+    width: 90%;
+    padding: 20px;
   }
 }
