@@ -1,167 +1,338 @@
-/* cbargain.css */
+/* Base Variables */
+:root {
+  --primary-green: #4CAF50;       /* Fresh green for buttons/actions */
+  --dark-green: #388E3C;          /* Darker green for hover states */
+  --light-green: #C8E6C9;         /* Light green for backgrounds */
+  --golden-yellow: #FFD700;       /* Golden for highlights */
+  --earthy-brown: #8D6E63;        /* Earthy brown for headers */
+  --cream-white: #FFF8E1;         /* Cream for message backgrounds */
+  --deep-teal: #00796B;           /* Teal for accents */
+  --error-red: #F44336;           /* Red for errors/rejections */
+  --success-blue: #2196F3;        /* Blue for success/connection */
+}
 
-/* General Styles */
-.chat-window {
-    display: flex;
+/* Main Container */
+.bargain-chat-container {
+  display: flex;
+  flex-direction: column;
+  margin-top: 72px;
+  height: 90vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4efe9 100%);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+/* Header Section */
+.chat-header {
+  background: linear-gradient(to right, var(--earthy-brown), var(--deep-teal));
+  color: white;
+  padding: 1rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.connection-status {
+  padding: 0.3rem 0.6rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+}
+
+.connection-status.connected {
+  background-color: var(--primary-green);
+}
+
+.connection-status.error,
+.connection-status.disconnected {
+  background-color: var(--error-red);
+}
+
+.connection-status.connecting {
+  background-color: var(--golden-yellow);
+  color: #333;
+}
+.product-info {
+  
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 1rem;
+  padding: 0.8rem 1.2rem;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(5px);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  animation: fadeIn 0.5s ease-out;
+  margin-left: auto; /* This pushes it to the right */
+  max-width: fit-content; /* Only take needed width */
+  margin-right: 20px; /* Add some right margin */
+}
+
+.product-info p {
+  margin: 0;
+  font-size: 0.95rem;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.product-info strong {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.current-price {
+  font-weight: bold;
+  position: relative;
+  padding-left: 1.2rem;
+}
+
+.current-price::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  background-color: #FFD700; /* Golden yellow */
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+.current-price strong {
+  color: #FFD700 !important; /* Golden yellow */
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0% { transform: translateY(-50%) scale(1); opacity: 1; }
+  50% { transform: translateY(-50%) scale(1.3); opacity: 0.7; }
+  100% { transform: translateY(-50%) scale(1); opacity: 1; }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .product-info {
+    margin-left: 0;
+    margin-right: 0;
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  .current-price {
+    padding-left: 0;
+  }
+  
+  .current-price::before {
+    display: none;
+  }
+}
+/* Messages Area */
+.chat-messages {
+  flex: 1;
+  padding: 1rem;
+  overflow-y: auto;
+  background-color: rgba(255, 255, 255, 0.9);
+  background-image: radial-gradient(var(--light-green) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.no-messages {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  color: var(--deep-teal);
+  font-style: italic;
+}
+
+/* Individual Messages */
+.message {
+  max-width: 70%;
+  margin-bottom: 1rem;
+  padding: 0.8rem 1rem;
+  border-radius: 12px;
+  position: relative;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.message.consumer {
+  background-color: var(--primary-green);
+  color: white;
+  margin-left: auto;
+  border-bottom-right-radius: 4px;
+}
+
+.message.farmer {
+  background-color: var(--cream-white);
+  color: #333;
+  margin-right: auto;
+  border-bottom-left-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.message.system {
+  background-color: rgba(0, 121, 107, 0.1);
+  color: var(--deep-teal);
+  margin: 1rem auto;
+  text-align: center;
+  max-width: 90%;
+  font-style: italic;
+}
+
+.price-offer {
+  font-weight: bold;
+  margin-top: 0.3rem;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.message-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  margin-top: 0.5rem;
+  opacity: 0.8;
+}
+
+.message.consumer .message-meta {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Input Area */
+.chat-controls {
+  padding: 1rem;
+  background: white;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.price-suggestions {
+  margin-bottom: 1rem;
+}
+
+.price-suggestions h4 {
+  color: var(--deep-teal);
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.suggestion-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.suggestion-buttons button {
+  flex: 1;
+  min-width: 100px;
+  padding: 0.5rem;
+  border: none;
+  border-radius: 6px;
+  background-color: var(--light-green);
+  color: var(--deep-teal);
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+}
+
+.suggestion-buttons button:hover {
+  background-color: var(--primary-green);
+  color: white;
+  transform: translateY(-2px);
+}
+
+.suggestion-buttons button:active {
+  transform: translateY(0);
+}
+
+/* Message Input */
+.message-input {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.message-input input {
+  flex: 1;
+  padding: 0.8rem 1rem;
+  border: 2px solid var(--light-green);
+  border-radius: 30px;
+  outline: none;
+  transition: all 0.3s;
+}
+
+.message-input input:focus {
+  border-color: var(--primary-green);
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
+}
+
+.message-input button {
+  width: 50px;
+  border: none;
+  border-radius: 50%;
+  background-color: var(--primary-green);
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.message-input button:hover {
+  background-color: var(--dark-green);
+  transform: scale(1.05);
+}
+
+.message-input button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Loading State */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  color: var(--deep-teal);
+}
+
+.loading-container p {
+  margin-top: 1rem;
+  font-weight: bold;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .product-info {
     flex-direction: column;
-    height: 85vh;
-    max-width: 1350px;
-    margin: 0 auto;
-    background-color: #f9f9f9;
-    border: 1px solid #ddd;
-    margin: 80px 40px 40px 80px;
-    border-radius: 10px;
-    overflow: hidden;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  }
-  
-  /* Chat Header */
-  .chat-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px;
-    background-color: #4CAF50;
-    color: white;
-    border-bottom: 1px solid #ddd;
-  }
-  
-  .chat-header-content {
-    display: flex;
-    align-items: center;
-  }
-  
-  .avatar {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    margin-right: 15px;
-  }
-  
-  .member-info {
-    display: flex;
-    flex-direction: column;
-  }
-  
-  .member-name {
-    font-size: 18px;
-    font-weight: bold;
-  }
-  
-  .member-id {
-    font-size: 14px;
-    color: #e0e0e0;
-  }
-  
-  .close-button {
-    background: none;
-    border: none;
-    color: white;
-    font-size: 24px;
-    cursor: pointer;
-    margin-left: 800px;
-  }
-  
-  .close-button:hover {
-    color: #ffeb3b;
-  }
-  
-  /* Chat Messages */
-  .chat-messages {
-    flex: 1;
-    padding: 20px;
-    overflow-y: auto;
-    background-color: #fff;
-  }
-  
-  .no-messages {
-    text-align: center;
-    color: #888;
-    font-style: italic;
-    margin-top: 20px;
+    gap: 0.3rem;
   }
   
   .message {
-    display: flex;
-    flex-direction: column;
-    margin-bottom: 20px;
+    max-width: 85%;
   }
-  
-  .message.sent {
-    align-items: flex-end;
-  }
-  
-  .message.received {
-    align-items: flex-start;
-  }
-  
-  .message-text {
-    max-width: 70%;
-    padding: 12px 18px;
-    border-radius: 15px;
-    font-size: 16px;
-    line-height: 1.4;
-  }
-  
-  .message.sent .message-text {
-    background-color: #4CAF50;
-    color: white;
-    border-bottom-right-radius: 5px;
-  }
-  
-  .message.received .message-text {
-    background-color: #e0e0e0;
-    color: #333;
-    border-bottom-left-radius: 5px;
-  }
-  
-  .message-timestamp {
-    font-size: 12px;
-    color: #888;
-    margin-top: 5px;
-  }
-  
-  /* Chat Suggestions */
-  .chat-suggestions {
-    padding: 20px;
-    background-color: #f1f1f1;
-    border-top: 1px solid #ddd;
-    margin-top: 20px; /* Add top margin */
-    margin-bottom: 20px; /* Add bottom margin */
-  }
-  
-  .chat-suggestions h4 {
-    margin-bottom: 15px;
-    font-size: 16px;
-    color: #333;
-  }
-  
-  .suggestion-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 10px;
-  }
-  
-  .suggestion-button {
-    padding: 5px;
-    margin-top: -10px;
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    font-size: 12.253px;
-    cursor: pointer;
-    text-align: left;
-    transition: background-color 0.3s ease;
-  }
-  
-  .suggestion-button:hover {
-    background-color: #45a049;
-  }
-  
-  /* Error Message */
-  .error {
-    color: #ff0000;
-    text-align: center;
-    margin-top: 20px;
-  }
+}

@@ -111,6 +111,11 @@ querydatabase.connect((err) => {
   console.log("Connected to MySQL database");
 });
 app.use(express.json());
+// Add this at the top of your backend routes
+app.use((req, res, next) => {
+  console.log(`Incoming ${req.method} request to ${req.originalUrl}`);
+  next();
+});
 const session = require("express-session"); 
 // ✅ Session Middleware (Add This Before Routes)
 app.use(session({
@@ -878,7 +883,7 @@ const token = jwt.sign(
                             // Other claims
   },
   process.env.JWT_SECRET,
-  { expiresIn: "1h" }
+  { expiresIn: "24h" }
 );
 
     // ✅ Send response with token
@@ -1007,7 +1012,7 @@ app.post("/api/consumerlogin", async (req, res) => {
     const token = jwt.sign(
       { consumer_id: consumer.consumer_id, userType: "consumer" },
       process.env.JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "24h" }
     );
 
     res.json({
@@ -1378,7 +1383,7 @@ app.get("/api/product/:product_id", async (req, res) => {
 app.get('/api/farmer-profile', async (req, res) => {
   try {
     const farmerId = 1; // Change this to dynamic ID as needed
-    const result = await queryDatabase('SELECT * FROM farmerprofile WHERE farmer_id = ?', [farmerId]);
+    const result = await queryDatabase('SELECT * FROM farmerprofile WHERE farmer_id = $1', [farmerId]);
 
     if (result.length === 0) {
       return res.status(404).json({ message: 'Farmer profile not found' });
@@ -1719,55 +1724,8 @@ app.get("/reviews/:farmer_id", async (req, res) => {
   }
 });  
 // API to add a review with an image
-app.get("/reviews/:farmer_id", async (req, res) => {
-  const { farmer_id } = req.params;
-  console.log("Fetching reviews for farmer:", farmer_id);
-  
-  // Validate farmer_id
-  if (!farmer_id || farmer_id.trim() === "" || farmer_id === "0") {
-    return res.status(400).json({ error: "Invalid Farmer ID" });
-  }
-  try {
-    // 1. Verify the farmer_id is being received correctly
-  
-    // 2. Check the actual query being executed
-    const reviewsQuery = `
-      SELECT r.* 
-      FROM reviews r
-      WHERE CAST(r.farmer_id AS CHAR) = ?
-      ORDER BY r.created_at DESC
-    `;
-    console.log("Executing query:", reviewsQuery.replace(/\s+/g, ' ').trim());
-    console.log("With parameters:", [farmer_id]);
-
-    const reviews = await queryDatabase(reviewsQuery, [farmer_id]);
-    console.log("Database returned:", reviews);
-
-    // 3. Verify image fetching
-    const reviewsWithImages = await Promise.all(reviews.map(async (review) => {
-      console.log(`Fetching images for review ${review.review_id}`);
-      const imagesQuery = `SELECT image_url FROM review_images WHERE review_id = ?`;
-      const images = await queryDatabase(imagesQuery, [review.review_id]);
-      return {
-        ...review,
-        image_urls: images.map(img => img.image_url)
-      };
-    }));
-
-    console.log("Final response data:", reviewsWithImages);
-    res.json(reviewsWithImages);
-  } catch (error) {
-    console.error("Full error stack:", error);
-    res.status(500).json({ 
-      error: "Internal Server Error",
-      message: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    });
-  }
-});  
-// API to add a review with an image
 app.post("/reviews", upload.array("images", 5), async (req, res) => {
-  console.log("🛠 Received review data:", req.body);
+  console.log("🛠️ Received review data:", req.body);
   const { farmer_id, consumer_name, rating, comment } = req.body;
 
   console.log("📌 Extracted Data:");
@@ -1847,6 +1805,232 @@ app.post('/api/add-produce', async (req, res) => {
     res.status(500).json({ error: 'Failed to add produce' });
   }
 });
+
+
+
+
+
+
+
+//bargain routes 
+const WebSocket = require('ws');
+const wss = new WebSocket.Server({ server });
+// WebSocket server (Node.js)
+wss.on('connection', (ws, req) => {
+  const token = new URL(req.url, `ws://${req.headers.host}`).searchParams.get('token');
+  
+  if (!token) {
+    ws.close(1008, 'Unauthorized');
+    return;
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // Continue with connection
+  } catch (err) {
+    ws.close(1008, 'Invalid token');
+  }
+});
+// POST /api/bargain/initiate
+// app.post('/initiate', verifyToken, async (req, res) => {
+//   try {
+//     const { farmer_id, product_id, quantity, initial_price } = req.body;
+    
+//     // 1. Verify consumer exists
+//     const consumer = await Consumer.findById(req.user.consumer_id);
+//     if (!consumer) throw new Error("Invalid consumer");
+
+//     // 2. Create bargain session
+//     const session = new BargainSession({
+//       consumer_id: req.user.consumer_id,
+//       farmer_id,
+//       product_id,
+//       quantity,
+//       current_price: initial_price,
+//       status: "pending"
+//     });
+
+//     await session.save();
+
+//     // 3. Notify farmer via WebSocket
+//     notifyFarmer(farmer_id, {
+//       type: "NEW_BARGAIN_REQUEST",
+//       session_id: session._id,
+//       product_id,
+//       consumer_name: consumer.full_name
+//     });
+
+//     res.status(201).json({
+//       session_id: session._id,
+//       message: "Bargain request sent"
+//     });
+
+//   } catch (err) {
+//     res.status(400).json({ message: err.message });
+//   }
+// });
+
+// POST /api/bargain/:session_id/offer
+// app.post('/:id/offer', verifyToken, async (req, res) => {
+//   try {
+//     const session = await BargainSession.findById(req.params.id);
+    
+//     // Validate participant
+//     if (![session.consumer_id, session.farmer_id].includes(req.user.id)) {
+//       throw new Error("Not a participant in this session");
+//     }
+
+//     // Update price
+//     session.current_price = req.body.price;
+//     session.status = "counter_offer";
+//     await session.save();
+
+//     // Notify other participant
+//     const recipient = req.user.id === session.consumer_id 
+//       ? session.farmer_id 
+//       : session.consumer_id;
+
+//     notifyUser(recipient, {
+//       type: "PRICE_UPDATE",
+//       session_id: session._id,
+//       new_price: req.body.price
+//     });
+
+//     res.json({ success: true });
+
+//   } catch (err) {
+//     res.status(400).json({ message: err.message });
+//   }
+// });
+// Token verification endpoint
+
+// Route usage
+app.get('/api/verify-token', verifyToken, (req, res) => {
+  res.json({ user: req.user });
+});
+
+// POST route for creating the bargain
+app.post('/api/create-bargain', async (req, res) => {
+  try {
+    // 1. Verify Authorization Header
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Missing or invalid authorization header' });
+    }
+
+    // 2. Extract and Verify Token
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    console.log('Decoded token payload:', decoded);
+
+    // 3. Validate Request Body
+    const { product_id, quantity, initiator } = req.body;
+    if (!product_id || !quantity || !initiator) {
+      return res.status(400).json({ 
+        error: 'Missing required fields',
+        required: ['product_id', 'quantity', 'initiator']
+      });
+    }
+
+    // 4. Fetch Product and Farmer from add_produce
+    const [produce] = await queryDatabase(
+      `SELECT 
+        ap.*,
+        fr.first_name,
+        fr.last_name,
+        fr.phone_number,
+        fr.email
+       FROM add_produce ap
+       JOIN farmerregistration fr ON ap.farmer_id = fr.farmer_id
+       WHERE ap.product_id = ?`,
+      [product_id]
+    );
+
+    if (!produce) {
+      return res.status(404).json({ 
+        error: 'Product not found in marketplace',
+        product_id
+      });
+    }
+
+    // 5. Create Bargain Session
+    const result = await queryDatabase(
+      `INSERT INTO bargain_sessions 
+       (consumer_id, farmer_id, product_id, original_price, quantity, initiator, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        decoded.consumer_id,
+        produce.farmer_id,
+        produce.product_id,
+        produce.price_per_kg * quantity,
+        quantity,
+        initiator,
+        'pending'
+      ]
+    );
+
+    // 6. Success Response
+    res.status(201).json({
+      success: true,
+      bargainId: result.insertId,
+      farmer: {
+        id: produce.farmer_id,
+        name: `${produce.first_name} ${produce.last_name}`,
+        contact: produce.phone,
+        email: produce.email
+      },
+      product: {
+        id: produce.product_id,
+        name: produce.produce_name,
+        type: produce.produce_type,
+        price_per_kg: produce.price_per_kg
+      },
+      originalPrice: produce.price_per_kg * quantity,
+      quantity: quantity
+    });
+
+  } catch (error) {
+    console.error('Bargain creation error:', error);
+    
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ error: 'Token expired' });
+    }
+    
+    res.status(500).json({ 
+      error: 'Internal server error',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+// GET route to check if the server is responding
+app.get('/create-bargain', (req, res) => {
+  res.status(200).json({ message: 'POST route is available, use POST to create bargain.' });
+});
+
+
+
+app.get('/api/bargain/:bargainId', async (req, res) => {
+  const { bargainId } = req.params;
+
+  try {
+    const result = await db.query('SELECT * FROM bargain_sessions WHERE bargain_id = ?', [bargainId]);
+
+    if (result.length === 0) {
+      return res.status(404).json({ error: 'Bargain session not found' });
+    }
+
+    res.json(result[0]);
+  } catch (error) {
+    console.error('Error fetching bargain session:', error);
+    res.status(500).json({ error: 'Error fetching bargain session' });
+  }
+});
+
+
 
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static('client/build'));  // Adjust path based on your project setup

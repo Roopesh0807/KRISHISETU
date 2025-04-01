@@ -213,34 +213,35 @@ const createTables = async () => {
       ) ENGINE=InnoDB;
     `,
     `
-    CREATE TABLE IF NOT EXISTS bargain_sessions (
-      session_id VARCHAR(15) PRIMARY KEY,
-      consumer_id VARCHAR(15) NOT NULL,
-      farmer_id VARCHAR(15) NOT NULL,
-      product_id VARCHAR(10) NOT NULL,
-      original_price DECIMAL(10,2) NOT NULL,
-      quantity DECIMAL(10,2) NOT NULL,
-      current_offer DECIMAL(10,2),
-      status ENUM('requested', 'accepted', 'rejected', 'countered', 'completed', 'failed') DEFAULT 'requested',
-      initiator ENUM('consumer', 'farmer') NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      expires_at TIMESTAMP NULL,
-      FOREIGN KEY (consumer_id) REFERENCES consumerregistration(consumer_id),
-      FOREIGN KEY (farmer_id) REFERENCES farmerregistration(farmer_id),
-      FOREIGN KEY (product_id) REFERENCES products(product_id)
-    ) ENGINE=InnoDB;
+    CREATE TABLE if not exists bargain_sessions (
+    bargain_id INT AUTO_INCREMENT PRIMARY KEY,  -- Auto-incremented field
+    consumer_id VARCHAR(15) NOT NULL,
+    farmer_id VARCHAR(15) NOT NULL,
+    product_id VARCHAR(10) NOT NULL,
+    original_price DECIMAL(10,2) NOT NULL,
+    quantity DECIMAL(10,2) NOT NULL,
+    current_offer DECIMAL(10,2),
+    status ENUM('requested', 'accepted', 'rejected', 'countered', 'completed', 'failed') DEFAULT 'requested',
+    initiator ENUM('consumer', 'farmer') NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    expires_at DATETIME,  -- Use DATETIME instead of TIMESTAMP
+    FOREIGN KEY (consumer_id) REFERENCES consumerregistration(consumer_id),
+    FOREIGN KEY (farmer_id) REFERENCES farmerregistration(farmer_id),
+    FOREIGN KEY (product_id) REFERENCES products(product_id)
+)
+ENGINE=InnoDB;
     `,
-    `
-    CREATE TABLE IF NOT EXISTS bargain_offers (
-      offer_id INT AUTO_INCREMENT PRIMARY KEY,
-      session_id VARCHAR(15) NOT NULL,
-      offered_by ENUM('consumer', 'farmer') NOT NULL,
-      offer_price DECIMAL(10,2) NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (session_id) REFERENCES bargain_sessions(session_id) ON DELETE CASCADE
-    ) ENGINE=InnoDB;
-    `,
+    // `
+    // CREATE TABLE IF NOT EXISTS bargain_offers (
+    //   offer_id INT AUTO_INCREMENT PRIMARY KEY,
+    //   session_id VARCHAR(15) NOT NULL,
+    //   offered_by ENUM('consumer', 'farmer') NOT NULL,
+    //   offer_price DECIMAL(10,2) NOT NULL,
+    //   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    //   FOREIGN KEY (session_id) REFERENCES bargain_sessions(session_id) ON DELETE CASCADE
+    // ) ENGINE=InnoDB;
+    // `,
     `
     CREATE TABLE IF NOT EXISTS bargain_notifications (
       notification_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -264,18 +265,18 @@ const createTables = async () => {
       FOREIGN KEY (session_id) REFERENCES bargain_sessions(session_id)
     ) ENGINE=InnoDB;
     `,
-    `
-      CREATE TABLE IF NOT EXISTS bargain_requests (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        consumer_id VARCHAR(50) NOT NULL,
-        farmer_id VARCHAR(50) NOT NULL,
-        product_id VARCHAR(50) NOT NULL,
-        quantity INT NOT NULL,
-        original_price DECIMAL(10,2) NOT NULL,
-        status ENUM('pending', 'countered', 'accepted', 'rejected', 'expired') DEFAULT 'pending',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `,
+    // `
+    //   CREATE TABLE IF NOT EXISTS bargain_requests (
+    //     id INT AUTO_INCREMENT PRIMARY KEY,
+    //     consumer_id VARCHAR(50) NOT NULL,
+    //     farmer_id VARCHAR(50) NOT NULL,
+    //     product_id VARCHAR(50) NOT NULL,
+    //     quantity INT NOT NULL,
+    //     original_price DECIMAL(10,2) NOT NULL,
+    //     status ENUM('pending', 'countered', 'accepted', 'rejected', 'expired') DEFAULT 'pending',
+    //     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    //   );
+    // `,
     `
       CREATE TABLE IF NOT EXISTS finalized_bargains (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -498,29 +499,29 @@ const createTriggers = async () => {
           END IF;
         END;
         `,
-        `
-    CREATE TRIGGER after_offer_insert
-    AFTER INSERT ON bargain_offers
-    FOR EACH ROW
-    BEGIN
-      UPDATE bargain_sessions 
-      SET current_offer = NEW.offer_price,
-          status = 'countered',
-          updated_at = CURRENT_TIMESTAMP
-      WHERE session_id = NEW.session_id;
-    END;
-    `,
+    //     `
+    // CREATE TRIGGER after_offer_insert
+    // AFTER INSERT ON bargain_offers
+    // FOR EACH ROW
+    // BEGIN
+    //   UPDATE bargain_sessions 
+    //   SET current_offer = NEW.offer_price,
+    //       status = 'countered',
+    //       updated_at = CURRENT_TIMESTAMP
+    //   WHERE session_id = NEW.session_id;
+    // END;
+    // `,
     `
     CREATE TRIGGER after_bargain_request
     AFTER INSERT ON bargain_sessions
     FOR EACH ROW
     BEGIN
       IF NEW.status = 'requested' THEN
-        INSERT INTO bargain_notifications (user_id, user_type, message, related_session_id)
+        INSERT INTO bargain_notifications (user_id, user_type, message, related_bargain_id)
         VALUES (NEW.farmer_id, 'farmer', 
                 CONCAT('New bargain request for product: ', 
                       (SELECT product_name FROM products WHERE product_id = NEW.product_id)), 
-                NEW.session_id);
+                NEW.bargain_id);
       END IF;
     END;
     `,
@@ -539,25 +540,25 @@ const createTriggers = async () => {
             INSERT INTO bargain_notifications (user_id, user_type, message, related_session_id)
             VALUES (NEW.consumer_id, 'consumer', 
                     CONCAT('Bargain accepted for ', product_name_val, '! Make your offer.'), 
-                    NEW.session_id);
+                    NEW.bargain_id);
                     
           WHEN 'rejected' THEN
             INSERT INTO bargain_notifications (user_id, user_type, message, related_session_id)
             VALUES (NEW.consumer_id, 'consumer', 
                     CONCAT('Bargain rejected for ', product_name_val), 
-                    NEW.session_id);
+                    NEW.bargain_id);
                     
           WHEN 'completed' THEN
             -- Notify both parties
             INSERT INTO bargain_notifications (user_id, user_type, message, related_session_id)
             VALUES (NEW.consumer_id, 'consumer', 
                     CONCAT('Bargain completed for ', product_name_val, ' at ₹', NEW.current_offer), 
-                    NEW.session_id);
+                    NEW.bargain_id);
                     
             INSERT INTO bargain_notifications (user_id, user_type, message, related_session_id)
             VALUES (NEW.farmer_id, 'farmer', 
                     CONCAT('Bargain completed for ', product_name_val, ' at ₹', NEW.current_offer), 
-                    NEW.session_id);
+                    NEW.bargain_id);
         END CASE;
       END IF;
     END;
@@ -571,8 +572,8 @@ const createTriggers = async () => {
         -- Generate order ID
         SET @order_id = CONCAT('ORD', DATE_FORMAT(NOW(), '%Y%m%d'), LPAD(FLOOR(RAND() * 10000), 4, '0'));
         
-        INSERT INTO bargain_orders (order_id, session_id, final_price, quantity)
-        VALUES (@order_id, NEW.session_id, NEW.current_offer, NEW.quantity);
+        INSERT INTO bargain_orders (order_id, bargain_id, final_price, quantity)
+        VALUES (@order_id, NEW.bargain_id, NEW.current_offer, NEW.quantity);
       END IF;
     END;
     `,
@@ -584,39 +585,53 @@ const createTriggers = async () => {
       SET NEW.expires_at = TIMESTAMPADD(HOUR, 24, CURRENT_TIMESTAMP);
     END;
     `,
+    // `
+    //   CREATE TRIGGER after_bargain_update
+    //   AFTER UPDATE ON bargain_requests
+    //   FOR EACH ROW
+    //   BEGIN
+    //     IF NEW.status = 'accepted' THEN
+    //       INSERT INTO finalized_bargains (consumer_id, farmer_id, product_id, quantity, agreed_price, finalized_at)
+    //       VALUES (NEW.consumer_id, NEW.farmer_id, NEW.product_id, NEW.quantity, NEW.original_price, NOW());
+    //     END IF;
+    //     IF NEW.status = 'rejected' THEN
+    //       INSERT INTO rejected_bargains (bargain_id, consumer_id, farmer_id, product_id, rejected_at)
+    //       VALUES (NEW.id, NEW.consumer_id, NEW.farmer_id, NEW.product_id, NOW());
+    //     END IF;
+    //   END;
+    // `,
     `
-      CREATE TRIGGER after_bargain_update
-      AFTER UPDATE ON bargain_requests
-      FOR EACH ROW
-      BEGIN
-        IF NEW.status = 'accepted' THEN
-          INSERT INTO finalized_bargains (consumer_id, farmer_id, product_id, quantity, agreed_price, finalized_at)
-          VALUES (NEW.consumer_id, NEW.farmer_id, NEW.product_id, NEW.quantity, NEW.original_price, NOW());
-        END IF;
-        IF NEW.status = 'rejected' THEN
-          INSERT INTO rejected_bargains (bargain_id, consumer_id, farmer_id, product_id, rejected_at)
-          VALUES (NEW.id, NEW.consumer_id, NEW.farmer_id, NEW.product_id, NOW());
-        END IF;
-      END;
-    `,
-    `
-      CREATE TRIGGER before_bargain_insert
-      BEFORE INSERT ON bargain_requests
-      FOR EACH ROW
-      BEGIN
-        DECLARE existing_count INT;
-        SELECT COUNT(*) INTO existing_count
-        FROM bargain_requests
-        WHERE consumer_id = NEW.consumer_id
-          AND farmer_id = NEW.farmer_id
-          AND product_id = NEW.product_id
-          AND status IN ('pending', 'countered');
-        IF existing_count > 0 THEN
-          SIGNAL SQLSTATE '45000'
-          SET MESSAGE_TEXT = 'A pending bargain for this product already exists with this farmer';
-        END IF;
-      END;
-    `,
+ 
+  CREATE TRIGGER before_bargain_insert
+  BEFORE INSERT ON bargain_sessions
+  FOR EACH ROW
+  BEGIN
+    DECLARE last_bargain_id VARCHAR(15);
+
+    -- Get the last inserted bargain_id
+    SELECT bargain_id
+    INTO last_bargain_id
+    FROM bargain_sessions
+    ORDER BY bargain_id DESC
+    LIMIT 1;
+
+    -- If no previous bargain_id exists, start with BAR001
+    IF last_bargain_id IS NULL THEN
+      SET NEW.bargain_id = 'BAR001';
+    ELSE
+      -- Increment the last bargain_id by 1
+      SET NEW.bargain_id = CONCAT('BAR', LPAD(CAST(SUBSTRING(last_bargain_id, 4) AS UNSIGNED) + 1, 3, '0'));
+    END IF;
+
+    -- Ensure created_at and updated_at are not null
+    IF NEW.created_at IS NULL THEN
+      SET NEW.created_at = CURRENT_TIMESTAMP;
+    END IF;
+    IF NEW.updated_at IS NULL THEN
+      SET NEW.updated_at = CURRENT_TIMESTAMP;
+    END IF;
+  END  ;
+`,
     `
       CREATE EVENT expire_bargains
       ON SCHEDULE EVERY 1 HOUR

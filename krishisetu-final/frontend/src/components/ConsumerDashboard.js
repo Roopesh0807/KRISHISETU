@@ -753,10 +753,12 @@
 
 // export default ConsumerDashboard;
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import "../components/ConsumerDashboard.css";
 import { fetchProducts } from '../utils/api';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
+import { faSpinner } from '@fortawesome/free-solid-svg-icons';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
@@ -822,6 +824,8 @@ const productImages = {
 };
 
 const ConsumerDashboard = () => {
+  const { consumer } = useAuth();
+  const location = useLocation();
   const [products, setProducts] = useState([]);
   const [farmers, setFarmers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -837,6 +841,8 @@ const ConsumerDashboard = () => {
   const [sortProduceOrder, setSortProduceOrder] = useState("");
   const navigate = useNavigate();
   const [selectedQuantities, setSelectedQuantities] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetch("http://localhost:5000/api/products")
@@ -897,22 +903,82 @@ const ConsumerDashboard = () => {
     setIsBargainPopupOpen(true);
   };
 
-  const handleBargainConfirm = () => {
-    if (selectedProduct && quantity > 0) {
-      setIsBargainPopupOpen(false);
-      navigate(`/bargain/${selectedFarmer.farmer_id}`, {
-        state: {
-          productId: selectedProduct.product_id, 
-          productName: selectedProduct.produce_name,
-          quantity: quantity,
-          pricePerKg: selectedProduct.price_per_kg
+  const handleBargainConfirm = async () => {
+    setError(null);
+    setIsLoading(true);
+  
+    try {
+      // 1. Validate inputs
+      if (!selectedProduct || quantity <= 0) {
+        throw new Error("Please select a product and valid quantity");
+      }
+  
+      // 2. Check authentication
+      if (!consumer?.token) {
+        navigate('/login', { state: { from: location.pathname } });
+        return;
+      }
+  
+      // 3. Make the API call
+      const response = await fetch('http://localhost:5000/api/create-bargain', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${consumer.token}`
         },
+        body: JSON.stringify({
+          product_id: selectedProduct.product_id,
+          quantity,
+          initiator: "consumer"
+        })
       });
-    } else {
-      alert("Please select a product and enter a valid quantity.");
+  
+      // 4. Handle response
+      const data = await response.json();
+      console.log("Full response:", { status: response.status, data }); // Debug log
+  
+      if (!response.ok) {
+        // Server returned an error (4xx/5xx)
+        throw new Error(data.error || `Server error: ${response.status}`);
+      }
+  
+      if (!data.bargainId) {
+        throw new Error("Missing bargainId in response");
+      }
+  
+       // 5. Fetch farmer details if not included in response
+    let farmerData = data.farmer;
+    if (!farmerData) {
+      const farmerResponse = await fetch(`http://localhost:5000/api/farmers/${selectedProduct.farmer_id}`, {
+        headers: {
+          'Authorization': `Bearer ${consumer.token}`
+        }
+      });
+      farmerData = await farmerResponse.json();
+    }
+
+      // 6. Success case
+      navigate(`/bargain/${data.bargainId}`, {
+        state: {
+          product: selectedProduct,
+          farmer: data.farmer,
+          quantity,
+          originalPrice: data.originalPrice
+        }
+      });
+  
+    } catch (error) {
+      console.error("Full bargain error:", error);
+      setError(error.message);
+      
+      // Specific handling for network errors
+      if (error.message.includes("Failed to fetch")) {
+        setError("Cannot connect to server. Please check your connection.");
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
-
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
@@ -1287,7 +1353,7 @@ const ConsumerDashboard = () => {
               <label className="ks-modal-label">Quantity (kg)</label>
               <input
                 type="number"
-                min="1"
+                min="10"
                 max={selectedProduct?.availability || 100}
                 value={quantity}
                 onChange={(e) => {
@@ -1297,14 +1363,23 @@ const ConsumerDashboard = () => {
                 className="ks-modal-input"
               />
             </div>
-            
+            {error && <div className="ks-error-message">{error}</div>}
             <div className="ks-modal-actions">
-              <button 
-                onClick={handleBargainConfirm}
-                className="ks-modal-confirm-btn"
-              >
-                <FontAwesomeIcon icon={faComments} /> Start Bargaining
-              </button>
+            <button 
+          onClick={handleBargainConfirm}
+          disabled={isLoading || !selectedProduct || !consumer}
+          className="ks-modal-confirm-btn"
+        >
+          {isLoading ? (
+            <>
+              <FontAwesomeIcon icon={faSpinner} spin /> Starting Bargain...
+            </>
+          ) : (
+            <>
+              <FontAwesomeIcon icon={faComments} /> Start Bargaining
+            </>
+          )}
+        </button>
             </div>
           </div>
         </div>
