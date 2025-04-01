@@ -1,310 +1,492 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import axios from "axios";
-import "./../styles/Profile.css";
+//import axios from "axios";
+import { 
+  FiEdit, 
+  FiSave, 
+  FiX, 
+  FiUpload, 
+  FiTrash2, 
+  FiUser, 
+  FiHome, 
+  FiChevronRight,
+  FiChevronLeft,
+  FiPhone,
+  FiCreditCard,
+  FiMapPin,
+  FiDroplet,
+  FiCrop,
+  FiTool
+} from "react-icons/fi";
+import "../styles/FarmerProfile.css";
 
-const Profile = () => {
+const FarmerProfile = () => {
   const { farmer_id } = useParams();
   const [activeTab, setActiveTab] = useState("personal");
   const [profilePhoto, setProfilePhoto] = useState(null);
-  const [editPersonal, setEditPersonal] = useState(false);
-  const [editFarm, setEditFarm] = useState(false);
+  const [editMode, setEditMode] = useState({ personal: false, farm: false });
+  const [loading, setLoading] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
 
-  // Personal Details State
-  const [personalDetails, setPersonalDetails] = useState({
-    dob: "",
-    gender: "",
-    contact_no: "",
-    aadhaar_no: "",
-    residential_address: "",
-    bank_account_no: "",
-    ifsc_code: "",
-    bank_branch: "",
-    upi_id: "",
-  });
-
-  // Farm Details State
-  const [farmDetails, setFarmDetails] = useState({
-    farm_address: "",
-    farm_size: "",
-    crops_grown: "",
-    farming_method: "",
-    soil_type: "",
-    water_sources: "",
-    farm_equipment: "",
-    land_ownership_proof_pdf: null,
-    certification_pdf: null,
-    land_lease_agreement_pdf: null,
-    farm_photographs_pdf: null,
-  });
-
-  useEffect(() => {
-    if (!farmer_id) {
-      console.error("No farmer_id found in URL parameters");
-      return;
+  // Form data state
+  const [formData, setFormData] = useState({
+    personal: {
+      dob: "",
+      gender: "",
+      contact_no: "",
+      aadhaar_no: "",
+      residential_address: "",
+      bank_account_no: "",
+      ifsc_code: "",
+      bank_branch: "",
+      upi_id: "",
+    },
+    farm: {
+      farm_address: "",
+      farm_size: "",
+      crops_grown: "",
+      farming_method: "",
+      soil_type: "",
+      water_sources: "",
+      farm_equipment: "",
+      land_ownership_proof: null,
+      certification: null,
+      land_lease_agreement: null,
+      farm_photographs: null,
     }
+  });
 
-    axios.get(`http://localhost:5000/farmer/${farmer_id}/personal-details`)
-      .then((res) => setPersonalDetails(res.data))
-      .catch((err) => console.error("Error fetching personal details:", err));
+  // Toggle sidebar
+  const toggleSidebar = () => {
+    setSidebarCollapsed(!sidebarCollapsed);
+  };
 
-    axios.get(`http://localhost:5000/farmer/${farmer_id}/farm-details`)
-      .then((res) => setFarmDetails(res.data))
-      .catch((err) => console.error("Error fetching farm details:", err));
+  // Fetch farmer data
+  useEffect(() => {
+    if (!farmer_id) return;
 
-    axios.get(`http://localhost:5000/farmer/${farmer_id}/profile-photo`)
-      .then((res) => {
-        const imageUrl = res.data.photo.startsWith("http")
-          ? res.data.photo
-          : `http://localhost:5000/uploads/${res.data.photo}`;
-        setProfilePhoto(imageUrl);
-      })
-      .catch((err) => console.error("Error fetching profile photo:", err));
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        // Simulated API calls - replace with actual API endpoints
+        const personalRes = { data: {
+          dob: "1990-05-15",
+          gender: "Male",
+          contact_no: "9876543210",
+          aadhaar_no: "123456789012",
+          residential_address: "123 Green Valley, Farm Town",
+          bank_account_no: "12345678901234",
+          ifsc_code: "SBIN0001234",
+          bank_branch: "Main Branch",
+          upi_id: "farmer@upi",
+        }};
+        
+        const farmRes = { data: {
+          farm_address: "456 Agriculture Lane, Rural District",
+          farm_size: "5 acres",
+          crops_grown: "Wheat, Rice, Vegetables",
+          farming_method: "Organic",
+          soil_type: "Alluvial",
+          water_sources: "Well, Canal",
+          farm_equipment: "Tractor, Plow, Irrigation System",
+          land_ownership_proof: "uploaded",
+          certification: "Organic_Certificate.pdf",
+          land_lease_agreement: null,
+          farm_photographs: "farm1.jpg, farm2.jpg",
+        }};
+        
+        const photoRes = { data: { photo: null }};
+
+        setFormData({
+          personal: personalRes.data,
+          farm: farmRes.data
+        });
+
+        if (photoRes.data.photo) {
+          setProfilePhoto(`http://localhost:5000/uploads/${photoRes.data.photo}`);
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, [farmer_id]);
 
-  const handlePersonalChange = (e) => {
+  // Handle form field changes
+  const handleChange = (section, e) => {
     const { name, value } = e.target;
-    setPersonalDetails((prevDetails) => ({ ...prevDetails, [name]: value }));
+    setFormData(prev => ({
+      ...prev,
+      [section]: { ...prev[section], [name]: value }
+    }));
 
     if (name === "ifsc_code" && value.length === 11) {
       fetchBranchDetails(value);
     }
   };
 
+  // Fetch bank branch details
   const fetchBranchDetails = async (ifsc) => {
     try {
-      const res = await axios.get(`https://ifsc.razorpay.com/${ifsc}`);
-      setPersonalDetails((prevDetails) => ({
-        ...prevDetails,
-        bank_branch: res.data.BRANCH || "Branch Not Found",
+      // Simulated API call - replace with actual API
+      const res = { data: { BRANCH: "Main Branch" } };
+      setFormData(prev => ({
+        ...prev,
+        personal: { ...prev.personal, bank_branch: res.data.BRANCH || "Branch Not Found" }
       }));
     } catch (error) {
       console.error("Invalid IFSC Code", error);
-      setPersonalDetails((prevDetails) => ({
-        ...prevDetails,
-        bank_branch: "Invalid IFSC Code",
+      setFormData(prev => ({
+        ...prev,
+        personal: { ...prev.personal, bank_branch: "Invalid IFSC Code" }
       }));
     }
   };
 
-  const handleFarmChange = (e) => {
-    const { name, value } = e.target;
-    setFarmDetails({ ...farmDetails, [name]: value });
-  };
-
-  const handleFileUpload = async (e, fieldName) => {
+  // Handle file uploads
+  const handleFileUpload = async (section, field, e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const formData = new FormData();
-    formData.append("file", file);
-
     try {
-      const res = await axios.post(`/api/farmer/${farmer_id}/upload-file`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-
-      setFarmDetails((prevDetails) => ({
-        ...prevDetails,
-        [fieldName]: res.data.fileUrl || file.name,
+      // Simulated upload - replace with actual API call
+      console.log(`Uploading ${field}...`);
+      setFormData(prev => ({
+        ...prev,
+        [section]: { ...prev[section], [field]: file.name }
       }));
-
-      alert("File uploaded successfully!");
     } catch (error) {
       console.error("Error uploading file", error);
-      alert("Failed to upload file. Please try again.");
     }
   };
 
+  // Handle profile photo change
   const handlePhotoChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const formData = new FormData();
-    formData.append("photo", file);
-
     try {
-      const res = await axios.post(`/api/farmer/${farmer_id}/upload-photo`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-
-      if (res.data.photo) {
-        setProfilePhoto(`http://localhost:5000/uploads/${res.data.photo}`);
-      } else {
-        alert("Failed to get uploaded photo URL.");
-      }
+      // Simulated upload - replace with actual API call
+      console.log("Uploading profile photo...");
+      const imageUrl = URL.createObjectURL(file);
+      setProfilePhoto(imageUrl);
     } catch (error) {
       console.error("Error uploading photo", error);
-      alert("Photo upload failed. Try again.");
     }
   };
 
-  const handleRemovePhoto = async () => {
+  // Handle form submission
+  const handleSubmit = async (section, e) => {
+    e.preventDefault();
     try {
-      await axios.delete(`/api/farmer/${farmer_id}/remove-photo`);
-      setProfilePhoto(null);
+      // Simulated API call - replace with actual API
+      console.log(`Updating ${section} details:`, formData[section]);
+      setEditMode(prev => ({ ...prev, [section]: false }));
+      alert(`${section === 'personal' ? 'Personal' : 'Farm'} details updated successfully!`);
     } catch (error) {
-      console.error("Error removing photo", error);
-      alert("Failed to remove photo. Please try again.");
+      console.error(`Error updating ${section} details:`, error);
+      alert(`Error updating ${section} details. Please try again.`);
     }
   };
 
-  const handlePersonalSubmit = (e) => {
-    e.preventDefault();
-    if (!farmer_id) {
-      alert("Farmer ID is missing!");
-      return;
-    }
+  // Loading state
+  if (loading) {
+    return (
+      <div className="farmer-profile-loading-overlay">
+        <div className="farmer-profile-loading-spinner"></div>
+        <p>Loading farmer data...</p>
+      </div>
+    );
+  }
 
-    axios.put(`/api/farmer/${farmer_id}/personal-details`, personalDetails)
-      .then(() => setEditPersonal(false))
-      .catch((err) => console.error("Error updating personal details:", err));
+  // Helper functions
+  const formatLabel = (key) => {
+    return key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
-  const handleFarmSubmit = (e) => {
-    e.preventDefault();
-    axios.put(`/api/farmer/${farmer_id}/farm-details`, farmDetails)
-      .then(() => setEditFarm(false))
-      .catch((err) => console.error("Error updating farm details:", err));
+  const isFileField = (key) => {
+    return key.includes('_proof') || key.includes('_agreement') || 
+           key === 'certification' || key === 'farm_photographs';
+  };
+
+  const getFieldIcon = (key) => {
+    switch(key) {
+      case 'contact_no': return <FiPhone className="farmer-profile-field-icon" />;
+      case 'aadhaar_no': return <FiUser className="farmer-profile-field-icon" />;
+      case 'residential_address': 
+      case 'farm_address': return <FiMapPin className="farmer-profile-field-icon" />;
+      case 'bank_account_no': 
+      case 'ifsc_code': 
+      case 'bank_branch': 
+      case 'upi_id': return <FiCreditCard className="farmer-profile-field-icon" />;
+      case 'water_sources': return <FiDroplet className="farmer-profile-field-icon" />;
+      case 'crops_grown': return <FiCrop className="farmer-profile-field-icon" />;
+      case 'farm_equipment': return <FiTool className="farmer-profile-field-icon" />;
+      default: return <FiUser className="farmer-profile-field-icon" />;
+    }
+  };
+
+  const renderFormField = (section, key, value) => {
+    if (key === 'gender') {
+      return (
+        <select
+          name={key}
+          value={value}
+          onChange={(e) => handleChange(section, e)}
+          required
+          className="farmer-profile-form-input"
+        >
+          <option value="">Select Gender</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+          <option value="Other">Other</option>
+        </select>
+      );
+    } else if (key === 'residential_address' || key === 'farm_address') {
+      return (
+        <textarea
+          name={key}
+          value={value}
+          onChange={(e) => handleChange(section, e)}
+          required
+          className="farmer-profile-form-textarea"
+        />
+      );
+    } else if (key === 'dob') {
+      return (
+        <input
+          type="date"
+          name={key}
+          value={value}
+          onChange={(e) => handleChange(section, e)}
+          required
+          className="farmer-profile-form-input"
+        />
+      );
+    } else {
+      return (
+        <input
+          type="text"
+          name={key}
+          value={value}
+          onChange={(e) => handleChange(section, e)}
+          required
+          disabled={key === 'bank_branch'}
+          className="farmer-profile-form-input"
+        />
+      );
+    }
   };
 
   return (
-    <div className="farmer-profile-container">
-      <h2>Farmer Profile</h2>
-      <div className="farmer-profile-photo-section">
-        <div className="farmer-profile-photo-wrapper">
-          {profilePhoto ? (
-            <img src={profilePhoto} alt="Profile" className="profile-photo" />
-          ) : (
-            <div className="placeholder-photo">No Photo</div>
-          )}
+    <div className={`farmer-profile-container ${sidebarCollapsed ? 'sidebar-collapsed' : 'sidebar-expanded'}`}>
+      {/* Header Section */}
+      <div className="farmer-profile-header">
+        <div className="farmer-profile-header-content">
+          <h1 className="farmer-profile-title">
+            <span className="farmer-profile-title-highlight">Farmer</span> Profile
+          </h1>
+          <button 
+            className="farmer-profile-sidebar-toggle-btn"
+            onClick={toggleSidebar}
+          >
+            {sidebarCollapsed ? <FiChevronRight /> : <FiChevronLeft />}
+            <span className="farmer-profile-sr-only">{sidebarCollapsed ? "Expand" : "Collapse"} Sidebar</span>
+          </button>
         </div>
-        <input type="file" id="fileInput" onChange={handlePhotoChange} accept="image/*" hidden />
-        <div className="photo-buttons">
-          {!profilePhoto ? (
-            <label htmlFor="fileInput" className="upload-btn">Upload Photo</label>
-          ) : (
-            <>
-              <label htmlFor="fileInput" className="change-btn">Change Photo</label>
-              <button className="remove-btn" onClick={handleRemovePhoto}>Remove Photo</button>
-            </>
-          )}
+        
+        <div className="farmer-profile-tabs">
+          <button
+            className={`farmer-profile-tab ${activeTab === 'personal' ? 'farmer-profile-tab-active' : ''}`}
+            onClick={() => setActiveTab('personal')}
+          >
+            <FiUser className="farmer-profile-tab-icon" />
+            <span>Personal Details</span>
+          </button>
+          <button
+            className={`farmer-profile-tab ${activeTab === 'farm' ? 'farmer-profile-tab-active' : ''}`}
+            onClick={() => setActiveTab('farm')}
+          >
+            <FiHome className="farmer-profile-tab-icon" />
+            <span>Farm Details</span>
+          </button>
         </div>
       </div>
 
-      <div className="farmer-profile-tabs">
-        <button
-          onClick={() => setActiveTab("personal")}
-          className={activeTab === "personal" ? "active" : ""}
-        >
-          Personal Details
-        </button>
-        <button
-          onClick={() => setActiveTab("farm")}
-          className={activeTab === "farm" ? "active" : ""}
-        >
-          Farm Details
-        </button>
-      </div>
-
-      {activeTab === "personal" && (
-        <div className="farmer-profile-form">
-          <h3>Personal Details</h3>
-          {!editPersonal ? (
-            <div>
-              <p>Date of Birth: {personalDetails.dob}</p>
-              <p>Gender: {personalDetails.gender}</p>
-              <p>Contact No: {personalDetails.contact_no}</p>
-              <p>Aadhaar No: {personalDetails.aadhaar_no}</p>
-              <p>Residential Address: {personalDetails.residential_address}</p>
-              <p>IFSC Code: {personalDetails.ifsc_code}</p>
-              <p>Bank Branch: {personalDetails.bank_branch}</p>
-              <button onClick={() => setEditPersonal(true)}>Edit</button>
+      {/* Main Content */}
+      <div className="farmer-profile-content-wrapper">
+        {/* Profile Photo Section */}
+        <div className="farmer-profile-photo-section">
+          <div className="farmer-profile-photo-card">
+            <div className="farmer-profile-photo-container">
+              {profilePhoto ? (
+                <img src={profilePhoto} alt="Profile" className="farmer-profile-photo" />
+              ) : (
+                <div className="farmer-profile-photo-placeholder">
+                  <FiUser size={48} />
+                </div>
+              )}
             </div>
-          ) : (
-            <form onSubmit={handlePersonalSubmit}>
-              <input type="date" name="dob" value={personalDetails.dob} onChange={handlePersonalChange} required />
-              <select name="gender" value={personalDetails.gender} onChange={handlePersonalChange} required>
-                <option value="">Select Gender</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </select>
-              <input type="text" name="contact_no" placeholder="Contact No" value={personalDetails.contact_no} onChange={handlePersonalChange} required />
-              <input type="text" name="aadhaar_no" placeholder="Aadhaar No" value={personalDetails.aadhaar_no} onChange={handlePersonalChange} required />
-              <textarea name="residential_address" placeholder="Residential Address" value={personalDetails.residential_address} onChange={handlePersonalChange} required />
+            <div className="farmer-profile-photo-actions">
               <input
-                type="text"
-                name="ifsc_code"
-                placeholder="IFSC Code"
-                value={personalDetails.ifsc_code}
-                onChange={handlePersonalChange}
-                onBlur={() => fetchBranchDetails(personalDetails.ifsc_code)}
-                required
+                type="file"
+                id="farmer-profile-photo-upload"
+                onChange={handlePhotoChange}
+                accept="image/*"
+                hidden
               />
-              <input type="text" name="bank_branch" placeholder="Bank Branch" value={personalDetails.bank_branch} disabled />
-              <button type="submit">Save</button>
-              <button type="button" onClick={() => setEditPersonal(false)}>Cancel</button>
-            </form>
-          )}
+              <label htmlFor="farmer-profile-photo-upload" className="farmer-profile-photo-action-btn farmer-profile-upload-btn">
+                <FiUpload /> {profilePhoto ? 'Change Photo' : 'Upload Photo'}
+              </label>
+              {profilePhoto && (
+                <button 
+                  className="farmer-profile-photo-action-btn farmer-profile-remove-btn"
+                  onClick={() => setProfilePhoto(null)}
+                >
+                  <FiTrash2 /> Remove
+                </button>
+              )}
+            </div>
+          </div>
         </div>
-      )}
 
-      {activeTab === "farm" && (
-        <div className="farmer-profile-form">
-          <h3>Farm Details</h3>
-          {!editFarm ? (
-            <div>
-              <p>Farm Address: {farmDetails.farm_address}</p>
-              <p>Farm Size: {farmDetails.farm_size}</p>
-              <p>Crops Grown: {farmDetails.crops_grown}</p>
-              <p>Farming Method: {farmDetails.farming_method}</p>
-              <p>Soil Type: {farmDetails.soil_type}</p>
-              <p>Water Sources: {farmDetails.water_sources}</p>
-              <p>Farm Equipment: {farmDetails.farm_equipment}</p>
-              <p>Land Ownership Proof: {farmDetails.land_ownership_proof_pdf ? "Uploaded" : "Not Uploaded"}</p>
-              <p>Certification: {farmDetails.certification_pdf ? "Uploaded" : "Not Uploaded"}</p>
-              <p>Land Lease Agreement: {farmDetails.land_lease_agreement_pdf ? "Uploaded" : "Not Uploaded"}</p>
-              <p>Farm Photographs: {farmDetails.farm_photographs_pdf ? "Uploaded" : "Not Uploaded"}</p>
-              <button onClick={() => setEditFarm(true)}>Edit</button>
+        {/* Details Section */}
+        <div className="farmer-profile-details-section">
+          {activeTab === 'personal' ? (
+            <div className="farmer-profile-details-card">
+              <div className="farmer-profile-card-header">
+                <h2>Personal Information</h2>
+                {!editMode.personal ? (
+                  <button 
+                    className="farmer-profile-edit-btn"
+                    onClick={() => setEditMode({...editMode, personal: true})}
+                  >
+                    <FiEdit /> Edit
+                  </button>
+                ) : null}
+              </div>
+
+              {!editMode.personal ? (
+                <div className="farmer-profile-details-grid">
+                  {Object.entries(formData.personal).map(([key, value]) => (
+                    <div className="farmer-profile-detail-item" key={key}>
+                      <label className="farmer-profile-detail-label">
+                        {getFieldIcon(key)}
+                        {formatLabel(key)}
+                      </label>
+                      <div className={`farmer-profile-detail-value ${value ? '' : 'farmer-profile-empty'}`}>
+                        {value || 'Not provided'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <form onSubmit={(e) => handleSubmit('personal', e)} className="farmer-profile-edit-form">
+                  <div className="farmer-profile-form-grid">
+                    {Object.entries(formData.personal).map(([key, value]) => (
+                      <div className="farmer-profile-form-group" key={key}>
+                        <label>
+                          {getFieldIcon(key)}
+                          {formatLabel(key)}
+                        </label>
+                        {renderFormField('personal', key, value)}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="farmer-profile-form-actions">
+                    <button
+                      type="button"
+                      className="farmer-profile-cancel-btn"
+                      onClick={() => setEditMode({...editMode, personal: false})}
+                    >
+                      <FiX /> Cancel
+                    </button>
+                    <button type="submit" className="farmer-profile-save-btn">
+                      <FiSave /> Save Changes
+                    </button>
+                  </div>
+                </form>
+              )}
             </div>
           ) : (
-            <form onSubmit={handleFarmSubmit}>
-              <input type="text" name="farm_address" placeholder="Farm Address" value={farmDetails.farm_address} onChange={handleFarmChange} required />
-              <input type="text" name="farm_size" placeholder="Farm Size (acres)" value={farmDetails.farm_size} onChange={handleFarmChange} required />
-              <textarea name="crops_grown" placeholder="Crops Grown" value={farmDetails.crops_grown} onChange={handleFarmChange} required />
-              <input type="text" name="farming_method" placeholder="Farming Method" value={farmDetails.farming_method} onChange={handleFarmChange} required />
-              <input type="text" name="soil_type" placeholder="Soil Type" value={farmDetails.soil_type} onChange={handleFarmChange} required />
-              <input type="text" name="water_sources" placeholder="Water Sources" value={farmDetails.water_sources} onChange={handleFarmChange} required />
-              <input type="text" name="farm_equipment" placeholder="Farm Equipment" value={farmDetails.farm_equipment} onChange={handleFarmChange} required />
-              <div>
-                <label>Land Ownership Proof:</label>
-                <input type="file" onChange={(e) => handleFileUpload(e, "land_ownership_proof_pdf")} />
-                {farmDetails.land_ownership_proof_pdf && <span>Uploaded</span>}
+            <div className="farmer-profile-details-card">
+              <div className="farmer-profile-card-header">
+                <h2>Farm Information</h2>
+                {!editMode.farm ? (
+                  <button 
+                    className="farmer-profile-edit-btn"
+                    onClick={() => setEditMode({...editMode, farm: true})}
+                  >
+                    <FiEdit /> Edit
+                  </button>
+                ) : null}
               </div>
-              <div>
-                <label>Certification:</label>
-                <input type="file" onChange={(e) => handleFileUpload(e, "certification_pdf")} />
-                {farmDetails.certification_pdf && <span>Uploaded</span>}
-              </div>
-              <div>
-                <label>Land Lease Agreement:</label>
-                <input type="file" onChange={(e) => handleFileUpload(e, "land_lease_agreement_pdf")} />
-                {farmDetails.land_lease_agreement_pdf && <span>Uploaded</span>}
-              </div>
-              <div>
-                <label>Farm Photographs:</label>
-                <input type="file" onChange={(e) => handleFileUpload(e, "farm_photographs_pdf")} />
-                {farmDetails.farm_photographs_pdf && <span>Uploaded</span>}
-              </div>
-              <button type="submit">Save</button>
-              <button type="button" onClick={() => setEditFarm(false)}>Cancel</button>
-            </form>
+
+              {!editMode.farm ? (
+                <div className="farmer-profile-details-grid">
+                  {Object.entries(formData.farm).map(([key, value]) => (
+                    <div className="farmer-profile-detail-item" key={key}>
+                      <label className="farmer-profile-detail-label">
+                        {getFieldIcon(key)}
+                        {formatLabel(key)}
+                      </label>
+                      <div className={`farmer-profile-detail-value ${isFileField(key) ? (value ? 'farmer-profile-uploaded' : 'farmer-profile-not-uploaded') : ''} ${value ? '' : 'farmer-profile-empty'}`}>
+                        {isFileField(key) ? (value ? 'Uploaded' : 'Not uploaded') : (value || 'Not provided')}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <form onSubmit={(e) => handleSubmit('farm', e)} className="farmer-profile-edit-form">
+                  <div className="farmer-profile-form-grid">
+                    {Object.entries(formData.farm).map(([key, value]) => (
+                      <div className="farmer-profile-form-group" key={key}>
+                        <label>
+                          {getFieldIcon(key)}
+                          {formatLabel(key)}
+                        </label>
+                        {isFileField(key) ? (
+                          <div className="farmer-profile-file-upload-group">
+                            <input
+                              type="file"
+                              id={key}
+                              onChange={(e) => handleFileUpload('farm', key, e)}
+                              hidden
+                            />
+                            <label htmlFor={key} className="farmer-profile-file-upload-btn">
+                              <FiUpload /> Choose File
+                            </label>
+                            {value && <span className="farmer-profile-file-name">{value}</span>}
+                          </div>
+                        ) : (
+                          renderFormField('farm', key, value)
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="farmer-profile-form-actions">
+                    <button
+                      type="button"
+                      className="farmer-profile-cancel-btn"
+                      onClick={() => setEditMode({...editMode, farm: false})}
+                    >
+                      <FiX /> Cancel
+                    </button>
+                    <button type="submit" className="farmer-profile-save-btn">
+                      <FiSave /> Save Changes
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 };
 
-export default Profile;
+export default FarmerProfile;

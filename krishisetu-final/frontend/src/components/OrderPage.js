@@ -1,40 +1,24 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import "./OrderPage.css"; // CSS for styling
+import "./OrderPage.css";
 import { useAuth } from "../context/AuthContext";
 import logo from '../assets/logo.jpg';
-// import axios from "axios"; // ✅ Import axios
+import { FaLeaf, FaTractor, FaShoppingBasket, FaRupeeSign, FaMapMarkerAlt, FaCreditCard, FaPhone, FaUser } from "react-icons/fa";
+import { GiFarmer } from "react-icons/gi";
+import { BsCheckCircleFill, } from "react-icons/bs";
 
-const OrderPage = () => {
+const KrishiOrderPage = () => {
   const [cart, setCart] = useState([]);
-  const [, setConsumer] = useState(null);
   const [addresses, setAddresses] = useState([]);
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState("credit-card");
   const [showAddressPopup, setShowAddressPopup] = useState(false);
-  // const [consumer_id] = useState(null);
   const [selectedCoupon, setSelectedCoupon] = useState(null);
   const [discountAmount, setDiscountAmount] = useState(0);
   const [couponInput, setCouponInput] = useState("");
   const [couponError, setCouponError] = useState("");
   const [couponApplied, setCouponApplied] = useState(false);
-  const { consumer } = useAuth(); // Make sure this hook is correctly providing the value
-
-  // List of available coupons
-  const coupons = [
-    { code: "KRISHI10", discount: 10 },
-    { code: "FARMFRESH15", discount: 15 },
-    { code: "HARVEST20", discount: 20 },
-    { code: "ORGANIC25", discount: 25 },
-    { code: "GREEN30", discount: 30 },
-    { code: "FRESH35", discount: 35 },
-    { code: "VEGGIE40", discount: 40 },
-    { code: "FARM50", discount: 50 },
-    { code: "AGRICULTURE5", discount: 5 },
-    { code: "NATURE12", discount: 12 },
-    { code: "ECO18", discount: 18 },
-    { code: "SOIL22", discount: 22 },
-  ];
+  const { consumer } = useAuth();
   const [newAddress, setNewAddress] = useState({
     pincode: "",
     city: "",
@@ -46,85 +30,120 @@ const OrderPage = () => {
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const navigate = useNavigate();
 
-  // Fetch consumer profile and addresses
+  // List of available coupons
+  const coupons = [
+    { code: "KRISHI10", discount: 10 },
+    { code: "FARMFRESH15", discount: 15 },
+    { code: "HARVEST20", discount: 20 },
+    { code: "ORGANIC25", discount: 25 },
+    { code: "GREEN30", discount: 30 },
+    { code: "FRESH35", discount: 35 },
+    { code: "VEGGIE40", discount: 40 },
+    { code: "FARM50", discount: 50 },
+  ];
+
+  // Fetch consumer data and cart
   useEffect(() => {
-    // Load consumer from localStorage
     const storedConsumer = localStorage.getItem("consumer");
-    
     if (storedConsumer) {
       const parsedConsumer = JSON.parse(storedConsumer);
-      console.log("✅ Loaded Consumer:", parsedConsumer);
-      
       if (parsedConsumer?.consumer_id) {
-        setConsumer(parsedConsumer);
-
-        // Load cart based on consumer_id
         const storedCart = localStorage.getItem(`cart_${parsedConsumer.consumer_id}`);
-        const parsedCart = storedCart ? JSON.parse(storedCart) : [];
-
-        console.log("🛒 Loaded Cart from localStorage:", parsedCart);
-        setCart(parsedCart);
-      } else {
-        console.warn("⚠ Consumer ID is missing in stored consumer data.");
+        setCart(storedCart ? JSON.parse(storedCart) : []);
       }
-    } else {
-      console.warn("⚠ No consumer data found in localStorage.");
     }
   }, []);
-  useEffect(() => {
-    // Ensure consumer exists and has a valid consumer_id before attempting to fetch data
-    if (!consumer || !consumer.consumer_id) {
-      console.log("❌ consumer_id is missing, cannot fetch data");
-      return; // Return early if consumer_id is null or undefined
+// Add this function to handle fetching address details from pincode
+const fetchAddressDetails = async (pincode) => {
+  try {
+    const response = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
+    const data = await response.json();
+    if (data[0].Status === "Success") {
+      const postOffice = data[0].PostOffice[0];
+      setNewAddress((prev) => ({
+        ...prev,
+        city: postOffice.District,
+        state: postOffice.State,
+      }));
+    } else {
+      alert("Invalid Pincode");
     }
+  } catch (error) {
+    console.error("Error fetching address details:", error);
+    alert("Failed to fetch address details. Please try again.");
+  }
+};
+
+// Add this function to handle adding a new address
+const handleAddAddress = async () => {
+  if (!consumerprofile || !consumerprofile.consumer_id) {
+    console.error("Consumer profile not found or incomplete.");
+    alert("Consumer profile not found. Please try again.");
+    return;
+  }
+
+  // Validate required fields
+  if (!newAddress.pincode || !newAddress.city || !newAddress.state || !newAddress.street) {
+    alert("Please fill in all required address fields (pincode, city, state, street).");
+    return;
+  }
+
+  const newAddressObj = {
+    consumer_id: consumerprofile.consumer_id,
+    name: consumerprofile.name || "",
+    mobile_number: consumerprofile.mobile_number || "",
+    pincode: newAddress.pincode,
+    city: newAddress.city,
+    state: newAddress.state,
+    street: newAddress.street,
+    landmark: newAddress.landmark || ""
+  };
+
+  try {
+    const response = await fetch(`http://localhost:5000/api/addresses/${consumerprofile.consumer_id}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newAddressObj),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to add address");
+    }
+
+    const savedAddress = await response.json();
+    setAddresses((prevAddresses) => [...prevAddresses, savedAddress]);
+    setNewAddress({ pincode: "", city: "", state: "", street: "", landmark: "" });
+    setShowAddressPopup(false);
+    alert("Address added successfully!");
+  } catch (error) {
+    console.error("Error adding address:", error);
+    alert(error.message || "Failed to add address. Please try again.");
+  }
+};
+  useEffect(() => {
+    if (!consumer || !consumer.consumer_id) return;
 
     const fetchConsumerData = async () => {
       try {
-        console.log(`Fetching consumer data for ID: ${consumer.consumer_id}`);
         const response = await fetch(`http://localhost:5000/api/addresses/${consumer.consumer_id}`);
         if (!response.ok) throw new Error("Failed to fetch data");
         const data = await response.json();
-
-        setConsumerProfile(data.consumerProfile || null);
+        setConsumerProfile(data.consumerProfile || {});
         setAddresses(data.address ? [data.address] : []);
       } catch (error) {
-        console.error("❌ Error fetching consumer data:", error);
+        console.error("Error fetching consumer data:", error);
       }
     };
 
     fetchConsumerData();
-  }, [consumer]);  // Dependency array: This effect will run when 'consumer' changes
+  }, [consumer]);
 
-  useEffect(() => {
-    if (showAddressPopup && consumerprofile.consumer_id) {
-      console.log("✅ Using existing consumer profile:", consumerprofile);
-    }
-  }, [showAddressPopup, consumerprofile]);
-  
-  // Fetch cart from localStorage
-  useEffect(() => {
-    // Ensure consumer and consumer.consumer_id are available before attempting to fetch the cart
-    if (consumer && consumer.consumer_id) {
-      const storedCart = localStorage.getItem(`cart_${consumer.consumer_id}`);
-      setCart(storedCart ? JSON.parse(storedCart) : []);
-    }
-  }, [consumer]);  // Re-run effect when consumer changes
-
-  // Handle pincode input change
+  // Handle pincode change
   const handlePincodeChange = (e) => {
     const pincode = e.target.value;
     setNewAddress((prev) => ({ ...prev, pincode }));
-    if (pincode.length === 6) {
-      fetchAddressDetails(pincode);
-    }
-  };
-  // const handleCouponSelect = (coupon) => {
-  //   setSelectedCoupon(coupon);
-  // };
-  // Handle coupon input change
-  const handleCouponInputChange = (e) => {
-    setCouponInput(e.target.value);
-    setCouponError("");
+    if (pincode.length === 6) fetchAddressDetails(pincode);
   };
 
   // Apply coupon
@@ -132,101 +151,23 @@ const OrderPage = () => {
     const coupon = coupons.find((c) => c.code === couponInput.toUpperCase());
     if (coupon) {
       setSelectedCoupon(coupon);
-      setDiscountAmount(cart.reduce((total, product) => total + product.price_1kg * product.quantity, 0) * coupon.discount / 100);
-      setCouponApplied(true); // Set coupon applied status to true
+      setDiscountAmount(calculateSubtotal() * coupon.discount / 100);
+      setCouponApplied(true);
       setCouponError("");
     } else {
       setCouponError("Invalid coupon code. Please try again.");
     }
   };
-  // Fetch address details using Pincode API
-  const fetchAddressDetails = async (pincode) => {
-    if (newAddress.pincode === pincode) return;
-    try {
-      const response = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
-      const data = await response.json();
-      if (data[0].Status === "Success") {
-        const postOffice = data[0].PostOffice[0];
-        setNewAddress((prev) => ({
-          ...prev,
-          city: postOffice.District,
-          state: postOffice.State,
-        }));
-      } else {
-        alert("Invalid Pincode");
-      }
-    } catch (error) {
-      console.error("Error fetching address details:", error);
-    }
+
+  // Calculate subtotal
+  const calculateSubtotal = () => {
+    return cart.reduce((total, product) => total + product.price_1kg * product.quantity, 0);
   };
-  console.log("Consumer Profile Data:", consumerprofile);
-  // Handle add new address
-  const handleAddAddress = async () => {
-    if (!consumerprofile || !consumerprofile.consumer_id) {
-      console.error("Consumer profile not found or incomplete.");
-      alert("Consumer profile not found. Please try again.");
-      return;
-    }
 
-    // Ensure all fields are properly filled
-    const newAddressObj = {
-      consumer_id: consumerprofile.consumer_id,  
-      name: consumerprofile.name || "",          
-      mobile_number: consumerprofile.mobile_number || "", 
-      pincode: newAddress.pincode || "", 
-      city: newAddress.city || "",
-      state: newAddress.state || "",
-      street: newAddress.street || "",
-      landmark: newAddress.landmark || ""
-    };
-
-    // Validate address data before submitting
-  if (!newAddressObj.pincode || !newAddressObj.city || !newAddressObj.state || !newAddressObj.street) {
-    alert("Please fill in all address fields.");
-    return;
-  }
-   
-    console.log("Final Address Object:", newAddressObj);
-    console.log("Sending data to:", `http://localhost:5000/api/addresses/${consumerprofile.consumer_id}`);
-   
-
-    try {
-      const response = await fetch(`http://localhost:5000/api/addresses/${consumerprofile.consumer_id}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newAddressObj),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Server Error:", errorData);
-        alert("Failed to add address. Please check your details and try again.");
-        return;
-      }
-
-      const savedAddress = await response.json();
-      setAddresses((prevAddresses) => [...prevAddresses, savedAddress]); 
-
-      // Reset form and close popup
-      setNewAddress({ pincode: "", city: "", state: "", street: "", landmark: "" });
-      setShowAddressPopup(false);
-
-      alert("Address added successfully!");
-      console.log("Address added successfully:", savedAddress);
-    } catch (error) {
-      console.error("Network or Server Error:", error);
-      alert("Something went wrong. Please try again later.");
-    }
-};
- // Calculate final price
- const calculateFinalPrice = () => {
-  const totalPrice = cart.reduce((total, product) => total + product.price_1kg * product.quantity, 0);
-  let discountAmount = 0;
-  if (selectedCoupon) {
-    discountAmount = (totalPrice * selectedCoupon.discount) / 100;
-  }
-  return totalPrice - discountAmount;
-};
+  // Calculate final price
+  const calculateFinalPrice = () => {
+    return calculateSubtotal() - discountAmount;
+  };
 
   // Handle place order
   const handlePlaceOrder = async () => {
@@ -234,22 +175,9 @@ const OrderPage = () => {
       alert("Please select an address.");
       return;
     }
-  
-    // Ensure consumerprofile is populated
-    if (!consumerprofile.consumer_id || !consumerprofile.name || !consumerprofile.mobile_number) {
-      alert("Consumer profile data is incomplete. Please try again.");
-      return;
-    }
-  
+
     try {
-      const totalPrice = cart.reduce((total, product) => total + product.price_1kg * product.quantity, 0);
       const selectedAddrObj = addresses.find((addr) => addr.id === selectedAddress);
-  
-      if (!selectedAddrObj) {
-        alert("Invalid address selection. Please try again.");
-        return;
-      }
-  
       const orderData = {
         consumer_id: consumerprofile.consumer_id,
         name: consumerprofile.name,
@@ -259,26 +187,22 @@ const OrderPage = () => {
         pincode: selectedAddrObj.pincode,
         produce_name: cart.map((product) => product.product_name).join(", "),
         quantity: cart.reduce((total, product) => total + product.quantity, 0),
-        amount: totalPrice,
+        amount: calculateFinalPrice(),
         status: "Pending",
         payment_status: "Pending",
       };
-  
-      console.log("Sending order data:", orderData);
-  
+
       const response = await fetch("http://localhost:5000/api/place-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(orderData),
       });
-  
+
       const data = await response.json();
-      console.log("Order response:", data);
-  
       if (data.success) {
         setShowSuccessPopup(true);
         setTimeout(() => {
-          localStorage.removeItem("cart");
+          localStorage.removeItem(`cart_${consumerprofile.consumer_id}`);
           navigate("/consumer-dashboard");
         }, 3000);
       } else {
@@ -289,194 +213,300 @@ const OrderPage = () => {
       alert("Error placing order. Try again.");
     }
   };
-  
+
   // Success Popup Component
   const SuccessPopup = () => (
-    <div className="success-popup">
-      <div className="popup-content">
-        <div className="logo-text-container">
-          <img src={logo} alt="KrishiSetu Logo" className="logo" />
+    <div className="krishi-success-popup">
+      <div className="krishi-popup-content">
+        <div className="krishi-logo-text-container">
+          <img src={logo} alt="KrishiSetu Logo" className="krishi-logo" />
           <h2>KrishiSetu</h2>
         </div>
-        <p>Order placed successfully!<br />Thank you for your order. Have a good day!</p>
+        <BsCheckCircleFill className="krishi-success-icon" />
+        <p>Order placed successfully!</p>
+        <p>Thank you for supporting local farmers!</p>
       </div>
     </div>
   );
- // Function to get the correct image path
- const getImagePath = (productName) => {
-  return `/images/${productName.toLowerCase().replace(/\s+/g, '-')}.jpg`;
-};
+
+  // Get image path for products
+  const getImagePath = (productName) => {
+    return `/images/${productName.toLowerCase().replace(/\s+/g, '-')}.jpg`;
+  };
 
   return (
-    <div className="order-page">
-      <h2>Order Summary</h2>
-
-                  {/* List of Products */}
-          <div className="order-products">
-            <h3>Products</h3>
-            {cart.map((product) => (
-              <div key={product.product_id} className="order-item">
-                <img
-            src={getImagePath(product.product_name)}
-            alt={product.product_name}
-            className="order-product-image"
-            onError={(e) => { e.target.src = "/images/default-image.jpg"; }} 
-          />
-
-      <div className="order-product-details">
-        <h4>{product.product_name}</h4>
-        <p>₹ {product.price_1kg}/1 kg</p>
-        <p>Quantity: {product.quantity} Kg</p>
-        <p>Total: ₹ {product.price_1kg * product.quantity}</p>
+    <div className="krishi-order-container">
+      <div className="krishi-order-header">
+        <h1>
+          <FaTractor className="krishi-header-icon" />
+          Farm Fresh Order Summary
+        </h1>
+        <p className="krishi-order-subtitle">Review your order before checkout</p>
       </div>
-    </div>
-  ))}
-</div>
-{/* Coupon Section */}
-<div className="coupon-section">
-        <h3>Apply Coupon</h3>
-        <div className="coupon-options">
-          {/* Combined Input and Datalist for Coupons */}
-          <input
-            type="text"
-            list="coupon-list"
-            placeholder="Enter or select a coupon"
-            value={couponInput}
-            onChange={handleCouponInputChange}
-            disabled={couponApplied} // Disable input if coupon is applied
-          />
-          <datalist id="coupon-list">
-            {coupons.map((coupon) => (
-              <option key={coupon.code} value={coupon.code}>
-                {coupon.code} - {coupon.discount}% OFF
-              </option>
-            ))}
-          </datalist>
-          <button onClick={applyCoupon} disabled={couponApplied}>
-            Apply
-          </button>
+
+      <div className="krishi-order-grid">
+        {/* Products Section */}
+        <div className="krishi-products-section">
+          <h2 className="krishi-section-title">
+            <FaShoppingBasket className="krishi-section-icon" />
+            Your Farm Basket
+          </h2>
+          
+          {cart.map((product) => (
+            <div key={product.product_id} className="krishi-order-item">
+              <img
+                src={getImagePath(product.product_name)}
+                alt={product.product_name}
+                className="krishi-product-image"
+                onError={(e) => { e.target.src = "/images/default-image.jpg"; }} 
+              />
+              <div className="krishi-product-details">
+                <h4>{product.product_name}</h4>
+                <div className="krishi-product-meta">
+                  <span className="krishi-product-price">
+                    <FaRupeeSign /> {product.price_1kg}/kg
+                  </span>
+                  <span className="krishi-product-quantity">
+                    {product.quantity} kg
+                  </span>
+                  <span className="krishi-product-total">
+                    <FaRupeeSign /> {product.price_1kg * product.quantity}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
-        {couponApplied && <p className="coupon-success">Coupon applied successfully!</p>}
-        {couponError && <p className="coupon-error">{couponError}</p>}
-      </div>
 
-      {/* Address Selection */}
-      <div className="address-section">
-  <h3>Select Delivery Address</h3>
-  {
-  addresses.length === 0 ? (
-    <p>No addresses found. Please add a new address.</p>
-  ) : (
-    addresses.map((address, index) => (
-      <div key={`${address.consumer_id}-${address.pincode}-${index}`} className="address-card">
-        <label>
-          <input
-            type="radio"
-            name="address"
-            value={address.consumer_id}
-            checked={selectedAddress === address.consumer_id}
-            onChange={() => setSelectedAddress(address.consumer_id)}
-          />
-          <div className="address-details">
-        <h4>Name: {consumerprofile?.name || "Loading..."}</h4>
-        <p>Phone: {consumerprofile?.mobile_number || "Loading..."}</p>
-        <p>Consumer ID: {consumerprofile?.consumer_id || "Loading..."}</p>
-        <p>{address?.street || "N/A"}, {address?.landmark || "N/A"}</p>
-        <p>{address?.city || "N/A"}, {address?.state || "N/A"} - {address?.pincode || "N/A"}</p>
-      </div>
-        </label>
-      </div>
-    ))
-  )}
-  <button className="add-address-btn" onClick={() => setShowAddressPopup(true)}>
-    Add New Address
-  </button>
-</div>
+        {/* Order Summary Section */}
+        <div className="krishi-summary-section">
+          {/* Coupon Section */}
+          <div className="krishi-coupon-card">
+            <h3 className="krishi-card-title">
+              <FaLeaf className="krishi-card-icon" />
+              Apply Farm Coupon
+            </h3>
+            <div className="krishi-coupon-input-group">
+              <input
+                type="text"
+                list="krishi-coupon-list"
+                placeholder="Enter coupon code"
+                value={couponInput}
+                onChange={(e) => setCouponInput(e.target.value)}
+                disabled={couponApplied}
+                className="krishi-coupon-input"
+              />
+              <datalist id="krishi-coupon-list">
+                {coupons.map((coupon) => (
+                  <option key={coupon.code} value={coupon.code}>
+                    {coupon.code} - {coupon.discount}% OFF
+                  </option>
+                ))}
+              </datalist>
+              <button 
+                onClick={applyCoupon} 
+                disabled={couponApplied}
+                className="krishi-coupon-btn"
+              >
+                {couponApplied ? 'Applied' : 'Apply'}
+              </button>
+            </div>
+            {couponApplied && (
+              <p className="krishi-coupon-success">
+                <BsCheckCircleFill /> {selectedCoupon.discount}% discount applied!
+              </p>
+            )}
+            {couponError && <p className="krishi-coupon-error">{couponError}</p>}
+          </div>
 
-{showAddressPopup && (
-  <div className="address-popup">
-    <div className="popup-content1">
-      <h3>Add New Address</h3>
-      <p><strong>Consumer ID:</strong> {consumerprofile?.consumer_id || "Fetching..."}</p>
-      <p><strong>Name:</strong> {consumerprofile?.name || "Fetching..."}</p>
-      <p><strong>Phone Number:</strong> {consumerprofile?.mobile_number || "Fetching..."}</p>
+          {/* Address Section */}
+          <div className="krishi-address-card">
+            <h3 className="krishi-card-title">
+              <FaMapMarkerAlt className="krishi-card-icon" />
+              Delivery Address
+            </h3>
+            {addresses.length === 0 ? (
+              <p className="krishi-no-address">No addresses found. Please add a delivery address.</p>
+            ) : (
+              <div className="krishi-address-list">
+                {addresses.map((address, index) => (
+                  <div 
+                    key={`${address.consumer_id}-${index}`} 
+                    className={`krishi-address-item ${selectedAddress === address.consumer_id ? 'krishi-selected' : ''}`}
+                    onClick={() => setSelectedAddress(address.consumer_id)}
+                  >
+                    <div className="krishi-address-details">
+                      <h4>
+                        <FaUser /> {consumerprofile?.name || "Loading..."}
+                      </h4>
+                      <p>
+                        <FaPhone /> {consumerprofile?.mobile_number || "Loading..."}
+                      </p>
+                      <p>{address?.street}, {address?.landmark}</p>
+                      <p>{address?.city}, {address?.state} - {address?.pincode}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <button 
+              className="krishi-add-address-btn"
+              onClick={() => setShowAddressPopup(true)}
+            >
+              + Add New Address
+            </button>
+          </div>
 
-      <input
-        type="text"
-        placeholder="Pincode"
-        value={newAddress.pincode}
-        onChange={handlePincodeChange}
-      />
-      <input type="text" placeholder="City" value={newAddress.city} readOnly />
-      <input type="text" placeholder="State" value={newAddress.state} readOnly />
-      <input
-        type="text"
-        placeholder="Street"
-        value={newAddress.street}
-        onChange={(e) => setNewAddress((prev) => ({ ...prev, street: e.target.value }))}
-      />
-      <input
-        type="text"
-        placeholder="Landmark (Optional)"
-        value={newAddress.landmark}
-        onChange={(e) => setNewAddress((prev) => ({ ...prev, landmark: e.target.value }))}
-      />
-      <button onClick={handleAddAddress}>Save Address</button>
-      <button onClick={() => setShowAddressPopup(false)}>Cancel</button>
-    </div>
-  </div>
-)}
+          {/* Payment Section */}
+          <div className="krishi-payment-card">
+            <h3 className="krishi-card-title">
+              <FaCreditCard className="krishi-card-icon" />
+              Payment Method
+            </h3>
+            <div className="krishi-payment-options">
+              <label className="krishi-payment-option">
+                <input
+                  type="radio"
+                  name="payment"
+                  value="credit-card"
+                  checked={paymentMethod === "credit-card"}
+                  onChange={() => setPaymentMethod("credit-card")}
+                />
+                <span>Credit/Debit Card</span>
+              </label>
+              <label className="krishi-payment-option">
+                <input
+                  type="radio"
+                  name="payment"
+                  value="upi"
+                  checked={paymentMethod === "upi"}
+                  onChange={() => setPaymentMethod("upi")}
+                />
+                <span>UPI Payment</span>
+              </label>
+              <label className="krishi-payment-option">
+                <input
+                  type="radio"
+                  name="payment"
+                  value="cash-on-delivery"
+                  checked={paymentMethod === "cash-on-delivery"}
+                  onChange={() => setPaymentMethod("cash-on-delivery")}
+                />
+                <span>Cash on Delivery</span>
+              </label>
+            </div>
+          </div>
 
-     
-
-      {/* Payment Method Selection */}
-      <div className="payment-section">
-        <h3>Select Payment Method</h3>
-        <div className="payment-methods">
-          <label>
-            <input
-              type="radio"
-              name="payment"
-              value="credit-card"
-              checked={paymentMethod === "credit-card"}
-              onChange={() => setPaymentMethod("credit-card")}
-            />
-            Credit Card
-          </label>
-          <label>
-            <input
-              type="radio"
-              name="payment"
-              value="upi"
-              checked={paymentMethod === "upi"}
-              onChange={() => setPaymentMethod("upi")}
-            />
-            UPI
-          </label>
-          <label>
-            <input
-              type="radio"
-              name="payment"
-              value="cash-on-delivery"
-              checked={paymentMethod === "cash-on-delivery"}
-              onChange={() => setPaymentMethod("cash-on-delivery")}
-            />
-            Cash on Delivery
-          </label>
+          {/* Order Total Section */}
+          <div className="krishi-total-card">
+            <h3 className="krishi-card-title">
+              <GiFarmer className="krishi-card-icon" />
+              Order Summary
+            </h3>
+            <div className="krishi-total-row">
+              <span>Subtotal:</span>
+              <span><FaRupeeSign /> {calculateSubtotal()}</span>
+            </div>
+            <div className="krishi-total-row">
+              <span>Discount:</span>
+              <span className="krishi-discount">- <FaRupeeSign /> {discountAmount}</span>
+            </div>
+            <div className="krishi-total-row krishi-grand-total">
+              <span>Total:</span>
+              <span><FaRupeeSign /> {calculateFinalPrice()}</span>
+            </div>
+            <button 
+              className="krishi-place-order-btn"
+              onClick={handlePlaceOrder}
+            >
+              Place Order
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Order Summary */}
-      <div className="order-summary">
-        <h3>Order Summary</h3>
-        <p>Total Price: ₹ {cart.reduce((total, product) => total + product.price_1kg * product.quantity, 0)}</p>
-        <p>Discount: ₹ {discountAmount}</p>
-        <p><strong>Final Price: ₹ {calculateFinalPrice()}</strong></p>
-      </div>
-      {/* Place Order Button */}
-      <button className="place-order-btn" onClick={handlePlaceOrder}>
-        Place Order
-      </button>
+      {/* Address Popup */}
+      {showAddressPopup && (
+        <div className="krishi-address-popup">
+          <div className="krishi-popup-content">
+            <h3>
+              <FaMapMarkerAlt /> Add New Address
+            </h3>
+            <div className="krishi-popup-field">
+              <label>Consumer ID:</label>
+              <span>{consumerprofile?.consumer_id || "Loading..."}</span>
+            </div>
+            <div className="krishi-popup-field">
+              <label>Name:</label>
+              <span>{consumerprofile?.name || "Loading..."}</span>
+            </div>
+            <div className="krishi-popup-field">
+              <label>Phone:</label>
+              <span>{consumerprofile?.mobile_number || "Loading..."}</span>
+            </div>
+            <div className="krishi-popup-field">
+              <label>Pincode *</label>
+              <input
+                type="text"
+                placeholder="Enter 6-digit pincode"
+                value={newAddress.pincode}
+                onChange={handlePincodeChange}
+                maxLength="6"
+              />
+            </div>
+            <div className="krishi-popup-field">
+              <label>City *</label>
+              <input 
+                type="text" 
+                placeholder="City" 
+                value={newAddress.city} 
+                readOnly 
+              />
+            </div>
+            <div className="krishi-popup-field">
+              <label>State *</label>
+              <input 
+                type="text" 
+                placeholder="State" 
+                value={newAddress.state} 
+                readOnly 
+              />
+            </div>
+            <div className="krishi-popup-field">
+              <label>Street Address *</label>
+              <input
+                type="text"
+                placeholder="House no, Building, Street"
+                value={newAddress.street}
+                onChange={(e) => setNewAddress((prev) => ({ ...prev, street: e.target.value }))}
+              />
+            </div>
+            <div className="krishi-popup-field">
+              <label>Landmark (Optional)</label>
+              <input
+                type="text"
+                placeholder="Nearby landmark"
+                value={newAddress.landmark}
+                onChange={(e) => setNewAddress((prev) => ({ ...prev, landmark: e.target.value }))}
+              />
+            </div>
+            <div className="krishi-popup-buttons">
+              <button 
+                className="krishi-popup-cancel"
+                onClick={() => setShowAddressPopup(false)}
+              >
+                Cancel
+              </button>
+              <button 
+                className="krishi-popup-save"
+                onClick={handleAddAddress}
+              >
+                Save Address
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Success Popup */}
       {showSuccessPopup && <SuccessPopup />}
@@ -484,4 +514,4 @@ const OrderPage = () => {
   );
 };
 
-export default OrderPage;
+export default KrishiOrderPage;
