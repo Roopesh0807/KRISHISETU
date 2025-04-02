@@ -115,7 +115,7 @@ const ConsumerProfile = () => {
       });
   
       if (response.ok) {
-        setProfile({ ...profile, photo: null });
+        setProfile({ ...profile, photo: "" });
         alert("Photo removed successfully");
       } else {
         alert("Failed to remove photo");
@@ -134,31 +134,17 @@ const ConsumerProfile = () => {
         return;
       }
 
-      const {
-        name,
-        phone_number,
-        email,
-        address,
-        pincode,
-        location,
-        preferred_payment_method,
-        subscription_method
-      } = profile;
-
       const response = await fetch(`http://localhost:5000/api/consumerprofile/${consumer_id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name,
-          phone_number,
-          email,
-          address,
-          pincode,
-          location,
-          preferred_payment_method,
-          subscription_method
+          address: profile.address,
+          pincode: profile.pincode,
+          location: profile.location,
+          preferred_payment_method: profile.preferred_payment_method,
+          subscription_method: profile.subscription_method
         }),
       });
 
@@ -167,8 +153,16 @@ const ConsumerProfile = () => {
         throw new Error(`Failed to update profile: ${errorMessage}`);
       }
 
-      const updatedProfile = await response.json();
-      setProfile(updatedProfile);
+      const updatedData = await response.json();
+      setProfile(prevProfile => ({
+        ...prevProfile,
+        address: updatedData.address || prevProfile.address,
+        pincode: updatedData.pincode || prevProfile.pincode,
+        location: updatedData.location || prevProfile.location,
+        preferred_payment_method: updatedData.preferred_payment_method || prevProfile.preferred_payment_method,
+        subscription_method: updatedData.subscription_method || prevProfile.subscription_method
+      }));
+      
       setIsEditing(false);
       alert("Profile updated successfully!");
     } catch (err) {
@@ -231,7 +225,7 @@ const ConsumerProfile = () => {
                 />
               ) : (
                 <div className="ks-profile-avatar-placeholder">
-                  <i className="fas fa-user"></i>
+                  <i className="fas fa-user-circle ks-default-avatar-icon"></i>
                 </div>
               )}
               {isEditing && (
@@ -241,23 +235,25 @@ const ConsumerProfile = () => {
               )}
             </div>
             
-            <div className="ks-profile-photo-actions">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoUpload}
-                id="ks-photo-upload"
-                className="ks-photo-upload-input"
-              />
-              <label htmlFor="ks-photo-upload" className="ks-photo-upload-btn">
-                <i className="fas fa-camera"></i> {profile.photo ? "Change Photo" : "Upload Photo"}
-              </label>
-              {profile.photo && (
-                <button onClick={removePhoto} className="ks-photo-remove-btn">
-                  <i className="fas fa-trash"></i> Remove
-                </button>
-              )}
-            </div>
+            {isEditing && (
+              <div className="ks-profile-photo-actions">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoUpload}
+                  id="ks-photo-upload"
+                  className="ks-photo-upload-input"
+                />
+                <label htmlFor="ks-photo-upload" className="ks-photo-upload-btn">
+                  <i className="fas fa-camera"></i> {profile.photo ? "Change Photo" : "Upload Photo"}
+                </label>
+                {profile.photo && (
+                  <button onClick={removePhoto} className="ks-photo-remove-btn">
+                    <i className="fas fa-trash"></i> Remove
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="ks-profile-details">
@@ -271,54 +267,21 @@ const ConsumerProfile = () => {
                   <label className="ks-profile-label">
                     <i className="fas fa-signature ks-field-icon"></i> Full Name
                   </label>
-                  {isEditing ? (
-                    <input 
-                      type="text" 
-                      name="name" 
-                      value={profile.name} 
-                      onChange={handleChange} 
-                      className="ks-profile-input"
-                      placeholder="Enter your name" 
-                    />
-                  ) : (
-                    <div className="ks-profile-value">{profile.name || "Not provided"}</div>
-                  )}
+                  <div className="ks-profile-value">{profile.name || "Not provided"}</div>
                 </div>
 
                 <div className="ks-profile-field">
                   <label className="ks-profile-label">
                     <i className="fas fa-mobile-alt ks-field-icon"></i> Mobile Number
                   </label>
-                  {isEditing ? (
-                    <input 
-                      type="text" 
-                      name="phone_number" 
-                      value={profile.phone_number} 
-                      onChange={handleChange} 
-                      className="ks-profile-input"
-                      placeholder="Enter your mobile number" 
-                    />
-                  ) : (
-                    <div className="ks-profile-value">{profile.phone_number || "Not provided"}</div>
-                  )}
+                  <div className="ks-profile-value">{profile.phone_number || "Not provided"}</div>
                 </div>
 
                 <div className="ks-profile-field">
                   <label className="ks-profile-label">
                     <i className="fas fa-envelope ks-field-icon"></i> Email Address
                   </label>
-                  {isEditing ? (
-                    <input 
-                      type="email" 
-                      name="email" 
-                      value={profile.email} 
-                      onChange={handleChange} 
-                      className="ks-profile-input"
-                      placeholder="Enter your email" 
-                    />
-                  ) : (
-                    <div className="ks-profile-value">{profile.email || "Not provided"}</div>
-                  )}
+                  <div className="ks-profile-value">{profile.email || "Not provided"}</div>
                 </div>
               </div>
             </div>
