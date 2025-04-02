@@ -1,49 +1,97 @@
-const { Server } = require("socket.io");
-const { queryDatabase } = require("./config/db");
+const socketIo = require('socket.io');
+const { pool } = require('./src/config/db');  // Import your database connection
 
-let io;
+let farmerSockets = {};
 
-function initializeSocket(server) {
-    io = new Server(server, {
-        cors: {
-            origin: "*",
-            methods: ["GET", "POST"]
-        }
+function setupSockets(server) {
+  const io = socketIo(server);
+
+  io.on('connection', (socket) => {
+    console.log('A user connected:', socket.id);
+
+    // Store the farmer's socket connection
+    socket.on('farmerConnected', (farmerId) => {
+      farmerSockets[farmerId] = socket.id;
     });
 
-    io.on("connection", (socket) => {
-        console.log("New client connected:", socket.id);
+    // Handle consumer sending a bargain request
+    socket.on('bargainRequest', async (data) => {
+      const { consumerId, farmerId, productId, quantity } = data;
+      
+      // Save this request to the database
+      const query = 'INSERT INTO bargain_sessions (consumer_id, farmer_id, product_id, quantity, status) VALUES (?, ?, ?, ?, ?)';
+      await pool.query(query, [consumerId, farmerId, productId, quantity, 'requested']);
 
-        // Joining a bargain room
-        socket.on("joinRoom", async ({ room_id }) => {
-            socket.join(`bargain_${room_id}`);
-            console.log(`User joined bargain room: ${room_id}`);
-
-            // Fetch existing messages for the room
-            const messages = await queryDatabase("SELECT * FROM bargain_messages WHERE room_id = ?", [room_id]);
-            socket.emit("loadMessages", messages);
-        });
-
-        // Sending a message
-        socket.on("sendMessage", async (messageData) => {
-            const { room_id, sender_id, message_type, message_text, price_offer } = messageData;
-
-            // Insert message into DB
-            await queryDatabase(
-                "INSERT INTO bargain_messages (room_id, sender_id, message_type, message_text, price_offer) VALUES (?, ?, ?, ?, ?)",
-                [room_id, sender_id, message_type, message_text, price_offer]
-            );
-
-            // Broadcast message to the room
-            io.to(`bargain_${room_id}`).emit("receiveMessage", messageData);
-        });
-
-        socket.on("disconnect", () => {
-            console.log("Client disconnected:", socket.id);
-        });
+      // Notify the farmer
+      if (farmerSockets[farmerId]) {
+        io.to(farmerSockets[farmerId]).emit('newBargainRequest', data);
+      }
     });
 
-    return io;
+    // Handle farmer's response to bargain request (accept or reject)
+    socket.on('farmerResponse', async (data) => {
+      const { consumerId, farmerId, response } = data;
+      const status = response === 'accepted' ? 'accepted' : 'rejected';
+
+      // Update the database
+      const query = 'UPDATE bargain_sessions SET status = ? WHERE consumer_id = ? AND farmer_id = ?';
+      await pool.query(query, [status, consumerId, farmerId]);
+
+      // Notify the consumer
+      io.to(consumerId).emit('bargainResponse', { response: status });
+
+      // If accepted, send price suggestions
+      if (response === 'accepted') {
+        const priceSuggestions = generatePriceSuggestions(data.productId);
+        io.to(consumerId).emit('priceSuggestions', priceSuggestions);
+      }
+    });
+
+    // Handle consumer selecting a price suggestion
+    socket.on('consumerPriceChoice', async (data) => {
+      const { consumerId, farmerId, selectedPrice } = data;
+
+      // Notify the farmer of the selected price
+      if (farmerSockets[farmerId]) {
+        io.to(farmerSockets[farmerId]).emit('consumerSelectedPrice', { consumerId, selectedPrice });
+      }
+    });
+
+    // Handle farmer's response to consumer price selection (accept, reject, or counter)
+    socket.on('farmerResponseToPrice', async (data) => {
+      const { consumerId, farmerId, response, counterPrice } = data;
+
+      // Notify consumer
+      io.to(consumerId).emit('farmerResponseToPrice', { response, counterPrice });
+
+      // Update database if needed
+      const query = 'UPDATE bargain_sessions SET status = ? WHERE consumer_id = ? AND farmer_id = ?';
+      await pool.query(query, [response, consumerId, farmerId]);
+    });
+
+    // Handle finalizing the bargain when both agree
+    socket.on('finalizeBargain', async (data) => {
+      const { consumerId, farmerId, agreedPrice } = data;
+
+      // Update the bargain session status
+      const query = 'UPDATE bargain_sessions SET status = ?, final_price = ? WHERE consumer_id = ? AND farmer_id = ?';
+      await pool.query(query, ['finalized', agreedPrice, consumerId, farmerId]);
+
+      // Notify both parties
+      io.to(consumerId).emit('bargainFinalized', { agreedPrice });
+      io.to(farmerId).emit('bargainFinalized', { agreedPrice });
+    });
+
+    socket.on('disconnect', () => {
+      console.log('A user disconnected:', socket.id);
+    });
+  });
 }
 
-module.exports = { initializeSocket };
+// Price suggestion generator
+function generatePriceSuggestions(productId) {
+  const basePrice = 100; // Simulating price fetch from DB
+  return [basePrice - 4, basePrice + 4, basePrice - 2, basePrice + 2];
+}
+
+module.exports = setupSockets;

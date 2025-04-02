@@ -1,6 +1,13 @@
 import React, { createContext, useState, useEffect, useContext } from "react";
 
-export const AuthContext = createContext();
+export const AuthContext = createContext(
+  {
+    consumer: null,
+    farmer: null,
+    registerConsumer: () => console.warn("No authprovider found"),
+
+  }
+);
 
 export const useAuth = () => {
   return useContext(AuthContext);
@@ -9,33 +16,70 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [consumer, setConsumer] = useState(() => {
     try {
-      console.log("🔍 Fetching consumer from localStorage...");
       const storedConsumer = localStorage.getItem("consumer");
-      
-      if (!storedConsumer) {
-        console.log("📌 No consumer found in localStorage");
-        return null;
-      }
-
-      console.log("📌 Stored Consumer Data:", storedConsumer);
+      if (!storedConsumer) return null;
       const parsedConsumer = JSON.parse(storedConsumer);
       
-      // Ensure required fields exist
-      parsedConsumer.first_name = parsedConsumer.first_name || "";
-      parsedConsumer.last_name = parsedConsumer.last_name || "";
-      parsedConsumer.full_name = `${parsedConsumer.first_name} ${parsedConsumer.last_name}`.trim();
+      return {
+        token: parsedConsumer.token || "",
+        consumer_id: parsedConsumer.consumer_id || "",
+        email: parsedConsumer.email || "",
+        phone_number: parsedConsumer.phone_number || "",
+        first_name: parsedConsumer.first_name || "",
+        last_name: parsedConsumer.last_name || "",
+        full_name: `${parsedConsumer.first_name || ""} ${parsedConsumer.last_name || ""}`.trim(),
+        ...parsedConsumer
+      };
+      // parsedConsumer.token = parsedConsumer.token || "";
+      // parsedConsumer.first_name = parsedConsumer.first_name || "";
+      // parsedConsumer.last_name = parsedConsumer.last_name || "";
+      // parsedConsumer.full_name = `${parsedConsumer.first_name} ${parsedConsumer.last_name}`.trim();
       
-      return parsedConsumer;
+      // return parsedConsumer;
     } catch (error) {
-      console.error("❌ Error parsing consumer data:", error);
+      console.error("Error parsing consumer data:", error);
       localStorage.removeItem("consumer"); // Clean up invalid data
       return null;
     }
   });
+  
+ // ✅ Farmer State (NEW)
+// ✅ Farmer State (Updated)
+const [farmer, setFarmer] = useState(() => {
+  try {
+    console.log("🔍 Fetching farmer from localStorage...");
+    const storedFarmer = localStorage.getItem("farmer");
+    
+    if (!storedFarmer) {
+      console.log("📌 No farmer found in localStorage");
+      return null;
+    }
 
-  useEffect(() => {
-    console.log("🔄 Updated Consumer in AuthContext:", consumer);
-  }, [consumer]);
+    console.log("📌 Stored Farmer Data:", storedFarmer);
+    const parsedFarmer = JSON.parse(storedFarmer);
+    
+    // Ensure required fields exist for farmer
+    parsedFarmer.first_name = parsedFarmer.first_name || "";
+    parsedFarmer.last_name = parsedFarmer.last_name || "";
+    parsedFarmer.full_name = `${parsedFarmer.first_name} ${parsedFarmer.last_name}`.trim();
+    // parsedFarmer.email = parsedFarmer.email || "";
+    // parsedFarmer.phone_number = parsedFarmer.phone_number || "";
+
+    return parsedFarmer;
+  } catch (error) {
+    console.error("❌ Error parsing farmer data:", error);
+    localStorage.removeItem("farmer"); // Clean up invalid data
+    return null;
+  }
+});
+
+
+
+useEffect(() => {
+  console.log("🔄 Updated Consumer in AuthContext:", consumer);
+  console.log("🔄 Updated Farmer in AuthContext:", farmer);
+}, [consumer, farmer]);
+
 
   const registerConsumer = (consumerData) => {
     try {
@@ -59,34 +103,143 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const loginConsumer = (data) => {
+  const loginConsumer = async (data) => {
     try {
-      console.log("✅ Consumer Data Received for Login:", data);
-      
+      console.group("🔐 loginConsumer");
+      console.log("📥 Raw login data received:", data);
+  
+      // Validate required fields
+      if (!data?.token) {
+        const error = new Error("No authentication token received");
+        console.error("❌ Validation error:", error.message);
+        console.groupEnd();
+        throw error;
+      }
+  
+      if (!data.consumer_id) {
+        console.warn("⚠️ Missing consumer_id in login response");
+      }
+  
+      // Normalize data with fallbacks
       const normalizedData = {
         token: data.token,
-        consumer_id: data.consumer_id,
+        consumer_id: data.consumer_id || "",
         email: data.email || "",
         phone_number: data.phone_number || "",
         first_name: data.first_name || data.firstName || "",
         last_name: data.last_name || data.lastName || "",
-        full_name: `${data.first_name || data.firstName || ""} ${data.last_name || data.lastName || ""}`.trim(),
-        ...data // include any additional fields
+        full_name: `${data.first_name || data.firstName || ""} ${
+          data.last_name || data.lastName || ""
+        }`.trim(),
+        // Preserve other fields but don't overwrite core fields
+        ...Object.fromEntries(
+          Object.entries(data).filter(
+            ([key]) =>
+              ![
+                "token",
+                "consumer_id",
+                "email",
+                "phone_number",
+                "first_name",
+                "last_name",
+                "firstName",
+                "lastName",
+              ].includes(key)
+          )
+        ),
       };
-
-      console.log("📌 Normalized Login Data:", normalizedData);
+  
+      console.log("🔄 Normalized consumer data:", normalizedData);
+  
+      // Verify token structure (basic check)
+      if (typeof normalizedData.token !== "string" || !normalizedData.token.includes(".")) {
+        console.warn("⚠️ Token structure appears invalid");
+      }
+  
+      // Update state and storage
       setConsumer(normalizedData);
       localStorage.setItem("consumer", JSON.stringify(normalizedData));
+  
+      // Verify storage
+      const storedData = localStorage.getItem("consumer");
+      if (!storedData) {
+        console.error("❌ Failed to persist consumer data");
+      } else {
+        console.log("💾 Successfully stored consumer data");
+      }
+  
+      console.groupEnd();
+      return normalizedData;
     } catch (error) {
-      console.error("❌ Error during login:", error);
+      console.error("🔥 Critical login error:", error);
+  
+      // Clean up on error
+      setConsumer(null);
+      localStorage.removeItem("consumer");
+  
+      // Re-throw with additional context
+      error.message = `Login failed: ${error.message}`;
       throw error;
     }
   };
+// ✅ Farmer Authentication (NEW)
+const registerFarmer = (farmerData) => {
+  try {
+    console.log("✅ Farmer Data Received for Registration:", farmerData);
 
-  const logout = () => {
+    const normalizedFarmer = {
+      ...farmerData,
+      farmer_id: farmerData.farmer_id || "",
+      name: farmerData.name || "Farmer",
+      first_name: farmerData.first_name || "",
+      last_name: farmerData.last_name || "",
+    };
+
+    setFarmer(normalizedFarmer);
+    localStorage.setItem("farmer", JSON.stringify(normalizedFarmer));
+    console.log("✅ LocalStorage Updated with Farmer Data");
+  } catch (error) {
+    console.error("❌ Error during farmer registration:", error);
+    throw error;
+  }
+};
+const loginFarmer = (data) => {
+  try {
+    console.log("✅ Farmer Data Received for Login:", data);
+    
+    const normalizedFarmer = {
+      token: data.token || "",
+      farmer_id: data.farmer_id || "",
+      email: data.email || "",
+      phone_number: data.phone_number || "",
+      first_name: data.first_name || "",
+      last_name: data.last_name || "",
+      full_name: `${data.first_name || ""} ${data.last_name || ""}`.trim(),
+      ...data
+    };
+    
+    // Log the normalized data before setting it
+    console.log("📌 Normalized Farmer Data:", normalizedFarmer);
+
+    // Set the farmer data in state and localStorage
+    setFarmer(normalizedFarmer);
+    localStorage.setItem("farmer", JSON.stringify(normalizedFarmer));
+
+  } catch (error) {
+    console.error("❌ Error during farmer login:", error);
+    throw error;
+  }
+};
+
+
+
+   // ✅ Logout for Both Farmers & Consumers
+   const logout = () => {
     try {
       setConsumer(null);
+      setFarmer(null);
       localStorage.removeItem("consumer");
+      localStorage.removeItem("farmer");
       console.log("✅ Logout successful");
     } catch (error) {
       console.error("❌ Error during logout:", error);
@@ -94,184 +247,19 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider 
-      value={{ 
-        consumer, 
-        registerConsumer, 
-        loginConsumer, 
-        logout 
+    <AuthContext.Provider
+      value={{
+        consumer,
+        farmer, // ✅ Added farmer authentication support
+        setFarmer, 
+        registerConsumer,
+        loginConsumer,
+        registerFarmer, // ✅ New
+        loginFarmer, // ✅ New
+        logout,
       }}
     >
       {children}
     </AuthContext.Provider>
   );
 };
-// import React, { createContext, useState, useEffect, useContext } from "react";
-
-// export const AuthContext = createContext();
-
-// export const useAuth = () => {
-//   return useContext(AuthContext);
-// };
-
-// export const AuthProvider = ({ children }) => {
-//   const [consumer, setConsumer] = useState(() => {
-//     console.log("🔍 Fetching consumer from localStorage...");
-//     const storedConsumer = localStorage.getItem("consumer");
-//     console.log("📌 Stored Consumer Data:", storedConsumer);
-//     const parsedConsumer = storedConsumer ? JSON.parse(storedConsumer) : null;
-    
-//     if (parsedConsumer) {
-//       parsedConsumer.full_name = `${parsedConsumer.first_name || ""} ${parsedConsumer.last_name || ""}`.trim();
-//     }
-    
-//     return parsedConsumer;
-//   });
-
-//   useEffect(() => {
-//     console.log("🔄 Updated Consumer in AuthContext:", consumer);
-//   }, [consumer]);
-
-//   const registerConsumer = (consumerData) => {
-//     console.log("✅ Consumer Data Received for Registration:", consumerData);
-  
-//     consumerData.farmer_id = consumerData.farmer_id || null;
-//     consumerData.first_name = consumerData.first_name || "";
-//     consumerData.last_name = consumerData.last_name || "";
-//     consumerData.full_name = `${consumerData.first_name} ${consumerData.last_name}`.trim();
-  
-//     console.log("✅ First Name:", consumerData.first_name);
-//     console.log("✅ Last Name:", consumerData.last_name);
-//     console.log("✅ Full Name:", consumerData.full_name);
-  
-//     setConsumer(consumerData);
-//     localStorage.setItem("consumer", JSON.stringify(consumerData));
-//     console.log("✅ LocalStorage Updated with Registration Data");
-//   };
-//   const loginConsumer = (data) => {
-//     console.log("✅ Consumer Data Received for Login:", data);
-  
-//     const { 
-//       token, 
-//       consumer_id, 
-//       first_name = "", 
-//       last_name = "", 
-//       email = "", 
-//       phone_number = "",
-//       ...rest 
-//     } = data;
-  
-//     const consumerData = {
-//       token,
-//       consumer_id,
-//       email,
-//       phone_number,
-//       first_name: first_name || rest.firstName || "", // handle different casing
-//       last_name: last_name || rest.lastName || "",
-//       full_name: `${first_name || rest.firstName || ""} ${last_name || rest.lastName || ""}`.trim(),
-//       ...rest // include any additional fields
-//     };
-  
-//     console.log("📌 Updated Consumer Data:", consumerData);
-//     setConsumer(consumerData);
-//     localStorage.setItem("consumer", JSON.stringify(consumerData));
-//   };
-
-//   const logout = () => {
-//     setConsumer(null);
-//     localStorage.removeItem("consumer");
-//   };
-
-//   return (
-//     <AuthContext.Provider value={{ consumer, registerConsumer, loginConsumer, logout }}>
-//       {children}
-//     </AuthContext.Provider>
-//   );
-// };
-// import React, { createContext, useState, useEffect, useContext } from "react";
-
-// export const AuthContext = createContext();
-
-// export const useAuth = () => {
-//   const context = useContext(AuthContext);
-//   if (!context) {
-//     throw new Error("useAuth must be used within an AuthProvider");
-//   }
-//   return context;
-// };
-
-// export const AuthProvider = ({ children }) => {
-//   const [user, setUser] = useState(() => {
-//     const storedUser = localStorage.getItem("user");
-//     return storedUser ? JSON.parse(storedUser) : null;
-//   });
-
-//   useEffect(() => {
-//     console.log("🔄 User state updated:", user);
-//   }, [user]);
-
-//   /**
-//    * Handles user registration (both consumers and farmers)
-//    */
-//   const register = (userData, userType) => {
-//     const userProfile = {
-//       ...userData,
-//       userType, // 'consumer' or 'farmer'
-//       name: `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || userType,
-//       // For farmers
-//       ...(userType === 'farmer' && { farmer_id: userData.farmer_id }),
-//       // For consumers
-//       ...(userType === 'consumer' && { consumer_id: userData.consumer_id })
-//     };
-
-//     console.log("✅ Registering user:", userProfile);
-//     setUser(userProfile);
-//     localStorage.setItem("user", JSON.stringify(userProfile));
-//   };
-
-//   /**
-//    * Handles user login (both consumers and farmers)
-//    */
-//   const loginconsumer = (credentials, userType) => {
-//     const userProfile = {
-//       userType,
-//       // Common fields
-//       email: credentials.email,
-//       phone_number: credentials.phone_number,
-//       // For farmers
-//       ...(userType === 'farmer' && { 
-//         farmer_id: credentials.farmer_id,
-//         name: credentials.farmer_name 
-//       }),
-//       // For consumers
-//       ...(userType === 'consumer' && {
-//         consumer_id: credentials.consumer_id,
-//         name: credentials.consumer_name
-//       })
-//     };
-
-//     console.log("✅ Logging in user:", userProfile);
-//     setUser(userProfile);
-//     localStorage.setItem("user", JSON.stringify(userProfile));
-//   };
-
-//   const logout = () => {
-//     console.log("🚪 Logging out user");
-//     setUser(null);
-//     localStorage.removeItem("user");
-//   };
-
-//   return (
-//     <AuthContext.Provider value={{ 
-//       user,
-//       isAuthenticated: !!user,
-//       isConsumer: user?.userType === 'consumer',
-//       isFarmer: user?.userType === 'farmer',
-//       register,
-//       login,
-//       logout
-//     }}>
-//       {children}
-//     </AuthContext.Provider>
-//   );
-// };

@@ -1,215 +1,190 @@
-/* Chat List Page */
-.chat-list-page {
-  display: flex;
-  height: 100vh;
-  margin-top: 60px;
-  background-color: #f5f5f5;
-  font-family: Arial, sans-serif;
+/* Base Variables */
+:root {
+  --primary-green: #4CAF50;       /* Fresh green for buttons/actions */
+  --dark-green: #388E3C;          /* Darker green for hover states */
+  --light-green: #C8E6C9;         /* Light green for backgrounds */
+  --sky-blue: #00B0FF;            /* Sky blue for accents */
+  --earthy-brown: #8D6E63;        /* Earthy brown for headers */
+  --cream-white: #FFF8E1;         /* Cream for message backgrounds */
+  --deep-teal: #00796B;           /* Teal for accents */
+  --error-red: #F44336;           /* Red for errors/rejections */
+  --success-blue: #2196F3;        /* Blue for success/connection */
+  --light-blue: #81D4FA;          /* Light sky blue for highlights */
+  --yellow-green: #9E9D24;        /* Yellow-green for warning */
+  --shadow-dark: rgba(0, 0, 0, 0.3);
+  --shadow-light: rgba(255, 255, 255, 0.1);
 }
 
-/* Chat List (Left Sidebar) */
+/* Main Chat List Page */
+.chat-list-page {
+  display: flex;
+  height: 90vh;
+  background: linear-gradient(135deg, var(--light-green), var(--sky-blue));
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px var(--shadow-dark);
+  flex-direction: row;
+  margin-top: 72px;
+  transition: all 0.3s ease-in-out;
+}
+
+/* Chat List Sidebar */
 .chat-list {
-  width: 350px; /* Fixed width for the sidebar */
-  background-color: #ffffff;
-  border-right: 1px solid #e0e0e0;
-  overflow-y: auto; /* Enable scrolling for long lists */
-  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+  flex: 0 0 30%;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, var(--sky-blue), var(--light-green));
+  backdrop-filter: blur(8px);
+  border-right: 1px solid rgba(255, 255, 255, 0.3);
+  overflow-y: auto;
+  border-radius: 20px;
+  box-shadow: 0 0 15px var(--shadow-dark);
+  transition: all 0.4s ease;
 }
 
 .chat-list h2 {
-  padding: 20px;
-  margin: 0;
-  font-size: 24px;
-  background-color: #4CAF50; /* Green header */
-  color: white;
-  text-align: center;
+  color: var(--earthy-brown);
+  font-size: 2rem;
+  margin-bottom: 1.5rem;
+  font-weight: bold;
+  text-shadow: 0 3px 6px var(--shadow-light);
 }
 
 .chat-list ul {
-  list-style: none;
+  list-style-type: none;
   padding: 0;
   margin: 0;
 }
 
-.chat-item {
-  display: flex;
-  align-items: center;
-  padding: 15px;
+.chat-list li {
+  padding: 1.2rem;
+  border-radius: 15px;
   cursor: pointer;
-  transition: background-color 0.2s;
-  border-bottom: 1px solid #e0e0e0; /* Separator between items */
+  transition: all 0.3s ease-out, transform 0.3s ease-out;
+  background: rgba(255, 255, 255, 0.1);
+  margin-bottom: 1.8rem;
+  box-shadow: 0 2px 6px var(--shadow-dark);
 }
 
-.chat-item:hover {
-  background-color: #f9f9f9; /* Light hover effect */
+.chat-list li:hover {
+  background-color: var(--sky-blue);
+  transform: translateY(-5px) scale(1.03);
+  box-shadow: 0 4px 10px var(--shadow-dark), 0 0 15px var(--light-green);
+  color: white;
 }
 
-.chat-item.active {
-  background-color: #e0f7fa; /* Highlight selected farmer */
+.chat-list li.active {
+  background-color: var(--primary-green);
+  color: white;
+  box-shadow: 0 0 25px var(--light-green);
+  transform: translateY(-5px);
 }
 
-.avatar {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  margin-right: 15px;
-  object-fit: cover;
-  background-color: #ccc; /* Fallback background color */
+.chat-list li div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
 }
 
-.chat-info {
-  flex: 1;
+.chat-list li strong {
+  font-weight: 700;
+  color: var(--earthy-brown);
+  font-size: 1.2rem;
 }
 
-.farmer-name {
-  margin-top: 10px;
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-}
-.farmer-id {
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
+.chat-list li p {
+  color: var(--light-green);
+  font-size: 1rem;
+  line-height: 1.4;
 }
 
-
-/* Chat Window Container (Right Side) */
+/* Chat Window Container */
 .chat-window-container {
   flex: 1;
-  background-color: #ffffff;
+  padding: 1.5rem;
   display: flex;
   flex-direction: column;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 20px;
+  box-shadow: 0 0 20px var(--shadow-dark);
+  overflow-y: auto;
 }
 
-/* Welcome Message */
 .welcome-message {
   display: flex;
-  flex-direction: column;
   justify-content: center;
   align-items: center;
   height: 100%;
+  font-size: 1.5rem;
+  color: var(--deep-teal);
+  font-weight: bold;
   text-align: center;
-  background-color: #f9f9f9;
+  text-shadow: 0 3px 6px var(--shadow-light);
 }
 
-.welcome-message h2 {
-  font-size: 28px;
-  margin-bottom: 10px;
-  color: #333;
+.loading {
+  color: var(--primary-green);
+  font-weight: bold;
+  font-size: 1.2rem;
+  animation: pulseLoading 1s infinite;
 }
 
-.welcome-message p {
-  font-size: 16px;
-  color: #777;
-}
-
-/* Chat Window (When a farmer is selected) */
-.chat-window {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  background-color: #f9f9f9;
-}
-
-/* Chat Header */
-.chat-header {
-  display: flex;
-  align-items: center;
-  padding: 15px;
-  background-color: #ffffff;
-  border-bottom: 1px solid #e0e0e0;
-}
-
-.chat-header .avatar {
-  width: 40px;
-  height: 40px;
-  margin-right: 10px;
-}
-
-.chat-header .farmer-name {
-  font-size: 18px;
-  font-weight: 600;
-  color: #333;
-}
-
-/* Chat Messages */
-.chat-messages {
-  flex: 1;
-  padding: 20px;
-  overflow-y: auto; /* Enable scrolling for long messages */
-}
-
-.message {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 15px;
-}
-
-.message.sent {
-  align-items: flex-end;
-}
-
-.message.received {
-  align-items: flex-start;
-}
-
-.message-text {
-  max-width: 70%;
-  padding: 10px 15px;
-  border-radius: 15px;
-  font-size: 14px;
-  line-height: 1.5;
-  word-wrap: break-word;
-}
-
-.message.sent .message-text {
-  background-color: #dcf8c6; /* Light green for sent messages */
-  color: #333;
-}
-
-.message.received .message-text {
-  background-color: #ffffff; /* White for received messages */
-  color: #333;
-  border: 1px solid #e0e0e0;
-}
-
-.message-timestamp {
-  font-size: 12px;
-  color: #333;
-  margin-top: 5px;
-}
-
-/* Chat Input */
-.chat-input {
-  display: flex;
-  align-items: center;
-  padding: 15px;
-  background-color: #ffffff;
-  border-top: 1px solid #e0e0e0;
-}
-
-.chat-input input {
-  flex: 1;
-  padding: 10px;
-  border: 1px solid #e0e0e0;
-  border-radius: 20px;
-  font-size: 14px;
-  outline: none;
-}
-
-.chat-input button {
-  margin-left: 10px;
-  padding: 10px 20px;
-  background-color: #4CAF50;
+/* Active Session List Item */
+.chat-list li.active {
+  background-color: var(--primary-green);
   color: white;
-  border: none;
-  border-radius: 20px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background-color 0.2s;
+  box-shadow: 0 0 25px var(--light-green);
+  transform: translateY(-5px);
 }
 
-.chat-input button:hover {
-  background-color: #45a049; /* Darker green on hover */
+/* Loading Animation */
+@keyframes pulseLoading {
+  0% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.8;
+  }
+}
+
+/* Hover & Click Animations */
+@keyframes hoverScale {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1.1);
+  }
+}
+
+/* Neon Glow Effects for Buttons */
+.chat-list li:hover, .chat-list li.active {
+  animation: hoverScale 0.2s forwards;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .chat-list {
+    flex: 0 0 100%;
+    border-right: none;
+    margin-bottom: 1rem;
+  }
+
+  .chat-window-container {
+    flex: 1;
+  }
+
+  .chat-list-page {
+    flex-direction: column;
+  }
+
+  .chat-list h2 {
+    font-size: 1.5rem;
+  }
+
+  .chat-list li {
+    padding: 1rem;
+  }
 }

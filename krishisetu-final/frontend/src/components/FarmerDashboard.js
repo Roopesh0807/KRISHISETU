@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { Line } from "react-chartjs-2";
 import { useTranslation } from "react-i18next"; // Import translation hook
 import "./../styles/FarmerDashboard.css";
 import LanguageSwitcher from "./LanguageSwitcher";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 import {
   Chart as ChartJS,
@@ -20,6 +21,7 @@ import {
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
 const Dashboard = () => {
+  const {  setFarmer } = useAuth();
   const { t } = useTranslation(); // Initialize translation
   const [loading, setLoading] = useState(true);
   const [priceComparison, setPriceComparison] = useState([]);
@@ -27,11 +29,11 @@ const Dashboard = () => {
   const [forecast, setForecast] = useState([]); // 4-day weather forecast
   const navigate = useNavigate();
 
-
+   // First useEffect to fetch Farmer Details
+  
+  // Second useEffect to set farmer's name
   useEffect(() => {
     const storedName = localStorage.getItem("farmerName");
-    console.log("Retrieved Farmer Name from Storage:", storedName); // Debug log
-
     if (!storedName || storedName === "undefined") {
       alert("Session expired. Please log in again.");
       navigate("/farmer-login");
@@ -41,33 +43,41 @@ const Dashboard = () => {
   }, [navigate]);
 
   // ✅ Fetch Farmer Name
-const fetchFarmerDetails = async () => {
-    const farmer_id = localStorage.getItem("farmerID");
+ // Memoize the fetchFarmerDetails function to avoid dependency warnings
+ const fetchFarmerDetails = useCallback(async () => {
+  const farmer_id = localStorage.getItem("farmerID");
 
-    if (!farmer_id) {
-      console.error("No farmer ID found in localStorage");
-      alert("Please log in again!");
-      return;
+  if (!farmer_id) {
+    console.error("No farmer ID found in localStorage");
+    alert("Please log in again!");
+    return;
+  }
+
+  try {
+    const response = await axios.get(`http://localhost:5000/api/getFarmerDetails?farmer_id=${farmer_id}`);
+    console.log("API Response:", response.data); // ✅ Logs the API response
+
+    if (response.data.success) {
+      console.log("Setting farmer in AuthContext:", response.data.farmer); // ✅ Log before setting state
+      setFarmer(response.data.farmer); // Update AuthContext
+    } else {
+      console.error("Failed to fetch farmer details:", response.data.message);
     }
+  } catch (error) {
+    console.error("Error fetching farmer details:", error);
+  }
+}, [setFarmer]);
 
-    try {
-      const response = await axios.get(`http://localhost:5000/api/getFarmerDetails?farmer_id=${farmer_id}`);
-      if (response.data.success) {
-        setFarmerName(response.data.farmerName);
-      } else {
-        console.error("Failed to fetch farmer details:", response.data.message);
-      }
-    } catch (error) {
-      console.error("Error fetching farmer details:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  useEffect(() => {
-    fetchFarmerDetails(); // Call the function to fetch data on component mount
-  }, []);
-
+useEffect(() => {
+  const storedFarmerID = localStorage.getItem("farmerID");
+  if (!storedFarmerID) {
+    alert("No farmer ID found, please login again!");
+    navigate("/loginPage");
+  } else {
+    fetchFarmerDetails(storedFarmerID);  // Fetch details based on stored ID
+  }
+}, [navigate, fetchFarmerDetails]); // Add fetchFarmerDetails to dependency array
 
   // ✅ Fetch Weather Data and Forecast
   useEffect(() => {
@@ -168,7 +178,7 @@ const fetchFarmerDetails = async () => {
       <div className="main-dashboard">
         <div className="dashboard-content">
           {/* Welcome Message */}
-          <h2>Welcome, {farmerName || "Farmer"} </h2>
+          <h2>Welcome, {farmerName || "Farmer"}</h2>
           <LanguageSwitcher />
 
           {/* 🌤 Weather Forecast Section */}
@@ -231,6 +241,23 @@ const fetchFarmerDetails = async () => {
                 ))}
               </tbody>
             </table>
+          </div>
+{/* Product Performance Overview Section */}
+<div className="product-performance">
+            <h3>{t("product performance overview")}</h3>
+            <div className="product-list">
+              {/* Example products with sales info */}
+              <div className="product-item">
+                <h4>Tomato</h4>
+                <p>{t("total sales")}: 500kg</p>
+                <p>{t("profit")}: ₹5000</p>
+              </div>
+              <div className="product-item">
+                <h4>Potato</h4>
+                <p>{t("total sales")}: 600kg</p>
+                <p>{t("profit")}: ₹4000</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
