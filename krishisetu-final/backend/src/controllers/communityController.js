@@ -382,29 +382,65 @@ exports.joinCommunity = async (req, res) => {
 
 
 
+// exports.getMemberOrders = async (req, res) => {
+//   const { communityId, consumerId } = req.params;
+
+//   try {
+//     const query = `
+//       SELECT 
+//         o.order_id AS orderId,
+//         o.product_id AS product,
+//         o.quantity,
+//         o.price
+//       FROM orders o
+//       JOIN members m ON o.member_id = m.member_id
+//       WHERE o.community_id = ? AND m.consumer_id = ?;
+//     `;
+
+//     const orders = await queryDatabase(query, [communityId, consumerId]);
+//     res.status(200).json(orders);
+//   } catch (error) {
+//     console.error("Error fetching member orders:", error);
+//     res.status(500).json({ error: "Error fetching member orders" });
+//   }
+// };
+// Add this to communityController.js
 exports.getMemberOrders = async (req, res) => {
-  const { communityId, consumerId } = req.params;
+  const { communityId, memberId } = req.params;
 
   try {
+    // First verify the member belongs to this community
+    const verifyQuery = `
+      SELECT member_id FROM members 
+      WHERE member_id = ? AND community_id = ?
+    `;
+    const [member] = await queryDatabase(verifyQuery, [memberId, communityId]);
+
+    if (!member) {
+      return res.status(404).json({ error: "Member not found in this community" });
+    }
+
+    // Get orders for this member in this community
     const query = `
       SELECT 
-        o.order_id AS orderId,
-        o.product_id AS product,
+        o.order_id,
+        o.product_id,
         o.quantity,
-        o.price
+        o.price,
+        o.payment_method,
+        o.created_at
       FROM orders o
-      JOIN members m ON o.member_id = m.member_id
-      WHERE o.community_id = ? AND m.consumer_id = ?;
+      WHERE o.community_id = ? AND o.member_id = ?
+      ORDER BY o.created_at DESC
     `;
 
-    const orders = await queryDatabase(query, [communityId, consumerId]);
+    const orders = await queryDatabase(query, [communityId, memberId]);
     res.status(200).json(orders);
   } catch (error) {
     console.error("Error fetching member orders:", error);
     res.status(500).json({ error: "Error fetching member orders" });
   }
 };
-
 // Verify community access for a consumer
 // Verify community access for a consumer
 exports.verifyCommunityAccess = async (req, res) => {
@@ -484,5 +520,79 @@ exports.getConsumerCommunities = async (req, res) => {
   } catch (error) {
     console.error('Error fetching consumer communities:', error);
     res.status(500).json({ error: 'Internal server error', details: error.message });
+  }
+};
+
+// Add this to communityController.js
+exports.getMembersOrders = async (req, res) => {
+  const { communityId, memberId } = req.params;
+
+  try {
+    // 1. Verify member belongs to this community
+    const verifyQuery = `
+      SELECT m.member_id, m.member_name, m.phone_number
+      FROM members m
+      WHERE m.member_id = ? AND m.community_id = ?
+    `;
+    const [member] = await queryDatabase(verifyQuery, [memberId, communityId]);
+
+    if (!member) {
+      return res.status(404).json({ 
+        success: false,
+        message: "Member not found in this community" 
+      });
+    }
+
+    // 2. Get community details
+    const communityQuery = `
+      SELECT 
+        c.community_id as id,
+        c.community_name as name,
+        c.address,
+        DATE_FORMAT(c.delivery_date, '%Y-%m-%d') as delivery_date,
+        TIME_FORMAT(c.delivery_time, '%H:%i') as delivery_time,
+        CONCAT(cr.first_name, ' ', cr.last_name) as admin_name,
+        c.admin_id
+      FROM communities c
+      JOIN consumerregistration cr ON c.admin_id = cr.consumer_id
+      WHERE c.community_id = ?
+    `;
+    const [community] = await queryDatabase(communityQuery, [communityId]);
+
+    if (!community) {
+      return res.status(404).json({
+        success: false,
+        message: "Community not found"
+      });
+    }
+
+    // 3. Get orders for this member
+    const ordersQuery = `
+      SELECT 
+        o.order_id,
+        o.product_id,
+        o.quantity,
+        o.price
+      FROM orders o
+      WHERE o.community_id = ? AND o.member_id = ?
+    `;
+    const orders = await queryDatabase(ordersQuery, [communityId, memberId]);
+
+    // Calculate total
+    const total = orders.reduce((sum, order) => sum + (order.price * order.quantity), 0);
+
+    res.status(200).json({
+      community,  // Directly include community object
+      member,    // Directly include member object
+      orders,    // Directly include orders array
+      total: total.toFixed(2)
+    });
+
+  } catch (error) {
+    console.error("Error fetching member orders:", error);
+    res.status(500).json({
+      error: "Internal server error",
+      details: error.message
+    });
   }
 };

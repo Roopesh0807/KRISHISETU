@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import Navbar3 from '../components/Navbar3.js'; // Import Navbar3
+import Navbar3 from '../components/Navbar3.js';
 import "../styles/CommunityDetails.css";
 
 function CommunityDetails() {
@@ -15,7 +15,6 @@ function CommunityDetails() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    console.log("Location State:", location.state); // Debugging line
     if (location.state?.showInstructions) {
       setShowInstructions(true);
     }
@@ -41,7 +40,6 @@ function CommunityDetails() {
       return;
     }
 
-    // Validate if the selected date and time are in the future
     const selectedDateTime = new Date(`${deliveryDate}T${deliveryTime}`);
     const currentDateTime = new Date();
 
@@ -85,7 +83,6 @@ function CommunityDetails() {
         throw new Error(data.message || "Error fetching community details");
       }
   
-      // Ensure we're accessing the data correctly
       const communityData = data.data || data;
       const adminId = communityData.admin_id;
       const loggedInConsumerId = localStorage.getItem("consumerId");
@@ -98,7 +95,6 @@ function CommunityDetails() {
         throw new Error("Logged-in consumer ID not found");
       }
   
-      // Navigate based on admin status
       if (loggedInConsumerId === adminId.toString()) {
         navigate(`/community-page/${communityId}/admin`);
       } else {
@@ -110,58 +106,122 @@ function CommunityDetails() {
     }
   };
 
-
-
   return (
-    <div className="krishi-community-details">
-      {/* Navbar3 Integrated */}
+    <div className="krishi-commdet-main-container">
       <Navbar3 />
-
-      {showInstructions ? (
-        <div className="krishi-instructions-popup">
-          <h2>Welcome to Your Community!</h2>
-          <p>Here’s how it works:</p>
-          <ul>
-            <li>You manage the group, adding/removing members.</li>
-            <li>You set and control the delivery date and address.</li>
-            <li>Each member gets a separate bill.</li>
-          </ul>
-          <button onClick={handleAgree} className="krishi-agree-button">OK, I Agree</button>
-        </div>
-      ) : (
-        <div className="krishi-form-container">
-          <h2>Community Details</h2>
-          <div className="krishi-input-group">
-            <input
-              type="text"
-              placeholder="Address"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              className="krishi-input"
-            />
-            <input
-              type="date"
-              value={deliveryDate}
-              min={new Date().toISOString().split('T')[0]}
-              onChange={(e) => setDeliveryDate(e.target.value)}
-              className="krishi-input"
-            />
-            <input
-              type="time"
-              value={deliveryTime}
-              onChange={(e) => setDeliveryTime(e.target.value)}
-              className="krishi-input"
-            />
-          </div>
-          {error && <p className="krishi-error-message">{error}</p>}
-          <button onClick={handleSave} className="krishi-save-button">Save</button>
-          {saved && (
-            <button onClick={handleViewCommunity} className="krishi-view-button">
-              View Community
+      
+      <div className="krishi-commdet-center-container">
+        {showInstructions ? (
+          <div className="krishi-commdet-instruction-card">
+            <div className="krishi-commdet-instruction-header">
+              <h2>Welcome to Your Community!</h2>
+              <p>Here's how your Krishisetu community works:</p>
+            </div>
+            
+            <div className="krishi-commdet-instruction-points">
+              <div className="krishi-commdet-point-item">
+                <div className="krishi-commdet-point-icon">
+                  <i className="fas fa-users-cog"></i>
+                </div>
+                <div className="krishi-commdet-point-content">
+                  <h3>Admin Privileges</h3>
+                  <p>You manage the group, adding or removing members as needed.</p>
+                </div>
+              </div>
+              
+              <div className="krishi-commdet-point-item">
+                <div className="krishi-commdet-point-icon">
+                  <i className="fas fa-truck"></i>
+                </div>
+                <div className="krishi-commdet-point-content">
+                  <h3>Delivery Control</h3>
+                  <p>Set and manage the delivery schedule and location for everyone.</p>
+                </div>
+              </div>
+              
+              <div className="krishi-commdet-point-item">
+                <div className="krishi-commdet-point-icon">
+                  <i className="fas fa-file-invoice-dollar"></i>
+                </div>
+                <div className="krishi-commdet-point-content">
+                  <h3>Individual Billing</h3>
+                  <p>Each member receives their own bill for transparency.</p>
+                </div>
+              </div>
+            </div>
+            
+            <button 
+              onClick={handleAgree} 
+              className="krishi-commdet-primary-btn"
+            >
+              Got It! Let's Continue
             </button>
-          )}
-        </div>
-      )}
+          </div>
+        ) : (
+          <div className="krishi-commdet-form-card">
+            <div className="krishi-commdet-form-header">
+              <h2>Community Delivery Setup</h2>
+              <p>Set up your community's shared delivery information</p>
+            </div>
+            
+            <div className="krishi-commdet-form-group">
+              <div className="krishi-commdet-form-field">
+                <label>Delivery Address</label>
+                <input
+                  type="text"
+                  placeholder="Enter full delivery address"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                />
+                <small>This should be a location convenient for all members</small>
+              </div>
+              
+              <div className="krishi-commdet-datetime-fields">
+                <div className="krishi-commdet-form-field">
+                  <label>Delivery Date</label>
+                  <input
+                    type="date"
+                    value={deliveryDate}
+                    min={new Date().toISOString().split('T')[0]}
+                    onChange={(e) => setDeliveryDate(e.target.value)}
+                  />
+                </div>
+                
+                <div className="krishi-commdet-form-field">
+                  <label>Delivery Time</label>
+                  <input
+                    type="time"
+                    value={deliveryTime}
+                    onChange={(e) => setDeliveryTime(e.target.value)}
+                  />
+                  <small>Choose a time when most members are available</small>
+                </div>
+              </div>
+            </div>
+            
+            {error && <div className="krishi-commdet-error-message">{error}</div>}
+            
+            <div className="krishi-commdet-action-buttons">
+              <button 
+                onClick={handleSave} 
+                className="krishi-commdet-primary-btn"
+              >
+                Save Community Details
+              </button>
+              
+              {saved && (
+                <button 
+                  onClick={handleViewCommunity} 
+                  className="krishi-commdet-secondary-btn"
+                >
+                  Go to Community Dashboard
+                  <i className="fas fa-arrow-right"></i>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

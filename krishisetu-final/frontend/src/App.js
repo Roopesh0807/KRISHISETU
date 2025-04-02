@@ -218,7 +218,7 @@ const Main = () => {
         <Route path="/community-page/:communityId/admin" element={<AdminCommunityPage />} />
         <Route path="/community-page/:communityId/member" element={<MemberCommunityPage />} />
         <Route path="/order/:communityId" element={<OrderPageC />} />
-        <Route path="/order/:communityId/member/:memberId" element={<MemberOrderPage />} />
+        <Route path="/community/:communityId/member/:memberId" element={<MemberOrderPage />} />
 
 
 

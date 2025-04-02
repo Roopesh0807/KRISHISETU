@@ -116,8 +116,6 @@
 
 // Update the getOrders function in orderController.js
 
-
-
 exports.getOrders = async (req, res) => {
   const { communityId } = req.params;
 
@@ -153,7 +151,7 @@ exports.getOrders = async (req, res) => {
     // 3. Get confirmed orders count (members with orders, excluding admin)
     const confirmedOrdersQuery = `
       SELECT COUNT(DISTINCT m.member_id) as confirmed_members
-      FROM order o
+      FROM orders o
       JOIN members m ON o.member_id = m.member_id
       WHERE o.community_id = ? AND m.consumer_id != ?
     `;
@@ -167,7 +165,7 @@ exports.getOrders = async (req, res) => {
         o.quantity,
         o.price,
         o.payment_method
-      FROM order o
+      FROM orders o
       JOIN members m ON o.member_id = m.member_id
       WHERE o.community_id = ? AND m.consumer_id = ?
     `;
@@ -183,7 +181,7 @@ exports.getOrders = async (req, res) => {
         m.member_id,
         m.member_name,
         m.phone_number
-      FROM order o
+      FROM orders o
       JOIN members m ON o.member_id = m.member_id
       WHERE o.community_id = ? AND m.consumer_id != ?
     `;
@@ -327,5 +325,49 @@ exports.createOrder = async (req, res) => {
   } catch (error) {
     console.error("Error creating order:", error);
     res.status(500).json({ error: "Error creating order" });
+  }
+};
+
+// Add this to orderController.js
+// In orderController.js
+exports.deleteOrder = async (req, res) => {
+  const { orderId } = req.params;
+  
+  // Debugging
+  console.log(`DELETE request for order: ${orderId}`);
+  
+  try {
+    // Verify order exists
+    const [order] = await queryDatabase(
+      `SELECT * FROM orders WHERE order_id = ?`, 
+      [orderId]
+    );
+    
+    if (!order) {
+      console.log('Order not found in database');
+      return res.status(404).json({ 
+        status: 'error',
+        message: 'Order not found' 
+      });
+    }
+
+    // Delete order
+    await queryDatabase(
+      `DELETE FROM orders WHERE order_id = ?`,
+      [orderId]
+    );
+    
+    console.log('Order successfully deleted');
+    return res.json({ 
+      status: 'success',
+      message: 'Order deleted' 
+    });
+
+  } catch (error) {
+    console.error('Database error:', error);
+    return res.status(500).json({
+      status: 'error',
+      message: 'Internal server error'
+    });
   }
 };

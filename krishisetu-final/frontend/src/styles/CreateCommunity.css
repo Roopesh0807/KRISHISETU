@@ -1,143 +1,225 @@
-/* Create Community Container */
-.krishi-create-community {
-    padding-top: 80px; /* Adjust for fixed Navbar3 */
-    background-color: #f9fafb; /* Light background */
-    min-height: 100vh;
-    font-family: 'Poppins', sans-serif; /* Modern font */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(129, 199, 132, 0.1)),
-                url('https://images.unsplash.com/photo-1464226184884-fa280b87c399?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80'); /* Farm background */
-    background-size: cover;
-    background-position: center;
+/* ===== Core Styles ===== */
+.ks-create-root {
+  --ks-primary: #2E7D32;
+  --ks-primary-light: #4CAF50;
+  --ks-primary-dark: #1B5E20;
+  --ks-text: #333;
+  --ks-text-light: #666;
+  --ks-border: #e0e0e0;
+  --ks-bg: #f8f9fa;
+  
+  font-family: 'Poppins', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--ks-bg);
+}
+
+/* ===== Layout ===== */
+.ks-create-main {
+  padding-top: 80px; /* Navbar offset */
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ks-form-panel {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 
+    0 2px 10px rgba(0,0,0,0.05),
+    0 6px 20px rgba(0,0,0,0.03);
+  width: 100%;
+  max-width: 500px;
+  padding: 40px;
+  margin: 20px;
+  border: 1px solid rgba(0,0,0,0.03);
+  transition: all 0.3s ease;
+}
+
+.ks-form-panel:hover {
+  box-shadow: 
+    0 4px 15px rgba(0,0,0,0.07),
+    0 8px 25px rgba(0,0,0,0.05);
+}
+
+/* ===== Typography ===== */
+.ks-form-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.ks-form-header h1 {
+  font-size: 2.3rem;
+  font-weight: 700;
+  color: var(--ks-text);
+  margin-bottom: 10px;
+}
+
+.ks-accent-text {
+  color: var(--ks-primary);
+}
+
+.ks-form-description {
+  color: var(--ks-text-light);
+  font-size: 1.1rem;
+  line-height: 1.5;
+}
+
+/* ===== Form Elements ===== */
+.ks-form-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.ks-input-group {
+  position: relative;
+}
+
+.ks-input-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: var(--ks-primary-dark);
+  font-size: 0.95rem;
+}
+
+.ks-input-wrapper {
+  position: relative;
+}
+
+.ks-input-icon {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ks-primary-light);
+  font-size: 1rem;
+}
+
+.ks-input-group input {
+  width: 100%;
+  padding: 14px 14px 14px 42px;
+  border: 1px solid var(--ks-border);
+  border-radius: 10px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background-color: #f9fafb;
+}
+
+.ks-input-group input:focus {
+  border-color: var(--ks-primary-light);
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+  outline: none;
+  background-color: white;
+}
+
+/* ===== Error Handling ===== */
+.ks-error-message {
+  color: #dc3545;
+  background-color: rgba(220, 53, 69, 0.05);
+  padding: 12px 15px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: -5px;
+}
+
+/* ===== Button Styles ===== */
+.ks-submit-btn {
+  width: 100%;
+  padding: 15px;
+  background: linear-gradient(to right, var(--ks-primary), var(--ks-primary-dark));
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.ks-submit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(46, 125, 50, 0.3);
+}
+
+.ks-submit-btn:disabled {
+  background: linear-gradient(to right, #81c784, #a5d6a7);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.ks-spin {
+  animation: ksSpin 1s linear infinite;
+}
+
+/* ===== Footer Link ===== */
+.ks-form-footer {
+  text-align: center;
+  margin-top: 25px;
+  color: var(--ks-text-light);
+  font-size: 0.95rem;
+}
+
+.ks-form-footer span {
+  color: var(--ks-primary);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ks-form-footer span:hover {
+  text-decoration: underline;
+}
+
+/* ===== Animations ===== */
+@keyframes ksSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ===== Responsive Design ===== */
+@media (max-width: 768px) {
+  .ks-form-panel {
+    padding: 30px;
   }
   
-  /* Form Container */
-  .krishi-form-container {
-    background-color: rgba(255, 255, 255, 0.95); /* Semi-transparent white */
-    padding: 40px;
-    border-radius: 15px;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-    max-width: 500px;
-    width: 100%;
-    text-align: center;
-    animation: fadeInUp 1s ease-in-out;
+  .ks-form-header h1 {
+    font-size: 2rem;
   }
   
-  .krishi-form-header h1 {
-    font-size: 2.5rem;
-    font-weight: 700;
-    margin-bottom: 10px;
-    color: #2e7d32; /* Dark green */
-  }
-  
-  .krishi-form-header .krishi-subtitle {
-    font-size: 1.2rem;
-    color: #666;
-    margin-bottom: 30px;
-  }
-  
-  /* Form Body */
-  .krishi-form-body {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-  }
-  
-  /* Input Group */
-  .krishi-input-group {
-    text-align: left;
-  }
-  
-  .krishi-input-group label {
+  .ks-form-description {
     font-size: 1rem;
-    font-weight: 500;
-    color: #444;
-    margin-bottom: 8px;
-    display: block;
+  }
+}
+
+@media (max-width: 480px) {
+  .ks-create-main {
+    padding-top: 70px;
   }
   
-  .krishi-input {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
+  .ks-form-panel {
+    padding: 25px 20px;
+    margin: 15px;
+  }
+  
+  .ks-input-group input {
+    padding: 12px 12px 12px 40px;
+  }
+  
+  .ks-submit-btn {
+    padding: 14px;
     font-size: 1rem;
-    color: #333;
-    transition: all 0.3s ease;
-    background-color: #f9fafb;
   }
-  
-  .krishi-input:focus {
-    border-color: #4caf50; /* Green */
-    outline: none;
-    box-shadow: 0 0 8px rgba(76, 175, 80, 0.3);
-    background-color: #fff;
-  }
-  
-  /* Error Message */
-  .krishi-error-message {
-    color: #dc3545; /* Red */
-    font-size: 0.9rem;
-    margin-bottom: 20px;
-    text-align: center;
-  }
-  
-  /* Create Button */
-  .krishi-create-button {
-    width: 100%;
-    padding: 15px;
-    background-color: #4caf50; /* Green */
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    font-size: 1.1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    margin-top: 10px;
-  }
-  
-  .krishi-create-button:hover {
-    background-color: #388e3c; /* Darker green */
-    transform: translateY(-3px);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-  }
-  
-  /* Animations */
-  @keyframes fadeInUp {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-  
-  /* Responsive Design */
-  @media (max-width: 768px) {
-    .krishi-form-container {
-      padding: 20px;
-    }
-  
-    .krishi-form-header h1 {
-      font-size: 2rem;
-    }
-  
-    .krishi-form-header .krishi-subtitle {
-      font-size: 1rem;
-    }
-  
-    .krishi-input {
-      padding: 10px;
-      font-size: 0.9rem;
-    }
-  
-    .krishi-create-button {
-      padding: 12px;
-      font-size: 1rem;
-    }
-  }
+}
