@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useState,useContext } from "react";
 import { useNavigate } from "react-router-dom";
+import { AuthContext } from "../context/AuthContext";
 import "./LogReg.css";
 
 const FarmerLogin = () => {
   const navigate = useNavigate();
+  const { loginFarmer } = useContext(AuthContext);
   const [formData, setFormData] = useState({
     emailOrPhone: "",
     password: "",
@@ -12,7 +14,6 @@ const FarmerLogin = () => {
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
   
@@ -32,6 +33,19 @@ const FarmerLogin = () => {
         localStorage.setItem("token", data.token);  // ✅ Store JWT token
         localStorage.setItem("farmerID", data.farmer_id);
         localStorage.setItem("farmerName", data.full_name);
+  
+        // Ensure all required fields are present in the data
+        const farmerData = {
+          token: data.token,
+          farmer_id: data.farmer_id || "",
+          full_name: data.full_name || "",
+          email: data.email || "",  // Ensure these fields are populated
+          phone_number: data.phone_number || "",
+          first_name: data.first_name || "",
+          last_name: data.last_name || "",
+        };
+  
+        loginFarmer(farmerData);
         window.alert("✅ Login Successful! Redirecting to dashboard...");
         setTimeout(() => navigate("/farmer-dashboard"), 1000);
       } else {
@@ -42,6 +56,7 @@ const FarmerLogin = () => {
       window.alert("Error connecting to server. Please try again later.");
     }
   };
+  
   
 
   return (

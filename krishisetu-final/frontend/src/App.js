@@ -230,7 +230,7 @@ const Main = () => {
         {/* Farmer Routes */}
         <Route path="/farmer/bargain" element={<FarmerChatList />} />
         {/* // In your router configuration */}
-        <Route path="/farmer/chat/:session_id" element={<FarmerChatWindow />} />
+        <Route path="/farmer/:bargainId" element={<FarmerChatWindow />} />
 
           {/* 🌿 Farmer Features */}
 
