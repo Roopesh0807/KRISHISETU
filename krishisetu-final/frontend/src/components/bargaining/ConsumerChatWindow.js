@@ -558,13 +558,12 @@ import './cbargain.css';
 const BargainChatWindow = () => {
   const navigate = useNavigate();
   const { bargainId } = useParams();
-  const { consumer } = useAuth();
+  const { token, consumer } = useAuth();
   const location = useLocation();
+  console.log("Token in BargainChatWindow:", token);
   const { product: initialProduct, farmer: initialFarmer, quantity: initialQuantity } = location.state || {};
-  
   // Refs
   const messagesEndRef = useRef(null);
-  
   // State
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
@@ -574,7 +573,6 @@ const BargainChatWindow = () => {
   const [connectionStatus, setConnectionStatus] = useState('connecting');
   const [bargainAccepted, setBargainAccepted] = useState(false);
   const [waitingForReply, setWaitingForReply] = useState(false);
-  
   // Bargain initiation state
   const [isBargainPopupOpen, setIsBargainPopupOpen] = useState(true); // Show popup by default
   const [selectedProduct, setSelectedProduct] = useState(initialProduct || null);
@@ -582,7 +580,6 @@ const BargainChatWindow = () => {
   const [quantity, setQuantity] = useState(initialQuantity || 1);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-
   // Initialize WebSocket connection
   useEffect(() => {
     if (!bargainId) return;
@@ -592,7 +589,6 @@ const BargainChatWindow = () => {
       console.error("Missing token");
       return;
     }
-
     const socketUrl = `ws://localhost:5000/ws/bargain/${bargainId}?token=${token}`;
     const socket = new WebSocket(socketUrl);
 
@@ -600,7 +596,6 @@ const BargainChatWindow = () => {
       setConnectionStatus('connected');
       setWs(socket);
     };
-
     socket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
@@ -646,19 +641,16 @@ const BargainChatWindow = () => {
         console.error("Error parsing message:", error);
       }
     };
-
     socket.onerror = (error) => {
       setConnectionStatus('error');
       console.error('WebSocket error:', error);
     };
-
     socket.onclose = () => {
       setConnectionStatus('disconnected');
       setTimeout(() => {
         setWs(new WebSocket(socketUrl));
       }, 3000);
     };
-
     return () => socket.close();
   }, [bargainId]);
 
@@ -690,7 +682,6 @@ const BargainChatWindow = () => {
       fetchMessages();
     }
   }, [bargainId]);
-
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -743,7 +734,6 @@ const BargainChatWindow = () => {
       setIsLoading(false);
     }
   };
-
   // Handle price offer
   const handleMakeOffer = (price) => {
     if (ws && ws.readyState === WebSocket.OPEN) {
@@ -764,7 +754,6 @@ const BargainChatWindow = () => {
       setCurrentPrice(price);
     }
   };
-
   // Handle regular message sending
   const handleSendMessage = () => {
     if (!newMessage.trim() || !ws || ws.readyState !== WebSocket.OPEN) return;
@@ -780,7 +769,6 @@ const BargainChatWindow = () => {
     setMessages(prev => [...prev, message]);
     setNewMessage('');
   };
-
   if (loading) {
     return (
       <div className="loading-container">
@@ -789,7 +777,6 @@ const BargainChatWindow = () => {
       </div>
     );
   }
-
   return (
     <div className="bargain-chat-container">
       {/* Bargain Initiation Popup */}
@@ -802,9 +789,7 @@ const BargainChatWindow = () => {
             >
               <FontAwesomeIcon icon={faTimes} />
             </button>
-            
             <h3>Initiate Bargain with {selectedFarmer.farmer_name}</h3>
-            
             <div className="form-group">
               <label>Select Product</label>
               <select
@@ -840,9 +825,7 @@ const BargainChatWindow = () => {
             <div className="current-price-display">
               Current Price: ₹{selectedProduct?.price_per_kg || 0}/kg
             </div>
-            
             {error && <div className="error-message">{error}</div>}
-            
             <button
               onClick={handleBargainConfirm}
               disabled={!selectedProduct || isLoading}
@@ -858,7 +841,6 @@ const BargainChatWindow = () => {
           </div>
         </div>
       )}
-
       {/* Main Chat Interface */}
       <div className="chat-header">
         <div className="header-top">
@@ -869,7 +851,6 @@ const BargainChatWindow = () => {
             {connectionStatus.toUpperCase()}
           </span>
         </div>
-        
         <div className="product-info">
           {selectedProduct && (
             <>
@@ -882,7 +863,6 @@ const BargainChatWindow = () => {
           )}
         </div>
       </div>
-
       <div className="chat-messages">
         {messages.length === 0 ? (
           <div className="no-messages">
@@ -906,7 +886,6 @@ const BargainChatWindow = () => {
         )}
         <div ref={messagesEndRef} />
       </div>
-
       <div className="chat-controls">
         {/* Show price suggestions only after initial message is sent and not waiting for reply */}
         {!bargainAccepted && selectedProduct && messages.length > 0 && !waitingForReply && (
@@ -933,14 +912,12 @@ const BargainChatWindow = () => {
             </div>
           </div>
         )}
-
         {/* Show waiting indicator when waiting for farmer's reply */}
         {waitingForReply && (
           <div className="waiting-indicator">
             <FontAwesomeIcon icon={faSpinner} spin /> Waiting for farmer's reply...
           </div>
         )}
-
         <div className="message-input">
           <input
             type="text"

@@ -18,6 +18,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const storedConsumer = localStorage.getItem("consumer");
       if (!storedConsumer) return null;
+
       const parsedConsumer = JSON.parse(storedConsumer);
       
       return {
@@ -30,12 +31,6 @@ export const AuthProvider = ({ children }) => {
         full_name: `${parsedConsumer.first_name || ""} ${parsedConsumer.last_name || ""}`.trim(),
         ...parsedConsumer
       };
-      // parsedConsumer.token = parsedConsumer.token || "";
-      // parsedConsumer.first_name = parsedConsumer.first_name || "";
-      // parsedConsumer.last_name = parsedConsumer.last_name || "";
-      // parsedConsumer.full_name = `${parsedConsumer.first_name} ${parsedConsumer.last_name}`.trim();
-      
-      // return parsedConsumer;
     } catch (error) {
       console.error("Error parsing consumer data:", error);
       localStorage.removeItem("consumer"); // Clean up invalid data
@@ -257,6 +252,7 @@ const loginFarmer = (data) => {
         registerFarmer, // ✅ New
         loginFarmer, // ✅ New
         logout,
+        token: consumer?.token || farmer?.token,
       }}
     >
       {children}

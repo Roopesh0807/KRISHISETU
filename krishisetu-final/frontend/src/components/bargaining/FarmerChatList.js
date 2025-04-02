@@ -212,8 +212,8 @@ const FarmerChatList = () => {
     };
   }, []);
 
-  const handleSessionSelect = (sessionId) => {
-    navigate(`/farmer/bargain/${sessionId}`);
+  const handleSessionSelect = (bargainId) => {
+    navigate(`/farmer/bargain/${bargainId}`);
   };
 
   if (loading) return <div className="loading">Loading bargain requests...</div>;
@@ -229,11 +229,13 @@ const FarmerChatList = () => {
           <ul>
             {bargainSessions.map(session => (
               <li 
-                key={session.session_id}
-                onClick={() => handleSessionSelect(session.session_id)}
-                className={farmer_id === session.session_id ? 'active' : ''}
+                key={session.bargain_id}
+                onClick={() => handleSessionSelect(session.bargain_id)}
+                className={farmer_id === session.bargain_id ? 'active' : ''}
               >
-                {/* ... rest of your JSX ... */}
+             {session.consumer_name}  
+                {onlineConsumers.has(session.consumer_id) && <span className="online-status">🟢 Online</span>}
+           
               </li>
             ))}
           </ul>
