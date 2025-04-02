@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Navbar3 from "../components/Navbar3.js"; // Import Navbar3
+import Navbar3 from "../components/Navbar3.js";
 import "../styles/CreateCommunity.css";
 
 function CreateCommunity() {
@@ -8,9 +8,9 @@ function CreateCommunity() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
   const navigate = useNavigate();
 
-  // Fetch the logged-in consumer's ID from localStorage
   const consumerId = localStorage.getItem("consumerId");
 
   const handleCreate = async () => {
@@ -24,80 +24,115 @@ function CreateCommunity() {
       return;
     }
 
-    console.log("Consumer ID being sent:", consumerId); // Debugging: Log the consumerId
-
-
+    setIsCreating(true);
     try {
       const response = await fetch("http://localhost:5000/api/community/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, password, consumerId }), // Send the consumerId along with the community details
+        body: JSON.stringify({ name, password, consumerId }),
       });
 
       const data = await response.json();
       if (response.ok) {
-        alert(`Community created successfully! your community ID is : ${data.id}`);
-        console.log("Community Created with ID:", data.id); // Debugging line
-
-        // Navigate to CommunityDetails with the communityId from the backend
-        navigate("/community-details", { state: { showInstructions: true, communityId: data.id } });
+        navigate("/community-details", { 
+          state: { 
+            showInstructions: true, 
+            communityId: data.id,
+            communityName: name
+          } 
+        });
       } else {
         setError(data.error || "Error creating community");
       }
     } catch (error) {
       console.error("Error creating community:", error);
       setError("An error occurred while creating the community.");
+    } finally {
+      setIsCreating(false);
     }
   };
 
   return (
-    <div className="krishi-create-community">
-      {/* Navbar3 Integrated */}
+    <div className="ks-create-root">
       <Navbar3 />
+      
+      <div className="ks-create-main">
+        <div className="ks-form-panel">
+          <div className="ks-form-header">
+            <h1>
+              <span className="ks-accent-text">Create</span> Community
+            </h1>
+            <p className="ks-form-description">
+              Establish a new local network for farmers and consumers
+            </p>
+          </div>
 
-      <div className="krishi-form-container">
-        <div className="krishi-form-header">
-          <h1>Create a New Community</h1>
-          <p className="krishi-subtitle">Bring people together and start something amazing!</p>
-        </div>
-        <div className="krishi-form-body">
-          <div className="krishi-input-group">
-            <label htmlFor="name">Community Name</label>
-            <input
-              type="text"
-              id="name"
-              placeholder="Enter community name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="krishi-input"
-            />
+          <div className="ks-form-content">
+            <div className="ks-input-group">
+              <label>Community Name</label>
+              <div className="ks-input-wrapper">
+                <i className="fas fa-users ks-input-icon"></i>
+                <input
+                  type="text"
+                  placeholder="e.g. Green Valley Collective"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="ks-input-group">
+              <label>Password</label>
+              <div className="ks-input-wrapper">
+                <i className="fas fa-lock ks-input-icon"></i>
+                <input
+                  type="password"
+                  placeholder="Create a secure password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="ks-input-group">
+              <label>Confirm Password</label>
+              <div className="ks-input-wrapper">
+                <i className="fas fa-lock ks-input-icon"></i>
+                <input
+                  type="password"
+                  placeholder="Re-enter your password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {error && (
+              <div className="ks-error-message">
+                <i className="fas fa-exclamation-circle"></i> {error}
+              </div>
+            )}
+
+            <button 
+              onClick={handleCreate}
+              disabled={isCreating}
+              className="ks-submit-btn"
+            >
+              {isCreating ? (
+                <>
+                  <i className="fas fa-spinner ks-spin"></i> Creating...
+                </>
+              ) : (
+                <>
+                  <i className="fas fa-leaf"></i> Create Community
+                </>
+              )}
+            </button>
           </div>
-          <div className="krishi-input-group">
-            <label htmlFor="password">Password</label>
-            <input
-              type="password"
-              id="password"
-              placeholder="Enter password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="krishi-input"
-            />
+
+          <div className="ks-form-footer">
+            <p>Already have a community? <span onClick={() => navigate('/join-community')}>Join now</span></p>
           </div>
-          <div className="krishi-input-group">
-            <label htmlFor="confirmPassword">Confirm Password</label>
-            <input
-              type="password"
-              id="confirmPassword"
-              placeholder="Confirm password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="krishi-input"
-            />
-          </div>
-          {error && <p className="krishi-error-message">{error}</p>}
-          <button onClick={handleCreate} className="krishi-create-button">
-            Create Community
-          </button>
         </div>
       </div>
     </div>

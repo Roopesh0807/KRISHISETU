@@ -1,15 +1,7 @@
 import React from "react";
-import Navbar2 from "../components/Navbar2.js";
-import Sidebar from "../components/Sidebar.js";
 import "./../styles/OrderReview.css";
 
-const OrderReview = () => {
-  const [sidebarOpen, setSidebarOpen] = React.useState(false);
-
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
-
+const OrderReview = ({ isSidebarOpen }) => {  // Receive sidebar state as prop
   const orders = [
     {
       id: "KR-001",
@@ -42,28 +34,28 @@ const OrderReview = () => {
 
   const OrderItem = ({ order }) => {
     return (
-      <tr className="order-track-item">
+      <tr className="order-item">
         <td>
-          <span className="order-track-id">{order.id}</span>
+          <span className="order-id">{order.id}</span>
         </td>
         <td>{order.date}</td>
         <td>
-          <div className="order-product-meta">
-            <div className="order-product-icon">
+          <div className="product-meta">
+            <div className="product-icon">
               <i className={`fas ${order.product.includes("Wheat") ? "fa-wheat" : 
                             order.product.includes("Rice") ? "fa-rice" : 
                             "fa-apple-alt"}`}></i>
             </div>
             <div>
-              <span className="order-product-name">{order.product}</span>
-              <span className="order-product-location">
+              <span className="product-name">{order.product}</span>
+              <span className="product-location">
                 <i className="fas fa-map-marker-alt"></i> {order.location}
               </span>
             </div>
           </div>
         </td>
         <td>{order.quantity}</td>
-        <td className="order-track-amount">{order.amount}</td>
+        <td className="order-amount">{order.amount}</td>
         <td>
           <span className={`order-status ${order.status}`}>
             {order.status === "fulfilled" ? (
@@ -82,67 +74,62 @@ const OrderReview = () => {
   };
 
   return (
-    <div className={`order-track-app ${sidebarOpen ? "sidebar-active" : ""}`}>
-      <Navbar2 toggleSidebar={toggleSidebar} sidebarOpen={sidebarOpen} />
-      <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
-      
-      <div className={`order-track-content ${sidebarOpen ? "sidebar-shifted" : ""}`}>
-        <div className="order-track-wrapper">
-          <div className="order-track-summary">
-            <div className="order-track-title">
-              <h2>Order History</h2>
-              <p>Track your agricultural purchases and deliveries</p>
+    <div className={`order-review-container ${isSidebarOpen ? "sidebar-open" : ""}`}>
+      <div className="order-review-wrapper">
+        <div className="order-summary">
+          <div className="order-title">
+            <h2>Order History</h2>
+            <p>Track your agricultural purchases and deliveries</p>
+          </div>
+          <div className="order-stats">
+            <div className="stat-card">
+              <div className="stat-icon total-orders">
+                <i className="fas fa-clipboard-list"></i>
+              </div>
+              <div className="stat-info">
+                <h3>{orders.length}</h3>
+                <p>Total Orders</p>
+              </div>
             </div>
-            <div className="order-track-stats">
-              <div className="order-stat">
-                <div className="order-stat-icon total-orders">
-                  <i className="fas fa-clipboard-list"></i>
-                </div>
-                <div className="order-stat-info">
-                  <h3>{orders.length}</h3>
-                  <p>Total Orders</p>
-                </div>
+            <div className="stat-card">
+              <div className="stat-icon completed-orders">
+                <i className="fas fa-check-circle"></i>
               </div>
-              <div className="order-stat">
-                <div className="order-stat-icon completed-orders">
-                  <i className="fas fa-check-circle"></i>
-                </div>
-                <div className="order-stat-info">
-                  <h3>{orders.filter(o => o.status === "fulfilled").length}</h3>
-                  <p>Completed</p>
-                </div>
+              <div className="stat-info">
+                <h3>{orders.filter(o => o.status === "fulfilled").length}</h3>
+                <p>Completed</p>
               </div>
-              <div className="order-stat">
-                <div className="order-stat-icon pending-orders">
-                  <i className="fas fa-clock"></i>
-                </div>
-                <div className="order-stat-info">
-                  <h3>{orders.filter(o => o.status === "unfulfilled").length}</h3>
-                  <p>Pending</p>
-                </div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-icon pending-orders">
+                <i className="fas fa-clock"></i>
+              </div>
+              <div className="stat-info">
+                <h3>{orders.filter(o => o.status === "unfulfilled").length}</h3>
+                <p>Pending</p>
               </div>
             </div>
           </div>
+        </div>
 
-          <div className="order-track-table-container">
-            <table className="order-track-table">
-              <thead>
-                <tr>
-                  <th>Order ID</th>
-                  <th>Date</th>
-                  <th>Product</th>
-                  <th>Quantity</th>
-                  <th>Amount</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {orders.map((order) => (
-                  <OrderItem key={order.id} order={order} />
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <div className="order-table-container">
+          <table className="order-table">
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Date</th>
+                <th>Product</th>
+                <th>Quantity</th>
+                <th>Amount</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {orders.map((order) => (
+                <OrderItem key={order.id} order={order} />
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
