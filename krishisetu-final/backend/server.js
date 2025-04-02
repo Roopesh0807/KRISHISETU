@@ -6,19 +6,19 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
 const { queryDatabase } = require('./src/config/db');
-const http = require("http");
-const socketIo = require("socket.io");
+// const http = require("http");
+// const socketIo = require("socket.io");
 const path = require("path");
-const { authenticateToken } = require("./src/middlewares/authMiddleware");
-const { initiateBargain } = require("./src/controllers/bargainController"); // Correct file
+// const { authenticateToken } = require("./src/middlewares/authMiddleware");
+// const { initiateBargain } = require("./src/controllers/bargainController"); // Correct file
 
 // const FarmerModel = require('./src/models/farmerModels');  // ✅ Ensure this path is correct
 // const pool = require('./src/config/db');  // Ensure this line is present
 const multer = require("multer");
 const orderRoutes = require("./src/routes/orderRoutes");
 const farmerRoutes = require("./src/routes/farmerRoutes");
-
-
+const http = require('http');
+const setupSockets = require('./socket');
 //const db = require(".src/config/db");
 const communityRoutes = require("./src/routes/communityRoutes");
 const memberRoutes = require("./src/routes/memberRoutes");
@@ -33,7 +33,14 @@ const reviewsRoutes = require('./src/routes/reviews');
 const fs = require("fs");
 const app = express();
 const { Server } = require("socket.io");
-const server = http.createServer(app);
+// const server = http.createServer(app);
+// Attach WebSocket to Express server
+const server = require('http').createServer();
+server.on('upgrade', (request, socket, head) => {
+    wss.handleUpgrade(request, socket, head, (ws) => {
+        wss.emit('connection', ws, request);
+    });
+});
 
 // ✅ WebSocket Setup
 const io = new Server(server, {
@@ -337,7 +344,7 @@ app.delete("/remove-photo/:consumer_id", async (req, res) => {
 });
 //bargain sessions
 // Fetch bargain session and messages
-app.get("/api/bargain/:session_id", async (req, res) => {
+app.get("/api/bargain/:bargain_id", async (req, res) => {
   try {
     console.log("🔍 Incoming Headers:", req.headers);
 
@@ -358,12 +365,12 @@ app.get("/api/bargain/:session_id", async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     console.log("✅ Token Decoded:", decoded);
 
-    const { session_id } = req.params;
-    console.log("🔍 Checking bargain session for ID:", session_id);
+    const { bargain_id } = req.params;
+    console.log("🔍 Checking bargain session for ID:", bargain_id);
 
     const session = await queryDatabase(
       "SELECT * FROM bargain_sessions WHERE bargain_id = ?",
-      [session_id]
+      [bargain_id]
     );
 
     if (session.length === 0) {
@@ -851,7 +858,7 @@ app.post("/api/farmerlogin", async (req, res) => {
 
   try {
     const results = await queryDatabase(
-      "SELECT farmer_id, first_name, last_name, password FROM farmerregistration WHERE email = ? OR phone_number = ?",
+      "SELECT farmer_id, first_name, last_name,email, phone_number,  password FROM farmerregistration WHERE email = ? OR phone_number = ?",
       [emailOrPhone, emailOrPhone]
     );
 
@@ -887,14 +894,17 @@ const token = jwt.sign(
 );
 
     // ✅ Send response with token
-    res.json({ 
-      success: true, 
-      token, 
-      farmer_id: user.farmer_id, 
-      full_name: `${user.first_name} ${user.last_name}`, 
-      message: "Login successful" 
+    res.json({
+      success: true,
+      token,
+      farmer_id: user.farmer_id,
+      full_name: `${user.first_name} ${user.last_name}`,
+      email: user.email,
+      phone_number: user.phone_number,
+      first_name: user.first_name,
+      last_name: user.last_name,
     });
-
+    
   } catch (err) {
     console.error("❌ Farmer Login Database Error:", err);
     res.status(500).json({ success: false, message: "Database error", error: err.message });
@@ -902,24 +912,32 @@ const token = jwt.sign(
 });
 app.get("/api/getFarmerDetails", async (req, res) => {
   try {
-      const { farmer_id } = req.query;
-      if (!farmer_id) {
-          return res.status(400).json({ success: false, message: "Farmer ID is required" });
-      }
+    const { farmer_id } = req.query;
+    if (!farmer_id) {
+      return res.status(400).json({ success: false, message: "Farmer ID is required" });
+    }
 
-      const query = `SELECT CONCAT(first_name, ' ', last_name) AS farmerName FROM farmerregistration WHERE farmer_id = ?`;
-      const [rows] = await queryDatabase(query, [farmer_id]);
+    const query = `SELECT farmer_id, first_name, last_name, email, phone_number FROM farmerregistration WHERE farmer_id = ?`;
+    const result = await queryDatabase(query, [farmer_id]);
 
-      console.log("Rows fetched from DB:", rows); // Log rows to verify structure
+    if (!result || !Array.isArray(result) || result.length === 0) {
+      return res.status(404).json({ success: false, message: "Farmer not found" });
+    }
 
-      if (!rows || !rows.farmerName) {
-          return res.status(404).json({ success: false, message: "Farmer not found or no name available" });
-      }
+    const farmer = result[0]; // Get the first row safely
 
-      res.json({ success: true, farmerName: rows.farmerName });
+    res.json({
+      success: true,
+      farmer: {
+        farmer_id: farmer.farmer_id,
+        farmerName: `${farmer.first_name} ${farmer.last_name}`,
+        email: farmer.email,
+        phone_number: farmer.phone_number,
+      },
+    });
   } catch (error) {
-      console.error("Error fetching farmer details:", error);
-      res.status(500).json({ success: false, message: "Server error", error: error.message });
+    console.error("🚨 Error fetching farmer details:", error);
+    res.status(500).json({ success: false, message: "Server error", error: error.message });
   }
 });
 
@@ -977,10 +995,6 @@ app.post("/api/consumerregister", async (req, res) => {
         res.status(500).json({ success: false, message: "Database error", error: err.message });
     }
 });
-
-
-
-
 // ✅ Consumer Login Route
 app.post("/api/consumerlogin", async (req, res) => {
   const { emailOrPhone, password } = req.body;
@@ -1005,7 +1019,6 @@ app.post("/api/consumerlogin", async (req, res) => {
 
     // ✅ Store consumer_id in session
     req.session.consumer_id = consumer.consumer_id;
-
     // ✅ Debugging
     console.log("Session set:", req.session);
 
@@ -1015,19 +1028,17 @@ app.post("/api/consumerlogin", async (req, res) => {
       { expiresIn: "24h" }
     );
 
-    res.json({
+    const responseData = {
       success: true,
       token,
-      
-        consumer_id: consumer.consumer_id,
-        first_name: consumer.first_name,
-        last_name: consumer.last_name,
-        email: consumer.email,
-        phone_number: consumer.phone_number,
-       
-    
-    });
-
+      consumer_id: consumer.consumer_id,
+      first_name: consumer.first_name,
+      last_name: consumer.last_name,
+      email: consumer.email,
+      phone_number: consumer.phone_number,
+    };
+    console.log("📌 Sending Response:", responseData); // ✅ Log API response
+    res.json(responseData);
   } catch (err) {
     console.error("Login error:", err);
     res.status(500).json({ success: false, message: "Server error" });
@@ -1808,29 +1819,41 @@ app.post('/api/add-produce', async (req, res) => {
 
 
 
-
-
-
-
 //bargain routes 
 const WebSocket = require('ws');
-const wss = new WebSocket.Server({ server });
-// WebSocket server (Node.js)
-wss.on('connection', (ws, req) => {
-  const token = new URL(req.url, `ws://${req.headers.host}`).searchParams.get('token');
-  
-  if (!token) {
-    ws.close(1008, 'Unauthorized');
-    return;
-  }
 
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    // Continue with connection
-  } catch (err) {
-    ws.close(1008, 'Invalid token');
-  }
+const wss = new WebSocket.Server({ noServer: true });
+
+wss.on('connection', (ws, request) => {
+    const params = new URLSearchParams(request.url.split('?')[1]);
+    const token = params.get('token');
+
+    if (!token) {
+        ws.close(4001, 'Token required');
+        return;
+    }
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        ws.user = decoded;
+    } catch (error) {
+        ws.close(4002, 'Invalid token');
+        return;
+    }
+
+    console.log(`✅ WebSocket connected for user ${ws.user.id}`);
+
+    ws.on('message', (message) => {
+        console.log('Received:', message);
+        ws.send(JSON.stringify({ text: 'Message received', timestamp: Date.now() }));
+    });
+
+    ws.on('close', () => {
+        console.log(`🔌 WebSocket disconnected for user ${ws.user.id}`);
+    });
 });
+
+
 // POST /api/bargain/initiate
 // app.post('/initiate', verifyToken, async (req, res) => {
 //   try {
@@ -2029,7 +2052,77 @@ app.get('/api/bargain/:bargainId', async (req, res) => {
     res.status(500).json({ error: 'Error fetching bargain session' });
   }
 });
+// Import necessary controllers for handling bargain messages and price updates
+const { getMessages, sendMessage, updatePrice } = require('./src/controllers/bargainController'); // Assuming these controllers are defined
 
+// Fetch all messages for a specific bargain session
+app.get("/api/bargain/:bargainId/messages", async (req, res) => {
+  try {
+    const bargainId = req.params.bargainId; // Use the correct param name `bargainId`
+    const messages = await getMessages(bargainId);  // Ensure this function exists and is correctly imported
+    res.status(200).json(messages);
+  } catch (error) {
+    console.error("Error fetching messages:", error);
+    res.status(500).json({ error: "Failed to fetch messages" });
+  }
+})
+
+// Send a new message in the bargain session
+app.post('/api/bargain/:bargainId/messages', async (req, res) => {
+  const { bargainId } = req.params;
+  const { content, senderType, price } = req.body; // Expecting content, senderType, and price in the body
+  
+  if (!content || !senderType) {
+    return res.status(400).json({ error: "Message content and sender type are required" });
+  }
+  
+  try {
+    // Assuming sendMessage handles inserting the new message into the database
+    const message = await sendMessage(bargainId, content, senderType, price);
+    res.json({ message });
+  } catch (error) {
+    console.error("Error sending message:", error);
+    res.status(500).json({ error: "Unable to send message" });
+  }
+});
+
+// Update the price for the bargain session
+app.post('/api/bargain/:bargainId/price', async (req, res) => {
+  const { bargainId } = req.params;
+  const { newPrice } = req.body; // Expecting newPrice in the body
+  
+  if (newPrice == null || isNaN(newPrice)) {
+    return res.status(400).json({ error: "Valid price is required" });
+  }
+
+  try {
+    // Assuming updatePrice handles updating the price for the given bargainId
+    const updatedPrice = await updatePrice(bargainId, newPrice);
+    res.json({ newPrice: updatedPrice });
+  } catch (error) {
+    console.error("Error updating price:", error);
+    res.status(500).json({ error: "Unable to update price" });
+  }
+});
+
+
+// Example backend API for fetching bargain sessions
+app.get('/api/bargain/sessions/farmer', async (req, res) => {
+  try {
+      console.log("Request received:", req.user);  // Debugging line
+      const farmerId = req.user?.id;  // Ensure farmerId is correctly extracted
+
+      if (!farmerId) {
+          return res.status(400).json({ error: "Farmer ID is missing" });
+      }
+
+      const sessions = await db.query('SELECT * FROM bargain_sessions WHERE farmer_id = ?', [farmerId]);
+      res.json(sessions);
+  } catch (err) {
+      console.error("Error fetching bargain sessions:", err);
+      res.status(500).json({ error: "Database error" });
+  }
+});
 
 
 if (process.env.NODE_ENV === 'production') {
@@ -2038,6 +2131,8 @@ if (process.env.NODE_ENV === 'production') {
     res.sendFile(path.resolve(__dirname, 'client', 'build', 'index.html'));
   });
 }
+setupSockets(server);
+
 // ✅ Start Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

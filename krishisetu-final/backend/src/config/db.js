@@ -232,6 +232,15 @@ const createTables = async () => {
 )
 ENGINE=InnoDB;
     `,
+    `CREATE TABLE if not exists messages (
+  message_id INT AUTO_INCREMENT PRIMARY KEY,
+  bargain_id INT NOT NULL,
+  price DECIMAL(10, 2) NOT NULL,           -- The price offered or suggested
+  sender_type ENUM('consumer', 'farmer', 'system') NOT NULL,  -- Who sent the message
+  message_type ENUM('offer', 'accept', 'reject') NOT NULL,    -- Type of the message (offer, accept, or reject)
+  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (bargain_id) REFERENCES bargain_sessions(bargain_id) ON DELETE CASCADE
+);`,
     // `
     // CREATE TABLE IF NOT EXISTS bargain_offers (
     //   offer_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -352,6 +361,8 @@ const dropTriggers = async () => {
     "DROP TRIGGER IF EXISTS set_bargain_expiration;",
     "DROP TRIGGER IF EXISTS after_bargain_update;",
     "DROP TRIGGER IF EXISTS before_bargain_insert;",
+    "DROP TRIGGER IF EXISTS update_bargain_status_after_message;",
+    "DROP TRIGGER IF EXISTS validate_price_before_insert;",
     "DROP EVENT IF EXISTS expire_bargains;",
 
 
@@ -383,6 +394,44 @@ const createTriggers = async () => {
       SET NEW.farmer_id = next_id;
     END;
     `,
+    `-- Trigger to update the status of the bargain session
+
+CREATE TRIGGER update_bargain_status_after_message
+AFTER INSERT ON bargain_messages
+FOR EACH ROW
+BEGIN
+    IF NEW.message_type = 'accept' THEN
+        -- Update the bargain session status to 'accepted' when an offer is accepted
+        UPDATE bargain_sessions
+        SET status = 'accepted'
+        WHERE bargain_id = NEW.bargain_id;
+    ELSEIF NEW.message_type = 'reject' THEN
+        -- Update the bargain session status to 'rejected' when an offer is rejected
+        UPDATE bargain_sessions
+        SET status = 'rejected'
+        WHERE bargain_id = NEW.bargain_id;
+    ELSEIF NEW.message_type = 'offer' THEN
+        -- Update the bargain session status to 'countered' when a price is offered (this could be for a counter-offer)
+        UPDATE bargain_sessions
+        SET status = 'countered'
+        WHERE bargain_id = NEW.bargain_id;
+    END IF;
+END ;
+
+`,
+`-- Trigger to ensure price is non-negative
+
+CREATE TRIGGER validate_price_before_insert
+BEFORE INSERT ON bargain_messages
+FOR EACH ROW
+BEGIN
+  IF NEW.price < 0 THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Price cannot be negative';
+  END IF;
+END ;
+
+`,
     `
     CREATE TRIGGER before_insert_consumer
     BEFORE INSERT ON consumerregistration

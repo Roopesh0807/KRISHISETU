@@ -1,202 +1,132 @@
-/* Chat Window Container */
+/* Base Variables */
+:root {
+  --primary-green: #4CAF50;
+  --dark-green: #388E3C;
+  --light-green: #C8E6C9;
+  --golden-yellow: #FFD700;
+  --earthy-brown: #8D6E63;
+  --cream-white: #FFF8E1;
+  --deep-teal: #00796B;
+  --error-red: #F44336;
+  --success-blue: #2196F3;
+}
+
+/* Chat Window */
 .chat-window {
+  margin-top: 80px;
+  margin-left: 100px;
+  width: 400px;
+  max-width: 100%;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4efe9 100%);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  height: 90vh; /* Increase height to fit everything on one screen */
-  width: 95%; /* Increase width to 95% of the screen */
-  max-width: 1200px; /* Wider for desktop */
-  margin: 20px auto; /* Center the chat window */
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  overflow: hidden;
-  margin-top: 30px;
-  background-color: #f9f9f9;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Add shadow for depth */
+  font-family: 'Arial', sans-serif;
 }
 
 /* Chat Header */
 .chat-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  background: linear-gradient(to right, var(--earthy-brown), var(--deep-teal));
+  color: white;
   padding: 15px;
-  background-color: #4CAF50;
-  color: white;
-}
-
-.chat-header-content {
-  display: flex;
-  align-items: center;
-}
-
-.avatar {
-  width: 50px; /* Slightly larger avatar for desktop */
-  height: 50px;
-  border-radius: 50%;
-  margin-right: 15px;
-}
-
-.member-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.member-name {
-  width:200px;
+  font-size: 18px;
   font-weight: bold;
-  font-size: 1.2em; /* Larger font for desktop */
-  color: black; /* Font color set to black */
-  margin-bottom: 5px; /* Space between name and ID */
-}
-
-.member-id {
-  font-size: 0.9em;
-  color: black; /* Font color set to black */
-}
-
-.close-button {
-  background: none;
-  border: none;
-  color: white;
-  font-size: 1.5em; /* Larger close button for desktop */
-  cursor: pointer;
+  text-align: center;
 }
 
 /* Chat Messages */
 .chat-messages {
-  flex: 1; /* Takes up most of the space */
-  padding: 15px;
+  flex-grow: 1;
+  padding: 10px;
   overflow-y: auto;
-  background-color: #fff;
+  max-height: 300px;
   display: flex;
   flex-direction: column;
-  gap: 10px; /* Space between messages */
-}
-
-.no-messages {
-  text-align: center;
-  color: #888;
-  font-style: italic;
+  gap: 8px;
+  background-color: var(--cream-white);
 }
 
 .message {
-  padding: 10px 15px;
-  border-radius: 8px;
-  max-width: 70%;
+  padding: 10px;
+  border-radius: 12px;
+  max-width: 75%;
+  word-wrap: break-word;
+  font-size: 14px;
+  position: relative;
+  animation: fadeIn 0.3s ease-out;
 }
 
-.message.sent {
-  background-color: #4CAF50;
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.message.consumer {
+  background: var(--primary-green);
   color: white;
-  align-self: flex-end;
-}
-
-.message.received {
-  background-color: #e0e0e0;
-  color: black;
   align-self: flex-start;
 }
 
-.message-text {
-  word-wrap: break-word;
+.message.farmer {
+  background: var(--cream-white);
+  color: #333;
+  align-self: flex-end;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-.message-timestamp {
-  font-size: 0.8em;
-  color: #666;
+.message small {
+  display: block;
+  font-size: 10px;
+  color: gray;
   margin-top: 5px;
 }
 
-/* Chat Suggestions */
-.chat-suggestions {
-  padding: 10px; /* Reduced padding */
-  background-color: #f1f1f1;
-  border-top: 1px solid #ccc;
-  max-height: 120px; /* Reduced height for suggestions */
-  overflow-y: hidden; /* Remove scrollbar */
-}
-
-.chat-suggestions h4 {
-  margin: 0 0 10px 0; /* Reduced margin */
-  font-size: 1em; /* Smaller font for suggestions */
-  color: #333;
-}
-
-.suggestion-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr); /* 2 columns for suggestions */
-  gap: 8px; /* Reduced gap between suggestions */
-}
-
-.suggestion-button {
-  padding: 6px; /* Reduced padding */
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  text-align: center;
-  font-size: 0.8em; /* Smaller font for suggestions */
-}
-
-.suggestion-button:hover {
-  background-color: #45a049;
-}
-.price-buttons-container {
-  display: flex;
-  justify-content: center;
-  gap: 10px; /* Space between buttons */
-  padding: 10px 0;
-}
-
-.price-button {
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  font-size: 16px;
-  cursor: pointer;
-  border-radius: 5px;
-  transition: background-color 0.3s ease;
-}
-
-.price-button:hover {
-  background-color: #45a049;
-}
-.bargain-actions {
+/* Bargain Actions */
+.bargain-actions, .counter-actions {
+  padding: 10px;
   display: flex;
   justify-content: space-around;
-  margin-top: 20px;
+  border-top: 1px solid #ddd;
+  background: var(--light-green);
 }
 
-.accept-button,
-.reject-button {
-  padding: 10px 20px;
-  font-size: 16px;
+button {
+  background: var(--primary-green);
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
   cursor: pointer;
-  border-radius: 5px;
-  transition: background-color 0.3s ease, transform 0.2s ease;
-  width: 45%; /* Make buttons take up equal space */
+  font-size: 14px;
+  transition: background 0.3s, transform 0.2s;
 }
 
-.accept-button {
-  background-color: #4CAF50;
-  color: white;
-  border: none;
+button:hover {
+  background: var(--dark-green);
+  transform: translateY(-2px);
 }
 
-.accept-button:hover {
-  background-color: #45a049;
-  transform: scale(1.05);
+.counter-buttons button {
+  margin: 5px;
+  background: var(--success-blue);
 }
 
-.reject-button {
-  background-color: #f44336;
-  color: white;
-  border: none;
+.counter-buttons button:hover {
+  background: #1976D2;
 }
 
-.reject-button:hover {
-  background-color: #e53935;
-  transform: scale(1.05);
+.loading, .error {
+  text-align: center;
+  padding: 20px;
+  font-weight: bold;
+  color: var(--error-red);
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .message {
+    max-width: 85%;
+  }
 }

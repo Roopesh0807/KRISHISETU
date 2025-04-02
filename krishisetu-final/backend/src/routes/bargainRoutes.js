@@ -57,6 +57,9 @@ router.get('/:sessionId', async (req, res) => {
       res.status(500).json({ error: "Internal Server Error" });
   }
 });
+const { sendBargainRequestMessage } = require('../controllers/bargainController');
+
+router.post('/send-bargain-message', sendBargainRequestMessage);
 
 
 // 🔔 Notifications

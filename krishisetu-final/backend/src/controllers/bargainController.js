@@ -1,10 +1,43 @@
-const {queryDatabase} = require("../config/db");
+const { queryDatabase } = require("../config/db");
 const { v4: uuidv4 } = require("uuid");
+
+const getMessages = async (bargainId) => {
+  const result = await queryDatabase("SELECT * FROM bargain_messages WHERE bargain_id = ?", [bargainId]);
+  return result;
+};
+const sendMessage = async (bargainId, price, senderType, action = null) => {
+  // The content is replaced by either price or action (accept/reject)
+  const result = await queryDatabase(
+    "INSERT INTO bargain_messages (bargain_id, price, sender_type, action) VALUES (?, ?, ?, ?)",
+    [bargainId, price, senderType, action]
+  );
+  return result;
+};
+const updatePrice = async (bargainId, price) => {
+  const result = await queryDatabase(
+    "UPDATE bargain_messages SET price = ? WHERE bargain_id = ?",
+    [price, bargainId]
+  );
+  return result;
+};
+// backend/controllers/bargainController.js
+
+const sendBargainRequestMessage = async (req, res) => {
+  const { bargainId, senderType } = req.body;
+  
+  try {
+    // Send message indicating the start of the bargain
+    const messageContent = `${senderType === "consumer" ? "Consumer" : "Farmer"} sent a request to initiate the bargain.`;
+    await sendMessage(bargainId, messageContent, senderType); // Assuming sendMessage is already defined
+    
+    res.status(200).json({ message: 'Bargain request sent successfully.' });
+  } catch (error) {
+    res.status(500).json({ error: 'Error sending bargain request message.' });
+  }
+};
 
 const initiateBargain = async (req, res) => {
   try {
-    console.log("Received request:", req.body); // Debugging
-
     const { farmer_id, product_id, quantity, original_price } = req.body;
     const consumer_id = req.user?.consumer_id;
 
@@ -30,6 +63,8 @@ const initiateBargain = async (req, res) => {
     res.status(500).json({ error: "Database operation failed" });
   }
 };
+
+
 const getPriceSuggestions = async (req, res) => {
   try {
     const { productId } = req.params;
@@ -122,6 +157,10 @@ const getBargainSession = async (req, res) => {
   try {
     const { sessionId } = req.params;
 
+    if (!sessionId) {
+      return res.status(400).json({ error: "Missing session ID" });
+    }
+
     const session = await queryDatabase(
       "SELECT * FROM bargain_sessions WHERE session_id = ?",
       [sessionId]
@@ -173,8 +212,6 @@ const markNotificationRead = async (req, res) => {
   }
 };
 
-// Alternative initiateBargain method for direct insertion
-
 exports.initiateBargain = async (req, res) => {
   try {
     const { farmer_id, product_id, quantity, original_price } = req.body;
@@ -184,7 +221,7 @@ exports.initiateBargain = async (req, res) => {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    // ✅ Insert new bargain session
+    // Insert new bargain session
     const sql = `
       INSERT INTO bargain_sessions (consumer_id, farmer_id, product_id, quantity, original_price)
       VALUES (?, ?, ?, ?, ?)
@@ -194,22 +231,19 @@ exports.initiateBargain = async (req, res) => {
 
     const result = await queryDatabase(sql, values);
 
-    console.log("Insert Result:", result);
-
     if (!result.insertId) {
       return res.status(500).json({ error: "Failed to create bargain session" });
     }
 
     const sessionId = result.insertId;
-    console.log("✅ New Bargain Session ID:", sessionId);
 
     res.status(201).json({ bargainId: sessionId });
-
   } catch (error) {
-    console.error("❌ Error initiating bargain:", error);
+    console.error("Error initiating bargain:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
 exports.getBargainSession = async (req, res) => {
   try {
     const { sessionId } = req.params;
@@ -218,9 +252,8 @@ exports.getBargainSession = async (req, res) => {
       return res.status(400).json({ error: "Missing session ID" });
     }
 
-    // ✅ Fetch bargain session from the database
     const sql = `
-      SELECT * FROM bargain_sessions WHERE id = ?
+      SELECT * FROM bargain_sessions WHERE session_id = ?
     `;
     const results = await queryDatabase(sql, [sessionId]);
 
@@ -230,10 +263,28 @@ exports.getBargainSession = async (req, res) => {
 
     res.status(200).json(results[0]);
   } catch (error) {
-    console.error("❌ Error fetching bargain session:", error);
+    console.error("Error fetching bargain session:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+exports.getMessages = async (bargainId) => {
+  const result = await queryDatabase("SELECT * FROM bargain_messages WHERE bargain_id = ?", [bargainId]);
+  return result;
+};
+
+// Assuming the sendMessage and updatePrice functions are also defined here
+exports.sendMessage = async (bargainId, content, senderType, price) => {
+  const result = await queryDatabase("INSERT INTO bargain_messages (bargain_id, content, sender_type, price) VALUES (?, ?, ?, ?)", 
+                                      [bargainId, content, senderType, price]);
+  return result;
+};
+
+exports.updatePrice = async (bargainId, newPrice) => {
+  const result = await queryDatabase("UPDATE bargain_sessions SET price = ? WHERE bargain_id = ?", 
+                                      [newPrice, bargainId]);
+  return result;
+};
+
 exports.respondToBargain = async (req, res) => {
   try {
     const { bargainId } = req.params;
@@ -280,4 +331,9 @@ module.exports = {
   getBargainSession,
   getBargainNotifications,
   markNotificationRead,
+  getMessages,  // <-- Add this line to ensure getMessages is exported properly
+  sendMessage,
+  updatePrice,
+  sendBargainRequestMessage,
 };
+
