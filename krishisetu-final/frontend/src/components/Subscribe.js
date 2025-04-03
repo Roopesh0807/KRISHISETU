@@ -34,7 +34,7 @@ const Subscription = () => {
           <div style={styles.productDetails}>
             <img src={product.image} alt={product.name} style={styles.productImage} />
             <h3>{product.name}</h3>
-            <p><strong>Quantity:</strong> {product.quantity}</p>
+            <p><strong> Quantity:</strong> {product.quantity}</p>
           </div>
         )}
 
