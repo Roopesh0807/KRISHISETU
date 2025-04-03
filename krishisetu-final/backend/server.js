@@ -946,55 +946,143 @@ app.get("/api/getFarmerDetails", async (req, res) => {
 // ✅ Consumer Registration API (With Hashing)
 
 
+// app.post("/api/consumerregister", async (req, res) => {
+//     console.log("Consumer Registration API Called ✅");  // Debugging
+
+//     const { first_name, last_name, email, phone_number, password, confirm_password } = req.body;
+
+//     // ✅ Check for missing fields
+//     if (!first_name || !last_name || !email || !phone_number || !password || !confirm_password) {
+//         return res.status(400).json({ success: false, message: "All fields are required" });
+//     }
+
+//     // ✅ Check if passwords match
+//     if (password !== confirm_password) {
+//         return res.status(400).json({ success: false, message: "Passwords do not match" });
+//     }
+
+//     try {
+//         // ✅ Hash the password before storing
+//         const hashedPassword = await bcrypt.hash(password, 10);
+
+//         // ✅ Insert into database (store only hashed password)
+//         const result = await queryDatabase(
+//             `INSERT INTO consumerregistration (first_name, last_name, email, phone_number, password) 
+//              VALUES (?, ?, ?, ?, ?);`,
+//             [first_name, last_name, email, phone_number, hashedPassword]
+//         );
+
+//         if (result.affectedRows === 0) {
+//             return res.status(500).json({ success: false, message: "Registration failed" });
+//         }
+
+//         // ✅ Fetch the correct consumer_id
+//         const consumerData = await queryDatabase(
+//             `SELECT consumer_id FROM consumerregistration WHERE email = ?`, 
+//             [email]
+//         );
+
+//         if (consumerData.length === 0) {
+//             return res.status(500).json({ success: false, message: "Consumer ID retrieval failed" });
+//         }
+
+//         const consumer_id = consumerData[0].consumer_id;
+
+//         res.json({ success: true, message: "Consumer registered successfully", consumer_id });
+
+//     } catch (err) {
+//         console.error("❌ Registration Error:", err);
+//         res.status(500).json({ success: false, message: "Database error", error: err.message });
+//     }
+// });
 app.post("/api/consumerregister", async (req, res) => {
-    console.log("Consumer Registration API Called ✅");  // Debugging
+  const { first_name, last_name, email, phone_number, password, confirm_password } = req.body;
 
-    const { first_name, last_name, email, phone_number, password, confirm_password } = req.body;
+  // Basic validation
+  if (!first_name || !email || !phone_number || !password) {
+      return res.status(400).json({ 
+          success: false, 
+          message: "First name, email, phone number and password are required" 
+      });
+  }
 
-    // ✅ Check for missing fields
-    if (!first_name || !last_name || !email || !phone_number || !password || !confirm_password) {
-        return res.status(400).json({ success: false, message: "All fields are required" });
-    }
+  if (password !== confirm_password) {
+      return res.status(400).json({ 
+          success: false, 
+          message: "Password and confirmation do not match" 
+      });
+  }
 
-    // ✅ Check if passwords match
-    if (password !== confirm_password) {
-        return res.status(400).json({ success: false, message: "Passwords do not match" });
-    }
+  try {
+      // Start transaction
+      await queryDatabase("START TRANSACTION");
 
-    try {
-        // ✅ Hash the password before storing
-        const hashedPassword = await bcrypt.hash(password, 10);
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 10);
 
-        // ✅ Insert into database (store only hashed password)
-        const result = await queryDatabase(
-            `INSERT INTO consumerregistration (first_name, last_name, email, phone_number, password) 
-             VALUES (?, ?, ?, ?, ?);`,
-            [first_name, last_name, email, phone_number, hashedPassword]
-        );
+      // Insert into consumerregistration (trigger will generate ID)
+      const result = await queryDatabase(
+          `INSERT INTO consumerregistration 
+           (first_name, last_name, email, phone_number, password, confirm_password) 
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [first_name, last_name || '', email, phone_number, hashedPassword, hashedPassword]
+      );
 
-        if (result.affectedRows === 0) {
-            return res.status(500).json({ success: false, message: "Registration failed" });
-        }
+      // Get the newly created consumer with all details
+      const [consumer] = await queryDatabase(
+          `SELECT * FROM consumerregistration WHERE email = ?`,
+          [email]
+      );
 
-        // ✅ Fetch the correct consumer_id
-        const consumerData = await queryDatabase(
-            `SELECT consumer_id FROM consumerregistration WHERE email = ?`, 
-            [email]
-        );
+      // Verify the profile was created
+      const [profile] = await queryDatabase(
+          `SELECT * FROM consumerprofile WHERE consumer_id = ?`,
+          [consumer.consumer_id]
+      );
 
-        if (consumerData.length === 0) {
-            return res.status(500).json({ success: false, message: "Consumer ID retrieval failed" });
-        }
+      if (!profile) {
+          throw new Error("Profile creation failed");
+      }
 
-        const consumer_id = consumerData[0].consumer_id;
+      // Commit transaction
+      await queryDatabase("COMMIT");
 
-        res.json({ success: true, message: "Consumer registered successfully", consumer_id });
+      return res.json({
+          success: true,
+          message: "Registration successful",
+          consumer_id: consumer.consumer_id,
+          profile_created: true
+      });
 
-    } catch (err) {
-        console.error("❌ Registration Error:", err);
-        res.status(500).json({ success: false, message: "Database error", error: err.message });
-    }
+  } catch (err) {
+      await queryDatabase("ROLLBACK");
+      
+      console.error("Registration error:", err);
+      
+      // Handle duplicate email/phone
+      if (err.code === 'ER_DUP_ENTRY') {
+          if (err.sqlMessage.includes('email')) {
+              return res.status(400).json({ 
+                  success: false, 
+                  message: "Email already registered" 
+              });
+          }
+          if (err.sqlMessage.includes('phone_number')) {
+              return res.status(400).json({ 
+                  success: false, 
+                  message: "Phone number already registered" 
+              });
+          }
+      }
+      
+      return res.status(500).json({ 
+          success: false, 
+          message: "Registration failed",
+          error: err.message 
+      });
+  }
 });
+
 // ✅ Consumer Login Route
 app.post("/api/consumerlogin", async (req, res) => {
   const { emailOrPhone, password } = req.body;
