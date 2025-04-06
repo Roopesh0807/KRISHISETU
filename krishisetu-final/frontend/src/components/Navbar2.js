@@ -1,11 +1,13 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaSeedling, FaPlus, FaBell, FaUser, FaSignOutAlt } from 'react-icons/fa';
+import { useAuth } from '../context/AuthContext'; // Import useAuth
 import logo from '../assets/logo.jpg';
 import './Navbar2.css';
 
 const Navbar2 = () => {
   const navigate = useNavigate();
+  const { farmer } = useAuth(); // Get farmer from auth context
 
   const handleLogout = () => {
     // Perform logout logic here
@@ -41,9 +43,13 @@ const Navbar2 = () => {
           </Link>
         </li>
 
-        {/* Profile */}
+        {/* Profile - Now using actual farmer_id */}
         <li>
-          <Link to="/farmer/:farmer_id/profile" className="icon-link" title="Profile">
+          <Link 
+            to={`/farmer/${farmer?.farmer_id}/profile`} 
+            className="icon-link" 
+            title="Profile"
+          >
             <FaUser className="icon" aria-label="Profile" />
             <span className="icon-text">Profile</span>
           </Link>

@@ -1,19 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import './Sidebar.css'; // Styling for the sidebar
+import './Sidebar.css';
+import { AuthContext } from '../context/AuthContext';
 
-const Sidebar = () => {
+const Sidebar = ({ isOpen, toggleSidebar }) => {
   const navigate = useNavigate();
-  const location = useLocation(); // Get current route
-  const [isOpen, setIsOpen] = useState(false); // Sidebar closed by default
+  const location = useLocation();
   const [showCommunity, setShowCommunity] = useState(false);
-
-  // Toggle Sidebar
-  const toggleSidebar = () => {
-    setIsOpen(!isOpen);
-  };
-
-  // Function to open Plant Disease Detection in a new tab
+  const { farmer } = useContext(AuthContext);
+  
   const handlePlantDiseaseClick = () => {
     window.open(
       'https://plant-disease-detection-system-for-sustainable-agriculture-yg2.streamlit.app/',
@@ -21,100 +16,106 @@ const Sidebar = () => {
     );
   };
 
-  // Check if a button is active based on the current route
-  const isActive = (path) => {
-    return location.pathname === path;
+  const isActive = (path) => location.pathname === path;
+
+  const navigateWithFarmerId = (path) => {
+    if (!farmer?.farmer_id) {
+      alert("Please log in first");
+      navigate("/farmer-login");
+      return;
+    }
+    navigate(`${path}?farmer_id=${farmer.farmer_id}`);
   };
 
   return (
     <>
-      {/* Sidebar */}
       <div className={`sidebar ${isOpen ? 'open' : ''}`}>
-        {/* Sidebar Content */}
         <div className="sidebar-content">
-          {/* Toggle Button */}
           <button className="toggle-btn" onClick={toggleSidebar}>
-            {isOpen ? '✕' : '☰'} {/* Close icon when open, hamburger when closed */}
+            {isOpen ? '✕' : '☰'}
           </button>
 
-          {/* Sidebar Buttons */}
           <button
-            onClick={() => navigate('/farmer-dashboard')}
-            title="Dashboard"
+            onClick={() => navigateWithFarmerId('/farmer-dashboard')}
             className={isActive('/farmer-dashboard') ? 'active' : ''}
+            title="Dashboard"
           >
-            <i className="fas fa-home"></i> {/* Icon */}
-            {isOpen && 'Dashboard'} {/* Text only when open */}
+            <i className="fas fa-home"></i>
+            {isOpen && 'Dashboard'}
           </button>
+
           <button
-            onClick={() => navigate('/view-profile')}
-            title="View Profile"
+            onClick={() => navigateWithFarmerId('/view-profile')}
             className={isActive('/view-profile') ? 'active' : ''}
+            title="View Profile"
           >
             <i className="fas fa-user"></i>
             {isOpen && 'View Profile'}
           </button>
           
           <button
-            onClick={() => navigate('/order-review')}
-            title="Order Review"
+            onClick={() => navigateWithFarmerId('/order-review')}
             className={isActive('/order-review') ? 'active' : ''}
           >
             <i className="fas fa-clipboard-list"></i>
             {isOpen && 'Order Review'}
           </button>
+
           <button
-            onClick={() => navigate('/farmers/my-reviews')}
-            title="reviews"
+            onClick={() => navigateWithFarmerId('/farmers/my-reviews')}
             className={isActive('/farmers/my-reviews') ? 'active' : ''}
+            title="My Reviews"
           >
-            <i className="fas fa-user"></i>
+            <i className="fas fa-star"></i>
             {isOpen && 'My Reviews'}
           </button>
+
           <button
-            onClick={() => navigate(`/farmer/bargain`)}
+            onClick={() => navigateWithFarmerId('/farmer/bargain')}
+            className={isActive('/farmer/bargain') ? 'active' : ''}
             title="Bargain"
-            className={isActive(`/farmer/bargain`)? 'active' : ''}
           >
             <i className="fas fa-handshake"></i>
             {isOpen && 'Bargain'}
           </button>
+
           <button
             onClick={handlePlantDiseaseClick}
             title="Plant Disease Detection"
           >
             <i className="fas fa-leaf"></i>
-            {isOpen && 'Plant Disease Detection'}
+            {isOpen && 'Plant Health'}
           </button>
+
           <button
             onClick={() => setShowCommunity(true)}
             title="Farmer's Community"
           >
             <i className="fas fa-users"></i>
-            {isOpen && "Farmer's Community"}
+            {isOpen && "Community"}
           </button>
+
           <button
             onClick={() => navigate('/Contact')}
+            className={isActive('/Contact') ? 'active' : ''}
             title="Help and Support"
-            className={isActive('/help') ? 'active' : ''}
           >
             <i className="fas fa-question-circle"></i>
-            {isOpen && 'Help and Support'}
+            {isOpen && 'Support'}
           </button>
         </div>
       </div>
 
-      {/* Farmer's Community Overlay */}
       {showCommunity && (
         <div className="community-overlay">
           <button className="close-btn" onClick={() => setShowCommunity(false)}>
-            Close
+            <i className="fas fa-times"></i>
           </button>
           <iframe
             src="https://farmer-s-community.onrender.com"
             className="community-iframe"
             title="Farmer's Community"
-          ></iframe>
+          />
         </div>
       )}
     </>
