@@ -117,129 +117,174 @@
 // Update the getOrders function in orderController.js
 
 exports.getOrders = async (req, res) => {
+
   const { communityId } = req.params;
 
+
+
   try {
-    // 1. Get community details with admin info
-    const communityQuery = `
+
+    // 1. Get all members with their orders
+
+    const query = `
+
       SELECT 
-        c.community_id,
-        c.community_name,
-        c.address,
-        DATE_FORMAT(c.delivery_date, '%Y-%m-%d') as delivery_date,
-        TIME_FORMAT(c.delivery_time, '%H:%i') as delivery_time,
-        CONCAT(cr.first_name, ' ', cr.last_name) as admin_name,
-        c.admin_id
-      FROM communities c
-      JOIN consumerregistration cr ON c.admin_id = cr.consumer_id
-      WHERE c.community_id = ?
-    `;
-    const [community] = await queryDatabase(communityQuery, [communityId]);
 
-    if (!community) {
-      return res.status(404).json({ error: "Community not found" });
-    }
-
-    // 2. Get total members count (excluding admin)
-    const membersCountQuery = `
-      SELECT COUNT(*) as total_members 
-      FROM members 
-      WHERE community_id = ? AND consumer_id != ?
-    `;
-    const [membersCount] = await queryDatabase(membersCountQuery, [communityId, community.admin_id]);
-
-    // 3. Get confirmed orders count (members with orders, excluding admin)
-    const confirmedOrdersQuery = `
-      SELECT COUNT(DISTINCT m.member_id) as confirmed_members
-      FROM orders o
-      JOIN members m ON o.member_id = m.member_id
-      WHERE o.community_id = ? AND m.consumer_id != ?
-    `;
-    const [confirmedOrders] = await queryDatabase(confirmedOrdersQuery, [communityId, community.admin_id]);
-
-    // 4. Get admin orders
-    const adminOrdersQuery = `
-      SELECT 
-        o.order_id,
-        o.product_id,
-        o.quantity,
-        o.price,
-        o.payment_method
-      FROM orders o
-      JOIN members m ON o.member_id = m.member_id
-      WHERE o.community_id = ? AND m.consumer_id = ?
-    `;
-    const adminOrders = await queryDatabase(adminOrdersQuery, [communityId, community.admin_id]);
-
-    // 5. Get all other orders grouped by member (excluding admin)
-    const ordersQuery = `
-      SELECT 
-        o.order_id,
-        o.product_id,
-        o.quantity,
-        o.price,
         m.member_id,
-        m.member_name,
-        m.phone_number
-      FROM orders o
-      JOIN members m ON o.member_id = m.member_id
-      WHERE o.community_id = ? AND m.consumer_id != ?
+
+        m.member_name AS name,
+
+        m.phone_number AS phone,
+
+        m.consumer_id,
+
+        (
+
+          SELECT json_agg(json_build_object(
+
+            'order_id', o.order_id,
+
+            'product_id', o.product_id,
+
+            'quantity', o.quantity,
+
+            'price', o.price,
+
+            'payment_method', o.payment_method
+
+          ))
+
+          FROM orders o
+
+          WHERE o.community_id = ? AND o.member_id = m.member_id
+
+        ) AS orders,
+
+        (
+
+          SELECT SUM(o.price * o.quantity)
+
+          FROM orders o
+
+          WHERE o.community_id = ? AND o.member_id = m.member_id
+
+        ) AS total,
+
+        (
+
+          SELECT o.payment_method
+
+          FROM orders o
+
+          WHERE o.community_id = ? AND o.member_id = m.member_id
+
+          LIMIT 1
+
+        ) AS payment_method
+
+      FROM members m
+
+      WHERE m.community_id = ?
+
     `;
-    const orders = await queryDatabase(ordersQuery, [communityId, community.admin_id]);
 
-    // Calculate totals
-    const adminTotal = adminOrders.reduce((sum, order) => sum + (order.price * order.quantity), 0);
-    const grandTotal = orders.reduce((sum, order) => sum + (order.price * order.quantity), 0) + adminTotal;
 
-    // Format response
-    res.json({
-      communityName: community.community_name,
-      adminName: community.admin_name,
-      address: community.address,
-      deliveryDate: community.delivery_date,
-      deliveryTime: community.delivery_time,
-      grandTotal: grandTotal,
-      overallPaymentStatus: 'unpaid', // Default status
-      totalMembers: membersCount.total_members,
-      confirmedMembers: confirmedOrders.confirmed_members,
-      adminOrders: adminOrders,
-      adminTotal: adminTotal,
-      members: formatMemberOrders(orders)
-    });
+
+    const members = await queryDatabase(query, [communityId, communityId, communityId, communityId]);
+
+
+
+    // Format the response
+
+    const response = {
+
+      members: members.map(member => ({
+
+        ...member,
+
+        orders: member.orders || [],
+
+        total: member.total || 0
+
+      }))
+
+    };
+
+
+
+    res.json(response);
 
   } catch (error) {
+
     console.error("Error fetching orders:", error);
+
     res.status(500).json({ error: "Internal server error" });
+
   }
+
 };
 
-// Helper function to group orders by member
-function formatMemberOrders(orders) {
-  const membersMap = {};
-  
-  orders.forEach(order => {
-    if (!membersMap[order.member_id]) {
-      membersMap[order.member_id] = {
-        memberId: order.member_id,
-        memberName: order.member_name,
-        phone: order.phone_number,
-        orders: [],
-        total: 0
-      };
-    }
-    
-    const member = membersMap[order.member_id];
-    member.orders.push({
-      id: order.order_id,
-      product: order.product_id,
-      quantity: order.quantity,
-      price: order.price
-    });
-    member.total += order.price * order.quantity;
-  });
+exports.getAllOrders = async (req, res) => {
 
-  return Object.values(membersMap);
-}
+  const { communityId } = req.params;
+
+
+
+  try {
+
+    const query = `
+
+      SELECT 
+
+        o.order_id,
+
+        o.product_id,
+
+        o.quantity,
+
+        o.price,
+
+        o.payment_method,
+
+        o.member_id,
+
+        m.member_name,
+
+        m.phone_number,
+
+        m.consumer_id
+
+      FROM orders o
+
+      JOIN members m ON o.member_id = m.member_id
+
+      WHERE o.community_id = ?
+
+      ORDER BY m.member_name, o.order_id
+
+    `;
+
+
+
+    const orders = await queryDatabase(query, [communityId]);
+
+    
+
+    res.status(200).json(orders);
+
+  } catch (error) {
+
+    console.error("Error fetching all orders:", error);
+
+    res.status(500).json({ error: "Internal server error" });
+
+  }
+
+};
+
+
+
+
 
 const { queryDatabase } = require("../config/db");
 
