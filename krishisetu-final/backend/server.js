@@ -1741,6 +1741,82 @@ app.get("/api/check-user-details", async (req, res) => {
   }
 });
 
+
+// Add these routes to your server.js
+
+// Get produces for a farmer and market type
+app.get("/api/produces", async (req, res) => {
+  const { farmer_id, market_type } = req.query;
+  
+  try {
+    const query = `
+      SELECT * FROM add_produce 
+      WHERE farmer_id = ? AND market_type = ?
+      ORDER BY produce_name
+    `;
+    const results = await queryDatabase(query, [farmer_id, market_type]);
+    res.json(results);
+  } catch (error) {
+    console.error("Error fetching produces:", error);
+    res.status(500).json({ error: "Failed to fetch produces" });
+  }
+});
+
+// Add new produce
+app.post("/api/produces", async (req, res) => {
+  const { farmer_id, farmer_name, produce_name, availability, price_per_kg, produce_type, market_type, email } = req.body;
+  
+  try {
+    const query = `
+      INSERT INTO add_produce 
+      (farmer_id, farmer_name, produce_name, availability, price_per_kg, produce_type, market_type, email)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+    await queryDatabase(query, [
+      farmer_id, farmer_name, produce_name, availability, price_per_kg, produce_type, market_type, email
+    ]);
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error adding produce:", error);
+    res.status(500).json({ error: "Failed to add produce" });
+  }
+});
+
+// Update produce
+app.put("/api/produces/:product_id", async (req, res) => {
+  const { product_id } = req.params;
+  const { produce_name, availability, price_per_kg, produce_type } = req.body;
+  
+  try {
+    const query = `
+      UPDATE add_produce 
+      SET produce_name = ?, availability = ?, price_per_kg = ?, produce_type = ?
+      WHERE product_id = ?
+    `;
+    await queryDatabase(query, [produce_name, availability, price_per_kg, produce_type, product_id]);
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error updating produce:", error);
+    res.status(500).json({ error: "Failed to update produce" });
+  }
+});
+
+// Delete produce
+app.delete("/api/produces/:product_id", async (req, res) => {
+  const { product_id } = req.params;
+  
+  try {
+    const query = "DELETE FROM add_produce WHERE product_id = ?";
+    await queryDatabase(query, [product_id]);
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting produce:", error);
+    res.status(500).json({ error: "Failed to delete produce" });
+  }
+});
+
+
+
 app.get("/farmer/:farmer_id", async (req, res) => {
   try {
     const { farmer_id } = req.params;
@@ -2929,6 +3005,76 @@ app.post('/api/create-bargain', async (req, res) => {
 app.get('/create-bargain', (req, res) => {
   res.status(200).json({ message: 'POST route is available, use POST to create bargain.' });
 });
+// ... (other route imports and middleware above)
+
+// Add this after other route declarations but before error handlers
+app.post('/api/subscriptions', async (req, res) => {
+  const { consumer_id, subscription_type, product_id, product_name, quantity, price, start_date } = req.body;
+  
+  try {
+      // Verify consumer exists
+      const consumerCheck = await queryDatabase(
+          "SELECT consumer_id FROM consumerregistration WHERE consumer_id = ?",
+          [consumer_id]
+      );
+      
+      if (consumerCheck.length === 0) {
+          return res.status(404).json({ success: false, message: "Consumer not found" });
+      }
+
+      // Insert subscription into database
+      const result = await queryDatabase(
+          `INSERT INTO subscriptions 
+          (consumer_id, subscription_type, product_id, product_name, quantity, price, start_date)
+          VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [consumer_id, subscription_type, product_id, product_name, quantity, price, start_date]
+      );
+
+      if (result.affectedRows === 0) {
+          return res.status(400).json({ success: false, message: "Failed to create subscription" });
+      }
+
+      res.status(201).json({ 
+          success: true, 
+          message: "Subscription created successfully",
+          subscription_id: result.insertId
+      });
+  } catch (error) {
+      console.error("Error creating subscription:", error);
+      res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+
+app.get('/api/subscriptions/:consumer_id', async (req, res) => {
+  const { consumer_id } = req.params;
+
+  try {
+      // Verify consumer exists
+      const consumerCheck = await queryDatabase(
+          "SELECT consumer_id FROM consumerregistration WHERE consumer_id = ?",
+          [consumer_id]
+      );
+      
+      if (consumerCheck.length === 0) {
+          return res.status(404).json({ success: false, message: "Consumer not found" });
+      }
+
+      const subscriptions = await queryDatabase(
+          `SELECT * FROM subscriptions 
+           WHERE consumer_id = ? 
+           ORDER BY start_date DESC`,
+          [consumer_id]
+      );
+
+      res.json({ success: true, subscriptions });
+  } catch (error) {
+      console.error("Error fetching subscriptions:", error);
+      res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+
+// ... (error handlers and server startup below)
+
 
 
 
@@ -4014,6 +4160,130 @@ app.post('/api/instamojo-webhook', async (req, res) => {
 
 
 
+
+
+
+
+
+
+
+
+
+const router = express.Router();
+// const { queryDatabase } = require('./database');
+
+// Get all subscriptions for a consumer
+router.get('/:consumer_id', async (req, res) => {
+  try {
+    const { consumer_id } = req.params;
+    
+    const subscriptions = await queryDatabase(
+      `SELECT 
+        subscription_id AS id,
+        subscription_type AS type,
+        product_name AS name,
+        quantity,
+        price,
+        start_date AS startDate
+       FROM subscriptions 
+       WHERE consumer_id = ? AND status = 'Active'
+       ORDER BY start_date DESC`,
+      [consumer_id]
+    );
+    
+    // Always return an array, even if empty
+    res.json(subscriptions || []);
+    
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      message: error.message 
+    });
+  }
+});
+
+// Update subscription quantity
+router.put('/:subscription_id', async (req, res) => {
+  try {
+    const { subscription_id } = req.params;
+    const { quantity } = req.body;
+
+    if (!quantity || isNaN(quantity)) {
+      return res.status(400).json({ error: 'Valid quantity required' });
+    }
+
+    await queryDatabase(
+      `UPDATE subscriptions 
+       SET quantity = ?, 
+           price = quantity * (
+             SELECT price_per_kg 
+             FROM products 
+             WHERE product_id = subscriptions.product_id
+           )
+       WHERE subscription_id = ?`,
+      [quantity, subscription_id]
+    );
+
+    const updated = await queryDatabase(
+      `SELECT 
+        subscription_id AS id,
+        subscription_type AS type,
+        product_name AS name,
+        quantity,
+        price,
+        start_date AS startDate
+       FROM subscriptions 
+       WHERE subscription_id = ?`,
+      [subscription_id]
+    );
+    
+    res.json(updated[0] || {});
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      message: error.message 
+    });
+  }
+});
+
+// Cancel subscription
+router.delete('/:subscription_id', async (req, res) => {
+  try {
+    const { subscription_id } = req.params;
+    
+    await queryDatabase(
+      `UPDATE subscriptions 
+       SET status = 'Cancelled' 
+       WHERE subscription_id = ?`,
+      [subscription_id]
+    );
+    
+    res.json({ 
+      success: true, 
+      message: 'Subscription cancelled' 
+    });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      message: error.message 
+    });
+  }
+});
+
+module.exports = router;
+
+
+
+
+
+
+
+
+
+
 // Example backend API for fetching bargain sessions
 app.get('/api/bargain/sessions/farmer', async (req, res) => {
   try {
@@ -4039,8 +4309,22 @@ if (process.env.NODE_ENV === 'production') {
     res.sendFile(path.resolve(__dirname, 'client', 'build', 'index.html'));
   });
 }
+
+
+
+
 setupSockets(server);
 
 // ✅ Start Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+
+
+
+
+
+
+
+
+
+

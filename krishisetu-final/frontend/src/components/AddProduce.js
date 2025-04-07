@@ -1,11 +1,22 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useContext } from 'react';
 import axios from 'axios';
 import './addproduce.css';
 import KSlogo from "../assets/logo.jpg";
 import BSimg from "../assets/bargain.jpeg";
-import { useNavigate } from 'react-router-dom';
+import { AuthContext } from '../context/AuthContext';
+
+// Move the helper function outside the component
+const getFarmerName = (farmerData) => {
+  if (!farmerData) return 'Farmer';
+  if (farmerData.full_name) return farmerData.full_name;
+  if (farmerData.first_name && farmerData.last_name) {
+    return `${farmerData.first_name} ${farmerData.last_name}`;
+  }
+  return farmerData.first_name || farmerData.last_name || 'Farmer';
+};
 
 const AddProduce = () => {
+  // State declarations
   const [selectedMarket, setSelectedMarket] = useState(null);
   const [produces, setProduces] = useState([]);
   const [newProduce, setNewProduce] = useState({
@@ -16,80 +27,67 @@ const AddProduce = () => {
     market_type: ''
   });
   const [isFormVisible, setIsFormVisible] = useState(false);
-  const [farmerId, setFarmerId] = useState('');
-  const [farmerName, setFarmerName] = useState('');
-  const [farmerEmail, setFarmerEmail] = useState('');
-  const [editingId, setEditingId] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const navigate = useNavigate();
+  
+  // Get farmer from AuthContext with proper initialization
+  const authContext = useContext(AuthContext);
+  const farmer = authContext?.farmer || {};
+  
+  // State for farmer details with proper initialization
+  const [farmerDetails, setFarmerDetails] = useState({
+    id: '',
+    name: 'Loading...',
+    isLoaded: false
+  });
 
-  // Fetch farmer details
+  // Effect to update farmer details when context changes
   useEffect(() => {
-    const fetchFarmerDetails = async () => {
-      try {
-        setIsLoading(true);
-        const token = localStorage.getItem('token');
-        if (!token) {
-          navigate('/login');
-          return;
-        }
+    if (authContext?.farmer) {
+      setFarmerDetails({
+        id: authContext.farmer.farmer_id || '',
+        name: getFarmerName(authContext.farmer),
+        isLoaded: true
+      });
+    } else {
+      setFarmerDetails({
+        id: '',
+        name: 'Loading...',
+        isLoaded: false
+      });
+    }
+  }, [authContext?.farmer]);
+  
 
-        const response = await axios.get('/api/farmer', {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-        
-        setFarmerId(response.data.farmer_id);
-        setFarmerName(response.data.farmer_name);
-        setFarmerEmail(response.data.email);
-      } catch (err) {
-        console.error('Failed to fetch farmer details:', err);
-        setError('Failed to load farmer details. Please try again.');
-        if (err.response?.status === 401) {
-          navigate('/login');
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchFarmerDetails();
-  }, [navigate]);
-
-  // Load produces
   const loadProduces = useCallback(async () => {
-    if (!selectedMarket || !farmerId) return;
+    if (!selectedMarket || !farmerDetails.id || !farmerDetails.isLoaded) return;
     
     try {
       setIsLoading(true);
-      const token = localStorage.getItem('token');
-      const response = await axios.get('/api/produces', {
-        headers: {
-          Authorization: `Bearer ${token}`
-        },
+      const response = await axios.get(`http://localhost:5000/api/produces`, {
         params: {
+          farmer_id: farmerDetails.id,
           market_type: selectedMarket
         }
       });
       setProduces(response.data);
+      setError('');
     } catch (err) {
       console.error('Failed to fetch produces:', err);
       setError('Failed to load produces. Please try again.');
     } finally {
       setIsLoading(false);
     }
-  }, [selectedMarket, farmerId]);
+  }, [selectedMarket, farmerDetails.id, farmerDetails.isLoaded]);
 
   useEffect(() => {
     loadProduces();
   }, [loadProduces]);
 
   const handleMarketClick = (market) => {
-    setSelectedMarket(market === 'krishisetu' ? 'KrishiSetu Market' : 'Bargaining Market');
+    const marketType = market === 'krishisetu' ? 'KrishiSetu Market' : 'Bargaining Market';
+    setSelectedMarket(marketType);
     setIsFormVisible(false);
-    setEditingId(null);
     setError('');
   };
 
@@ -106,14 +104,13 @@ const AddProduce = () => {
     e.preventDefault();
     setError('');
     
-    // Validate form inputs
     if (!newProduce.produce_name || !newProduce.availability || !newProduce.price_per_kg) {
       setError('Please fill all the fields');
       return;
     }
   
-    if (isNaN(newProduce.availability) || parseFloat(newProduce.availability) <= 0) {
-      setError('Availability must be a positive number');
+    if (isNaN(newProduce.availability)) {
+      setError('Availability must be a number');
       return;
     }
   
@@ -121,26 +118,39 @@ const AddProduce = () => {
       setError('Price must be a valid number');
       return;
     }
+
+    if (!farmer?.farmer_id) {
+      setError('Farmer information not available. Please log in again.');
+      return;
+    }
   
     try {
       setIsLoading(true);
       const produceData = {
         ...newProduce,
-        farmer_id: farmerId,
-        farmer_name: farmerName,
-        email: farmerEmail,
+        farmer_id: farmer.farmer_id,
+        farmer_name: farmer.full_name || `${farmer.first_name} ${farmer.last_name}`,
+        email: farmer.email,
         availability: parseFloat(newProduce.availability),
-        price_per_kg: parseFloat(newProduce.price_per_kg)
+        price_per_kg: parseFloat(newProduce.price_per_kg),
+        market_type: selectedMarket
       };
-  
-      if (editingId) {
-        await axios.put(`/api/produces/${editingId}`, produceData);
+
+      if (newProduce.id) {
+        await axios.put(`http://localhost:5000/api/produces/${newProduce.id}`, produceData);
       } else {
-        await axios.post('/api/produces', produceData);
+        await axios.post('http://localhost:5000/api/produces', produceData);
       }
-  
+
       await loadProduces();
-      resetForm();
+      setNewProduce({
+        produce_name: '',
+        availability: '',
+        price_per_kg: '',
+        produce_type: 'Standard',
+        market_type: selectedMarket
+      });
+      setIsFormVisible(false);
     } catch (err) {
       console.error('Failed to save produce:', err);
       setError(err.response?.data?.error || 'Failed to save produce. Please try again.');
@@ -151,13 +161,9 @@ const AddProduce = () => {
 
   const editProduce = (produce) => {
     setNewProduce({
-      produce_name: produce.produce_name,
-      availability: produce.availability,
-      price_per_kg: produce.price_per_kg,
-      produce_type: produce.produce_type,
-      market_type: produce.market_type
+      ...produce,
+      id: produce.product_id
     });
-    setEditingId(produce.product_id);
     setIsFormVisible(true);
   };
 
@@ -166,7 +172,7 @@ const AddProduce = () => {
     
     try {
       setIsLoading(true);
-      await axios.delete(`/api/produces/${productId}`);
+      await axios.delete(`http://localhost:5000/api/produces/${productId}`);
       await loadProduces();
     } catch (err) {
       console.error('Failed to delete produce:', err);
@@ -176,25 +182,21 @@ const AddProduce = () => {
     }
   };
 
-  const resetForm = () => {
-    setNewProduce({
-      produce_name: '',
-      availability: '',
-      price_per_kg: '',
-      produce_type: 'Standard',
-      market_type: selectedMarket
-    });
-    setEditingId(null);
-    setIsFormVisible(false);
-  };
-
   return (
     <div className="addproduce-container">
       <h1>Produces Added to the List</h1>
-      <p>Farmer ID: {farmerId}</p>
-      <p>Farmer Name: {farmerName}</p>
-
-      {/* Error and Loading indicators */}
+      
+      {/* Farmer info section */}
+      <div className="farmer-info">
+        {farmerDetails.isLoaded ? (
+          <>
+            {farmerDetails.id && <p>Farmer ID: {farmerDetails.id}</p>}
+            <p>Farmer Name: {farmerDetails.name}</p>
+          </>
+        ) : (
+          <p>Loading farmer information...</p>
+        )}
+      </div>
       {error && <div className="error-message">{error}</div>}
       {isLoading && <div className="loading-indicator">Loading...</div>}
 
@@ -223,7 +225,15 @@ const AddProduce = () => {
             className="addproduce-button" 
             onClick={() => {
               setIsFormVisible(!isFormVisible);
-              if (isFormVisible) resetForm();
+              if (isFormVisible) {
+                setNewProduce({
+                  produce_name: '',
+                  availability: '',
+                  price_per_kg: '',
+                  produce_type: 'Standard',
+                  market_type: selectedMarket
+                });
+              }
             }}
             disabled={isLoading}
           >
@@ -232,7 +242,7 @@ const AddProduce = () => {
 
           {isFormVisible && (
             <div className="addproduce-form">
-              <h3>{editingId ? 'Edit Produce' : 'Add Produce'} to {selectedMarket}</h3>
+              <h3>{newProduce.id ? 'Edit Produce' : 'Add Produce'} to {selectedMarket}</h3>
               <form onSubmit={handleSubmit}>
                 <div>
                   <label>Produce Name:</label>
@@ -292,7 +302,7 @@ const AddProduce = () => {
                   className="addproduce-submit-button"
                   disabled={isLoading}
                 >
-                  {isLoading ? 'Saving...' : editingId ? 'Update Produce' : 'Add Produce'}
+                  {isLoading ? 'Saving...' : newProduce.id ? 'Update Produce' : 'Add Produce'}
                 </button>
               </form>
             </div>

@@ -347,3 +347,213 @@
     font-size: 28px;
   }
 }
+
+
+
+
+
+
+
+/* Success Message Styles */
+.ks-success-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.ks-success-message {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.ks-success-icon {
+  color: #2e7d32;
+  font-size: 50px;
+  margin-bottom: 20px;
+}
+
+.ks-success-message p {
+  color: #2c3e50;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Keep all your existing CSS styles below this line */
+
+/* Subscription Popup Styles */
+.ks-subscription-popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.ks-subscription-container {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  position: relative;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.ks-close-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #777;
+  transition: color 0.2s;
+}
+
+.ks-close-btn:hover {
+  color: #333;
+}
+
+.ks-subscription-container h2 {
+  color: #2e7d32;
+  margin-bottom: 20px;
+  text-align: center;
+  font-size: 24px;
+}
+
+.ks-frequency-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.ks-frequency-option {
+  padding: 20px 15px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ks-frequency-option:hover {
+  border-color: #2e7d32;
+  background: #e8f5e9;
+}
+
+.ks-frequency-option.active {
+  border-color: #2e7d32;
+  background: #2e7d32;
+  color: white;
+}
+
+.ks-calendar-section {
+  text-align: center;
+}
+
+.ks-calendar-section h3 {
+  margin-bottom: 10px;
+  color: #2c3e50;
+}
+
+.ks-calendar-section p {
+  color: #7f8c8d;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.react-calendar {
+  width: 100%;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+}
+
+.ks-confirm-date-btn, 
+.ks-save-subscription-btn {
+  background: #2e7d32;
+  color: white;
+  border: none;
+  padding: 12px 25px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.ks-confirm-date-btn:hover,
+.ks-save-subscription-btn:hover {
+  background: #1b5e20;
+}
+
+.ks-subscription-confirmation {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.ks-subscription-confirmation p {
+  margin-bottom: 20px;
+  color: #2c3e50;
+  font-size: 16px;
+}
+
+.ks-success-message {
+  background: #e8f5e9;
+  color: #2e7d32;
+  padding: 15px;
+  border-radius: 8px;
+  text-align: center;
+  margin-top: 20px;
+  animation: fadeIn 0.5s;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Responsive adjustments for subscription popup */
+@media (max-width: 480px) {
+  .ks-frequency-options {
+    grid-template-columns: 1fr;
+  }
+  
+  .ks-subscription-container {
+    padding: 20px;
+  }
+}
+
+
+
+
+
+
