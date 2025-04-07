@@ -28,8 +28,7 @@ export const AuthProvider = ({ children }) => {
         phone_number: parsedConsumer.phone_number || "",
         first_name: parsedConsumer.first_name || "",
         last_name: parsedConsumer.last_name || "",
-        full_name: `${parsedConsumer.first_name || ""} ${parsedConsumer.last_name || ""}`.trim(),
-        ...parsedConsumer
+        full_name: `${parsedConsumer.first_name || ""} ${parsedConsumer.last_name || ""}`.trim(),  ...parsedConsumer
       };
     } catch (error) {
       console.error("Error parsing consumer data:", error);
@@ -121,11 +120,15 @@ useEffect(() => {
         consumer_id: data.consumer_id || "",
         email: data.email || "",
         phone_number: data.phone_number || "",
-        first_name: data.first_name || data.firstName || "",
-        last_name: data.last_name || data.lastName || "",
-        full_name: `${data.first_name || data.firstName || ""} ${
-          data.last_name || data.lastName || ""
-        }`.trim(),
+        // first_name: data.first_name && data.first_name.trim() !== "" ? data.first_name : (data.firstName || ""),
+        // last_name: data.last_name && data.last_name.trim() !== "" ? data.last_name : (data.lastName || ""),        
+        // full_name: `${data.first_name || data.firstName || ""} ${
+        //   data.last_name || data.lastName || ""
+        // }`.trim(),
+        first_name: data.first_name ,
+        last_name: data.last_name ,
+        full_name: `${data.first_name } ${data.last_name }`.trim(),
+
         // Preserve other fields but don't overwrite core fields
         ...Object.fromEntries(
           Object.entries(data).filter(
@@ -137,8 +140,8 @@ useEffect(() => {
                 "phone_number",
                 "first_name",
                 "last_name",
-                "firstName",
-                "lastName",
+               "full_name",
+               "name",
               ].includes(key)
           )
         ),
