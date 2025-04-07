@@ -144,12 +144,20 @@ try {
   // ✅ Debugging
   console.log("Session set:", req.session);
 
-  const token = jwt.sign(
-    { consumer_id: consumer.consumer_id, userType: "consumer" },
-    process.env.JWT_SECRET,
-    { expiresIn: "24h" }
-  );
-
+  // const token = jwt.sign(
+  //   { consumer_id: consumer.consumer_id, userType: "consumer" },
+  //   process.env.JWT_SECRET,
+  //   { expiresIn: "8760h" }
+  // );
+  const token = jwt.sign({
+    consumer_id: consumer.consumer_id,
+    email: consumer.email,
+    phone_number: consumer.phone_number,
+    first_name: consumer.first_name,
+    last_name: consumer.last_name,
+    full_name: `${consumer.first_name} ${consumer.last_name}`,
+  }, process.env.JWT_SECRET, { expiresIn: '8760h' });
+  
   const responseData = {
     success: true,
     token,
@@ -158,6 +166,7 @@ try {
     last_name: consumer.last_name,
     email: consumer.email,
     phone_number: consumer.phone_number,
+    full_name: `${consumer.first_name} ${consumer.last_name}`,
   };
   console.log("📌 Sending Response:", responseData); // ✅ Log API response
   res.json(responseData);
@@ -245,7 +254,7 @@ const token = jwt.sign(
                             // Other claims
   },
   process.env.JWT_SECRET,
-  { expiresIn: "24h" }
+  { expiresIn: "8760h" }
 );
 
     // ✅ Send response with token
@@ -1046,7 +1055,117 @@ app.post("/api/save-address", async (req, res) => {
   }
 });
 
+// In your backend routes file (e.g., routes/bargain.js)
+// GET all pending bargain sessions for a consumer with a specific farmer
+// app.get('/api/bargain/sessions/consumer/:consumerId', authenticate, async (req, res) => {
+//   try {
+//     const { consumerId } = req.params;
+//     const { farmer_id } = req.query; // Optional: Filter by farmer_id
 
+//     // Base query conditions
+//     let query = `
+//       SELECT bs.*, 
+//              f.name AS farmer_name,
+//              p.name AS product_name,
+            
+//       FROM bargain_sessions bs
+//       LEFT JOIN farmerregistration f ON bs.farmer_id = f.farmer_id
+     
+//       WHERE bs.consumer_id = ? 
+     
+//     `;
+
+//     const queryParams = [consumerId];
+
+//     // Add farmer_id filter if provided
+//     if (farmer_id) {
+//       query += ' AND bs.farmer_id = ?';
+//       queryParams.push(farmer_id);
+//     }
+
+//     // Add sorting
+//     query += ' ORDER BY bs.updated_at DESC';
+
+//     // Execute the query
+//     const [sessions] = await db.query(query, queryParams);
+
+//     // Transform the data to match frontend expectations
+//     const formattedSessions = sessions.map(session => ({
+//       session_id: session.bargain_id,
+//       farmer_id: session.farmer_id,
+//       farmer_name: session.farmer_name,
+      
+//       updated_at: session.updated_at,
+//       created_at: session.created_at,
+//       initiator: session.initiator,
+//       unread_count: session.unread_count || 0
+//     }));
+
+//     res.json(formattedSessions);
+//   } catch (error) {
+//     console.error('Error fetching bargain sessions:', error);
+//     res.status(500).json({ error: 'Internal server error' });
+//   }
+// });
+app.get('/api/bargain/sessions/consumer/:consumerId', authenticate, async (req, res) => {
+  try {
+    const { consumerId } = req.params;
+
+    // Get all bargain sessions initiated by this consumer
+    const query = `
+      SELECT 
+        bs.bargain_id,
+        bs.farmer_id,
+        CONCAT(f.first_name, ' ', f.last_name) AS farmer_name,
+        UPPER(SUBSTRING(f.first_name, 1, 1)) AS farmer_initials,
+        bm.created_at AS last_message_time,
+        bs.updated_at,
+        bs.status,
+        bs.created_at
+      FROM bargain_sessions bs
+      LEFT JOIN farmerregistration f ON bs.farmer_id = f.farmer_id
+      LEFT JOIN (
+        SELECT bargain_id, message, created_at
+        FROM bargain_messages
+        WHERE (bargain_id, created_at) IN (
+          SELECT bargain_id, MAX(created_at)
+          FROM bargain_messages
+          GROUP BY bargain_id
+        )
+      ) bm ON bs.bargain_id = bm.bargain_id
+      WHERE bs.consumer_id = ?
+        AND bs.initiator = 'consumer' 
+      ORDER BY 
+        CASE 
+          WHEN bm.created_at IS NULL THEN bs.updated_at 
+          ELSE bm.created_at 
+        END DESC
+    `;
+
+    const sessions = await queryDatabase(query, [consumerId]);
+
+    const formattedSessions = sessions.map(session => ({
+      bargain_id: session.bargain_id,
+      farmer_id: session.farmer_id,
+      farmer_name: session.farmer_name,
+      farmer_initials: session.farmer_initials || 
+                      (session.farmer_name ? session.farmer_name.charAt(0).toUpperCase() : 'F'),
+      last_message_time: session.last_message_time || session.updated_at,
+      updated_at: session.updated_at,
+      status: session.status || 'pending',
+      created_at: session.created_at
+    }));
+
+    res.json(formattedSessions);
+  } catch (error) {
+    console.error('Error fetching consumer bargain sessions:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to fetch bargain sessions',
+      error: error.message 
+    });
+  }
+});
 // Update existing address (won't create new records)
 // Update address endpoint
 // PUT endpoint for updating address - place this with your other API routes
@@ -1880,7 +1999,7 @@ app.post("/api/farmerlogin", async (req, res) => {
         email: user.email
       },
       process.env.JWT_SECRET,
-      { expiresIn: "24h" }
+      { expiresIn: "8760h" }
     );
 
     // 4. Send successful response
@@ -2108,7 +2227,7 @@ app.post("/api/consumerlogin", async (req, res) => {
     const token = jwt.sign(
       { consumer_id: consumer.consumer_id, userType: "consumer" },
       process.env.JWT_SECRET,
-      { expiresIn: "24h" }
+      { expiresIn: "8760h" }
     );
 
     const responseData = {
@@ -3691,6 +3810,61 @@ app.get('/api/bargain/fetch-session-data', async (req, res) => {
 });
 
 
+// Get all messages for a bargain
+app.get('/api/:bargain_id/messages', authenticate, async (req, res) => {
+  try {
+    const messages = await db.getBargainMessages(req.params.bargain_id);
+    res.json(messages);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Send new message
+app.post('/api/:bargain_id/messages', authenticate, async (req, res) => {
+  try {
+    const messageId = await db.saveBargainMessage({
+      ...req.body,
+      bargain_id: req.params.bargain_id
+    });
+    const [newMessage] = await db.query(
+      'SELECT * FROM bargain_chat_messages WHERE message_id = ?',
+      [messageId]
+    );
+    
+    // Emit socket event
+    req.io.to(`bargain_${req.params.bargain_id}`).emit('newMessage', newMessage[0]);
+    
+    res.status(201).json(newMessage[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get bargain session details with last message
+app.get('/api/sessions', authenticate, async (req, res) => {
+  try {
+    const userType = req.user.type; // 'farmer' or 'consumer'
+    const userId = req.user.id;
+    
+    const [sessions] = await db.query(
+      `SELECT bs.*, 
+       (SELECT content FROM bargain_chat_messages 
+        WHERE bargain_id = bs.bargain_id 
+        ORDER BY created_at DESC LIMIT 1) as last_message,
+       (SELECT created_at FROM bargain_chat_messages 
+        WHERE bargain_id = bs.bargain_id 
+        ORDER BY created_at DESC LIMIT 1) as last_message_time
+       FROM bargain_sessions bs
+       WHERE bs.${userType}_id = ?`,
+      [userId]
+    );
+    
+    res.json(sessions);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // Import necessary controllers for handling bargain messages and price updates
 const { getMessages, sendMessage, updatePrice } = require('./src/controllers/bargainController'); // Assuming these controllers are defined
@@ -4887,23 +5061,57 @@ module.exports = router;
 // Updated backend route
 // Updated route handler
 // Middleware to force JSON responses
+// app.get('/api/bargain/farmers/:farmerId/sessions', authenticate, farmerOnly, async (req, res) => {
+//   try {
+//     const farmerId = req.params.farmerId;
+
+//     // ✅ Format validation (example: KRST01FR001)
+//     if (!/^[A-Z0-9]{8,12}$/.test(farmerId)) {
+//       return res.status(400).json({ error: "Invalid farmer ID format" });
+//     }
+
+//     const sessions = await queryDatabase(
+//       `SELECT * FROM bargain_sessions 
+//        WHERE farmer_id = ?
+//        ORDER BY created_at DESC`,
+//       [farmerId]
+//     );
+
+//     res.status(200).json(sessions.rows);
+
+//   } catch (err) {
+//     console.error("💥 DB Error:", err);
+//     res.status(500).json({ error: "Database operation failed" });
+//   }
+// });
+
 app.get('/api/bargain/farmers/:farmerId/sessions', authenticate, farmerOnly, async (req, res) => {
   try {
     const farmerId = req.params.farmerId;
 
-    // ✅ Format validation (example: KRST01FR001)
     if (!/^[A-Z0-9]{8,12}$/.test(farmerId)) {
       return res.status(400).json({ error: "Invalid farmer ID format" });
     }
 
     const sessions = await queryDatabase(
-      `SELECT * FROM bargain_sessions 
-       WHERE farmer_id = ?
-       ORDER BY created_at DESC`,
+      `
+      SELECT 
+        MAX(bs.bargain_id) AS latest_bargain_id,
+        bs.consumer_id,
+        cr.first_name,
+        cr.last_name,
+        MAX(bs.updated_at) AS last_updated
+      FROM bargain_sessions bs
+      JOIN consumerregistration cr ON bs.consumer_id = cr.consumer_id
+      WHERE bs.farmer_id = ?
+      GROUP BY bs.consumer_id, cr.first_name, cr.last_name
+      ORDER BY last_updated DESC
+      `,
       [farmerId]
     );
 
-    res.status(200).json(sessions.rows);
+    console.log("🔥 Sessions Result:", sessions);
+    res.status(200).json(sessions); // ✅ Fix is here
 
   } catch (err) {
     console.error("💥 DB Error:", err);

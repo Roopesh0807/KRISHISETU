@@ -1,28 +1,46 @@
 /* FarmerChatList.css */
 
+/* Base Styles */
 .farmer-chat-app {
   display: flex;
-  margin-top: 90px;
-  margin-left: 70px;
-  height: 80vh;
-  background-color: #f0f2f5;
+  height: 90vh;
+  margin-top: 65px;
+  margin-left: 90px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f5f7fa;
+  overflow: hidden;
+}
+
+/* Loading State */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  color: #4a6fa5;
+}
+
+.loading-container p {
+  margin-top: 1rem;
+  font-size: 1.2rem;
 }
 
 /* Sidebar Styles */
 .chat-sidebar {
   width: 350px;
-  background-color: white;
-  border-right: 1px solid #e9edef;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border-right: 1px solid #e0e6ed;
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  overflow: hidden;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+  z-index: 1;
 }
 
 .sidebar-header {
-  padding: 15px;
-  background-color: #f0f2f5;
-  border-bottom: 1px solid #e9edef;
+  padding: 1.5rem;
+  background-color: #4a6fa5;
+  color: white;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -30,15 +48,17 @@
 
 .sidebar-header h2 {
   margin: 0;
-  font-size: 1.2rem;
-  color: #3b4a54;
+  font-size: 1.4rem;
+  font-weight: 600;
 }
 
 .connection-status {
   display: flex;
   align-items: center;
   font-size: 0.8rem;
-  color: #667781;
+  background-color: rgba(255, 255, 255, 0.2);
+  padding: 0.3rem 0.6rem;
+  border-radius: 20px;
 }
 
 .status-dot {
@@ -49,80 +69,107 @@
 }
 
 .status-dot.connected {
-  background-color: #28a745;
+  background-color: #4caf50;
+  box-shadow: 0 0 6px #4caf50;
 }
 
-.status-dot.disconnected {
-  background-color: #dc3545;
-}
-
-.status-dot.error {
+.status-dot.connecting {
   background-color: #ffc107;
+  box-shadow: 0 0 6px #ffc107;
 }
 
+.status-dot.error,
+.status-dot.disconnected {
+  background-color: #f44336;
+  box-shadow: 0 0 6px #f44336;
+}
+
+/* Search Bar */
 .search-bar {
-  padding: 10px 15px;
-  border-bottom: 1px solid #e9edef;
+  padding: 1rem;
+  border-bottom: 1px solid #e0e6ed;
 }
 
 .search-bar input {
   width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #e9edef;
-  border-radius: 18px;
-  background-color: #f0f2f5;
+  padding: 0.7rem 1rem;
+  border: 1px solid #e0e6ed;
+  border-radius: 25px;
   font-size: 0.9rem;
+  background-color: #f8f9fa;
+  transition: all 0.3s ease;
+  outline: none;
 }
 
 .search-bar input:focus {
-  outline: none;
+  border-color: #4a6fa5;
   background-color: white;
+  box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.1);
 }
 
+/* Session List */
 .session-list {
   flex: 1;
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #d1d8e0 transparent;
+}
+
+.session-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.session-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.session-list::-webkit-scrollbar-thumb {
+  background-color: #d1d8e0;
+  border-radius: 3px;
 }
 
 .empty-state {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100%;
-  color: #667781;
-  font-size: 0.9rem;
+  height: 100px;
+  color: #7d8fb3;
+  font-size: 0.95rem;
 }
 
-/* Session Card Styles */
+/* Session Card */
 .session-card {
   display: flex;
-  padding: 12px;
-  border-bottom: 1px solid #e9edef;
+  padding: 1rem;
+  border-bottom: 1px solid #e0e6ed;
   cursor: pointer;
+  transition: all 0.2s ease;
   position: relative;
-  transition: background-color 0.2s;
+  background-color: white;
 }
 
 .session-card:hover {
-  background-color: #f5f6f6;
+  background-color: #f8fafc;
+  transform: translateX(3px);
 }
 
 .session-card.active {
-  background-color: #e9edef;
+  background-color: #f0f4f9;
+  border-left: 3px solid #4a6fa5;
 }
 
 .consumer-avatar {
-  width: 50px;
-  height: 50px;
+  width: 45px;
+  height: 45px;
   border-radius: 50%;
-  background-color: #dfe5e7;
+  background-color: #4a6fa5;
+  color: white;
   display: flex;
-  justify-content: center;
   align-items: center;
-  font-size: 1.2rem;
+  justify-content: center;
   font-weight: bold;
-  color: #3b4a54;
-  margin-right: 12px;
+  font-size: 1.1rem;
+  margin-right: 1rem;
   flex-shrink: 0;
 }
 
@@ -134,13 +181,14 @@
 .session-header {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 4px;
+  margin-bottom: 0.3rem;
 }
 
 .session-header h3 {
   margin: 0;
   font-size: 1rem;
-  color: #3b4a54;
+  font-weight: 600;
+  color: #2d3748;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -148,123 +196,129 @@
 
 .session-time {
   font-size: 0.75rem;
-  color: #667781;
+  color: #7d8fb3;
   white-space: nowrap;
-  margin-left: 8px;
+  margin-left: 0.5rem;
 }
 
 .session-details {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 4px;
+  margin-bottom: 0.3rem;
 }
 
 .product-info {
   margin: 0;
   font-size: 0.85rem;
-  color: #3b4a54;
+  color: #4a5568;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.product-info strong {
+  color: #2d3748;
 }
 
 .price-info {
   margin: 0;
   font-size: 0.85rem;
-  color: #111b21;
+  color: #4a6fa5;
+  font-weight: 600;
   white-space: nowrap;
-  margin-left: 8px;
+  margin-left: 0.5rem;
 }
 
 .session-preview {
-  margin-top: 2px;
+  margin-top: 0.2rem;
 }
 
 .message-preview {
   margin: 0;
   font-size: 0.8rem;
-  color: #667781;
+  color: #718096;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+/* Badges & Indicators */
 .unread-badge {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  background-color: #25d366;
+  top: 1rem;
+  right: 1rem;
+  background-color: #4a6fa5;
   color: white;
   border-radius: 50%;
   width: 20px;
   height: 20px;
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
   font-size: 0.7rem;
   font-weight: bold;
 }
 
 .status-indicator {
   position: absolute;
-  bottom: 12px;
-  right: 12px;
-  width: 12px;
-  height: 12px;
+  bottom: 1rem;
+  right: 1rem;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
 }
 
 .status-indicator.pending {
-  background-color: #ffc107;
+  background-color: #ff9800;
+  box-shadow: 0 0 5px #ff9800;
 }
 
 /* Chat Window Container */
 .chat-window-container {
   flex: 1;
   display: flex;
-  flex-direction: column;
+  background-color: #f0f2f5;
 }
 
 .empty-chat-window {
   flex: 1;
   display: flex;
-  justify-content: center;
   align-items: center;
-  background-color: #e5ddd5;
-  background-image: url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.2'%3E%3Cpath d='M50 50c0-5.523 4.477-10 10-10s10 4.477 10 10-4.477 10-10 10c0 5.523-4.477 10-10 10s-10-4.477-10-10 4.477-10 10-10zM10 10c0-5.523 4.477-10 10-10s10 4.477 10 10-4.477 10-10 10c0 5.523-4.477 10-10 10S0 25.523 0 20s4.477-10 10-10zm10 8c4.418 0 8-3.582 8-8s-3.582-8-8-8-8 3.582-8 8 3.582 8 8 8zm40 40c4.418 0 8-3.582 8-8s-3.582-8-8-8-8 3.582-8 8 3.582 8 8 8z' /%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  justify-content: center;
+  background-color: #f8f9fa;
 }
 
 .empty-content {
   text-align: center;
-  padding: 20px;
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  padding: 2rem;
+  max-width: 400px;
 }
 
 .empty-content h3 {
-  color: #3b4a54;
-  margin-bottom: 8px;
+  color: #4a6fa5;
+  margin-bottom: 1rem;
 }
 
 .empty-content p {
-  color: #667781;
-  font-size: 0.9rem;
+  color: #7d8fb3;
+  line-height: 1.5;
 }
 
-/* Loading State */
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  color: #4a6fa5;
+/* Animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.loading-container p {
-  margin-top: 15px;
+.session-card {
+  animation: fadeIn 0.3s ease forwards;
 }
+
+.session-card:nth-child(1) { animation-delay: 0.1s; }
+.session-card:nth-child(2) { animation-delay: 0.2s; }
+.session-card:nth-child(3) { animation-delay: 0.3s; }
+.session-card:nth-child(4) { animation-delay: 0.4s; }
+.session-card:nth-child(5) { animation-delay: 0.5s; }
 
 /* Responsive Design */
 @media (max-width: 768px) {
@@ -274,13 +328,16 @@
   
   .chat-sidebar {
     width: 100%;
-    height: auto;
-    max-height: 50vh;
+    height: 40vh;
     border-right: none;
-    border-bottom: 1px solid #e9edef;
+    border-bottom: 1px solid #e0e6ed;
   }
   
   .chat-window-container {
-    height: calc(100vh - 50vh);
+    height: 60vh;
+  }
+  
+  .session-card {
+    padding: 0.8rem;
   }
 }
