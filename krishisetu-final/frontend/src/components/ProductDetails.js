@@ -3,7 +3,9 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import "./ProductDetails.css";
 import { useCart } from "../context/CartContext";
 import { AuthContext } from "../context/AuthContext";
-import { FaShoppingCart, FaUsers, FaCalendarAlt, FaBolt, FaMinus, FaPlus, FaArrowLeft } from "react-icons/fa";
+import { FaShoppingCart, FaUsers, FaCalendarAlt, FaBolt, FaMinus, FaPlus, FaArrowLeft, FaTimes, FaCheckCircle } from "react-icons/fa";
+import Calendar from 'react-calendar';
+import 'react-calendar/dist/Calendar.css';
 
 const ProductDetails = () => {
   const { product_id } = useParams();
@@ -18,6 +20,14 @@ const ProductDetails = () => {
   const [addedToCommunityCart, setAddedToCommunityCart] = useState(false);
   const [showCommunityOptions, setShowCommunityOptions] = useState(false);
   const { consumer } = React.useContext(AuthContext);
+  
+  // Subscription state
+  const [showSubscriptionPopup, setShowSubscriptionPopup] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [selectedFrequency, setSelectedFrequency] = useState("");
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [subscriptionConfirmed, setSubscriptionConfirmed] = useState(false);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
   useEffect(() => {
     fetch(`http://localhost:5000/api/products/${product_id}`)
@@ -130,8 +140,115 @@ const ProductDetails = () => {
   };
 
   const handleSubscribe = () => {
-    navigate("/subscribe", { state: { product, quantity: selectedQuantity } });
+    if (!consumer) {
+      alert("Please login first");
+      navigate("/consumer-login");
+      return;
+    }
+    setShowSubscriptionPopup(true);
   };
+
+  const handleFrequencySelect = (frequency) => {
+    setSelectedFrequency(frequency);
+    setShowCalendar(true);
+  };
+
+  const handleDateChange = (date) => {
+    setSelectedDate(date);
+  };
+
+  const confirmSubscriptionDate = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (selectedDate <= today) {
+      alert("Please select a future date. Orders need to be modified before 10 PM today.");
+      return;
+    }
+    
+    setShowCalendar(false);
+    setSubscriptionConfirmed(true);
+  };
+
+  // const saveSubscription = () => {
+  //   // Here you would typically send the subscription data to your backend
+  //   setShowSuccessMessage(true);
+  //   setShowSubscriptionPopup(false);
+  //   setSubscriptionConfirmed(false);
+  //   setSelectedFrequency("");
+    
+  //   // Show message for 1.5 seconds
+  //   setTimeout(() => {
+  //     setShowSuccessMessage(false);
+  //   }, 700);
+  // };
+
+
+  const saveSubscription = async () => {
+    try {
+      const consumer = JSON.parse(localStorage.getItem('consumer'));
+      if (!consumer) {
+        alert("Please login first");
+        navigate("/consumer-login");
+        return;
+      }
+  
+      // Convert frequency to backend format
+      const getBackendSubscriptionType = (frequency) => {
+        switch(frequency) {
+          case 'daily': return 'Daily';
+          case 'alternate-days': return 'Alternate Days';
+          case 'weekly': return 'Weekly';
+          case 'monthly': return 'Monthly';
+          default: return frequency;
+        }
+      };
+  
+      const subscriptionType = getBackendSubscriptionType(selectedFrequency);
+      
+      const subscriptionData = {
+        consumer_id: consumer.consumer_id,
+        subscription_type: subscriptionType,
+        product_id: product.product_id,
+        product_name: product.product_name,
+        quantity: selectedQuantity,
+        price: totalPrice,
+        start_date: selectedDate.toISOString().split('T')[0]
+      };
+  
+      console.log("Saving subscription:", subscriptionData);
+  
+      const response = await fetch("http://localhost:5000/api/subscriptions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(subscriptionData)
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to save subscription");
+      }
+  
+      const data = await response.json();
+      console.log("Subscription created:", data);
+  
+      setShowSuccessMessage(true);
+      setShowSubscriptionPopup(false);
+      setSubscriptionConfirmed(false);
+      setSelectedFrequency("");
+      
+      setTimeout(() => {
+        setShowSuccessMessage(false);
+      }, 1500);
+    } catch (error) {
+      console.error("Subscription error:", error);
+      alert(`Subscription failed: ${error.message}`);
+    }
+  };
+// ... (rest of the component remains the same)
 
   const handleAddToCart = () => {
     addToCart(product, selectedQuantity);
@@ -162,6 +279,16 @@ const ProductDetails = () => {
 
   return (
     <div className="ks-product-page">
+      {/* Success Message Overlay */}
+      {showSuccessMessage && (
+        <div className="ks-success-overlay">
+          <div className="ks-success-message">
+            <FaCheckCircle className="ks-success-icon" />
+            <p>Subscription plan has been saved successfully!</p>
+          </div>
+        </div>
+      )}
+
       <div className="ks-product-container">
         <div className="ks-breadcrumb">
           <Link to="/consumer-dashboard" className="ks-breadcrumb-link">
@@ -274,8 +401,87 @@ const ProductDetails = () => {
           </div>
         </div>
       </div>
+
+      {/* Subscription Popup */}
+      {showSubscriptionPopup && (
+        <div className="ks-subscription-popup">
+          <div className="ks-subscription-container">
+            <button 
+              className="ks-close-btn" 
+              onClick={() => {
+                setShowSubscriptionPopup(false);
+                setShowCalendar(false);
+                setSubscriptionConfirmed(false);
+                setSelectedFrequency("");
+              }}
+            >
+              <FaTimes />
+            </button>
+            
+            <h2>Choose Subscription Plan</h2>
+            
+            {!showCalendar && !subscriptionConfirmed ? (
+              <div className="ks-frequency-options">
+                <div 
+                  className={`ks-frequency-option ${selectedFrequency === 'daily' ? 'active' : ''}`}
+                  onClick={() => handleFrequencySelect('daily')}
+                >
+                  Daily
+                </div>
+                <div 
+                  className={`ks-frequency-option ${selectedFrequency === 'alternate-days' ? 'active' : ''}`}
+                  onClick={() => handleFrequencySelect('alternate-days')}
+                >
+                  Alternate Days
+                </div>
+                <div 
+                  className={`ks-frequency-option ${selectedFrequency === 'weekly' ? 'active' : ''}`}
+                  onClick={() => handleFrequencySelect('weekly')}
+                >
+                  Weekly
+                </div>
+                <div 
+                  className={`ks-frequency-option ${selectedFrequency === 'monthly' ? 'active' : ''}`}
+                  onClick={() => handleFrequencySelect('monthly')}
+                >
+                  Monthly
+                </div>
+              </div>
+            ) : showCalendar ? (
+              <div className="ks-calendar-section">
+                <h3>Select Start Date</h3>
+                <p>Please choose a future date (orders can be modified until 10 PM today)</p>
+                <Calendar 
+                  onChange={handleDateChange}
+                  value={selectedDate}
+                  minDate={new Date()}
+                />
+                <button 
+                  className="ks-confirm-date-btn"
+                  onClick={confirmSubscriptionDate}
+                >
+                  Confirm Date
+                </button>
+              </div>
+            ) : (
+              <div className="ks-subscription-confirmation">
+                <p>Subscribe to {product.product_name} ({selectedQuantity}kg) {selectedFrequency} starting from {selectedDate.toDateString()}</p>
+                <button 
+                  className="ks-save-subscription-btn"
+                  onClick={saveSubscription}
+                >
+                  Save Subscription
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
+
+
 
 export default ProductDetails;

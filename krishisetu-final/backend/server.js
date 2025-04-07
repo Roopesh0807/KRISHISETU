@@ -2121,6 +2121,76 @@ app.post('/api/create-bargain', async (req, res) => {
 app.get('/create-bargain', (req, res) => {
   res.status(200).json({ message: 'POST route is available, use POST to create bargain.' });
 });
+// ... (other route imports and middleware above)
+
+// Add this after other route declarations but before error handlers
+app.post('/api/subscriptions', async (req, res) => {
+  const { consumer_id, subscription_type, product_id, product_name, quantity, price, start_date } = req.body;
+  
+  try {
+      // Verify consumer exists
+      const consumerCheck = await queryDatabase(
+          "SELECT consumer_id FROM consumerregistration WHERE consumer_id = ?",
+          [consumer_id]
+      );
+      
+      if (consumerCheck.length === 0) {
+          return res.status(404).json({ success: false, message: "Consumer not found" });
+      }
+
+      // Insert subscription into database
+      const result = await queryDatabase(
+          `INSERT INTO subscriptions 
+          (consumer_id, subscription_type, product_id, product_name, quantity, price, start_date)
+          VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [consumer_id, subscription_type, product_id, product_name, quantity, price, start_date]
+      );
+
+      if (result.affectedRows === 0) {
+          return res.status(400).json({ success: false, message: "Failed to create subscription" });
+      }
+
+      res.status(201).json({ 
+          success: true, 
+          message: "Subscription created successfully",
+          subscription_id: result.insertId
+      });
+  } catch (error) {
+      console.error("Error creating subscription:", error);
+      res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+
+app.get('/api/subscriptions/:consumer_id', async (req, res) => {
+  const { consumer_id } = req.params;
+
+  try {
+      // Verify consumer exists
+      const consumerCheck = await queryDatabase(
+          "SELECT consumer_id FROM consumerregistration WHERE consumer_id = ?",
+          [consumer_id]
+      );
+      
+      if (consumerCheck.length === 0) {
+          return res.status(404).json({ success: false, message: "Consumer not found" });
+      }
+
+      const subscriptions = await queryDatabase(
+          `SELECT * FROM subscriptions 
+           WHERE consumer_id = ? 
+           ORDER BY start_date DESC`,
+          [consumer_id]
+      );
+
+      res.json({ success: true, subscriptions });
+  } catch (error) {
+      console.error("Error fetching subscriptions:", error);
+      res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+
+// ... (error handlers and server startup below)
+
 
 
 
@@ -2194,6 +2264,130 @@ app.post('/api/bargain/:bargainId/price', async (req, res) => {
 });
 
 
+
+
+
+
+
+
+
+
+
+const router = express.Router();
+// const { queryDatabase } = require('./database');
+
+// Get all subscriptions for a consumer
+router.get('/:consumer_id', async (req, res) => {
+  try {
+    const { consumer_id } = req.params;
+    
+    const subscriptions = await queryDatabase(
+      `SELECT 
+        subscription_id AS id,
+        subscription_type AS type,
+        product_name AS name,
+        quantity,
+        price,
+        start_date AS startDate
+       FROM subscriptions 
+       WHERE consumer_id = ? AND status = 'Active'
+       ORDER BY start_date DESC`,
+      [consumer_id]
+    );
+    
+    // Always return an array, even if empty
+    res.json(subscriptions || []);
+    
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      message: error.message 
+    });
+  }
+});
+
+// Update subscription quantity
+router.put('/:subscription_id', async (req, res) => {
+  try {
+    const { subscription_id } = req.params;
+    const { quantity } = req.body;
+
+    if (!quantity || isNaN(quantity)) {
+      return res.status(400).json({ error: 'Valid quantity required' });
+    }
+
+    await queryDatabase(
+      `UPDATE subscriptions 
+       SET quantity = ?, 
+           price = quantity * (
+             SELECT price_per_kg 
+             FROM products 
+             WHERE product_id = subscriptions.product_id
+           )
+       WHERE subscription_id = ?`,
+      [quantity, subscription_id]
+    );
+
+    const updated = await queryDatabase(
+      `SELECT 
+        subscription_id AS id,
+        subscription_type AS type,
+        product_name AS name,
+        quantity,
+        price,
+        start_date AS startDate
+       FROM subscriptions 
+       WHERE subscription_id = ?`,
+      [subscription_id]
+    );
+    
+    res.json(updated[0] || {});
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      message: error.message 
+    });
+  }
+});
+
+// Cancel subscription
+router.delete('/:subscription_id', async (req, res) => {
+  try {
+    const { subscription_id } = req.params;
+    
+    await queryDatabase(
+      `UPDATE subscriptions 
+       SET status = 'Cancelled' 
+       WHERE subscription_id = ?`,
+      [subscription_id]
+    );
+    
+    res.json({ 
+      success: true, 
+      message: 'Subscription cancelled' 
+    });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      message: error.message 
+    });
+  }
+});
+
+module.exports = router;
+
+
+
+
+
+
+
+
+
+
 // Example backend API for fetching bargain sessions
 app.get('/api/bargain/sessions/farmer', async (req, res) => {
   try {
@@ -2219,8 +2413,22 @@ if (process.env.NODE_ENV === 'production') {
     res.sendFile(path.resolve(__dirname, 'client', 'build', 'index.html'));
   });
 }
+
+
+
+
 setupSockets(server);
 
 // ✅ Start Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+
+
+
+
+
+
+
+
+
+
