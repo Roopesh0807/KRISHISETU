@@ -8,7 +8,8 @@ router.get("/:communityId/member/:consumerId", orderController.getMemberOrders);
 router.post("/create", orderController.createOrder);
 // Add this to orderRoutes.js
 // router.delete("/:orderId", orderController.deleteOrder);
-router.delete('/delete/:orderId', orderController.deleteOrder); // Changed path
+// router.delete('/delete/:orderId', orderController.deleteOrder); // Changed path
+router.get("/:communityId/all-orders", orderController.getAllOrders); // New endpoint
 router.get('/:communityId', async (req, res) => {
   try {
     const { communityId } = req.params;
@@ -111,7 +112,51 @@ router.get("/order/:communityId/member/:memberId", async (req, res) => {
 
 
 
+// Add these routes to your orderRoutes.js
 
+// Update order quantity
+router.put('/:orderId', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { quantity } = req.body;
+
+    if (!quantity || isNaN(quantity)) {
+      return res.status(400).json({ error: 'Invalid quantity' });
+    }
+
+    const updateQuery = `
+      UPDATE orders 
+      SET quantity = ? 
+      WHERE order_id = ?
+    `;
+    
+    await queryDatabase(updateQuery, [quantity, orderId]);
+    
+    res.json({ success: true, message: 'Quantity updated successfully' });
+  } catch (error) {
+    console.error("Error updating quantity:", error);
+    res.status(500).json({ error: "Failed to update quantity" });
+  }
+});
+
+// Delete an order
+router.delete('/:orderId', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+
+    const deleteQuery = `
+      DELETE FROM orders 
+      WHERE order_id = ?
+    `;
+    
+    await queryDatabase(deleteQuery, [orderId]);
+    
+    res.json({ success: true, message: 'Order deleted successfully' });
+  } catch (error) {
+    console.error("Error deleting order:", error);
+    res.status(500).json({ error: "Failed to delete order" });
+  }
+});
 
   // router.get('/community/:communityId/member/:memberId', async (req, res) => {
   //   try {
