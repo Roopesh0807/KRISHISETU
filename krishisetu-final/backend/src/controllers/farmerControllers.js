@@ -45,9 +45,27 @@ const loginFarmer = async (req, res) => {
         if (!isMatch) {
             return res.status(401).json({ success: false, message: "Invalid credentials" });
         }
-
-        res.json({ success: true, message: "Login successful", user });
-    } catch (err) {
+        const token = jwt.sign(
+                { 
+                  farmer_id: user.farmer_id,
+                  email: user.email,
+                  userType: "farmer"
+                },
+                process.env.JWT_SECRET,
+                { expiresIn: '24h' }
+              );
+          
+              res.json({
+                success: true,
+                token,
+                farmer_id: user.farmer_id,
+                first_name: user.first_name,
+                last_name: user.last_name,
+                email: user.email,
+                phone_number: user.phone_number
+              });
+            } catch (err)
+  {
         console.error("Database error:", err);
         res.status(500).json({ error: "Database error" });
     }

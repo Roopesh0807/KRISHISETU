@@ -1,6 +1,4 @@
-
 // import "../styles/MemberOrderPage.css";
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Navbar3 from "../components/Navbar3.js";
@@ -30,21 +28,10 @@ function MemberOrderPage() {
         }
         
         const data = await response.json();
-        
-        // Handle both response structures (with and without data wrapper)
-        if (data.data) {
-          // If using success/error wrapper
-          setCommunity(data.data.community);
-          setMember(data.data.member);
-          setOrders(data.data.orders);
-          setTotal(data.data.total);
-        } else {
-          // If returning direct objects
-          setCommunity(data.community);
-          setMember(data.member);
-          setOrders(data.orders);
-          setTotal(data.total);
-        }
+        setCommunity(data.community);
+        setMember(data.member);
+        setOrders(data.orders);
+        setTotal(data.total);
       } catch (err) {
         console.error("Fetch error:", err);
         setError(err.message);
@@ -56,8 +43,94 @@ function MemberOrderPage() {
     fetchData();
   }, [communityId, memberId]);
 
+  const handleUpdateQuantity = async (orderId, productId, change) => {
+    try {
+      const order = orders.find(o => o.order_id === orderId);
+      const newQuantity = Math.max(1, order.quantity + change);
+
+      const response = await fetch(
+        `http://localhost:5000/api/member/order/${orderId}/quantity`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ quantity: newQuantity })
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to update quantity');
+      }
+
+      const updatedOrder = await response.json();
+
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.order_id === orderId 
+            ? { ...order, quantity: updatedOrder.quantity }
+            : order
+        )
+      );
+
+      // Recalculate total
+      const updatedTotal = orders.reduce((sum, o) => {
+        return sum + (o.order_id === orderId 
+          ? o.price * updatedOrder.quantity 
+          : o.price * o.quantity);
+      }, 0);
+      setTotal(updatedTotal.toFixed(2));
+    } catch (err) {
+      console.error("Update quantity error:", err);
+      setError(err.message);
+    }
+  };
+
+
+const handleRemoveItem = async (orderId) => {
+  console.log('Attempting to delete order:', orderId); // Add this
+  try {
+    const url = `http://localhost:5000/api/member/order/${orderId}`;
+    console.log('Request URL:', url); // And this
+    
+    const response = await fetch(url, { 
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json(); // Try to get error details
+      throw new Error(errorData.error || 'Failed to remove item');
+    }
+
+      setOrders(prevOrders => prevOrders.filter(order => order.order_id !== orderId));
+      
+      // Recalculate total
+      const updatedTotal = orders
+        .filter(order => order.order_id !== orderId)
+        .reduce((sum, order) => sum + (order.price * order.quantity), 0);
+      setTotal(updatedTotal.toFixed(2));
+    } catch (err) {
+      console.error("Remove item error:", err);
+      setError(err.message);
+    }
+  };
+
   const handleProceedToPayment = () => {
     navigate(`/orderpage`);
+  };
+
+  const getProductImage = (productId) => {
+    try {
+      const cart = JSON.parse(localStorage.getItem('krishiCart')) || [];
+      const productInCart = cart.find(item => item.product_id === productId);
+      return productInCart?.image || `/images/default-produce.jpg`;
+    } catch (err) {
+      console.error("Error getting product image:", err);
+      return `/images/default-produce.jpg`;
+    }
   };
 
   if (loading) {
@@ -92,7 +165,7 @@ function MemberOrderPage() {
       </div>
 
       <div className="community-info">
-        <h2>{community.community_name || community.name}</h2>
+        <h2>{community.name}</h2>
         <p>Admin: {community.admin_name}</p>
         <p>Address: {community.address || "Not specified"}</p>
         <p>
@@ -107,58 +180,100 @@ function MemberOrderPage() {
         <p>Phone: {member.phone_number}</p>
       </div>
 
-      <div className="orders-section">
-        <h2>Your Orders</h2>
-        {orders.length > 0 ? (
-          <>
-            <table className="orders-table">
-              <thead>
-                <tr>
-                  <th>Product</th>
-                  <th>Quantity</th>
-                  <th>Price</th>
-                  <th>Total</th>
-                </tr>
-              </thead>
-              <tbody>
-  {orders.map((order, index) => {
-    const price = Number(order.price);
-    const itemTotal = price * order.quantity;
-    return (
-      <tr key={index}>
-        <td>{order.product_id}</td>
-        <td>{order.quantity}</td>
-        <td>₹{price.toFixed(2)}</td>
-        <td>₹{itemTotal.toFixed(2)}</td>
-      </tr>
-    );
-  })}
-</tbody>
-              <tfoot>
-                <tr>
-                  <td colSpan="3" className="total-label">Grand Total:</td>
-                  <td className="total-amount">₹{total}</td>
-                </tr>
-              </tfoot>
-            </table>
-            
-            <button 
-              onClick={handleProceedToPayment}
-              className="payment-btn"
-            >
-              Proceed to Payment
-            </button>
-          </>
-        ) : (
-          <p className="no-orders">No orders found</p>
-        )}
+      <div className="krishi-cart-container">
+        <div className="krishi-cart-card">
+          <h2 className="krishi-cart-title">
+            <span className="krishi-cart-icon">🛒</span> Your Community Order
+          </h2>
+
+          {orders.length === 0 ? (
+            <div className="krishi-cart-empty">
+              <div className="krishi-cart-empty-icon">🌾</div>
+              <p className="krishi-cart-empty-text">No orders found</p>
+            </div>
+          ) : (
+            <>
+              <div className="krishi-cart-items">
+                {orders.map((order) => (
+                  <div key={order.order_id} className="krishi-cart-item">
+                    <div className="krishi-cart-item-img-container">
+                      <img
+                        src={getProductImage(order.product_id)}
+                        alt={order.product_name || "Product"}
+                        className="krishi-cart-item-img"
+                        onError={(e) => { e.target.src = "/images/default-produce.jpg"; }}
+                      />
+                    </div>
+                    <div className="krishi-cart-item-details">
+                      <h3 className="krishi-cart-item-name">{order.product_name || "Product"}</h3>
+                      <div className="krishi-cart-item-meta">
+                        <span className="krishi-cart-item-price">₹{order.price}/kg</span>
+                        {order.category && (
+                          <span className="krishi-cart-item-category">{order.category}</span>
+                        )}
+                      </div>
+                      <div className="krishi-cart-item-controls">
+                        <div className="krishi-quantity-selector">
+                          <button 
+                            className="krishi-quantity-btn" 
+                            onClick={() => handleUpdateQuantity(order.order_id, order.product_id, -1)}
+                          >
+                            −
+                          </button>
+                          <span className="krishi-quantity-value">{order.quantity}</span>
+                          <button 
+                            className="krishi-quantity-btn" 
+                            onClick={() => handleUpdateQuantity(order.order_id, order.product_id, 1)}
+                          >
+                            +
+                          </button>
+                        </div>
+                        <button 
+                          className="krishi-remove-btn"
+                          onClick={() => handleRemoveItem(order.order_id)}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      <div className="krishi-cart-item-total">
+                        Total: ₹{(order.price * order.quantity).toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="krishi-cart-summary">
+                <div className="krishi-summary-card">
+                  <h3 className="krishi-summary-title">Order Summary</h3>
+                  <div className="krishi-summary-row">
+                    <span>Items:</span>
+                    <span>{orders.length}</span>
+                  </div>
+                  <div className="krishi-summary-row krishi-summary-total">
+                    <span>Total:</span>
+                    <span>₹{total}</span>
+                  </div>
+                </div>
+
+                <div className="krishi-cart-actions">
+                  <button 
+                    className="krishi-btn-checkout" 
+                    onClick={handleProceedToPayment}
+                  >
+                    Proceed to Payment
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
 export default MemberOrderPage;
-
 // import React, { useState, useEffect } from "react";
 // import { useParams, useNavigate } from "react-router-dom";
 // import Navbar3 from "../components/Navbar3.js";
