@@ -26,11 +26,13 @@ router.get("/:communityId/members", communityController.getCommunityMembers);
 router.post("/:communityId/add-member", communityController.addMember);
 router.delete("/:communityId/remove-member/:memberId", communityController.removeMember); // Corrected route
 router.put("/:communityId/update-details", communityController.updateCommunityDetails);
-router.post("/join", communityController.joinCommunity);
+// router.post("/join", communityController.joinCommunity);
 router.post('/verify-access', communityController.verifyCommunityAccess);
 // Add this route in communityRoutes.js
 // router.get("/:communityId/member/:memberId", communityController.getMemberOrders);
 // Update this in communityRoutes.js
+// Add this to your communityRoutes.js
+router.get("address-suggestions", communityController.getAddressSuggestions);
 router.get("/:communityId/member/:memberId/orders", communityController.getMembersOrders);
 router.get('/consumer/:consumerId/communities', communityController.getConsumerCommunities);
 router.get("/community/create", async (req, res) => {
@@ -75,53 +77,97 @@ router.get("/community/create", async (req, res) => {
     }
   });
 
-  router.post("/join", async (req, res) => {
-    const { communityName, password, userEmail } = req.body;
-  
+  // Join community by name or ID
+  router.post('/join', async (req, res) => {
     try {
-      // Check if the community exists
-      const communityQuery = "SELECT * FROM communities WHERE name = ? AND password = ?";
-      const [community] = await queryDatabase(communityQuery, [communityName, password]);
+      const { communityName, password, userEmail, communityId } = req.body;
+  
+      let community;
+      if (communityId) {
+        // Join by community ID (address method)
+        community = await Community.findById(communityId);
+      } else {
+        // Join by community name (original method)
+        community = await Community.findOne({ name: communityName });
+      }
   
       if (!community) {
-        return res.status(404).json({ error: "Community not found or invalid password" });
+        return res.status(404).json({ error: 'Community not found' });
       }
   
-      // Fetch the consumerId for the logged-in user using their email
-      const consumerQuery = "SELECT consumer_id, name, email, phone FROM consumers WHERE email = ?";
-      const [consumer] = await queryDatabase(consumerQuery, [userEmail]);
-  
-      if (!consumer) {
-        return res.status(404).json({ error: "User not found" });
+      const isMatch = await community.comparePassword(password);
+      if (!isMatch) {
+        return res.status(401).json({ error: 'Invalid password' });
       }
   
-      // Add the user to the community members table
-      const addMemberQuery = `
-        INSERT INTO members (community_id, consumer_id, member_name, member_email, phone_number)
-        VALUES (?, ?, ?, ?, ?)
-      `;
-      const [result] = await queryDatabase(addMemberQuery, [
-        community.community_id,
-        consumer.consumer_id,
-        consumer.name,
-        consumer.email,
-        consumer.phone,
-      ]);
+      // Check if user is already a member
+      const existingMember = await Member.findOne({
+        community: community._id,
+        email: userEmail
+      });
   
-      // Debugging: Log the inserted memberId
-      console.log("Inserted memberId:", result.insertId);
+      if (existingMember) {
+        return res.status(400).json({ error: 'You are already a member of this community' });
+      }
   
-      // Return the communityId and memberId
+      // Create new member
+      const member = new Member({
+        community: community._id,
+        email: userEmail,
+        isAdmin: false
+      });
+  
+      await member.save();
+  
       res.status(200).json({
-        message: "Joined community successfully",
-        communityId: community.community_id,
-        memberId: result.insertId, // Ensure memberId is returned
+        message: 'Successfully joined community',
+        communityId: community._id,
+        memberId: member._id
       });
     } catch (error) {
-      console.error("Error joining community:", error);
-      res.status(500).json({ error: "Internal server error" });
+      console.error(error);
+      res.status(500).json({ error: 'Server error' });
     }
   });
+  
+// Get address suggestions
+// Get address suggestions
+router.get('/suggest', async (req, res) => {
+  try {
+    const { address } = req.query;
+    
+    if (!address || address.length < 1) {
+      return res.status(400).json({ error: 'Address query too short' });
+    }
+
+    const communities = await Community.find({
+      address: { $regex: address, $options: 'i' }
+    }).limit(10);
+
+    res.json(communities.map(comm => ({
+      _id: comm._id,
+      name: comm.name,
+      address: comm.address
+    })));
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.get('/all-addresses', async (req, res) => {
+  try {
+    const communities = await Community.find({}, 'address');
+    const addresses = communities.map(comm => comm.address);
+    res.json(addresses);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+
+
 
   router.get("/:communityId/members", async (req, res) => {
     const { communityId } = req.params;

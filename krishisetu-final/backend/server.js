@@ -103,9 +103,9 @@ io.on("connection", (socket) => {
 
 const mysql = require("mysql");
 
-const INSTAMOJO_API_KEY = process.env.INSTAMOJO_API_KEY;
-const INSTAMOJO_AUTH_TOKEN = process.env.INSTAMOJO_AUTH_TOKEN;
-const REDIRECT_URL = "http://localhost:3000/payment-success";
+// const INSTAMOJO_API_KEY = process.env.INSTAMOJO_API_KEY;
+// const INSTAMOJO_AUTH_TOKEN = process.env.INSTAMOJO_AUTH_TOKEN;
+// const REDIRECT_URL = "http://localhost:3000/payment-success";
 
 
 const querydatabase = mysql.createConnection({
@@ -197,7 +197,8 @@ const documentStorage = multer.diskStorage({
 });
 
 const documentUpload = multer({ storage: documentStorage });
-
+// Add this near your other middleware
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/uploads", express.static("uploads"));
 app.use("/api", farmerRoutes);
@@ -389,7 +390,6 @@ app.get("/api/consumerprofile/:consumer_id", async (req, res) => {
     res.status(500).json({ message: 'Internal Server Error' });
   }
 });
-
 // Update the place-order endpoint
 app.post("/api/place-order", async (req, res) => {
   const { 
@@ -448,10 +448,11 @@ app.post("/api/place-order", async (req, res) => {
 
     // Get the inserted order with its auto-generated ID
     const [order] = await queryDatabase(
-      "SELECT * FROM placeorder WHERE id = ?",
+      "SELECT * FROM placeorder WHERE order_id = ?",
       [result.insertId]
     );
     
+
     res.json({ 
       success: true, 
       message: "Order placed successfully",
@@ -1160,10 +1161,11 @@ app.get("/api/products", async (req, res) => {
   }
 });
 
-
+const saltRounds = 10;
 app.post("/api/farmerregister", async (req, res) => {
   const { first_name, last_name, email, phone_number, password, confirm_password } = req.body;
 
+  // Validation
   if (!first_name || !last_name || !email || !phone_number || !password || !confirm_password) {
       return res.status(400).json({ success: false, message: "All fields are required" });
   }
@@ -1172,19 +1174,35 @@ app.post("/api/farmerregister", async (req, res) => {
       return res.status(400).json({ success: false, message: "Passwords do not match" });
   }
 
+  // Email validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+      return res.status(400).json({ success: false, message: "Invalid email format" });
+  }
+
+  // Phone validation
+  const phoneRegex = /^[0-9]{10,15}$/;
+  if (!phoneRegex.test(phone_number)) {
+      return res.status(400).json({ success: false, message: "Invalid phone number" });
+  }
+
   try {
-      // ✅ Insert farmer details
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+      // Insert farmer details
       const result = await queryDatabase(
-          `INSERT INTO farmerregistration (first_name, last_name, email, phone_number, password, confirm_password) 
-           VALUES (?, ?, ?, ?, ?, ?);`,
-          [first_name, last_name, email, phone_number, password, confirm_password]
+          `INSERT INTO farmerregistration 
+           (first_name, last_name, email, phone_number, password, confirm_password) 
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [first_name, last_name, email, phone_number, hashedPassword, hashedPassword]
       );
 
       if (result.affectedRows === 0) {
           return res.status(500).json({ success: false, message: "Registration failed" });
       }
 
-      // ✅ Fetch the correct farmer_id
+      // Get the generated farmer_id
       const farmerData = await queryDatabase(
           `SELECT farmer_id FROM farmerregistration WHERE email = ?`, 
           [email]
@@ -1196,53 +1214,66 @@ app.post("/api/farmerregister", async (req, res) => {
 
       const farmer_id = farmerData[0].farmer_id;
 
-      res.json({ success: true, message: "Farmer registered successfully", farmer_id });
+      return res.json({ 
+          success: true, 
+          message: "Farmer registered successfully", 
+          farmer_id 
+      });
+
   } catch (err) {
-      res.status(500).json({ success: false, message: "Database error", error: err.message });
+      // Handle duplicate entry
+      if (err.code === 'ER_DUP_ENTRY') {
+          return res.status(400).json({ 
+              success: false, 
+              message: "Email or phone number already registered" 
+          });
+      }
+      
+      console.error("Registration error:", err);
+      return res.status(500).json({ 
+          success: false, 
+          message: "Internal server error",
+          error: err.message 
+      });
   }
 });
 //farmerlogin
+
 app.post("/api/farmerlogin", async (req, res) => {
   const { emailOrPhone, password } = req.body;
 
   try {
+    // 1. Find the farmer by email or phone
     const results = await queryDatabase(
-      "SELECT farmer_id, first_name, last_name,email, phone_number,  password FROM farmerregistration WHERE email = ? OR phone_number = ?",
+      "SELECT farmer_id, first_name, last_name, email, phone_number, password FROM farmerregistration WHERE email = ? OR phone_number = ?",
       [emailOrPhone, emailOrPhone]
     );
-
-    console.log("Login Query Results:", results);
 
     if (results.length === 0) {
       return res.status(401).json({ success: false, message: "Invalid credentials" });
     }
 
     const user = results[0];
-    console.log("User Retrieved:", user);
 
-    // Debug password
-    console.log("Entered Password:", password);
-    console.log("Stored Password:", user.password);
-
-    // Password check
-    if (!user.password || password !== user.password) {
+    // 2. Compare hashed password with bcrypt
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    
+    if (!isPasswordValid) {
       return res.status(401).json({ success: false, message: "Invalid password" });
     }
 
-    // ✅ Generate JWT Token
-  // When a FARMER logs in:
-const token = jwt.sign(
-  {
-    farmer_id: user.farmer_id,  // Different ID field
-    userType: "farmer", 
-    email: user.email,        // Explicit type
-                            // Other claims
-  },
-  process.env.JWT_SECRET,
-  { expiresIn: "24h" }
-);
+    // 3. Generate JWT Token
+    const token = jwt.sign(
+      {
+        farmer_id: user.farmer_id,
+        userType: "farmer",
+        email: user.email
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "24h" }
+    );
 
-    // ✅ Send response with token
+    // 4. Send successful response
     res.json({
       success: true,
       token,
@@ -1255,8 +1286,12 @@ const token = jwt.sign(
     });
     
   } catch (err) {
-    console.error("❌ Farmer Login Database Error:", err);
-    res.status(500).json({ success: false, message: "Database error", error: err.message });
+    console.error("Farmer Login Error:", err);
+    res.status(500).json({ 
+      success: false, 
+      message: "Internal server error",
+      error: err.message 
+    });
   }
 });
 app.get("/api/getFarmerDetails", async (req, res) => {
@@ -1570,9 +1605,9 @@ app.post("/api/updatefarmdetails", async (req, res) => {
       );
     } else {
       await queryDatabase(
-        `INSERT INTO farmdetails (user_id, farm_name, location, land_size, farming_type, soil_type, irrigation_method, types_of_crops, farm_equipment, LandOwnerShipProof, photoofFarm, LandLeaseProof, certifications) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
-        [user_id, farm_name, location, land_size, farming_type, soil_type, irrigation_method, types_of_crops, farm_equipment, LandOwnerShipProof, photoofFarm, LandLeaseProof, certifications]
+        `INSERT INTO farmdetails (farm_name, location, land_size, farming_type, soil_type, irrigation_method, types_of_crops, farm_equipment, LandOwnerShipProof, photoofFarm, LandLeaseProof, certifications) 
+         VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+        [ farm_name, location, land_size, farming_type, soil_type, irrigation_method, types_of_crops, farm_equipment, LandOwnerShipProof, photoofFarm, LandLeaseProof, certifications]
       );
     }
 
@@ -2966,7 +3001,6 @@ app.post('/api/bargain/:bargainId/price', async (req, res) => {
   }
 });
 
-<<<<<<< HEAD
 // Get personal details
 app.get("/api/getpersonaldetails", async (req, res) => {
   try {
@@ -3021,11 +3055,81 @@ app.post("/api/updatepersonaldetails", async (req, res) => {
     res.json({ success: true, message: "Personal details updated successfully" });
   } catch (err) {
     console.error("Database error:", err);
-=======
+
+  }
+});
 // ✅ Get Farmer Profile
 // ✅ Get Farmer Profile with combined personal and farm details
+// app.get("/api/farmerprofile/:farmer_id", 
+//   auth.authenticate, 
+//   auth.farmerOnly,
+//   async (req, res) => {
+//     try {
+//       const { farmer_id } = req.params;
+      
+//       // Verify requested profile matches authenticated farmer
+//       if (farmer_id !== req.user.farmer_id) {
+//         return res.status(403).json({ error: "Unauthorized profile access" });
+//       }
+
+//       // Fetch combined farmer data
+//       const farmerData = await queryDatabase(`
+//         SELECT 
+//           fr.farmer_id, fr.first_name, fr.last_name, fr.email, fr.phone_number,
+//           pd.dob, pd.gender, pd.contact_no, pd.aadhaar_no, pd.residential_address,
+//           pd.bank_account_no, pd.ifsc_code, pd.upi_id, pd.profile_photo,
+//           fd.farm_address, fd.farm_size, fd.crops_grown, fd.farming_method,
+//           fd.soil_type, fd.water_sources, fd.farm_equipment
+//         FROM farmerregistration fr
+//         LEFT JOIN personaldetails pd ON fr.farmer_id = pd.farmer_id
+//         LEFT JOIN farmdetails fd ON fr.farmer_id = fd.farmer_id
+//         WHERE fr.farmer_id = ?
+//       `, [farmer_id]);
+
+//       if (farmerData.length === 0) {
+//         return res.status(404).json({ error: "Farmer not found" });
+//       }
+
+//       // Format response
+//       const response = {
+//         farmer_id: farmerData[0].farmer_id,
+//         full_name: `${farmerData[0].first_name} ${farmerData[0].last_name}`,
+//         email: farmerData[0].email,
+//         phone_number: farmerData[0].phone_number,
+//         personal: {
+//           dob: farmerData[0].dob,
+//           gender: farmerData[0].gender,
+//           contact_no: farmerData[0].contact_no,
+//           aadhaar_no: farmerData[0].aadhaar_no,
+//           residential_address: farmerData[0].residential_address,
+//           bank_account_no: farmerData[0].bank_account_no,
+//           ifsc_code: farmerData[0].ifsc_code,
+//           upi_id: farmerData[0].upi_id,
+//           profile_photo: farmerData[0].profile_photo 
+//             ? `/uploads/${farmerData[0].profile_photo}`
+//             : null
+//         },
+//         farm: {
+//           farm_address: farmerData[0].farm_address,
+//           farm_size: farmerData[0].farm_size,
+//           crops_grown: farmerData[0].crops_grown,
+//           farming_method: farmerData[0].farming_method,
+//           soil_type: farmerData[0].soil_type,
+//           water_sources: farmerData[0].water_sources,
+//           farm_equipment: farmerData[0].farm_equipment
+//         }
+//       };
+
+//       res.json(response);
+//     } catch (error) {
+//       console.error("Error fetching farmer profile:", error);
+//       res.status(500).json({ error: "Failed to fetch farmer profile" });
+//     }
+//   }
+// );
+
 app.get("/api/farmerprofile/:farmer_id", 
-  auth.authenticate, 
+  auth.authenticate,
   auth.farmerOnly,
   async (req, res) => {
     try {
@@ -3037,50 +3141,76 @@ app.get("/api/farmerprofile/:farmer_id",
       }
 
       // Fetch combined farmer data
-      const farmerData = await queryDatabase(`
+      const [farmerData] = await queryDatabase(`
         SELECT 
-          fr.farmer_id, fr.first_name, fr.last_name, fr.email, fr.phone_number,
-          pd.dob, pd.gender, pd.contact_no, pd.aadhaar_no, pd.residential_address,
-          pd.bank_account_no, pd.ifsc_code, pd.upi_id, pd.profile_photo,
-          fd.farm_address, fd.farm_size, fd.crops_grown, fd.farming_method,
-          fd.soil_type, fd.water_sources, fd.farm_equipment
+          fr.farmer_id, 
+          fr.first_name, 
+          fr.last_name, 
+          fr.email, 
+          fr.phone_number,
+          pd.dob, 
+          pd.gender, 
+          pd.contact_no, 
+          pd.aadhaar_no, 
+          pd.residential_address,
+          pd.bank_account_no, 
+          pd.ifsc_code, 
+          pd.upi_id, 
+          pd.profile_photo,
+          pd.aadhaar_proof,
+          pd.bank_proof,
+          fd.farm_address, 
+          fd.farm_size, 
+          fd.crops_grown, 
+          fd.farming_method,
+          fd.soil_type, 
+          fd.water_sources, 
+          fd.farm_equipment,
+          fd.land_ownership_proof,
+          fd.certification,
+          fd.land_lease_agreement,
+          fd.farm_photographs
         FROM farmerregistration fr
         LEFT JOIN personaldetails pd ON fr.farmer_id = pd.farmer_id
         LEFT JOIN farmdetails fd ON fr.farmer_id = fd.farmer_id
         WHERE fr.farmer_id = ?
       `, [farmer_id]);
 
-      if (farmerData.length === 0) {
+      if (!farmerData) {
         return res.status(404).json({ error: "Farmer not found" });
       }
 
       // Format response
       const response = {
-        farmer_id: farmerData[0].farmer_id,
-        full_name: `${farmerData[0].first_name} ${farmerData[0].last_name}`,
-        email: farmerData[0].email,
-        phone_number: farmerData[0].phone_number,
+        farmer_id: farmerData.farmer_id,
+        full_name: `${farmerData.first_name} ${farmerData.last_name}`,
+        email: farmerData.email,
+        phone_number: farmerData.phone_number,
         personal: {
-          dob: farmerData[0].dob,
-          gender: farmerData[0].gender,
-          contact_no: farmerData[0].contact_no,
-          aadhaar_no: farmerData[0].aadhaar_no,
-          residential_address: farmerData[0].residential_address,
-          bank_account_no: farmerData[0].bank_account_no,
-          ifsc_code: farmerData[0].ifsc_code,
-          upi_id: farmerData[0].upi_id,
-          profile_photo: farmerData[0].profile_photo 
-            ? `/uploads/${farmerData[0].profile_photo}`
-            : null
+          dob: farmerData.dob || null,
+          gender: farmerData.gender || null,
+          contact_no: farmerData.contact_no || farmerData.phone_number,
+          aadhaar_no: farmerData.aadhaar_no || null,
+          residential_address: farmerData.residential_address || null,
+          bank_account_no: farmerData.bank_account_no || null,
+          ifsc_code: farmerData.ifsc_code || null,
+          upi_id: farmerData.upi_id || null,
+          profile_photo: farmerData.profile_photo || null,
+          aadhaar_proof: farmerData.aadhaar_proof || null,
+          bank_proof: farmerData.bank_proof || null
         },
         farm: {
-          farm_address: farmerData[0].farm_address,
-          farm_size: farmerData[0].farm_size,
-          crops_grown: farmerData[0].crops_grown,
-          farming_method: farmerData[0].farming_method,
-          soil_type: farmerData[0].soil_type,
-          water_sources: farmerData[0].water_sources,
-          farm_equipment: farmerData[0].farm_equipment
+          farm_address: farmerData.farm_address || null,
+          farm_size: farmerData.farm_size || null,
+          crops_grown: farmerData.crops_grown || null,
+          farming_method: farmerData.farming_method || null,
+          soil_type: farmerData.soil_type || null,
+          water_sources: farmerData.water_sources || null,
+          farm_equipment: farmerData.farm_equipment || null,
+          land_ownership_proof: farmerData.land_ownership_proof || null,
+          certification: farmerData.certification || null,
+          land_lease_agreement: farmerData.land_lease_agreement || null,
+          farm_photographs: farmerData.farm_photographs || null
         }
       };
 
@@ -3091,7 +3221,6 @@ app.get("/api/farmerprofile/:farmer_id",
     }
   }
 );
-
 
 // Update Farmer Profile
 app.put("/api/farmerprofile/:farmer_id", 
@@ -3143,7 +3272,6 @@ app.put("/api/farmerprofile/:farmer_id",
   }
 );
 
-// Update Farmer Profile - Improved Version
 app.put("/api/farmerprofile/:farmer_id/:section", 
   auth.authenticate,
   auth.farmerOnly,
@@ -3151,138 +3279,303 @@ app.put("/api/farmerprofile/:farmer_id/:section",
     try {
       const { farmer_id, section } = req.params;
       
-      // Verify authorization
+      // Verify authorization - ensure the farmer is updating their own profile
       if (farmer_id !== req.user.farmer_id) {
-        return res.status(403).json({ error: "Unauthorized update attempt" });
+        return res.status(403).json({ 
+          success: false,
+          error: "Unauthorized update attempt" 
+        });
       }
 
       // Validate section parameter
       if (!['personal', 'farm'].includes(section)) {
-        return res.status(400).json({ error: "Invalid section parameter" });
+        return res.status(400).json({ 
+          success: false,
+          error: "Invalid section parameter" 
+        });
       }
 
       if (section === 'personal') {
-        const { dob, gender, contact_no, aadhaar_no, residential_address, 
-                bank_account_no, ifsc_code, upi_id } = req.body;
+        // List of allowed personal fields
+        const allowedFields = [
+          'dob', 'gender', 'contact_no', 'aadhaar_no',
+          'residential_address', 'bank_account_no', 'ifsc_code', 'upi_id'
+        ];
         
-        await queryDatabase(`
-          INSERT INTO personaldetails (
-            farmer_id, dob, gender, contact_no, aadhaar_no,
-            residential_address, bank_account_no, ifsc_code, upi_id
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-          ON DUPLICATE KEY UPDATE
-            dob = VALUES(dob),
-            gender = VALUES(gender),
-            contact_no = VALUES(contact_no),
-            aadhaar_no = VALUES(aadhaar_no),
-            residential_address = VALUES(residential_address),
-            bank_account_no = VALUES(bank_account_no),
-            ifsc_code = VALUES(ifsc_code),
-            upi_id = VALUES(upi_id)
-        `, [
-          farmer_id, dob, gender, contact_no, aadhaar_no,
-          residential_address, bank_account_no, ifsc_code, upi_id
-        ]);
-      } 
-      else if (section === 'farm') {
-        const { farm_address, farm_size, crops_grown, farming_method,
-                soil_type, water_sources, farm_equipment } = req.body;
+        // Filter and validate fields
+        const updateData = {};
+        allowedFields.forEach(field => {
+          if (req.body[field] !== undefined) {
+            updateData[field] = req.body[field];
+          }
+        });
+
+        // Check if we have any fields to update
+        if (Object.keys(updateData).length === 0) {
+          return res.status(400).json({ 
+            success: false,
+            error: "No valid fields provided for update" 
+          });
+        }
+
+        // First check if personal details exist for this farmer
+        const [existing] = await queryDatabase(
+          "SELECT 1 FROM personaldetails WHERE farmer_id = ?",
+          [farmer_id]
+        );
+
+        if (existing) {
+          // Build the update query
+          const setClause = Object.keys(updateData)
+            .map(field => `${field} = ?`)
+            .join(', ');
+          
+          const values = [...Object.values(updateData), farmer_id];
+
+          await queryDatabase(
+            `UPDATE personaldetails SET ${setClause} WHERE farmer_id = ?`,
+            values
+          );
+        } else {
+          // Insert new record
+          const columns = ['farmer_id', ...Object.keys(updateData)];
+          const placeholders = columns.map(() => '?').join(', ');
+          const values = [farmer_id, ...Object.values(updateData)];
+
+          await queryDatabase(
+            `INSERT INTO personaldetails (${columns.join(', ')}) VALUES (${placeholders})`,
+            values
+          );
+        }
+
+      } else if (section === 'farm') {
+        // List of allowed farm fields
+        const allowedFields = [
+          'farm_address', 'farm_size', 'crops_grown', 'farming_method',
+          'soil_type', 'water_sources', 'farm_equipment'
+        ];
         
-        await queryDatabase(`
-          INSERT INTO farmdetails (
-            farmer_id, farm_address, farm_size, crops_grown, farming_method,
-            soil_type, water_sources, farm_equipment
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-          ON DUPLICATE KEY UPDATE
-            farm_address = VALUES(farm_address),
-            farm_size = VALUES(farm_size),
-            crops_grown = VALUES(crops_grown),
-            farming_method = VALUES(farming_method),
-            soil_type = VALUES(soil_type),
-            water_sources = VALUES(water_sources),
-            farm_equipment = VALUES(farm_equipment)
-        `, [
-          farmer_id, farm_address, farm_size, crops_grown, farming_method,
-          soil_type, water_sources, farm_equipment
-        ]);
+        // Filter and validate fields
+        const updateData = {};
+        allowedFields.forEach(field => {
+          if (req.body[field] !== undefined) {
+            updateData[field] = req.body[field];
+          }
+        });
+
+        // Check if we have any fields to update
+        if (Object.keys(updateData).length === 0) {
+          return res.status(400).json({ 
+            success: false,
+            error: "No valid fields provided for update" 
+          });
+        }
+
+        // First check if farm details exist for this farmer
+        const [existing] = await queryDatabase(
+          "SELECT 1 FROM farmdetails WHERE farmer_id = ?",
+          [farmer_id]
+        );
+
+        if (existing) {
+          // Build the update query
+          const setClause = Object.keys(updateData)
+            .map(field => `${field} = ?`)
+            .join(', ');
+          
+          const values = [...Object.values(updateData), farmer_id];
+
+          await queryDatabase(
+            `UPDATE farmdetails SET ${setClause} WHERE farmer_id = ?`,
+            values
+          );
+        } else {
+          // Insert new record
+          const columns = ['farmer_id', ...Object.keys(updateData)];
+          const placeholders = columns.map(() => '?').join(', ');
+          const values = [farmer_id, ...Object.values(updateData)];
+
+          await queryDatabase(
+            `INSERT INTO farmdetails (${columns.join(', ')}) VALUES (${placeholders})`,
+            values
+          );
+        }
       }
 
       res.json({ 
         success: true, 
         message: `${section} details updated successfully`,
-        updatedFields: req.body
+        updatedFields: Object.keys(req.body)
       });
     } catch (error) {
       console.error("Error updating farmer profile:", error);
       res.status(500).json({ 
+        success: false,
         error: "Failed to update profile",
         details: error.message 
       });
     }
   }
 );
+    
+
+
+// ✅ Configure storage for farmer documents
+// const farmerDocumentStorage = multer.diskStorage({
+//   destination: (req, file, cb) => {
+//     const uploadDir = path.join(__dirname, '../uploads/farmer-documents');
+//     if (!fs.existsSync(uploadDir)) {
+//       fs.mkdirSync(uploadDir, { recursive: true });
+//     }
+//     cb(null, uploadDir);
+//   },
+//   filename: (req, file, cb) => {
+//     const farmerId = req.params.farmer_id;
+//     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+//     const ext = path.extname(file.originalname);
+//     cb(null, `farmer-${farmerId}-${uniqueSuffix}${ext}`);
+//   }
+// });
+
+// const farmerDocumentUpload = multer({ 
+//   storage: farmerDocumentStorage,
+//   fileFilter: (req, file, cb) => {
+//     if (file.mimetype === 'application/pdf' || 
+//         file.mimetype.startsWith('image/') ||
+//         file.mimetype === 'application/msword' ||
+//         file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+//       cb(null, true);
+//     } else {
+//       cb(new Error('Only PDF, Word, and image files are allowed!'), false);
+//     }
+//   }
+// });
+
+
+const farmerDocumentStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = 'F:/Project/KRISHISETU/krishisetu-final/backend/uploads/farmer-documents';
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const farmerId = req.params.farmer_id;
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, `farmer-${farmerId}-${uniqueSuffix}${ext}`);
+  }
+});
+
+const farmerDocumentUpload = multer({ 
+  storage: farmerDocumentStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'application/pdf' || 
+        file.mimetype.startsWith('image/') ||
+        file.mimetype === 'application/msword' ||
+        file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF, Word, and image files are allowed!'), false);
+    }
+  }
+});
+
 
 // ✅ Update Personal Details
-app.put("/api/farmerprofile/:farmer_id/personal", verifyToken, async (req, res) => {
-  try {
-    const farmerId = req.params.farmer_id;
-    const personalDetails = req.body;
+// app.put("/api/farmerprofile/:farmer_id/personal", verifyToken, async (req, res) => {
+//   try {
+//     const farmerId = req.params.farmer_id;
+//     const personalDetails = req.body;
 
-    await queryDatabase(`
-      UPDATE personaldetails 
-      SET 
-        dob = ?,
-        gender = ?,
-        contact_no = ?,
-        aadhaar_no = ?,
-        residential_address = ?,
-        bank_account_no = ?,
-        ifsc_code = ?,
-        upi_id = ?
-      WHERE farmer_id = ?
-    `, [
-      personalDetails.dob,
-      personalDetails.gender,
-      personalDetails.contact_no,
-      personalDetails.aadhaar_no,
-      personalDetails.residential_address,
-      personalDetails.bank_account_no,
-      personalDetails.ifsc_code,
-      personalDetails.upi_id,
-      farmerId
-    ]);
+//     await queryDatabase(`
+//       UPDATE personaldetails 
+//       SET 
+//         dob = ?,
+//         gender = ?,
+//         contact_no = ?,
+//         aadhaar_no = ?,
+//         residential_address = ?,
+//         bank_account_no = ?,
+//         ifsc_code = ?,
+//         upi_id = ?
+//       WHERE farmer_id = ?
+//     `, [
+//       personalDetails.dob,
+//       personalDetails.gender,
+//       personalDetails.contact_no,
+//       personalDetails.aadhaar_no,
+//       personalDetails.residential_address,
+//       personalDetails.bank_account_no,
+//       personalDetails.ifsc_code,
+//       personalDetails.upi_id,
+//       farmerId
+//     ]);
 
-    res.json({ success: true, message: "Personal details updated successfully" });
-  } catch (err) {
->>>>>>> 900171a80af3d29e4a4f0dd74ad718a21c6ef72a
-    res.status(500).json({ success: false, message: "Error updating personal details", error: err.message });
-  }
-});
+//     res.json({ success: true, message: "Personal details updated successfully" });
+//   } catch (err) {
+//     res.status(500).json({ success: false, message: "Error updating personal details", error: err.message });
+//   }
+// });
+app.put("/api/farmerprofile/:farmer_id/personal", 
+  auth.authenticate,
+  auth.farmerOnly,
+  async (req, res) => {
+    try {
+      const { farmer_id } = req.params;
+      
+      // Verify authorization - ensure the farmer is updating their own profile
+      if (farmer_id !== req.user.farmer_id) {
+        return res.status(403).json({ 
+          success: false,
+          error: "Unauthorized update attempt" 
+        });
+      }
 
-<<<<<<< HEAD
-// Get farm details
-app.get("/api/getfarmdetails", async (req, res) => {
-  try {
-    const { farmer_id } = req.query;
-    if (!farmer_id) {
-      return res.status(400).json({ success: false, message: "Farmer ID is required" });
+      const { dob, gender, contact_no, aadhaar_no, residential_address, 
+              bank_account_no, ifsc_code, upi_id } = req.body;
+
+      // First check if personal details exist for this farmer
+      const [existing] = await queryDatabase(
+        "SELECT 1 FROM personaldetails WHERE farmer_id = ?",
+        [farmer_id]
+      );
+
+      if (existing) {
+        // Update existing record
+        await queryDatabase(
+          `UPDATE personaldetails SET
+            dob = ?, gender = ?, contact_no = ?, aadhaar_no = ?,
+            residential_address = ?, bank_account_no = ?, ifsc_code = ?, upi_id = ?
+          WHERE farmer_id = ?`,
+          [dob, gender, contact_no, aadhaar_no, residential_address,
+           bank_account_no, ifsc_code, upi_id, farmer_id]
+        );
+      } else {
+        // Insert new record
+        await queryDatabase(
+          `INSERT INTO personaldetails 
+          (farmer_id, dob, gender, contact_no, aadhaar_no, 
+           residential_address, bank_account_no, ifsc_code, upi_id)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [farmer_id, dob, gender, contact_no, aadhaar_no,
+           residential_address, bank_account_no, ifsc_code, upi_id]
+        );
+      }
+
+      res.json({ success: true, message: "Personal details updated" });
+    } catch (error) {
+      console.error("Error updating personal details:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: "Failed to update personal details",
+        details: error.message 
+      });
     }
-
-    const result = await queryDatabase(
-      `SELECT * FROM farmdetails WHERE farmer_id = ?;`,
-      [farmer_id]
-    );
-
-    if (result.length === 0) {
-      return res.status(404).json({ success: false, message: "Farm details not found" });
-    }
-
-    res.json(result[0]);
-  } catch (err) {
-    res.status(500).json({ success: false, message: "Error fetching farm details", error: err.message });
   }
-});
-
+);
 // Update farm details
 app.post("/api/updatefarmdetails", async (req, res) => {
   try {
@@ -3314,54 +3607,70 @@ app.post("/api/updatefarmdetails", async (req, res) => {
     res.json({ success: true, message: "Farm details updated successfully" });
   } catch (err) {
     console.error("Database error:", err);
-=======
 
-// ✅ Update Farm Details
-app.put("/api/farmerprofile/:farmer_id/farm", verifyToken, async (req, res) => {
-  try {
-    const farmerId = req.params.farmer_id;
-    const farmDetails = req.body;
-
-    await queryDatabase(`
-      UPDATE farmdetails 
-      SET 
-        farm_address = ?,
-        farm_size = ?,
-        crops_grown = ?,
-        farming_method = ?,
-        soil_type = ?,
-        water_sources = ?,
-        farm_equipment = ?,
-        land_ownership_proof_pdf = ?,
-        certification_pdf = ?,
-        land_lease_agreement_pdf = ?,
-        farm_photographs_pdf = ?
-      WHERE farmer_id = ?
-    `, [
-      farmDetails.farm_address,
-      farmDetails.farm_size,
-      farmDetails.crops_grown,
-      farmDetails.farming_method,
-      farmDetails.soil_type,
-      farmDetails.water_sources,
-      farmDetails.farm_equipment,
-      farmDetails.land_ownership_proof,
-      farmDetails.certification,
-      farmDetails.land_lease_agreement,
-      farmDetails.farm_photographs,
-      farmerId
-    ]);
-
-    res.json({ success: true, message: "Farm details updated successfully" });
-  } catch (err) {
->>>>>>> 900171a80af3d29e4a4f0dd74ad718a21c6ef72a
-    res.status(500).json({ success: false, message: "Error updating farm details", error: err.message });
   }
 });
 
+// ✅ Update Farm Details
+app.put("/api/farmerprofile/:farmer_id/farm", 
+  auth.authenticate,
+  auth.farmerOnly,
+  async (req, res) => {
+    try {
+      const { farmer_id } = req.params;
+      
+      // Verify authorization - ensure the farmer is updating their own profile
+      if (farmer_id !== req.user.farmer_id) {
+        return res.status(403).json({ 
+          success: false,
+          error: "Unauthorized update attempt" 
+        });
+      }
 
-<<<<<<< HEAD
-=======
+      const { farm_address, farm_size, crops_grown, farming_method,
+              soil_type, water_sources, farm_equipment } = req.body;
+
+      // First check if farm details exist for this farmer
+      const [existing] = await queryDatabase(
+        "SELECT 1 FROM farmdetails WHERE farmer_id = ?",
+        [farmer_id]
+      );
+
+      if (existing) {
+        // Update existing record
+        await queryDatabase(
+          `UPDATE farmdetails SET
+            farm_address = ?, farm_size = ?, crops_grown = ?, farming_method = ?,
+            soil_type = ?, water_sources = ?, farm_equipment = ?
+          WHERE farmer_id = ?`,
+          [farm_address, farm_size, crops_grown, farming_method,
+           soil_type, water_sources, farm_equipment, farmer_id]
+        );
+      } else {
+        // Insert new record
+        await queryDatabase(
+          `INSERT INTO farmdetails
+          (farmer_id, farm_address, farm_size, crops_grown, 
+           farming_method, soil_type, water_sources, farm_equipment)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [farmer_id, farm_address, farm_size, crops_grown,
+           farming_method, soil_type, water_sources, farm_equipment]
+        );
+      }
+
+      res.json({ success: true, message: "Farm details updated" });
+    } catch (error) {
+      console.error("Error updating farm details:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: "Failed to update farm details",
+        details: error.message 
+      });
+    }
+  }
+);
+
+
 // ✅ Upload Profile Photo
 app.post("/api/farmerprofile/:farmer_id/photo", verifyToken, upload.single('photo'), async (req, res) => {
   try {
@@ -3400,21 +3709,309 @@ app.delete("/api/farmerprofile/:farmer_id/photo", verifyToken, async (req, res) 
   }
 });
 
+app.delete("/api/farmerprofile/:farmer_id/remove-file", 
+  auth.authenticate,
+  auth.farmerOnly,
+  async (req, res) => {
+    try {
+      const { farmer_id } = req.params;
+      const { field } = req.body;
+
+      if (!field) {
+        return res.status(400).json({ success: false, message: "Field name is required" });
+      }
+
+      // Determine which table to update based on field
+      let table, idField;
+      if (field.includes('profile_photo') || field.includes('aadhaar_proof') || field.includes('bank_proof')) {
+        table = 'personaldetails';
+        idField = 'farmer_id';
+      } else {
+        table = 'farmdetails';
+        idField = 'farmer_id';
+      }
+
+      // First get the file path to delete it from the filesystem
+      const [result] = await queryDatabase(
+        `SELECT ${field} FROM ${table} WHERE ${idField} = ?`,
+        [farmer_id]
+      );
+
+      if (result && result[field]) {
+        const filePath = path.join('F:/Project/KRISHISETU/krishisetu-final/backend', result[field]);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      }
+
+      // Update the database to remove the file reference
+      await queryDatabase(
+        `UPDATE ${table} SET ${field} = NULL WHERE ${idField} = ?`,
+        [farmer_id]
+      );
+
+      res.json({ 
+        success: true, 
+        message: "File removed successfully" 
+      });
+
+    } catch (error) {
+      console.error("Error removing file:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Error removing file",
+        error: error.message 
+      });
+    }
+  }
+);
+
+
 
 // ✅ Upload File
-app.post("/api/farmerprofile/:farmer_id/file", verifyToken, upload.single('file'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: "No file uploaded" });
-    }
+// app.post("/api/farmerprofile/:farmer_id/file", verifyToken, upload.single('file'), async (req, res) => {
+//   try {
+//     if (!req.file) {
+//       return res.status(400).json({ success: false, message: "No file uploaded" });
+//     }
 
-    res.json({ success: true, message: "File uploaded", fileUrl: req.file.filename });
-  } catch (err) {
-    res.status(500).json({ success: false, message: "Error uploading file", error: err.message });
+//     res.json({ success: true, message: "File uploaded", fileUrl: req.file.filename });
+//   } catch (err) {
+//     res.status(500).json({ success: false, message: "Error uploading file", error: err.message });
+//   }
+// });
+
+// In server.js, update the farmer profile photo upload endpoint
+app.post("/api/farmerprofile/:farmer_id/upload-file", 
+  auth.authenticate,
+  auth.farmerOnly,
+  farmerDocumentUpload.single('file'),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ success: false, message: "No file uploaded" });
+      }
+
+      const { farmer_id } = req.params;
+      const { field } = req.body;
+
+      if (!field) {
+        return res.status(400).json({ success: false, message: "Field name is required" });
+      }
+
+      const filePath = `/uploads/farmer-documents/${req.file.filename}`;
+
+      // Update the database with the file path
+      let table, idField;
+      if (field === 'profile_photo' || field === 'aadhaar_proof' || field === 'bank_proof') {
+        table = 'personaldetails';
+        idField = 'farmer_id';
+      } else {
+        table = 'farmdetails';
+        idField = 'farmer_id';
+      }
+
+      await queryDatabase(
+        `UPDATE ${table} SET ${field} = ? WHERE ${idField} = ?`,
+        [filePath, farmer_id]
+      );
+
+      res.json({ 
+        success: true, 
+        message: "File uploaded successfully",
+        filePath: filePath,
+        filename: req.file.filename
+      });
+
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Error uploading file",
+        error: error.message 
+      });
+    }
+  }
+);
+
+// const Razorpay = require('razorpay');
+
+// const razorpay = new Razorpay({
+//   key_id: 'YOUR_RAZORPAY_KEY_ID',
+//   key_secret: 'YOUR_RAZORPAY_KEY_SECRET'
+// });
+
+// // Create Razorpay order
+// app.post('/api/create-razorpay-order', async (req, res) => {
+//   try {
+//     const options = {
+//       amount: req.body.amount,
+//       currency: req.body.currency,
+//       receipt: req.body.receipt,
+//       notes: req.body.notes
+//     };
+
+//     const order = await razorpay.orders.create(options);
+//     res.json(order);
+//   } catch (error) {
+//     console.error('Razorpay order error:', error);
+//     res.status(500).json({ error: 'Failed to create order' });
+//   }
+// });
+
+// // Verify payment
+// app.post('/api/verify-payment', async (req, res) => {
+//   const { razorpay_payment_id, razorpay_order_id, razorpay_signature, orderData } = req.body;
+
+//   try {
+//     // Verify the payment signature
+//     const crypto = require('crypto');
+//     const expectedSignature = crypto
+//       .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+//       .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+//       .digest('hex');
+
+//     if (expectedSignature === razorpay_signature) {
+//       // Payment is successful, create your order
+//       const query = `
+//         INSERT INTO placeorder (
+//           consumer_id, name, mobile_number, email, produce_name, 
+//           quantity, amount, status, payment_status, payment_method,
+//           razorpay_payment_id, razorpay_order_id, is_self_delivery,
+//           recipient_name, recipient_phone, address
+//         )
+//         VALUES (?, ?, ?, ?, ?, ?, ?, 'Confirmed', 'Paid', ?, ?, ?, ?, ?, ?, ?)
+//       `;
+
+//       await queryDatabase(query, [
+//         orderData.consumer_id,
+//         orderData.name,
+//         orderData.mobile_number,
+//         orderData.email,
+//         orderData.produce_name,
+//         orderData.quantity,
+//         orderData.amount,
+//         orderData.payment_method,
+//         razorpay_payment_id,
+//         razorpay_order_id,
+//         orderData.is_self_delivery,
+//         orderData.recipient_name || null,
+//         orderData.recipient_phone || null,
+//         orderData.address
+//       ]);
+
+//       res.json({ success: true });
+//     } else {
+//       res.status(400).json({ error: 'Invalid payment signature' });
+//     }
+//   } catch (error) {
+//     console.error('Payment verification error:', error);
+//     res.status(500).json({ error: 'Payment verification failed' });
+//   }
+// });
+
+const paymentRoutes = require('./src/routes/payment'); // Assuming you put the route in routes/payment.js
+
+app.use('/api', paymentRoutes);
+const axios = require('axios');
+// Instamojo API configuration
+const INSTAMOJO_API_KEY = process.env.INSTAMOJO_API_KEY || '37393680f8c2f74c4962a7128cd25ad9';
+const INSTAMOJO_AUTH_TOKEN = process.env.INSTAMOJO_AUTH_TOKEN || '371fd9a798b0bf71538b6e1a2603dced';
+const INSTAMOJO_BASE_URL = 'https://test.instamojo.com/api/1.1/'; // Use https://www.instamojo.com/api/1.1/ for live
+// Create Instamojo payment request
+app.post('/create-instamojo-payment', async (req, res) => {
+  try {
+    const response = await axios.post(`${INSTAMOJO_BASE_URL}payment-requests/`, req.body, {
+      headers: {
+        'X-Api-Key': INSTAMOJO_API_KEY,
+        'X-Auth-Token': INSTAMOJO_AUTH_TOKEN,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    res.json(response.data);
+  } catch (error) {
+    console.error('Instamojo payment request error:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Failed to create payment request' });
   }
 });
 
->>>>>>> 900171a80af3d29e4a4f0dd74ad718a21c6ef72a
+// Verify Instamojo payment
+app.post('/api/verify-instamojo-payment', async (req, res) => {
+  const { payment_id, payment_request_id, orderData } = req.body;
+
+  try {
+    // First verify the payment with Instamojo
+    const response = await axios.get(`${INSTAMOJO_BASE_URL}payments/${payment_id}/`, {
+      headers: {
+        'X-Api-Key': INSTAMOJO_API_KEY,
+        'X-Auth-Token': INSTAMOJO_AUTH_TOKEN
+      }
+    });
+
+    const paymentDetails = response.data.payment;
+
+    if (paymentDetails.status === 'Credit' && paymentDetails.payment_request.id === payment_request_id) {
+      // Payment is successful, create your order
+      const query = `
+        INSERT INTO placeorder (
+          consumer_id, name, mobile_number, email, produce_name, 
+          quantity, amount, status, payment_status, payment_method,
+          instamojo_payment_id, instamojo_payment_request_id, is_self_delivery,
+          recipient_name, recipient_phone, address
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'Confirmed', 'Paid', ?, ?, ?, ?, ?, ?, ?)
+      `;
+
+      await queryDatabase(query, [
+        orderData.consumer_id,
+        orderData.name,
+        orderData.mobile_number,
+        orderData.email,
+        orderData.produce_name,
+        orderData.quantity,
+        orderData.amount,
+        orderData.payment_method,
+        paymentDetails.id,
+        paymentDetails.payment_request.id,
+        orderData.is_self_delivery,
+        orderData.recipient_name || null,
+        orderData.recipient_phone || null,
+        orderData.address
+      ]);
+
+      res.json({ success: true });
+    } else {
+      res.status(400).json({ error: 'Payment verification failed' });
+    }
+  } catch (error) {
+    console.error('Payment verification error:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Payment verification failed' });
+  }
+});
+
+// Instamojo webhook handler
+app.post('/api/instamojo-webhook', async (req, res) => {
+  try {
+    const { payment_id, payment_request_id, status } = req.body;
+
+    if (status === 'Credit') {
+      // Update your database with payment confirmation
+      await queryDatabase(
+        'UPDATE placeorder SET payment_status = ? WHERE instamojo_payment_id = ?',
+        ['Paid', payment_id]
+      );
+    }
+
+    res.status(200).send('OK');
+  } catch (error) {
+    console.error('Webhook error:', error);
+    res.status(500).send('Error processing webhook');
+  }
+});
+
+
+
 
 
 // Example backend API for fetching bargain sessions
