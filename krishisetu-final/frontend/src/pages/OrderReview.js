@@ -37,27 +37,27 @@ const OrderReview = ({ isSidebarOpen }) => {
   }, [farmer_id]);
 
 
-  const OrderItem = ({ order }) => {
-    return (
-      <tr className="order-item">
-        <td>{order.orderid}</td>
-        <td>{new Date(order.order_date).toLocaleDateString()}</td>
-        <td>{order.produce_name}</td>
-        <td>{order.quantity} kg</td>
-        <td>₹{order.amount}</td>
-        <td>
-          <span className={`status-badge ${order.status.toLowerCase()}`}>
-            {order.status}
-          </span>
-        </td>
-        <td>
-          <span className={`payment-badge ${order.payment_status.toLowerCase()}`}>
-            {order.payment_status}
-          </span>
-        </td>
-      </tr>
-    );
-  };
+  // const OrderItem = ({ order }) => {
+  //   return (
+  //     <tr className="order-item">
+  //       <td>{order.orderid}</td>
+  //       <td>{new Date(order.order_date).toLocaleDateString()}</td>
+  //       <td>{order.produce_name}</td>
+  //       <td>{order.quantity} kg</td>
+  //       <td>₹{order.amount}</td>
+  //       <td>
+  //         <span className={`status-badge ${order.status.toLowerCase()}`}>
+  //           {order.status}
+  //         </span>
+  //       </td>
+  //       <td>
+  //         <span className={`payment-badge ${order.payment_status.toLowerCase()}`}>
+  //           {order.payment_status}
+  //         </span>
+  //       </td>
+  //     </tr>
+  //   );
+  // };
 
   if (loading) {
     return (

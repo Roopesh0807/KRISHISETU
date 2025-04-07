@@ -8,19 +8,28 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
 const { queryDatabase } = require('./src/config/db');
-// const http = require("http");
+const http = require("http");
 // const socketIo = require("socket.io");
 // const { Server } = require("socket.io");
 const path = require("path");
 const { verifyToken, authenticate, farmerOnly } = require('./src/middlewares/authMiddleware');
 // const { initiateBargain } = require("./src/controllers/bargainController"); // Correct file
-<<<<<<< HEAD
+
 // const httpServer = http.createServer(app);
-=======
+const fs = require("fs");
+
+const { Server } = require("socket.io");
+const httpServer = http.createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin: "http://localhost:3000",
+    methods: ["GET", "POST"],
+    credentials: true
+  }
+});
 const router = express.Router();
 // const express = require('express');
 
->>>>>>> 355d88045dcef06d898820f9c326a7954b6e225e
 // const FarmerModel = require('./src/models/farmerModels');  // ✅ Ensure this path is correct
 // const pool = require('./src/config/db');  // Ensure this line is present
 const multer = require("multer");
@@ -290,14 +299,13 @@ app.use(authMiddleware);
 
 const orderRoutes = require("./src/routes/orderRoutes");
 const farmerRoutes = require("./src/routes/farmerRoutes");
-const http = require('http');
-<<<<<<< HEAD
+// const http = require('http');
+
 // const setupSockets = require('./socket');
 //const db = require(".src/config/db");
-=======
+
 const setupSockets = require('./socket');
 // const db = require(".src/config/db");
->>>>>>> 355d88045dcef06d898820f9c326a7954b6e225e
 const communityRoutes = require("./src/routes/communityRoutes");
 const memberRoutes = require("./src/routes/memberRoutes");
 const orderRoutesC = require("./src/routes/orderRoutesC");
@@ -306,26 +314,16 @@ const orderRoutesC = require("./src/routes/orderRoutesC");
 const bargainRoutes = require("./src/routes/bargainRoutes");
 const reviewsRoutes = require('./src/routes/reviews');
 
-<<<<<<< HEAD
+
 const secretKey = process.env.JWT_SECRET;
-=======
+
 
 // At the top of server.js with your other requires
 const auth = require('./src/middlewares/authMiddleware'); // Adjust path as needed
 
->>>>>>> 355d88045dcef06d898820f9c326a7954b6e225e
 
-const fs = require("fs");
 
-const { Server } = require("socket.io");
-const httpServer = http.createServer(app);
-const io = new Server(httpServer, {
-  cors: {
-    origin: "http://localhost:3000",
-    methods: ["GET", "POST"],
-    credentials: true
-  }
-});
+
 
 // Middleware to verify JWT from HTTP API
 const authenticateJWT = (req, res, next) => {
@@ -341,23 +339,7 @@ const authenticateJWT = (req, res, next) => {
 app.get("/api/user", authenticateJWT, (req, res) => {
   res.json({ user: req.user });
 });
-// 🔐 WebSocket Middleware for Auth
-// io.use((socket, next) => {
-//   const token = socket.handshake.auth.token; // token passed during socket connection
 
-//   if (!token) {
-//     return next(new Error('Authentication error: Token not provided'));
-//   }
-
-//   jwt.verify(token, secretKey, (err, decoded) => {
-//     if (err) {
-//       return next(new Error('Authentication error: Invalid token'));
-//     }
-
-//     socket.user = decoded; // Attach user data to socket
-//     next();
-//   });
-// });
 io.use((socket, next) => {
   try {
     // 1. Extract token from multiple possible locations
@@ -1785,9 +1767,10 @@ app.get("/api/products", async (req, res) => {
   }
 });
 
-<<<<<<< HEAD
 
-=======
+
+
+
 const saltRounds = 10;
 app.post("/api/farmerregister", async (req, res) => {
   const { first_name, last_name, email, phone_number, password, confirm_password } = req.body;
@@ -1921,7 +1904,7 @@ app.post("/api/farmerlogin", async (req, res) => {
     });
   }
 });
->>>>>>> 4e5a4705ad0d819e8304a2ae943a2630f933a016
+
 app.get("/api/getFarmerDetails", async (req, res) => {
   try {
     const { farmer_id } = req.query;
@@ -1958,8 +1941,6 @@ app.get("/api/getFarmerDetails", async (req, res) => {
 // ✅ Consumer Registration API (With Hashing)
 
 
-<<<<<<< HEAD
-=======
 // app.post("/api/consumerregister", async (req, res) => {
 //     console.log("Consumer Registration API Called ✅");  // Debugging
 
@@ -2147,7 +2128,6 @@ app.post("/api/consumerlogin", async (req, res) => {
   }
 });
 
->>>>>>> 355d88045dcef06d898820f9c326a7954b6e225e
 
 // ✅ Logout API (Clears JWT Cookie)
 app.post("/api/logout", (req, res) => {
@@ -3420,22 +3400,7 @@ app.delete("/api/produces/:product_id", async (req, res) => {
   }
 });
 
-// 🌐 WebSocket Connection Handling
-const onlineUsers = new Map();
 
-// ✅ Authenticate socket connection
-// io.use((socket, next) => {
-//   const token = socket.handshake.auth.token;
-//   if (!token) return next(new Error("Authentication error"));
-
-//   try {
-//     const user = jwt.verify(token, "your_secret_key");
-//     socket.user = user;
-//     next();
-//   } catch (err) {
-//     next(new Error("Authentication failed"));
-//   }
-// });
 
 
 // Helper function to pick specific properties from an object
@@ -3445,20 +3410,6 @@ function pick(obj, keys) {
     return acc;
   }, {});
 }
-
-// ✅ Single connection handler
-// io.on("connection", (socket) => {
-//   console.log(`📡 Socket connected: ${socket.id}`);
-
-//   socket.on("bargainMessage", (data) => {
-//     console.log("💬 Bargain Message Received:", data);
-//     socket.broadcast.emit("bargainMessage", data);
-//   });
-
-//   socket.on("disconnect", () => {
-//     console.log(`❌ Socket disconnected: ${socket.id}`);
-//   });
-// });
 
 
 // POST route for creating the bargain
@@ -4816,7 +4767,7 @@ app.post('/api/instamojo-webhook', async (req, res) => {
 
 
 
-const router = express.Router();
+// const router = express.Router();
 // const { queryDatabase } = require('./database');
 
 // Get all subscriptions for a consumer
@@ -4980,7 +4931,8 @@ if (process.env.NODE_ENV === 'production') {
     res.sendFile(path.resolve(__dirname, 'client', 'build', 'index.html'));
   });
 }
-<<<<<<< HEAD
+
+// setupSockets(httpDServer);
 // setupSockets(httpServer);
 // setupSockets(io);
 // ✅ Start Server
@@ -4999,24 +4951,22 @@ httpServer.listen(PORT, '0.0.0.0', () => {
     `);
     
 });
-=======
-
-
-
-
-setupSockets(server);
-
-// ✅ Start Server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
 
 
 
 
 
 
+// // ✅ Start Server
+// const PORT = process.env.PORT || 5000;
+// app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
 
 
 
 
->>>>>>> 355d88045dcef06d898820f9c326a7954b6e225e
+
+
+
+
+
+

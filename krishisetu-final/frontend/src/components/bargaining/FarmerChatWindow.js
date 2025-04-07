@@ -7,7 +7,7 @@ import {
   faSpinner,
   faRupeeSign,
   faArrowUp,
-  faArrowDown,
+  // faArrowDown,
   faCheckCircle,
   faTimesCircle
 } from '@fortawesome/free-solid-svg-icons';

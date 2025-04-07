@@ -190,7 +190,7 @@ const Main = () => {
           <Route path="/order/:communityId" element={<OrderPageC />} />
           <Route path="/community/:communityId/member/:memberId" element={<MemberOrderPage />} />
 
-<<<<<<< HEAD
+
 
 
         <Route path="/bargain" element={<ConsumerChatList />} />
@@ -206,12 +206,12 @@ const Main = () => {
         {/* /farmer/bargain/:bargainId */}
 
           {/* 🌿 Farmer Features */}
-=======
+
           <Route path="/bargain" element={<ConsumerChatList />} />
           <Route path="/bargain/:bargainId" element={<ConsumerChatWindow />} />
           <Route path="/farmer/bargain" element={<FarmerChatList />} />
           <Route path="/farmer/:bargainId" element={<FarmerChatWindow />} />
->>>>>>> 355d88045dcef06d898820f9c326a7954b6e225e
+
 
           <Route path="/add-produce" element={<AddProduce />} />
           <Route path="/productDetails/:product_id" element={<ProductDetails />} />

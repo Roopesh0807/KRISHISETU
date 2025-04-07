@@ -776,9 +776,10 @@ const Subscribe = () => {
   useEffect(() => {
     fetchSubscriptions();
   }, [fetchSubscriptions]); // Correct dependencies
-  useEffect(() => {
-    fetchSubscriptions();
-  }, [consumer]);
+
+  // useEffect(() => {
+  //   fetchSubscriptions();
+  // }, [consumer]);
 
   // Helper functions
   const showSuccess = (message) => {

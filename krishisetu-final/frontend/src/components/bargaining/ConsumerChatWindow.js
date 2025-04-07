@@ -655,7 +655,7 @@ import './ConsumerChatWindow.css';
 const BargainChatWindow = () => {
   const navigate = useNavigate();
   const { bargainId } = useParams();
-  const { token, consumer } = useAuth();
+  const { token } = useAuth();
   const location = useLocation();
   const socket = useRef(null);
   const messagesEndRef = useRef(null);
@@ -663,9 +663,9 @@ const BargainChatWindow = () => {
 
   // Extract initial state from location
   const { 
-    product: initialProduct, 
+    // product: initialProduct, 
     farmer: initialFarmer, 
-    quantity: initialQuantity 
+    // quantity: initialQuantity 
   } = location.state || {};
 
   // State management
@@ -680,18 +680,18 @@ const BargainChatWindow = () => {
   const [quantity, setQuantity] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [, setInitialPrice] = useState(0);
+  // const [, setInitialPrice] = useState(0);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [selectedQuantity, setSelectedQuantity] = useState('');
   const [showPriceSuggestions, setShowPriceSuggestions] = useState(false);
   const [priceSuggestions, setPriceSuggestions] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
 
-  const closePopup = () => {
-    setIsBargainPopupOpen(false);
-    setSelectedProduct(null);
-    setSelectedQuantity('');
-  };
+  // const closePopup = () => {
+  //   setIsBargainPopupOpen(false);
+  //   setSelectedProduct(null);
+  //   setSelectedQuantity('');
+  // };
 
   // Generate price suggestions based on current price
   const generatePriceSuggestions = useCallback((basePrice) => {
