@@ -65,6 +65,10 @@ const AddProduce = () => {
     try {
       setIsLoading(true);
       const response = await axios.get(`http://localhost:5000/api/produces`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
         params: {
           farmer_id: farmerDetails.id,
           market_type: selectedMarket
@@ -136,11 +140,35 @@ const AddProduce = () => {
         market_type: selectedMarket
       };
 
+      const config = {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      };
+
       if (newProduce.id) {
-        await axios.put(`http://localhost:5000/api/produces/${newProduce.id}`, produceData);
+        await axios.put(
+          `http://localhost:5000/api/produces/${newProduce.id}`,
+          produceData,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          }
+        );
       } else {
-        await axios.post('http://localhost:5000/api/produces', produceData);
-      }
+        await axios.post(
+          'http://localhost:5000/api/produces',
+          produceData,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          }
+      )};
 
       await loadProduces();
       setNewProduce({
@@ -172,7 +200,14 @@ const AddProduce = () => {
     
     try {
       setIsLoading(true);
-      await axios.delete(`http://localhost:5000/api/produces/${productId}`);
+      await axios.delete(`http://localhost:5000/api/produces/${productId}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
       await loadProduces();
     } catch (err) {
       console.error('Failed to delete produce:', err);

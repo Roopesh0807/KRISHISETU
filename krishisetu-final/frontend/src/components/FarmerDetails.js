@@ -34,7 +34,11 @@ const FarmerDetails = () => {
   const fetchReviews = useCallback(async () => {
     setIsLoadingReviews(true);
     try {
-      const response = await axios.get(`http://localhost:5000/reviews/${farmer_id}`);
+      const response = await axios.get(`http://localhost:5000/reviews/${farmer_id}`,{
+        headers: {
+          "Authorization": `Bearer ${consumer?.token}`,
+        },
+      });
       setReviews(response.data);
       const avgRating = calculateAverageRating(response.data);
       setFarmer(prevFarmer => ({
@@ -168,7 +172,11 @@ const FarmerDetails = () => {
 
     try {
       await axios.post("http://localhost:5000/reviews", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: { "Authorization": `Bearer ${consumer?.token}`,
+                   "Content-Type": "multipart/form-data" 
+                   
+        },
+      
       });
 
       setNewReview({ consumer_name: consumer.name, rating: "", comment: "" });
