@@ -261,45 +261,45 @@ const ConsumerLogin = () => {
       }
   
       // Verify token structure
-      let payload;
-      try {
-        payload = JSON.parse(atob(data.token.split('.')[1]));
-      } catch (parseError) {
-        throw new Error("Invalid token format");
-      }
+      // let payload;
+      // try {
+      //   payload = JSON.parse(atob(data.token.split('.')[1]));
+      // } catch (parseError) {
+      //   throw new Error("Invalid token format");
+      // }
   
-      // Required fields check
-      if (!payload.consumer_id || !payload.exp) {
-        throw new Error("Invalid token payload");
-      }
+      // // Required fields check
+      // if (!payload.consumer_id || !payload.exp) {
+      //   throw new Error("Invalid token payload");
+      // }
   
-      // Check token expiration
-      if (payload.exp * 1000 < Date.now()) {
-        throw new Error("Session expired. Please login again");
-      }
+      // // Check token expiration
+      // if (payload.exp * 1000 < Date.now()) {
+      //   throw new Error("Session expired. Please login again");
+      // }
   
-      // Prepare consumer data
-      const consumerData = {
-        token: data.token,
-        consumer_id: payload.consumer_id,
-        email: payload.email || "",
-        phone_number: payload.phone_number || "",
-        name: payload.name || `${payload.first_name || ""} ${payload.last_name || ""}`.trim(),
-        // Add any other necessary fields from payload
-      };
+      // // Prepare consumer data
+      // const consumerData = {
+      //   token: data.token,
+      //   consumer_id: payload.consumer_id,
+      //   email: payload.email || "",
+      //   phone_number: payload.phone_number || "",
+      //   name: payload.name || `${payload.first_name || ""} ${payload.last_name || ""}`.trim(),
+      //   // Add any other necessary fields from payload
+      // };
   
-      // Store authentication data
-      localStorage.setItem("auth", JSON.stringify({
-        token: data.token,
-        consumer_id: payload.consumer_id,
-        expiresAt: payload.exp * 1000 // Convert to milliseconds
-      }));
+      // // Store authentication data
+      // localStorage.setItem("auth", JSON.stringify({
+      //   token: data.token,
+      //   consumer_id: payload.consumer_id,
+      //   expiresAt: payload.exp * 1000 // Convert to milliseconds
+      // }));
   
       // Update context/auth state
-      loginConsumer(consumerData);
+      // loginConsumer(consumerData);
   
       // Successful login handling
-      console.log("Login successful for consumer:", payload.consumer_id);
+      // console.log("Login successful for consumer:", payload.consumer_id);
       navigate("/consumer-dashboard", { 
         replace: true,
         state: { from: location.state?.from || "/" }

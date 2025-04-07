@@ -1,168 +1,321 @@
 /* ConsumerChatList.css */
+
+/* Base Styles */
 .consumer-chat-app {
-    display: flex;
-    height: 100vh;
+  margin-top: 65px;
+  display: flex;
+  height: 90vh;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f5f7fa;
+  color: #333;
+}
+
+/* Loading State */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #4a6fa5;
+}
+
+.loading-container p {
+  margin-top: 15px;
+  font-size: 1.1rem;
+}
+
+/* Sidebar Styles */
+.chat-sidebar {
+  width: 350px;
+  background-color: #ffffff;
+  border-right: 1px solid #e1e5eb;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.sidebar-header {
+  padding: 20px;
+  border-bottom: 1px solid #e1e5eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sidebar-header h2 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.connection-status {
+  display: flex;
+  align-items: center;
+  font-size: 0.8rem;
+  color: #7f8c8d;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
+.status-dot.connected {
+  background-color: #2ecc71;
+  box-shadow: 0 0 8px rgba(46, 204, 113, 0.4);
+}
+
+.status-dot.connecting {
+  background-color: #f39c12;
+  box-shadow: 0 0 8px rgba(243, 156, 18, 0.4);
+}
+
+.status-dot.error, .status-dot.disconnected {
+  background-color: #e74c3c;
+  box-shadow: 0 0 8px rgba(231, 76, 60, 0.4);
+}
+
+/* Search Bar */
+.search-bar {
+  padding: 15px 20px;
+  border-bottom: 1px solid #e1e5eb;
+}
+
+.search-bar input {
+  width: 100%;
+  padding: 10px 15px;
+  border: 1px solid #e1e5eb;
+  border-radius: 20px;
+  outline: none;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  background-color: #f8f9fa;
+}
+
+.search-bar input:focus {
+  border-color: #4a6fa5;
+  box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.1);
+}
+
+/* Session List */
+.session-list {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #d1d8e0 transparent;
+}
+
+.session-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.session-list::-webkit-scrollbar-thumb {
+  background-color: #d1d8e0;
+  border-radius: 3px;
+}
+
+.empty-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100px;
+  color: #7f8c8d;
+  font-size: 0.95rem;
+}
+
+/* Session Cards */
+.session-card {
+  display: flex;
+  padding: 15px 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 1px solid #f1f3f7;
+  position: relative;
+}
+
+.session-card:hover {
+  background-color: #f8f9fa;
+}
+
+.session-card.active {
+  background-color: #edf2f9;
+}
+
+.farmer-avatar {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  background-color: #4a6fa5;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  margin-right: 15px;
+  flex-shrink: 0;
+}
+
+.session-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.session-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.session-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.session-time {
+  font-size: 0.8rem;
+  color: #7f8c8d;
+  white-space: nowrap;
+  margin-left: 10px;
+}
+
+.session-details {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.product-info {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #555;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.price-info {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #27ae60;
+  white-space: nowrap;
+  margin-left: 10px;
+}
+
+.session-preview {
+  margin-top: 3px;
+}
+
+.message-preview {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #7f8c8d;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Status Indicators */
+.status-indicator {
+  position: absolute;
+  right: 15px;
+  top: 15px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.status-indicator.pending {
+  background-color: #f39c12;
+}
+
+.status-indicator.accepted {
+  background-color: #2ecc71;
+}
+
+.status-indicator.rejected {
+  background-color: #e74c3c;
+}
+
+.unread-badge {
+  position: absolute;
+  right: 15px;
+  top: 15px;
+  background-color: #e74c3c;
+  color: white;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: bold;
+}
+
+/* Chat Window Container */
+.chat-window-container {
+  flex: 1;
+  display: flex;
+  background-color: #f5f7fa;
+}
+
+.empty-chat-window {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f5f7fa;
+}
+
+.empty-content {
+  text-align: center;
+  color: #7f8c8d;
+}
+
+.empty-content h3 {
+  font-size: 1.3rem;
+  margin-bottom: 10px;
+  color: #2c3e50;
+}
+
+.empty-content p {
+  font-size: 0.95rem;
+}
+
+/* Animation for new messages */
+@keyframes highlight {
+  0% { background-color: rgba(74, 111, 165, 0.1); }
+  100% { background-color: transparent; }
+}
+
+.new-message {
+  animation: highlight 1.5s ease-out;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .consumer-chat-app {
+    flex-direction: column;
+    height: auto;
   }
   
   .chat-sidebar {
-    width: 350px;
-    border-right: 1px solid #e0e0e0;
-    display: flex;
-    flex-direction: column;
-    background-color: #f5f5f5;
-  }
-  
-  .sidebar-header {
-    padding: 20px;
-    border-bottom: 1px solid #e0e0e0;
-  }
-  
-  .sidebar-header h2 {
-    margin: 0;
-    color: #333;
-  }
-  
-  .search-bar {
-    padding: 15px;
-    border-bottom: 1px solid #e0e0e0;
-  }
-  
-  .search-bar input {
     width: 100%;
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-  }
-  
-  .session-list {
-    flex: 1;
-    overflow-y: auto;
-  }
-  
-  .session-card {
-    display: flex;
-    padding: 15px;
-    cursor: pointer;
-    border-bottom: 1px solid #e0e0e0;
-    position: relative;
-  }
-  
-  .session-card:hover {
-    background-color: #ebebeb;
-  }
-  
-  .session-card.active {
-    background-color: #e3f2fd;
-  }
-  
-  .farmer-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background-color: #2196f3;
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: 12px;
-    font-weight: bold;
-  }
-  
-  .session-content {
-    flex: 1;
-  }
-  
-  .session-header {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 5px;
-  }
-  
-  .session-header h3 {
-    margin: 0;
-    font-size: 16px;
-  }
-  
-  .session-time {
-    color: #757575;
-    font-size: 12px;
-  }
-  
-  .session-details {
-    font-size: 14px;
-    color: #616161;
-  }
-  
-  .session-details p {
-    margin: 3px 0;
-  }
-  
-  .unread-badge {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    background-color: #f44336;
-    color: white;
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-  }
-  
-  .status-indicator {
-    position: absolute;
-    bottom: 10px;
-    right: 10px;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-  }
-  
-  .status-indicator.pending {
-    background-color: #ff9800;
-  }
-  
-  .empty-state {
-    padding: 20px;
-    text-align: center;
-    color: #757575;
+    height: 50vh;
+    border-right: none;
+    border-bottom: 1px solid #e1e5eb;
   }
   
   .chat-window-container {
-    flex: 1;
-    display: flex;
+    height: 50vh;
   }
-  
-  .empty-chat-window {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #fafafa;
-  }
-  
-  .empty-content {
-    text-align: center;
-    color: #616161;
-  }
-  
-  .empty-content h3 {
-    margin-bottom: 10px;
-  }
-  
-  .loading-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100vh;
-  }
-  
-  .error {
-    padding: 20px;
-    color: #d32f2f;
-    text-align: center;
-  }
+}

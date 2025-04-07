@@ -1057,54 +1057,113 @@ app.post("/api/save-address", async (req, res) => {
 
 // In your backend routes file (e.g., routes/bargain.js)
 // GET all pending bargain sessions for a consumer with a specific farmer
+// app.get('/api/bargain/sessions/consumer/:consumerId', authenticate, async (req, res) => {
+//   try {
+//     const { consumerId } = req.params;
+//     const { farmer_id } = req.query; // Optional: Filter by farmer_id
+
+//     // Base query conditions
+//     let query = `
+//       SELECT bs.*, 
+//              f.name AS farmer_name,
+//              p.name AS product_name,
+            
+//       FROM bargain_sessions bs
+//       LEFT JOIN farmerregistration f ON bs.farmer_id = f.farmer_id
+     
+//       WHERE bs.consumer_id = ? 
+     
+//     `;
+
+//     const queryParams = [consumerId];
+
+//     // Add farmer_id filter if provided
+//     if (farmer_id) {
+//       query += ' AND bs.farmer_id = ?';
+//       queryParams.push(farmer_id);
+//     }
+
+//     // Add sorting
+//     query += ' ORDER BY bs.updated_at DESC';
+
+//     // Execute the query
+//     const [sessions] = await db.query(query, queryParams);
+
+//     // Transform the data to match frontend expectations
+//     const formattedSessions = sessions.map(session => ({
+//       session_id: session.bargain_id,
+//       farmer_id: session.farmer_id,
+//       farmer_name: session.farmer_name,
+      
+//       updated_at: session.updated_at,
+//       created_at: session.created_at,
+//       initiator: session.initiator,
+//       unread_count: session.unread_count || 0
+//     }));
+
+//     res.json(formattedSessions);
+//   } catch (error) {
+//     console.error('Error fetching bargain sessions:', error);
+//     res.status(500).json({ error: 'Internal server error' });
+//   }
+// });
 app.get('/api/bargain/sessions/consumer/:consumerId', authenticate, async (req, res) => {
   try {
     const { consumerId } = req.params;
-    const { farmer_id } = req.query; // Optional: Filter by farmer_id
 
-    // Base query conditions
-    let query = `
-      SELECT bs.*, 
-             f.name AS farmer_name,
-             p.name AS product_name,
-            
+    // Get all bargain sessions initiated by this consumer
+    const query = `
+      SELECT 
+        bs.bargain_id,
+        bs.farmer_id,
+        CONCAT(f.first_name, ' ', f.last_name) AS farmer_name,
+        UPPER(SUBSTRING(f.first_name, 1, 1)) AS farmer_initials,
+        bm.created_at AS last_message_time,
+        bs.updated_at,
+        bs.status,
+        bs.created_at
       FROM bargain_sessions bs
       LEFT JOIN farmerregistration f ON bs.farmer_id = f.farmer_id
-     
-      WHERE bs.consumer_id = ? 
-     
+      LEFT JOIN (
+        SELECT bargain_id, message, created_at
+        FROM bargain_messages
+        WHERE (bargain_id, created_at) IN (
+          SELECT bargain_id, MAX(created_at)
+          FROM bargain_messages
+          GROUP BY bargain_id
+        )
+      ) bm ON bs.bargain_id = bm.bargain_id
+      WHERE bs.consumer_id = ?
+        AND bs.initiator = 'consumer' 
+      ORDER BY 
+        CASE 
+          WHEN bm.created_at IS NULL THEN bs.updated_at 
+          ELSE bm.created_at 
+        END DESC
     `;
 
-    const queryParams = [consumerId];
+    const sessions = await queryDatabase(query, [consumerId]);
 
-    // Add farmer_id filter if provided
-    if (farmer_id) {
-      query += ' AND bs.farmer_id = ?';
-      queryParams.push(farmer_id);
-    }
-
-    // Add sorting
-    query += ' ORDER BY bs.updated_at DESC';
-
-    // Execute the query
-    const [sessions] = await db.query(query, queryParams);
-
-    // Transform the data to match frontend expectations
     const formattedSessions = sessions.map(session => ({
-      session_id: session.bargain_id,
+      bargain_id: session.bargain_id,
       farmer_id: session.farmer_id,
       farmer_name: session.farmer_name,
-      
+      farmer_initials: session.farmer_initials || 
+                      (session.farmer_name ? session.farmer_name.charAt(0).toUpperCase() : 'F'),
+      last_message_time: session.last_message_time || session.updated_at,
       updated_at: session.updated_at,
-      created_at: session.created_at,
-      initiator: session.initiator,
-      unread_count: session.unread_count || 0
+      status: session.status || 'pending',
+      created_at: session.created_at
     }));
 
     res.json(formattedSessions);
   } catch (error) {
-    console.error('Error fetching bargain sessions:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Error fetching consumer bargain sessions:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to fetch bargain sessions',
+      error: error.message 
+    });
   }
 });
 // Update existing address (won't create new records)
