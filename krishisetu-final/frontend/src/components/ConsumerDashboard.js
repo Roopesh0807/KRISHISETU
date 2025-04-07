@@ -89,12 +89,9 @@ const productImages = {
 };
 
 const ConsumerDashboard = () => {
-  const { 
-    consumer = null, 
-    // farmer = null,
-    // loginConsumer,
-    // logout
-  } = useAuth();
+  const { consumer } = useAuth();
+  // const token = consumer?.token;
+  // console.log("Consumer token:", token);
   console.log("🔍 Consumer from AuthContext:", consumer);
   // const location = useLocation();
   const [products, setProducts] = useState([]);
@@ -118,24 +115,81 @@ const ConsumerDashboard = () => {
   const [error, setError] = useState(null);
   // const [, setMessages] = useState([]);
 
+  // useEffect(() => {
+  //   const fetchProducts = async () => {
+  //     try {
+  //       const response = await fetch("http://localhost:5000/api/products", {
+  //         method: "GET",
+  //         credentials: "include",
+  //         headers: {
+  //           "Content-Type": "application/json",
+  //           "Authorization": `Bearer ${consumer?.token}`,
+  //         },
+  //       });
+  
+  //       if (!response.ok) {
+  //         throw new Error("Failed to fetch products");
+  //       }
+  
+  //       const data = await response.json();
+  //       setProducts(data);
+  //     } catch (error) {
+  //       console.error("Error fetching products:", error);
+  //       alert("Failed to load products. Please refresh the page.");
+  //     }
+  //   };
+  
+  //   if (consumer?.token) {
+  //     fetchProducts(); // Call only when token is available
+  //   }
+  // }, [consumer?.token]);
   useEffect(() => {
-    fetch("http://localhost:5000/api/products")
-      .then((response) => {
+    const fetchProducts = async () => {
+      try {
+        const response = await fetch("http://localhost:5000/api/products", {
+          method: "GET",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${consumer?.token}`,
+          },
+        });
+  
         if (!response.ok) {
           throw new Error("Failed to fetch products");
         }
-        return response.json();
-      })
-      .then((data) => setProducts(data))
-      .catch((error) => console.error("Error fetching products:", error));
-  }, []);
-
+  
+        const text = await response.text(); // 🔍 safer than .json()
+  
+        if (!text) {
+          throw new Error("Empty response body"); // 👈 triggers catch block
+        }
+  
+        const data = JSON.parse(text);
+        setProducts(data);
+      } catch (error) {
+        console.error("❌ Error fetching products:", error);
+        alert("Failed to load products. Please refresh the page.");
+      }
+    };
+  
+    if (consumer?.token) {
+      fetchProducts();
+    }
+  }, [consumer?.token]);
+  
   useEffect(() => {
     const fetchFarmers = async () => {
+  
       try {
         const response = await fetch('http://localhost:5000/api/farmers', {
-          credentials: 'include' // Important for CORS
-        });
+          method: "GET",
+          credentials: 'include',
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${consumer?.token}`,
+          },
+        });        
   
         if (!response.ok) {
           throw new Error('Failed to fetch farmers');
@@ -157,7 +211,7 @@ const ConsumerDashboard = () => {
     };
   
     fetchFarmers();
-  }, []);
+  }, [consumer?.token]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -182,22 +236,100 @@ const ConsumerDashboard = () => {
   //   handleNewMessage('farmer', response);
   // };
 
+  // const handleBargainClick = async (farmer, product, e) => {
+  //   e.stopPropagation();
+  //   setError(null);
+  //   setIsLoading(true);
+  
+  //   try {
+  //     // Validate authentication
+  //     if (!consumer?.token) {
+  //       navigate('/loginpage', { state: { from: location.pathname } });
+  //       return;
+  //     }
+  
+  //     // Default quantity (you can make this configurable)
+  //     const quantity = 10; 
+  
+  //     // Create bargain request
+  //     const response = await fetch('http://localhost:5000/api/create-bargain', {
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //         'Authorization': `Bearer ${consumer.token}`
+  //       },
+  //       body: JSON.stringify({
+  //         product_id: product.product_id,
+  //         farmer_id: farmer.farmer_id, // <-- ✅ Add this line
+  //         quantity,
+  //         initiator: "consumer"
+  //       })
+        
+  //     });
+  
+            
+  //     // 🔍 Get raw response body (for debugging)
+  //     const rawText = await response.text();
+  //     console.log("🔍 Raw server response:", rawText);
+
+  //     if (!response.ok) {
+  //       throw new Error(`Server error: ${response.status} - ${rawText}`);
+  //     }
+  //     // // ✅ Check if response is OK BEFORE trying to parse JSON
+  //     // if (!response.ok) {
+  //     //   const errorText = await response.text(); // safer than trying .json() on a broken response
+  //     //   throw new Error(`Server error: ${response.status} - ${errorText}`);
+  //     // }
+
+  //     // const data = await response.json();
+
+  //     // if (!data.bargainId) {
+  //     //   throw new Error("Missing bargainId in response");
+  //     // }
+  //     // console.log("🧾 Full response:", response);
+  //     // ✅ Only parse JSON if it’s not empty
+  //     let data;
+  //     try {
+  //       data = JSON.parse(rawText);
+  //     } catch (err) {
+  //       throw new Error(`Failed to parse server JSON: ${err.message}`);
+  //     }
+
+  //     if (!data.bargainId) {
+  //       throw new Error("Missing bargainId in response");
+  //     }
+
+  //     // Navigate directly to chat window with bargain context
+  //     navigate(`/bargain/${data.bargainId}`, {
+  //       state: {
+  //         product: product,
+  //         farmer: farmer,
+  //         quantity: quantity,
+  //         originalPrice: data.originalPrice,
+  //         isNewBargain: true // Flag to show this is a new bargain
+  //       }
+  //     });
+  
+  //   } catch (error) {
+  //     console.error("Bargain initiation failed:", error);
+  //     setError(error.message);
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
   const handleBargainClick = async (farmer, product, e) => {
     e.stopPropagation();
     setError(null);
     setIsLoading(true);
   
     try {
-      // Validate authentication
       if (!consumer?.token) {
         navigate('/loginpage', { state: { from: location.pathname } });
         return;
       }
   
-      // Default quantity (you can make this configurable)
-      const quantity = 10; 
+      const quantity = 10;
   
-      // Create bargain request
       const response = await fetch('http://localhost:5000/api/create-bargain', {
         method: 'POST',
         headers: {
@@ -205,166 +337,100 @@ const ConsumerDashboard = () => {
           'Authorization': `Bearer ${consumer.token}`
         },
         body: JSON.stringify({
-          product_id: product.product_id,
-          quantity,
-          initiator: "consumer"
+          farmer_id: farmer.farmer_id,
+          initiator: "consumer",
         })
       });
   
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || `Server error: ${response.status}`);
-      }
+      // const rawText = await response.text();
+      // console.log("🐞 Raw Response:", rawText);
   
+      // if (!response.ok) {
+      //   throw new Error(`Server responded with ${response.status}: ${rawText}`);
+      // }
+  
+      // if (!rawText || rawText.trim() === "") {
+      //   throw new Error("Empty response received from server.");
+      // }
+  
+      // let data;
+      // try {
+      //   data = JSON.parse(rawText);
+      // } catch (err) {
+      //   console.error("❌ JSON Parse Error:", err.message);
+      //   setError("Server returned invalid JSON: " + err.message);
+      //   return;
+      // }
+      const text = await response.text();
+      console.log("📦 Raw Response Text:", text);
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (err) {
+        console.error("❌ Failed to parse JSON:", err);
+      }
+
+      console.log("📄 Parsed Data:", data);
+        
       if (!data.bargainId) {
-        throw new Error("Missing bargainId in response");
+        throw new Error("Missing bargainId in server response.");
       }
   
-      // Navigate directly to chat window with bargain context
+      // ✅ Now navigate with data
       navigate(`/bargain/${data.bargainId}`, {
         state: {
-          product: product,
-          farmer: farmer,
-          quantity: quantity,
+          product,
+          farmer,
+          quantity,
           originalPrice: data.originalPrice,
-          isNewBargain: true // Flag to show this is a new bargain
+          isNewBargain: true
         }
       });
   
     } catch (error) {
-      console.error("Bargain initiation failed:", error);
+      console.error("🔥 Bargain initiation failed:", error.message);
       setError(error.message);
     } finally {
       setIsLoading(false);
     }
   };
   
-//   const handleBargainConfirm = async () => {
-//     setError(null);
-//     setIsLoading(true);
-  
-//     try {
-//       // 1. Validate inputs
-//       if (!selectedProduct || quantity <= 0) {
-//         throw new Error("Please select a product and valid quantity");
-//       }
-  
-//       // 2. Check authentication
-//       if (!consumer?.token) {
-//         navigate('/login', { state: { from: location.pathname } });
-//         return;
-//       }
-//    // Simulate sending a message when a bargain is confirmed
-//     handleNewMessage('consumer', `Sent a request to ${selectedFarmer.farmer_name} to initiate the bargain.`);
-      
-//    // Simulate a farmer response (you can customize the logic here)
-//      setTimeout(() => {
-//        handleFarmerResponse('Farmer has seen your request and is reviewing your offer.');
-//    }, 2000);
-//       // 3. Make the API call
-//       const response = await fetch('http://localhost:5000/api/create-bargain', {
-//         method: 'POST',
-//         headers: {
-//           'Content-Type': 'application/json',
-//           'Authorization': `Bearer ${consumer.token}`
-//         },
-//         body: JSON.stringify({
-//           product_id: selectedProduct.product_id,
-//           quantity,
-//           initiator: "consumer"
-//         })
-//       });
-  
-//       // 4. Handle response
-//       const data = await response.json();
-//       console.log("Full response:", { status: response.status, data }); // Debug log
-  
-//       if (!response.ok) {
-//         // Server returned an error (4xx/5xx)
-//         throw new Error(data.error || `Server error: ${response.status}`);
-//       }
-  
-//       if (!data.bargainId) {
-//         throw new Error("Missing bargainId in response");
-//       }
-  
-//        // 5. Fetch farmer details if not included in response
-//     let farmerData = data.farmer;
-//     if (!farmerData) {
-//       const farmerResponse = await fetch(`http://localhost:5000/api/farmers/${selectedProduct.farmer_id}`, {
-//         headers: {
-//           'Authorization': `Bearer ${consumer.token}`
-//         }
-//       });
-//       farmerData = await farmerResponse.json();
-//     }
-
-//       // 6. Success case
-//   //   // Send a "Bargain Request" message
-//   //   await fetch('http://localhost:5000/api/send-bargain-message', {
-//   //     method: 'POST',
-//   //     headers: {
-//   //       'Content-Type': 'application/json',
-//   //       'Authorization': `Bearer ${consumer.token}`
-//   //     },
-//   //     body: JSON.stringify({
-//   //       bargainId: data.bargainId,
-//   //       senderType: 'consumer'  // This indicates the consumer initiated the request
-//   //     })
-//   //   });
-//   // // 7. Navigate to the chat window
-//   // navigate(`/bargain/${data.bargainId}`, {
-//   //   state: {
-//   //     product: selectedProduct,
-//   //     farmer: data.farmer,
-//   //     quantity,
-//   //     originalPrice: data.originalPrice
-//   //   }
-//   // });
-// // Success case
-//         setIsBargainPopupOpen(false); // Close the popup
-//         navigate(`/bargain/${data.bargainId}`, {
-//           state: {
-//             product: selectedProduct,
-//             farmer: selectedFarmer,
-//             quantity,
-//             originalPrice: data.originalPrice,
-//             initialMessage: 'Bargain request sent to farmer, please wait until he accepts.' // Send initial message as part of state
-//           }
-//         });
-//     } catch (error) {
-//       console.error("Full bargain error:", error);
-//       setError(error.message);
-      
-//       // Specific handling for network errors
-//       if (error.message.includes("Failed to fetch")) {
-//         setError("Cannot connect to server. Please check your connection.");
-//       }
-//     } finally {
-//       setIsLoading(false);
-//     }
-//   };
   
 useEffect(() => {
-    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
-    if (!token) {
-        console.error("❌ No token found!");
-    }
+  // Get the stored consumer data from localStorage
+  const storedConsumer = localStorage.getItem("consumer");
+  
+  if (!storedConsumer) {
+    console.error("❌ No consumer session found!");
+    navigate("/consumer-login");
+    return;
+  }
+
+  try {
+    const consumerData = JSON.parse(storedConsumer);
+    const token = consumerData.token;
     
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        if (payload.farmer_id) {
-          alert("Farmers cannot initiate bargains");
-          localStorage.clear();
-          navigate("/consumer-login");
-        }
-      } catch (e) {
-        localStorage.removeItem("token");
-      }
+    if (!token) {
+      console.error("❌ No token found in consumer data!");
+      navigate("/consumer-login");
+      return;
     }
-  }, [navigate]);
+
+    // Verify token payload
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    
+    if (payload.farmer_id) {
+      alert("Farmers cannot initiate bargains");
+      localStorage.removeItem("consumer");
+      navigate("/consumer-login");
+    }
+  } catch (e) {
+    console.error("❌ Error parsing token:", e);
+    localStorage.removeItem("consumer");
+    navigate("/consumer-login");
+  }
+}, [navigate]);
 
   const handleQuantityChange = (productId, event) => {
     const value = parseInt(event.target.value, 10);

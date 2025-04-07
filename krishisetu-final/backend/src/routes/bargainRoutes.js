@@ -43,7 +43,7 @@ router.get('/:sessionId', async (req, res) => {
       const { sessionId } = req.params;
       console.log("Fetching session with ID:", sessionId);  // Debugging
 
-      const query = `SELECT * FROM bargain_sessions WHERE session_id = ?`;
+      const query = `SELECT * FROM bargain_sessions WHERE bargain_id = ?`;
       const [rows] = await queryDatabase(query, [sessionId]);
 
       if (!rows || rows.length === 0) {

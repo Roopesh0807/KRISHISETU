@@ -1,254 +1,401 @@
-// import React, { useState, useEffect } from 'react';
-// import { useParams, useNavigate } from 'react-router-dom';
-// import FarmerChatWindow from './FarmerChatWindow';
-// import './BargainingChat.css';
-
-// const FarmerChatList = () => {
-//   const { farmer_id } = useParams();
-//   const navigate = useNavigate();
-//   const [bargainSessions, setBargainSessions] = useState([]);
-//   const [loading] = useState(true);
-
-//   useEffect(() => {
-//     const fetchSessions = async () => {
-//       try {
-//         const response = await fetch('http://localhost:5000/api/bargain/sessions/farmer');
-//         const data = await response.json();
-//         setBargainSessions(data);
-//       } catch (error) {
-//         console.error("Error:", error);
-//       }
-//     };
-  
-//     // Fetch the initial sessions when the component mounts
-//     fetchSessions();
-  
-//     // Polling every 5 seconds to fetch new sessions
-//     const interval = setInterval(fetchSessions, 5000); // Every 5 seconds
-  
-//     // Cleanup polling on component unmount
-//     return () => clearInterval(interval);
-//   }, []);
-
-// useEffect(() => {
-//   const socket = new WebSocket('ws://localhost:5000'); // Your WebSocket server URL
-
-//   socket.onmessage = (event) => {
-//     const newSession = JSON.parse(event.data);
-//     setBargainSessions((prevSessions) => [newSession, ...prevSessions]);
-//   };
-
-//   return () => socket.close();
-// }, []);
-
-//   const handleSessionSelect = (sessionId) => {
-//     navigate(`/farmer/bargain/${sessionId}`);
-//   };
-
-//   if (loading) return <div className="loading">Loading bargain requests...</div>;
-
-//   return (
-//     <div className="chat-list-page">
-//       <div className="chat-list">
-//         <h2>Bargain Requests</h2>
-//         {bargainSessions.length === 0 ? (
-//           <p>No active bargain requests with consumers</p>
-//         ) : (
-//           <ul>
-//             {bargainSessions.map(session => (
-//               <li 
-//                 key={session.session_id}
-//                 onClick={() => handleSessionSelect(session.session_id)}
-//                 className={farmer_id === session.farmer_id ? 'active' : ''}
-//               >
-//                 <div>
-//                   <strong>Consumer: {session.consumer_name}</strong>
-//                   <p>Product: {session.product_name}</p>
-//                   <p>Status: {session.status}</p>
-//                 </div>
-//               </li>
-//             ))}
-//           </ul>
-//         )}
-//       </div>
-
-//       <div className="chat-window-container">
-//         {farmer_id ? (
-//           <FarmerChatWindow sessionId={farmer_id} />
-//         ) : (
-//           <div className="welcome-message">
-//             <h3>Select a bargain request to respond</h3>
-//           </div>
-//         )}
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default FarmerChatList;
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import FarmerChatWindow from './FarmerChatWindow';
-import './BargainingChat.css';
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faRupeeSign, faSpinner } from "@fortawesome/free-solid-svg-icons";
+import { io } from 'socket.io-client';
+import FarmerChatWindow from "./FarmerChatWindow";
+import "./FarmerChatList.css";
 
 const FarmerChatList = () => {
-  const { farmer_id } = useParams();
+  const { id } = useParams();
   const navigate = useNavigate();
   const [bargainSessions, setBargainSessions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [onlineConsumers, setOnlineConsumers] = useState(new Set());
-  const [socket, setSocket] = useState(null);
+  const [selectedSession, setSelectedSession] = useState(null);
+  const socket = useRef(null);
+  const reconnectAttempts = useRef(0);
+  const [connectionStatus, setConnectionStatus] = useState("connecting");
+  const [newMessages, setNewMessages] = useState({});
+  const [searchTerm, setSearchTerm] = useState("");
 
-  // Add authentication token if needed
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem('authToken'); // or your token storage
-    return {
-      'Content-Type': 'application/json',
-      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-    };
+  // Get token from farmer's localStorage
+  const getToken = () => {
+    const farmerData = localStorage.getItem("farmer");
+    if (!farmerData) return null;
+    
+    const { token } = JSON.parse(farmerData);
+    
+    // Verify token structure
+    try {
+      const decoded = JSON.parse(atob(token.split('.')[1]));
+      if (!decoded.farmer_id) {
+        console.error("Token missing farmer_id");
+        return null;
+      }
+      return token;
+    } catch (e) {
+      console.error("Invalid token structure");
+      return null;
+    }
   };
 
-  useEffect(() => {
-    const fetchSessions = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch('http://localhost:5000/api/bargain/sessions/farmer', {
-          headers: getAuthHeaders()
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        if (!Array.isArray(data)) {
-          throw new Error('Invalid data format: expected an array');
-        }
-        
-        setBargainSessions(data);
-        setError(null);
-      } catch (error) {
-        console.error("Error fetching sessions:", error);
-        setError(error.message);
-        setBargainSessions([]);
-        
-        // If unauthorized, redirect to login
-        if (error.message.includes('401')) {
-          navigate('/login');
-        }
-      } finally {
-        setLoading(false);
+  // WebSocket connection management
+  const initializeSocketConnection = useCallback(() => {
+    const token = getToken();
+    if (!token) {
+      console.error("Missing token for WebSocket connection");
+      return;
+    }
+
+    const decodedToken = JSON.parse(atob(token.split(".")[1]));
+    const farmerId = decodedToken.farmer_id;
+
+    // Close existing connection if any
+    if (socket.current) {
+      socket.current.disconnect();
+      socket.current = null;
+    }
+
+    socket.current = io(process.env.REACT_APP_API_BASE_URL || "http://localhost:5000", {
+      auth: { token },
+      query: { farmerId },
+      transports: ['websocket'],
+      withCredentials: true,
+      extraHeaders: { Authorization: `Bearer ${token}` }
+    });
+    
+    // Connection events
+    socket.current.on('connect', () => {
+      console.log("Socket connected");
+      setConnectionStatus("connected");
+      reconnectAttempts.current = 0;
+    });
+
+    socket.current.on('connect_error', (err) => {
+      console.error("Connection error:", err.message);
+      setConnectionStatus("error");
+      
+      const maxAttempts = 5;
+      if (reconnectAttempts.current < maxAttempts) {
+        const delay = Math.min(30000, (2 ** reconnectAttempts.current) * 1000);
+        reconnectAttempts.current += 1;
+        setTimeout(() => initializeSocketConnection(), delay);
       }
-    };
+    });
 
-    fetchSessions();
-    const interval = setInterval(fetchSessions, 5000);
-    return () => clearInterval(interval);
-  }, [navigate]);
+    socket.current.on('disconnect', (reason) => {
+      console.log("Socket disconnected:", reason);
+      setConnectionStatus("disconnected");
+    });
 
-  useEffect(() => {
-    const setupWebSocket = () => {
-      const ws = new WebSocket('ws://localhost:5000');
+    // Application events
+    socket.current.on('newBargain', (session) => {
+      setBargainSessions(prev => [session, ...prev]);
+    });
 
-      ws.onopen = () => {
-        console.log('WebSocket connected');
-        setSocket(ws);
-        
-        // Send authentication if needed
-        const token = localStorage.getItem('authToken');
-        if (token) {
-          ws.send(JSON.stringify({
-            type: 'authenticate',
-            token: token
-          }));
-        }
-      };
+    socket.current.on('priceUpdate', (data) => {
+      setBargainSessions(prev => 
+        prev.map(session => 
+          session.bargain_id === data.bargain_id 
+            ? { ...session, current_price: data.newPrice } 
+            : session
+        )
+      );
+    });
 
-      ws.onmessage = (event) => {
-        try {
-          const message = JSON.parse(event.data);
-          
-          if (message.type === 'new_session') {
-            setBargainSessions(prev => [message.session, ...prev]);
-          } 
-          else if (message.type === 'consumer_status') {
-            setOnlineConsumers(prev => {
-              const newSet = new Set(prev);
-              if (message.isOnline) {
-                newSet.add(message.consumerId);
-              } else {
-                newSet.delete(message.consumerId);
-              }
-              return newSet;
+    socket.current.on('bargainStatusUpdate', (data) => {
+      setBargainSessions(prev => 
+        prev.map(session => 
+          session.bargain_id === data.bargain_id 
+            ? { ...session, status: data.status } 
+            : session
+        )
+      );
+    });
+
+    // Inside initializeSocketConnection()
+          socket.current.on('newMessage', (message) => {
+            console.log('New message received:', message); // Debug log
+            
+            setBargainSessions(prevSessions => {
+              return prevSessions.map(session => {
+                if (session.bargain_id === message.bargain_id) {
+                  // Update last message and unread count
+                  return {
+                    ...session,
+                    last_message: message,
+                    unread_count: (session.unread_count || 0) + 1,
+                    updated_at: new Date().toISOString()
+                  };
+                }
+                return session;
+              });
             });
-          }
-        } catch (error) {
-          console.error('Error processing WebSocket message:', error);
-        }
-      };
 
-      ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-      };
+            // Also update newMessages state for badge count
+            setNewMessages(prev => ({
+              ...prev,
+              [message.bargain_id]: (prev[message.bargain_id] || 0) + 1
+            }));
+          });
 
-      ws.onclose = () => {
-        console.log('WebSocket disconnected');
-        setSocket(null);
-        // Attempt to reconnect after delay
-        setTimeout(setupWebSocket, 5000);
-      };
+    socket.current.on('error', (error) => {
+      console.error("Socket error:", error);
+    });
 
-      return ws;
-    };
-
-    const ws = setupWebSocket();
     return () => {
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.close();
+      if (socket.current) {
+        socket.current.disconnect();
       }
     };
   }, []);
 
-  const handleSessionSelect = (bargainId) => {
-    navigate(`/farmer/bargain/${bargainId}`);
+  // Fetch active bargain sessions
+  const fetchSessions = useCallback(async () => {
+    try {
+      const token = getToken();
+      if (!token) {
+        navigate("/loginPage");
+        return;
+      }
+  
+      // Debug token information
+      console.group("Token Debugging");
+      console.log("Raw Token:", token);
+      try {
+        const decodedToken = JSON.parse(atob(token.split(".")[1]));
+        console.log("Decoded Token:", decodedToken);
+        console.log("Farmer ID:", decodedToken.farmer_id);
+        console.log("Token Expiry:", new Date(decodedToken.exp * 1000));
+      } catch (decodeError) {
+        console.error("Token Decoding Error:", decodeError);
+      }
+      console.groupEnd();
+  
+      const decodedToken = JSON.parse(atob(token.split(".")[1]));
+      const farmerId = decodedToken.farmer_id;
+      const apiUrl = `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/bargain/farmers/${farmerId}/sessions`;
+      console.log("Making request to:", apiUrl);
+  
+      const response = await fetch(apiUrl, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include' // Important if using cookies
+      });
+  
+      console.group("Response Debugging");
+      console.log("HTTP Status:", response.status);
+      console.log("Response Headers:", Object.fromEntries(response.headers.entries()));
+      
+      const responseText = await response.text();
+      console.log("Raw Response:", responseText);
+  
+      try {
+        const data = responseText ? JSON.parse(responseText) : null;
+        console.log("Parsed JSON:", data);
+        
+        if (!response.ok) {
+          console.error("API Error Response:", data);
+          throw new Error(data?.message || `HTTP error! status: ${response.status}`);
+        }
+  
+        setBargainSessions(data || []);
+        return data;
+      } catch (parseError) {
+        console.error("JSON Parse Error:", parseError);
+        throw new Error(`Invalid JSON response: ${responseText.substring(0, 100)}...`);
+      } finally {
+        console.groupEnd();
+      }
+    } catch (error) {
+      console.group("Fetch Error");
+      console.error("Error Details:", error);
+      
+      if (error.message.includes("JSON")) {
+        console.error("The server returned non-JSON content. Possible issues:");
+        console.error("- Incorrect API endpoint");
+        console.error("- Server-side error returning HTML");
+        console.error("- Missing Content-Type header in response");
+      }
+      
+      console.groupEnd();
+      
+      // Show user-friendly error message
+      if (error.message.includes("401")) {
+        navigate("/loginPage");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [navigate]);
+
+  // Initial fetch and periodic refresh
+  useEffect(() => {
+    fetchSessions();
+    const interval = setInterval(fetchSessions, 10000);
+    return () => clearInterval(interval);
+  }, [fetchSessions]);
+
+  // Initialize socket connection
+  useEffect(() => {
+    initializeSocketConnection();
+    return () => {
+      if (socket.current) {
+        socket.current.disconnect();
+      }
+    };
+  }, [initializeSocketConnection]);
+
+  const handleSessionSelect = (session) => {
+    setSelectedSession(session);
+    navigate(`/farmer/bargain/${session.bargain_id}`);
+    setNewMessages(prev => {
+      const updated = { ...prev };
+      delete updated[session.bargain_id];
+      return updated;
+    });
   };
 
-  if (loading) return <div className="loading">Loading bargain requests...</div>;
-  if (error) return <div className="error">Error: {error}</div>;
+  const formatTime = (timestamp) => {
+    if (!timestamp) return "";
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
+
+  const formatDate = (timestamp) => {
+    const today = new Date();
+    const date = new Date(timestamp);
+    
+    if (date.toDateString() === today.toDateString()) {
+      return formatTime(timestamp);
+    } else if (date.getFullYear() === today.getFullYear()) {
+      return date.toLocaleDateString([], { month: "short", day: "numeric" });
+    } else {
+      return date.toLocaleDateString([], { year: "numeric", month: "short", day: "numeric" });
+    }
+  };
+
+  const filteredSessions = bargainSessions.filter(session =>
+    session.consumer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    session.product_name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  if (loading) {
+    return (
+      <div className="loading-container">
+        <FontAwesomeIcon icon={faSpinner} spin size="2x" />
+        <p>Loading bargain requests...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="chat-list-page">
-      <div className="chat-list">
-        <h2>Bargain Requests</h2>
-        {bargainSessions.length === 0 ? (
-          <p>No active bargain requests with consumers</p>
-        ) : (
-          <ul>
-            {bargainSessions.map(session => (
-              <li 
+    <div className="farmer-chat-app">
+      {/* Sidebar */}
+      <div className="chat-sidebar">
+        <div className="sidebar-header">
+          <h2>Bargain Requests</h2>
+          <div className="connection-status">
+            <span className={`status-dot ${connectionStatus}`} />
+            {connectionStatus.charAt(0).toUpperCase() + connectionStatus.slice(1)}
+          </div>
+        </div>
+        
+        <div className="search-bar">
+          <input
+            type="text"
+            placeholder="Search by consumer or product..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+
+        <div className="session-list">
+          {filteredSessions.length === 0 ? (
+            <div className="empty-state">
+              {searchTerm ? (
+                <p>No matching requests found</p>
+              ) : (
+                <p>No active bargain requests</p>
+              )}
+            </div>
+          ) : (
+            filteredSessions.map((session) => (
+              <div
                 key={session.bargain_id}
-                onClick={() => handleSessionSelect(session.bargain_id)}
-                className={farmer_id === session.bargain_id ? 'active' : ''}
+                className={`session-card ${id === session.bargain_id ? "active" : ""}`}
+                onClick={() => handleSessionSelect(session)}
               >
-             {session.consumer_name}  
-                {onlineConsumers.has(session.consumer_id) && <span className="online-status">🟢 Online</span>}
-           
-              </li>
-            ))}
-          </ul>
-        )}
+                <div className="consumer-avatar">
+                  {session.consumer_name.charAt(0).toUpperCase()}
+                </div>
+                
+                <div className="session-content">
+                  <div className="session-header">
+                    <h3>{session.consumer_name}</h3>
+                    <span className="session-time">
+                      {formatDate(session.updated_at || session.created_at)}
+                    </span>
+                  </div>
+                  
+                  <div className="session-details">
+                    <p className="product-info">
+                      <strong>{session.product_name}</strong> ({session.quantity}kg)
+                    </p>
+                    <p className="price-info">
+                      <FontAwesomeIcon icon={faRupeeSign} />
+                      {session.current_price || session.initial_price}/kg
+                    </p>
+                  </div>
+                  
+                  <div className="session-preview">
+                    {session.last_message && (
+                      <p className="message-preview">
+                        {session.last_message.content.length > 30
+                          ? `${session.last_message.content.substring(0, 30)}...`
+                          : session.last_message.content}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                
+                {newMessages[session.bargain_id] && (
+                  <div className="unread-badge">
+                    {newMessages[session.bargain_id]}
+                  </div>
+                )}
+                
+                {session.status === 'pending' && (
+                  <div className="status-indicator pending" />
+                )}
+              </div>
+            ))
+          )}
+        </div>
       </div>
 
+      {/* Chat Window */}
       <div className="chat-window-container">
-        {farmer_id ? (
-          <FarmerChatWindow bargainId={farmer_id} socket={socket} />
+        {selectedSession ? (
+          <FarmerChatWindow
+            bargainId={selectedSession.bargain_id}
+            socket={socket.current}
+            connectionStatus={connectionStatus}
+            initialSession={selectedSession}
+            onBack={() => {
+              setSelectedSession(null);
+              navigate("/farmer/bargain");
+            }}
+          />
         ) : (
-          <div className="welcome-message">
-            <h3>Select a bargain request to respond</h3>
-            <p>Click on any consumer to start chatting</p>
+          <div className="empty-chat-window">
+            <div className="empty-content">
+              <h3>Select a bargain request</h3>
+              <p>Choose a conversation from the sidebar to start bargaining</p>
+            </div>
           </div>
         )}
       </div>

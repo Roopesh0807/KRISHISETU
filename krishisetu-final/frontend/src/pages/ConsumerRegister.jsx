@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Confetti from "react-confetti"; // For celebration effect
 import "./LogReg.css";
 
+
 const ConsumerRegister = () => {
   const navigate = useNavigate();
 
@@ -65,15 +66,21 @@ const ConsumerRegister = () => {
     e.preventDefault();
     setError("");
     setSuccessData(null);
-
+  
     if (!validateForm()) return;
-
+  
     setLoading(true);
-
+  
     try {
       const response = await fetch("http://localhost:5000/api/consumerregister", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          // Add this if your backend expects it:
+         
+        },
+        // Add if using cookies/sessions:
+        // credentials: "include", 
         body: JSON.stringify({
           first_name: formData.first_name,
           last_name: formData.last_name,
@@ -83,13 +90,15 @@ const ConsumerRegister = () => {
           confirm_password: formData.confirm_password,
         }),
       });
-
-      const data = await response.json();
-
+  
+      // First check response status before parsing JSON
       if (!response.ok) {
-        throw new Error(data.message || "Registration failed");
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Registration failed");
       }
-
+  
+      const data = await response.json();
+  
       setSuccessData({
         message: `✅ Registration Successfully Done!,🎉 Welcome to KrishiSetu, ${formData.first_name} ${formData.last_name}!`,
         consumerId: data.consumer_id,
@@ -104,6 +113,65 @@ const ConsumerRegister = () => {
     }
   };
 
+  // const handleSubmit = async (e) => {
+  //   e.preventDefault();
+  //   setError("");
+  //   setSuccessData(null);
+  
+  //   if (!validateForm()) return;
+  
+  //   setLoading(true);
+  
+  //   try {
+  //     const response = await fetch("http://localhost:5000/api/consumerregister", {
+  //       method: "POST",
+  //       credentials: "include", // Important for session-based systems
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //         "Accept": "application/json",
+  //       },
+  //       body: JSON.stringify({
+  //         first_name: formData.first_name.trim(),
+  //         last_name: formData.last_name.trim(),
+  //         email: formData.email.trim(),
+  //         phone_number: formData.phone_number.trim(),
+  //         password: formData.password,
+  //         confirm_password: formData.confirm_password,
+  //       }),
+  //     });
+  
+  //     const data = await response.json();
+  
+  //     if (!response.ok) {
+  //       // Handle known errors
+  //       if (response.status === 409) {
+  //         throw new Error(data.message || "User already exists");
+  //       } else if (response.status === 400) {
+  //         throw new Error(data.message || "Validation failed");
+  //       } else {
+  //         throw new Error(data.message || `Registration failed (${response.status})`);
+  //       }
+  //     }
+  
+  //     setSuccessData({
+  //       message: `✅ Registration Successful! 🎉 Welcome to KrishiSetu, ${formData.first_name} ${formData.last_name}!`,
+  //       consumerId: data.consumer_id,
+  //     });
+  
+  //     // Navigate after delay
+  //     setTimeout(() => navigate("/consumer-login"), 3000);
+  //   } catch (error) {
+  //     console.error("Registration Error:", error);
+  //     setError(
+  //       error.message.includes("NetworkError") || error.message.includes("fetch")
+  //         ? "Server not reachable. Please try again later."
+  //         : error.message || "Registration failed"
+  //     );
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+  
   return (
     <div className="log-container">
       <main className="auth-container">

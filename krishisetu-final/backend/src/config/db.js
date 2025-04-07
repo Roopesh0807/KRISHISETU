@@ -190,16 +190,18 @@ const createTables = async () => {
       ) ENGINE=InnoDB;
     `,
     `
-      CREATE TABLE IF NOT EXISTS bargain_messages (
-        message_id INT AUTO_INCREMENT PRIMARY KEY,
-        room_id INT NOT NULL,
-        sender_id VARCHAR(15) NOT NULL,
-        message_type ENUM('text', 'price_suggestion', 'accept', 'reject') NOT NULL,
-        message_text TEXT,
-        price_offer DECIMAL(10,2),
-        sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (room_id) REFERENCES bargain_room(room_id) ON DELETE CASCADE
-      ) ENGINE=InnoDB;
+     CREATE TABLE bargain_messages (
+    message_id INT AUTO_INCREMENT PRIMARY KEY,
+    bargain_id INT,
+    sender_role ENUM('consumer', 'farmer') NOT NULL,
+    sender_id VARCHAR(20) NOT NULL,
+    price_suggestion DECIMAL(10,2),
+    message_type ENUM('suggestion', 'accept', 'reject', 'finalize') DEFAULT 'suggestion',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (bargain_id) REFERENCES bargain_sessions(bargain_id) ON DELETE CASCADE
+)ENGINE=InnoDB;
+
     `,
     `
       CREATE TABLE IF NOT EXISTS bargain_finalized (
@@ -212,35 +214,33 @@ const createTables = async () => {
         FOREIGN KEY (room_id) REFERENCES bargain_room(room_id) ON DELETE CASCADE
       ) ENGINE=InnoDB;
     `,
+
     `
-    CREATE TABLE if not exists bargain_sessions (
-    bargain_id INT AUTO_INCREMENT PRIMARY KEY,  -- Auto-incremented field
-    consumer_id VARCHAR(15) NOT NULL,
-    farmer_id VARCHAR(15) NOT NULL,
-    product_id VARCHAR(10) NOT NULL,
-    original_price DECIMAL(10,2) NOT NULL,
-    quantity DECIMAL(10,2) NOT NULL,
-    current_offer DECIMAL(10,2),
-    status ENUM('requested', 'accepted', 'rejected', 'countered', 'completed', 'failed') DEFAULT 'requested',
-    initiator ENUM('consumer', 'farmer') NOT NULL,
+    CREATE TABLE IF NOT EXISTS bargain_sessions (
+    bargain_id INT AUTO_INCREMENT PRIMARY KEY,
+    consumer_id VARCHAR(20),
+    farmer_id VARCHAR(20),
+    status VARCHAR(20), -- active, completed, etc.
+    initiator VARCHAR(20), -- consumer or farmer
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    expires_at DATETIME,  -- Use DATETIME instead of TIMESTAMP
-    FOREIGN KEY (consumer_id) REFERENCES consumerregistration(consumer_id),
-    FOREIGN KEY (farmer_id) REFERENCES farmerregistration(farmer_id),
-    FOREIGN KEY (product_id) REFERENCES products(product_id)
-)
-ENGINE=InnoDB;
+    expires_at DATETIME
+)ENGINE=InnoDB;
+
     `,
-    `CREATE TABLE if not exists messages (
-  message_id INT AUTO_INCREMENT PRIMARY KEY,
-  bargain_id INT NOT NULL,
-  price DECIMAL(10, 2) NOT NULL,           -- The price offered or suggested
-  sender_type ENUM('consumer', 'farmer', 'system') NOT NULL,  -- Who sent the message
-  message_type ENUM('offer', 'accept', 'reject') NOT NULL,    -- Type of the message (offer, accept, or reject)
-  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (bargain_id) REFERENCES bargain_sessions(bargain_id) ON DELETE CASCADE
-);`,
+    `
+    CREATE TABLE IF NOT EXISTS bargain_session_products (
+    bsp_id INT AUTO_INCREMENT PRIMARY KEY,
+    bargain_id INT,
+    product_id VARCHAR(20),
+    original_price DECIMAL(10,2),
+    quantity DECIMAL(10,2),
+    current_offer DECIMAL(10,2),
+    FOREIGN KEY (bargain_id) REFERENCES bargain_sessions(bargain_id) ON DELETE CASCADE
+)ENGINE=InnoDB;
+`,
+
+
     // `
     // CREATE TABLE IF NOT EXISTS bargain_offers (
     //   offer_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -251,18 +251,7 @@ ENGINE=InnoDB;
     //   FOREIGN KEY (session_id) REFERENCES bargain_sessions(session_id) ON DELETE CASCADE
     // ) ENGINE=InnoDB;
     // `,
-    `
-    CREATE TABLE IF NOT EXISTS bargain_notifications (
-      notification_id INT AUTO_INCREMENT PRIMARY KEY,
-      user_id VARCHAR(15) NOT NULL,
-      user_type ENUM('farmer', 'consumer') NOT NULL,
-      message TEXT NOT NULL,
-      related_session_id VARCHAR(15),
-      is_read BOOLEAN DEFAULT FALSE,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (related_session_id) REFERENCES bargain_sessions(session_id) ON DELETE SET NULL
-    ) ENGINE=InnoDB;
-    `,
+   
     `
     CREATE TABLE IF NOT EXISTS bargain_orders (
       order_id VARCHAR(15) PRIMARY KEY,
@@ -329,7 +318,15 @@ CREATE TABLE IF NOT EXISTS review_images (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (review_id) REFERENCES reviews(review_id) ON DELETE CASCADE
 );
+`,
 `
+CREATE TABLE IF NOT EXISTS bargain_session_temp (
+  consumer_id VARCHAR(50),
+  product_id VARCHAR(50),
+  quantity INT,
+  original_price DECIMAL(10, 2)
+);
+`,
   ];
 
   try {
@@ -364,6 +361,7 @@ const dropTriggers = async () => {
     "DROP TRIGGER IF EXISTS update_bargain_status_after_message;",
     "DROP TRIGGER IF EXISTS validate_price_before_insert;",
     "DROP EVENT IF EXISTS expire_bargains;",
+    "DROP TRIGGER IF EXISTS after_session_insert;",
 
 
   ];
@@ -418,6 +416,24 @@ BEGIN
     END IF;
 END ;
 
+`,
+
+    `
+
+CREATE TRIGGER after_session_insert
+AFTER INSERT ON bargain_sessions
+FOR EACH ROW
+BEGIN
+  -- Example: insert null values (just to replicate your issue)
+  INSERT INTO bargain_session_products 
+  (bargain_id, product_id, original_price, quantity, current_offer)
+  VALUES 
+  (NEW.bargain_id, NULL, NULL, NULL, NULL);
+END;
+
+
+
+ 
 `,
 `-- Trigger to ensure price is non-negative
 

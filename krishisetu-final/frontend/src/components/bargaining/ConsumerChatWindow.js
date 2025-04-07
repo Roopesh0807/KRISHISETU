@@ -1,382 +1,527 @@
-// import React, { useState, useEffect, useRef } from 'react';
-// import { useParams,useNavigate, useLocation } from 'react-router-dom';
+// import React, { useState, useEffect, useRef, useCallback } from 'react';
+// import { useParams, useNavigate, useLocation } from 'react-router-dom';
 // import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 // import { useAuth } from "../../context/AuthContext";
-//   // ✅ Go up two levels if needed
-
-
-// import { 
-//   faSpinner, 
-//   faPaperPlane, 
+// import { io } from 'socket.io-client';
+// import {
+//   faSpinner,
 //   faRupeeSign,
 //   faArrowUp,
-//   faComments,
+//   faArrowDown,
 //   faTimes,
-//   faArrowDown
+//   faHandshake
 // } from '@fortawesome/free-solid-svg-icons';
-// import './cbargain.css';
+// import './ConsumerChatWindow.css';
 
 // const BargainChatWindow = () => {
 //   const navigate = useNavigate();
 //   const { bargainId } = useParams();
-//    const { consumer} = useAuth();
+//   const { token } = useAuth();
 //   const location = useLocation();
-//   const { product, farmer } = location.state || {};
+//   const socket = useRef(null);
 //   const messagesEndRef = useRef(null);
- 
+//   const reconnectAttempts = useRef(0);
+
+//   // Extract initial state from location
+//   const { 
+//     product: initialProduct, 
+//     farmer: initialFarmer, 
+//     quantity: initialQuantity 
+//   } = location.state || {};
+
+//   // State management
 //   const [messages, setMessages] = useState([]);
-//   const [newMessage, setNewMessage] = useState('');
 //   const [loading, setLoading] = useState(true);
-//   const [selectedFarmer] = useState(null);
-//   const [currentPrice, setCurrentPrice] = useState(product?.price_per_kg || 0);
-//   const [ws, setWs] = useState(null);
-//   const [connectionStatus, setConnectionStatus] = useState('connecting');
-//   const [bargainAccepted, setBargainAccepted] = useState(false);
-//   const [isBargainPopupOpen, setIsBargainPopupOpen] = useState(false);
+//   const [currentPrice, setCurrentPrice] = useState(0);
+//   const [connectionStatus, setConnectionStatus] = useState("connecting");
+//   const [bargainStatus, setBargainStatus] = useState('pending');
+//   const [waitingForResponse, setWaitingForResponse] = useState(false);
+//   const [isBargainPopupOpen, setIsBargainPopupOpen] = useState(true);
+
+//   // const [selectedProduct, setSelectedProduct] = useState(null);
+//   const [selectedFarmer] = useState(initialFarmer || null);
+//   const [quantity, setQuantity] = useState(1);
+//   const [isLoading] = useState(false);
+//   const [error, setError] = useState(null);
+//   const [, setInitialPrice] = useState(0);
 //   const [selectedProduct, setSelectedProduct] = useState(null);
-//    const [quantity, setQuantity] = useState(1);
-//    const [isLoading, setIsLoading] = useState(false);
-//      const [error, setError] = useState(null);
+//   const [selectedQuantity, setSelectedQuantity] = useState('');
+//   const [showPriceSuggestions, setShowPriceSuggestions] = useState(false);
+//   const [priceSuggestions, setPriceSuggestions] = useState([]);
 
-//   // WebSocket setup with reconnect logic
-//   useEffect(() => {
-//     if (!bargainId) {
-//       console.error("❌ Missing bargainId. WebSocket connection aborted.");
+// // const [selectedQuantity, setSelectedQuantity] = useState('');
+// // const [, setShowPopup] = useState(false);
+
+// const closePopup = () => {
+//   setIsBargainPopupOpen(false);
+//   setSelectedProduct(null);
+//   setSelectedQuantity('');
+// };
+
+// // const openPopup = () => {
+// //   setShowPopup(true);
+// // };
+//  // Generate price suggestions based on current price
+//  const generatePriceSuggestions = useCallback((basePrice) => {
+//   return [
+//     { amount: -3, price: basePrice - 3 },
+//     { amount: -2, price: basePrice - 2 },
+//     { amount: -1, price: basePrice - 1 },
+//     { amount: 1, price: basePrice + 1 },
+//     { amount: 2, price: basePrice + 2 }
+//   ].filter(suggestion => suggestion.price > 0); // Filter out negative prices
+// }, []);
+
+//   // WebSocket connection management
+//   const initializeSocketConnection = useCallback(() => {
+//     if (!bargainId || !token) {
+//       console.error("Missing bargainId or token for WebSocket connection");
 //       return;
 //     }
   
-//     const token = localStorage.getItem('token');
-//     if (!token || token === "null") {
-//       console.error("❌ Missing or invalid token. WebSocket connection aborted.");
-//       return;
+//     // Close existing connection if any
+//     if (socket.current) {
+//       socket.current.disconnect();
+//       socket.current = null;
 //     }
   
-//     const socketUrl = `ws://localhost:5000/ws/bargain/${bargainId}?token=${token}`;
-//     console.log(`🔗 Connecting to WebSocket: ${socketUrl}`);
-
-//     const socket = new WebSocket(socketUrl);
-  
-//     socket.onopen = () => {
-//       console.log('✅ WebSocket connected');
-//       setConnectionStatus('connected');
-//       setWs(socket);
-//     };
-  
-//     socket.onmessage = (event) => {
-//       try {
-//         const data = JSON.parse(event.data);
-//         console.log('📩 WebSocket message received:', data);
-        
-//         switch (data.type) {
-//           case 'PRICE_SUGGESTIONS':
-//             // Receive price suggestions from the backend
-//             setMessages(prev => [
-//               ...prev, 
-//               {
-//                 content: `Here are the price suggestions: ₹${data.suggestions.join(', ')}/kg`,
-//                 sender_type: 'system',
-//                 timestamp: new Date().toISOString()
-//               }
-//             ]);
-//             break;
-    
-//           case 'NEW_OFFER':
-//             // When the consumer makes an offer, it will be sent to the farmer
-//             setMessages(prev => [
-//               ...prev,
-//               {
-//                 content: `You offered ₹${data.newPrice}/kg`,
-//                 sender_type: 'consumer',
-//                 timestamp: new Date().toISOString()
-//               }
-//             ]);
-//             break;
-    
-//           case 'BARGAIN_ACCEPTED':
-//             // If the farmer accepts the offer
-//             setBargainAccepted(true);
-//             setMessages(prev => [
-//               ...prev, 
-//               {
-//                 content: '🎉 Farmer accepted your offer!',
-//                 sender_type: 'system',
-//                 timestamp: new Date().toISOString()
-//               }
-//             ]);
-//             break;
-    
-//           case 'BARGAIN_REJECTED':
-//             // If the farmer rejects the offer
-//             setMessages(prev => [
-//               ...prev, 
-//               {
-//                 content: '❌ Farmer rejected your offer.',
-//                 sender_type: 'system',
-//                 timestamp: new Date().toISOString()
-//               }
-//             ]);
-//             break;
-    
-//           case 'COUNTER_OFFER':
-//             // If the farmer sends a counter-offer
-//             setMessages(prev => [
-//               ...prev, 
-//               {
-//                 content: `Farmer's counter-offer: ₹${data.counterPrice}/kg`,
-//                 sender_type: 'farmer',
-//                 timestamp: new Date().toISOString()
-//               }
-//             ]);
-//             break;
-    
-//           default:
-//             console.warn('⚠️ Unknown message type:', data.type);
-//         }
-//       } catch (error) {
-//         console.error("⚠️ Error parsing WebSocket message:", error);
+//     socket.current = io(process.env.REACT_APP_API_BASE_URL || "http://localhost:5000", {
+//       auth: {
+//         token: token
+//       },
+//       query: { bargainId },
+//       transports: ['websocket'],
+//       withCredentials: true,
+//       extraHeaders: {
+//         Authorization: `Bearer ${token}`
 //       }
-//     };
+//     });
     
-
-//     socket.onerror = (error) => {
-//       console.error('❌ WebSocket error:', error);
-//       setConnectionStatus('error');
-//     };
+//     // Connection events
+//     socket.current.on('connect', () => {
+//       console.log("Socket connected");
+//       setConnectionStatus("connected");
+//       reconnectAttempts.current = 0;
+//     });
   
-//     socket.onclose = () => {
-//       console.log('🔌 WebSocket disconnected');
-//       setConnectionStatus('disconnected');
-//       setTimeout(() => {
-//         console.log("🔄 Attempting to reconnect WebSocket...");
-//         setWs(new WebSocket(socketUrl));
-//       }, 3000);
-//     };
+//     socket.current.on('connect_error', (err) => {
+//       console.error("Connection error:", err.message);
+//       setConnectionStatus("error");
+      
+//       const maxAttempts = 5;
+//       if (reconnectAttempts.current < maxAttempts) {
+//         const delay = Math.min(30000, (2 ** reconnectAttempts.current) * 1000);
+//         reconnectAttempts.current += 1;
+//         setTimeout(() => initializeSocketConnection(), delay);
+//       }
+//     });
+  
+//     socket.current.on('disconnect', (reason) => {
+//       console.log("Socket disconnected:", reason);
+//       setConnectionStatus("disconnected");
+//     });
+  
+//     // Application events
+//     socket.current.on('priceUpdate', (data) => {
+//       setCurrentPrice(data.newPrice);
+//       setMessages(prev => [...prev, {
+//         content: `Farmer updated price to ₹${data.newPrice}/kg`,
+//         sender_type: "system",
+//         timestamp: new Date().toISOString()
+//       }]);
+//       setWaitingForResponse(false);
+//     });
+  
+//     socket.current.on('bargainStatusUpdate', (status) => {
+//       setBargainStatus(status);
+//       if (status === 'accepted') {
+//         setMessages(prev => [...prev, {
+//           content: "🎉 Farmer accepted your offer!",
+//           sender_type: "system",
+//           timestamp: new Date().toISOString()
+//         }]);
+//       }
+//       setWaitingForResponse(false);
+//     });
+  
+//     socket.current.on('newMessage', (message) => {
+//       setMessages(prev => [...prev, message]);
+//       if (message.sender_type === 'farmer') {
+//         setWaitingForResponse(false);
+//       }
+//     });
+  
+//     socket.current.on('error', (error) => {
+//       console.error("Socket error:", error);
+//       setError(error.message);
+//     });
   
 //     return () => {
-//       console.log('❌ Closing WebSocket...');
-//       socket.close();
+//       if (socket.current) {
+//         socket.current.disconnect();
+//       }
 //     };
-//   }, [bargainId]);
- 
-//   const handleNewMessage = (senderType, content) => {
-//     setMessages((prevMessages) => [
-//       ...prevMessages,
-//       { senderType, content }
+//   }, [bargainId, token]);
+
+//   // Helper function to add system messages
+//   const addSystemMessage = (content) => {
+//     setMessages(prev => [
+//       ...prev,
+//       {
+//         content,
+//         sender_type: "system",
+//         timestamp: new Date().toISOString()
+//       }
 //     ]);
 //   };
-//   const handleFarmerResponse = (response) => {
-//     handleNewMessage('farmer', response);
-//   };
 
-//   const handleBargainConfirm = async () => {
-//     setError(null);
-//     setIsLoading(true);
-  
-//     try {
-//       // 1. Validate inputs
-//       if (!selectedProduct || quantity <= 0) {
-//         throw new Error("Please select a product and valid quantity");
-//       }
-  
-//       // 2. Check authentication
-//       if (!consumer?.token) {
-//         navigate('/login', { state: { from: location.pathname } });
-//         return;
-//       }
-//    // Simulate sending a message when a bargain is confirmed
-//     handleNewMessage('consumer', `Sent a request to ${selectedFarmer.farmer_name} to initiate the bargain.`);
-      
-//    // Simulate a farmer response (you can customize the logic here)
-//      setTimeout(() => {
-//        handleFarmerResponse('Farmer has seen your request and is reviewing your offer.');
-//    }, 2000);
-//       // 3. Make the API call
-//       const response = await fetch('http://localhost:5000/api/create-bargain', {
-//         method: 'POST',
-//         headers: {
-//           'Content-Type': 'application/json',
-//           'Authorization': `Bearer ${consumer.token}`
-//         },
-//         body: JSON.stringify({
-//           product_id: selectedProduct.product_id,
-//           quantity,
-//           initiator: "consumer"
-//         })
-//       });
-  
-//       // 4. Handle response
-//       const data = await response.json();
-//       console.log("Full response:", { status: response.status, data }); // Debug log
-  
-//       if (!response.ok) {
-//         // Server returned an error (4xx/5xx)
-//         throw new Error(data.error || `Server error: ${response.status}`);
-//       }
-  
-//       if (!data.bargainId) {
-//         throw new Error("Missing bargainId in response");
-//       }
-  
-//        // 5. Fetch farmer details if not included in response
-//     let farmerData = data.farmer;
-//     if (!farmerData) {
-//       const farmerResponse = await fetch(`http://localhost:5000/api/farmers/${selectedProduct.farmer_id}`, {
-//         headers: {
-//           'Authorization': `Bearer ${consumer.token}`
-//         }
-//       });
-//       farmerData = await farmerResponse.json();
-//     }
-
-//       // 6. Success case
-//   //   // Send a "Bargain Request" message
-//   //   await fetch('http://localhost:5000/api/send-bargain-message', {
-//   //     method: 'POST',
-//   //     headers: {
-//   //       'Content-Type': 'application/json',
-//   //       'Authorization': `Bearer ${consumer.token}`
-//   //     },
-//   //     body: JSON.stringify({
-//   //       bargainId: data.bargainId,
-//   //       senderType: 'consumer'  // This indicates the consumer initiated the request
-//   //     })
-//   //   });
-//   // // 7. Navigate to the chat window
-//   // navigate(`/bargain/${data.bargainId}`, {
-//   //   state: {
-//   //     product: selectedProduct,
-//   //     farmer: data.farmer,
-//   //     quantity,
-//   //     originalPrice: data.originalPrice
-//   //   }
-//   // });
-// // Success case
-//         setIsBargainPopupOpen(false); // Close the popup
-//         navigate(`/bargain/${data.bargainId}`, {
-//           state: {
-//             product: selectedProduct,
-//             farmer: selectedFarmer,
-//             quantity,
-//             originalPrice: data.originalPrice,
-//             initialMessage: 'Bargain request sent to farmer, please wait until he accepts.' // Send initial message as part of state
-//           }
-//         });
-//     } catch (error) {
-//       console.error("Full bargain error:", error);
-//       setError(error.message);
-      
-//       // Specific handling for network errors
-//       if (error.message.includes("Failed to fetch")) {
-//         setError("Cannot connect to server. Please check your connection.");
-//       }
-//     } finally {
-//       setIsLoading(false);
-//     }
-//   };
+//   // Initialize socket connection on mount
 //   useEffect(() => {
-//     // If there's an initial message from navigation state, show it in the chat
-//     if (location.state?.initialMessage) {
-//       setMessages([
-//         { sender_type: 'system', content: location.state.initialMessage, timestamp: Date.now() }
-//       ]);
-//     }
-//   }, [location.state]);
+//     initializeSocketConnection();
+//     return () => {
+//       if (socket.current) {
+//         socket.current.disconnect();
+//       }
+//     };
+//   }, [initializeSocketConnection]);
 
-//   // const handleStartBargain = () => {
-//   //   // Send the "Bargain Request Sent" message to the chat
-//   //   setMessages((prevMessages) => [
-//   //     ...prevMessages,
-//   //     { sender_type: 'system', content: 'Bargain request sent to farmer, please wait until he accepts.', timestamp: Date.now() },
-//   //   ]);
-//   // };
-//   const handleMakeOffer = (price) => {
-//     if (ws && ws.readyState === WebSocket.OPEN) {
-//       const offerMessage = {
-//         type: 'PRICE_UPDATE',
-//         newPrice: price,
-//         sender: 'consumer',
-//       };
-//       ws.send(JSON.stringify(offerMessage));
-//       setMessages((prev) => [...prev, {
-//         content: `You offered ₹${price}/kg`,
-//         sender_type: 'consumer',
-//         timestamp: new Date().toISOString(),
-//       }]);
-//       setCurrentPrice(price);
-//     } else {
-//       console.error('WebSocket is not connected. Cannot send offer.');
-//     }
-//   };
-
-//   const handleSendMessage = () => {
-//     if (!newMessage.trim()) return;
-    
-//     if (ws && ws.readyState === WebSocket.OPEN) {
-//       const chatMessage = {
-//         type: 'NEW_MESSAGE',
-//         message: {
-//           content: newMessage,
-//           sender_type: 'consumer',
-//           timestamp: new Date().toISOString(),
-//         },
-//       };
-//       ws.send(JSON.stringify(chatMessage));
-//       setMessages((prev) => [...prev, chatMessage.message]);
-//       setNewMessage('');
-//     } else {
-//       console.error('WebSocket is not connected. Cannot send message.');
-//     }
-//   };
-  
-//   // Fetch initial messages
+//   // Fetch bargain data
 //   useEffect(() => {
-//     const fetchMessages = async () => {
+//     const fetchBargainData = async () => {
 //       try {
-//         const response = await fetch(`http://localhost:5000/api/bargain/${bargainId}/messages`, {
-//           headers: {
-//             'Authorization': `Bearer ${localStorage.getItem('token')}`
-//           }
-//         });
-//         const data = await response.json();
-//         if (data?.messages) {
-//           setMessages(data.messages);
-//         } else {
-//           setMessages([]); // Set to empty array if no messages found
+//         if (!bargainId || !token) {
+//           throw new Error("Missing bargain ID or authentication token");
 //         }
-//         if (data?.currentPrice) setCurrentPrice(data.currentPrice);
+  
+//         console.log("🔐 Fetching bargain data for ID:", bargainId);
+  
+//         const response = await fetch(
+//           `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/bargain/${bargainId}`, 
+//           {
+//             method: 'GET',
+//             headers: {
+//               'Content-Type': 'application/json',
+//               'Authorization': `Bearer ${token}`,
+//             },
+//           }
+//         );
+  
+//         const contentType = response.headers.get('content-type');
+//         const rawText = await response.text();
+  
+//         if (!response.ok) {
+//           console.error("❌ Server error:", {
+//             status: response.status,
+//             statusText: response.statusText,
+//             body: rawText
+//           });
+//           throw new Error(`Server error: ${response.status} - ${rawText || 'No error details'}`);
+//         }
+  
+      
+//         if (!contentType || !contentType.includes('application/json')) {
+//           throw new Error(`Expected JSON but got ${contentType}. Response: ${rawText}`);
+//         }
+  
+//         let data;
+//         try {
+//           data = JSON.parse(rawText);
+//         } catch (parseError) {
+//           console.error("❌ JSON parse error:", parseError);
+//           throw new Error("Failed to parse JSON from server");
+//         }
+  
+//         console.log("✅ Bargain data received:", data);
+  
+//         if (!data.success) {
+//           throw new Error(data.error || "Failed to fetch bargain data");
+//         }
+  
+//         if (!data) {
+//           throw new Error("No data received from server");
+//         }
+        
+//         setMessages([]); // or fetch messages separately if needed
+        
+//         // Access first product from the array
+//         const product = data.products?.[0];
+        
+//         if (!product) {
+//           console.warn("⚠️ No products found in this bargain session yet.");
+//           // Maybe show a UI message: "No products added yet"
+//           return;
+//         }
+        
+//         setCurrentPrice(product?.current_offer || product?.original_price || 0);
+//         setInitialPrice(product?.original_price || 0);
+//         setBargainStatus(data.status || 'pending');
+        
 //       } catch (error) {
-//         console.error("Error fetching messages:", error);
-//         setMessages([]); // Set to empty array if error occurs
+//         console.error("❌ Error in fetchBargainData:", {
+//           message: error.message,
+//           stack: error.stack
+//         });
+//         setError(error.message || "Failed to load bargain data");
 //       } finally {
 //         setLoading(false);
 //       }
 //     };
   
-//     fetchMessages();
-//   }, [bargainId]);
-  
+//     fetchBargainData();
+//   }, [bargainId, token, initialProduct]);
 
-//   // Auto-scroll to bottom when new messages arrive
+  
+//   // Auto-scroll to bottom when messages change
 //   useEffect(() => {
 //     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
 //   }, [messages]);
 
+//   // Handle bargain initiation
+//   // const handleBargainConfirm = async () => {
+//   //   setError(null);
+//   //   setWaitingForResponse(false);
 
-//   if (loading) {
-//     return (
-//       <div className="loading-container">
-//         <FontAwesomeIcon icon={faSpinner} spin size="2x" />
-//         <p>Loading bargain session...</p>
-//       </div>
-//     );
-//   }
+//   //   try {
+//   //     if (!selectedProduct || !selectedFarmer || quantity <= 0) {
+//   //       throw new Error("Please select a product and valid quantity");
+//   //     }
 
+//   //     if (!token) {
+//   //       navigate('/login', { state: { from: location.pathname } });
+//   //       return;
+//   //     }
+
+//   //     // First show the message immediately
+//   //     addSystemMessage(`You sent a bargain request for ${quantity}kg of ${selectedProduct.produce_name}`);
+//   //     setIsBargainPopupOpen(false);
+
+//   //     // Then initiate the bargain (show loader only if it takes time)
+//   //     if (socket.current && socket.current.connected) {
+//   //       setIsLoading(true);
+//   //       socket.current.emit('initBargain', {
+//   //         product: selectedProduct,
+//   //         quantity,
+//   //         initialPrice: selectedProduct.price_per_kg,
+//   //         farmer: selectedFarmer,
+//   //         consumerName: consumer?.name || 'Consumer'
+//   //       });
+//   //     }
+//   //   } catch (error) {
+//   //     setError(error.message);
+//   //   } finally {
+//   //     setIsLoading(false);
+//   //   }
+//   // };
+
+//   const handleProductSelect = (product) => {
+//     setSelectedProduct(product);
+//     setSelectedQuantity(10); // reset quantity to default for new product
+//   };
+  
+//   const handleBargainConfirm = async () => {
+//     if (!selectedProduct) {
+//       setError("Please select a product");
+//       return;
+//     }
+  
+//     if (parseFloat(selectedQuantity) < 10) {
+//       alert("⚠️ Minimum quantity should be 10kg");
+//       return;
+//     }
+  
+//     try {
+//       const response = await fetch(`${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/add-bargain-product`, {
+//         method: 'POST',
+//         headers: {
+//           'Content-Type': 'application/json',
+//           'Authorization': `Bearer ${token}`,
+//         },
+//         body: JSON.stringify({
+//           bargain_id: bargainId,
+//           product_id: selectedProduct.product_id,
+//           quantity: parseFloat(selectedQuantity), // Fixed: using selectedQuantity instead of quantity
+//         }),
+//       });
+  
+//       const data = await response.json();
+  
+//       if (!response.ok) {
+//         throw new Error(data.error || 'Failed to add product');
+//       }
+  
+//       console.log("✅ Product added to bargain successfully.");
+  
+//       // Construct system message
+//       const systemMessageContent = `🛒 You selected ${selectedProduct.produce_name} (${parseFloat(selectedQuantity)}kg) for bargaining.`;
+      
+//       // Add system message to local state
+//       addSystemMessage(systemMessageContent);
+  
+//       // Generate and show price suggestions
+//       const suggestions = generatePriceSuggestions(selectedProduct.price_per_kg);
+//       setPriceSuggestions(suggestions);
+//       setShowPriceSuggestions(true);
+
+//       // Emit system message to farmer via socket
+//       if (socket.current && socket.current.connected) {
+//         socket.current.emit("bargainMessage", {
+//           bargain_id: bargainId,
+//           message: {
+//             content: systemMessageContent,
+//             sender_type: "system",
+//             timestamp: new Date().toISOString()
+//           },
+//           recipientType: "farmer",
+//           recipientId: selectedProduct.farmer_id,
+//         });
+  
+//         // Also emit product selection event
+//         socket.current.emit('productSelected', {
+//           bargainId,
+//           product: selectedProduct,
+//           quantity: parseFloat(selectedQuantity),
+//           price: selectedProduct.price_per_kg
+//         });
+//       }
+  
+//       // Update local state
+//       setQuantity(parseFloat(selectedQuantity));
+//       setCurrentPrice(selectedProduct.price_per_kg);
+      
+//       // Close popup
+//       setIsBargainPopupOpen(false);
+  
+//     } catch (err) {
+//       console.error("❌ Error adding product:", err);
+//       setError(err.message);
+//     }
+//   };
+  
+//   // Handle price offer
+//   const handleMakeOffer = (price) => {
+//     if (socket.current && socket.current.connected) {
+//       // First show the message immediately
+//       addSystemMessage(`You offered ₹${price}/kg for ${quantity}kg`);
+//       setCurrentPrice(price);
+      
+//       // Then send the offer (show loader only if waiting for response)
+//       setWaitingForResponse(true);
+//       socket.current.emit('priceOffer', {
+//         price,
+//         productId: selectedProduct?.product_id,
+//         quantity
+//       });
+//     }
+//   };
+
+
+// if (loading) {
 //   return (
-//     <div className="bargain-chat-container">
+//     <div className="loading-container">
+//       <FontAwesomeIcon icon={faSpinner} spin size="2x" />
+//       <p>Loading bargain session...</p>
+//     </div>
+//   );
+// }
+  
+// // if (error) {
+// //     return (
+// //       <div className="error-container">
+// //         <h3>Error Loading Bargain</h3>
+// //         <p>{error}</p>
+// //         <button onClick={() => window.location.reload()}>Retry</button>
+// //       </div>
+// //     );
+// //   }
+// // Render loading state
+
+// return (
+//   <div className="bargain-chat-container">
+//     {/* Bargain Initiation Popup */}
+//     {isBargainPopupOpen && selectedFarmer && (
+//       <div className="bargain-initiation-popup">
+//         <div className="popup-content">
+//           <button onClick={() => navigate(-1)} className="close-btn">
+//             <FontAwesomeIcon icon={faTimes} />
+//           </button>
+//           <h3>Initiate Bargain with {selectedFarmer.farmer_name}</h3>
+          
+//           <div className="form-group">
+//             <label>Select Product</label>
+//             <select
+//               value={selectedProduct?.produce_name || ''}
+//               onChange={(e) => {
+//                 const product = selectedFarmer.products.find(
+//                   p => p.produce_name === e.target.value
+//                 );
+//                 setSelectedProduct(product || null);
+//                 if (product) {
+//                   setCurrentPrice(product.price_per_kg);
+//                   setQuantity(1); // Reset quantity when product changes
+//                 }
+//               }}
+//             >
+//               <option value="">-- Select a product --</option>
+//               {selectedFarmer.products?.map(product => (
+//                 <option key={product.product_id} value={product.produce_name}>
+//                   {product.produce_name} (₹{product.price_per_kg}/kg)
+//                 </option>
+//               ))}
+//             </select>
+//           </div>
+          
+//           {selectedProduct && (
+//             <>
+//               <div className="product-details">
+//                 <p><strong>Category:</strong> {selectedProduct.produce_type}</p>
+//                 <p><strong>Availability:</strong> {selectedProduct.availability} kg</p>
+//               </div>
+              
+//               <div className="form-group">
+//                 <label>Quantity (kg)</label>
+//                 <input
+//                   type="number"
+//                   min={10}
+//                   value={selectedQuantity}
+//                   onChange={(e) => setSelectedQuantity(e.target.value)}
+//                   placeholder="Enter quantity in kg"
+//                 />
+
+//                 <small>Min: {10} kg</small>
+//                 <small>Max: {selectedProduct.availability} kg</small>
+//               </div>
+              
+//               <div className="current-price-display">
+//                 <p>Product Price: ₹{selectedProduct.price_per_kg}/kg</p>
+//                 <p>Total for {quantity}kg: ₹{(selectedProduct.price_per_kg * quantity).toFixed(2)}</p>
+//               </div>
+//             </>
+//           )}
+          
+//           {error && <div className="error-message">{error}</div>}
+          
+//           <button
+//             onClick={handleBargainConfirm}
+//             disabled={!selectedProduct || isLoading}
+//             className="confirm-btn"
+//           >
+//             {isLoading ? (
+//               <FontAwesomeIcon icon={faSpinner} spin />
+//             ) : (
+//               <FontAwesomeIcon icon={faHandshake} />
+//             )}
+//             Start Bargaining
+//           </button>
+//         </div>
+//       </div>
+//     )}
+
+//     {/* Chat Header - Only show if product is selected */}
+//     {selectedProduct && !isBargainPopupOpen && (
 //       <div className="chat-header">
 //         <div className="header-top">
 //           <h2>
-//             <FontAwesomeIcon icon={faRupeeSign} /> Bargaining with {farmer?.farmer_name}
+//             <FontAwesomeIcon icon={faRupeeSign} /> Bargaining with {selectedFarmer?.farmer_name}
 //           </h2>
 //           <span className={`connection-status ${connectionStatus}`}>
 //             {connectionStatus.toUpperCase()}
@@ -384,391 +529,451 @@
 //         </div>
         
 //         <div className="product-info">
-//           <p><strong>Product:</strong> {product?.produce_name}</p>
+//           <p><strong>Product:</strong> {selectedProduct.produce_name}</p>
+//           <p><strong>Category:</strong> {selectedProduct.produce_type}</p>
 //           <p><strong>Quantity:</strong> {quantity}kg</p>
 //           <p className="current-price">
 //             <strong>Current Price:</strong> ₹{currentPrice}/kg
 //           </p>
+//           <p className="base-price">
+//             <strong>Base Price:</strong> ₹{selectedProduct.price_per_kg}/kg
+//           </p>
+//           <p className="total-price">
+//             <strong>Total:</strong> ₹{(quantity * currentPrice).toFixed(2)}
+//           </p>
+//           {bargainStatus === 'accepted' && (
+//             <p className="status-accepted">Offer Accepted!</p>
+//           )}
+//           {bargainStatus === 'rejected' && (
+//             <p className="status-rejected">Offer Declined</p>
+//           )}
 //         </div>
 //       </div>
+//     )}
 
-//       <div className="chat-messages">
-//         {messages.length === 0 ? (
-//           <div className="no-messages">
-//             <p>Start the negotiation by making an offer!</p>
-//           </div>
-//         ) : (
-//           messages.map((msg, index) => (
-//             <div key={index} className={`message ${msg.sender_type}`}>
-//               <div className="message-content">
-//                 {msg.content}
-//                 {msg.price && (
-//                   <div className="price-offer">
-//                     <FontAwesomeIcon icon={faRupeeSign} /> {msg.price}/kg
-//                   </div>
-//                 )}
-//               </div>
-//               <div className="message-meta">
-//                 <span className="sender">
-//                   {msg.sender_type === 'consumer' ? 'You' : 
-//                    msg.sender_type === 'farmer' ? farmer?.farmer_name : 'System'}
-//                 </span>
-//                 <span className="timestamp">
-//                   {new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-//                 </span>
-//               </div>
+//     {/* Chat Messages - Only show if product is selected */}
+//     {selectedProduct && !isBargainPopupOpen && (
+//       <>
+//         <div className="chat-messages">
+//           {messages.length === 0 ? (
+//             <div className="no-messages">
+//               <p>No messages yet. Start the negotiation!</p>
 //             </div>
-//           ))
-//         )}
-//         <div ref={messagesEndRef} />
-//       </div>
+//           ) : (
+//             messages.map((msg, index) => (
+//               <div key={`msg-${index}`} className={`message ${msg.sender_type}`}>
+//                 <div className="message-content">
+//                   {msg.content}
+//                 </div>
 
-//       <div className="chat-controls">
-      
-//        {bargainAccepted && (
-//   <div className="price-suggestions">
-//     <h4>Quick Offers:</h4>
-//     <div className="suggestion-buttons">
-//       <button onClick={() => handleMakeOffer(currentPrice - 6)}>
-//         <FontAwesomeIcon icon={faArrowDown} /> ₹{currentPrice - 6} (-6)
-//       </button>
-//       <button onClick={() => handleMakeOffer(currentPrice - 5)}>
-//         <FontAwesomeIcon icon={faArrowDown} /> ₹{currentPrice - 5} (-5)
-//       </button>
-//       <button onClick={() => handleMakeOffer(currentPrice - 4)}>
-//         <FontAwesomeIcon icon={faArrowDown} /> ₹{currentPrice - 4} (-4)
-//       </button>
-//       <button onClick={() => handleMakeOffer(currentPrice - 3)}>
-//         <FontAwesomeIcon icon={faArrowDown} /> ₹{currentPrice - 3} (-3)
-//       </button>
-//       <button onClick={() => handleMakeOffer(currentPrice - 2)}>
-//         <FontAwesomeIcon icon={faArrowUp} /> ₹{currentPrice - 2} (-2)
-//       </button>
-//       <button onClick={() => handleMakeOffer(currentPrice - 1)}>
-//         <FontAwesomeIcon icon={faArrowUp} /> ₹{currentPrice - 1} (-1)
-//       </button>
-//     </div>
-//   </div>
-// )}
+//                 <div className="message-meta">
+//                   <span className="sender">
+//                     {msg.sender_type === 'consumer' ? 'You' : 
+//                      msg.sender_type === 'farmer' ? selectedFarmer?.farmer_name : 'System'}
+//                   </span>
+//                   <span className="timestamp">
+//                     {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+//                   </span>
+//                 </div>
+//               </div>
+//             ))
+//           )}
+//           <div ref={messagesEndRef} />
+//         </div>
 
-
-//             <div className="message-input">
-//               <input
-//                 type="text"
-//                 value={newMessage}
-//                 onChange={(e) => setNewMessage(e.target.value)}  // Bind input to newMessage state
-//                 placeholder="Type your message..."
-//                 onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}  // Handle Enter key for sending
-//                 disabled={connectionStatus !== 'connected'}  // Disable if not connected
-//               />
-//               <button
-//                 onClick={handleSendMessage}
-//                 disabled={!newMessage.trim() || connectionStatus !== 'connected'}
-//               >
-//                 <FontAwesomeIcon icon={faPaperPlane} />
-//               </button>
-//             </div>
-// {isBargainPopupOpen && selectedFarmer && selectedFarmer.products && (
-//         <div className="ks-bargain-modal">
-//           <div className="ks-bargain-modal-content">
-//             <button 
-//               onClick={() => setIsBargainPopupOpen(false)} 
-//               className="ks-modal-close-btn"
-//             >
-//               <FontAwesomeIcon icon={faTimes} />
-//             </button>
-//             <h3 className="ks-modal-title">Bargain with {selectedFarmer.farmer_name}</h3>
-            
-//             <div className="ks-modal-form-group">
-//               <label className="ks-modal-label">Select Product</label>
-//               <select
-//                 onChange={(e) => {
-//                   const selectedProductData = selectedFarmer.products.find(
-//                     (product) => product.produce_name === e.target.value
-//                   );
-//                   setSelectedProduct(selectedProductData || null);
-//                 }}
-//                 className="ks-modal-select"
-//               >
-//                 <option value="">Choose a product</option>
-//                 {selectedFarmer.products.map((product) => (
-//                   <option key={product.product_id} value={product.produce_name}>
-//                     {product.produce_name} - ₹{product.price_per_kg}/kg
-//                   </option>
+//         {/* Chat Controls - Only show if product is selected */}
+//         <div className="chat-controls">
+//           {bargainStatus === 'pending' && 
+//            messages.length > 0 && 
+//            messages.some(m => m.sender_type === 'consumer') && (
+//             <div className="price-suggestions">
+//               <h4>Make an Offer (Current: ₹{currentPrice}/kg):</h4>
+//               <div className="suggestion-buttons">
+//                 {[1, 2, 3, 5].map(amount => (
+//                   <button 
+//                     key={`decrease-${amount}`} 
+//                     onClick={() => handleMakeOffer(currentPrice - amount)}
+//                     disabled={currentPrice - amount <= 0 || waitingForResponse}
+//                   >
+//                     <FontAwesomeIcon icon={faArrowDown} /> ₹{currentPrice - amount}
+//                   </button>
 //                 ))}
-//               </select>
+//                 {[1, 2, 3].map(amount => (
+//                   <button 
+//                     key={`increase-${amount}`} 
+//                     onClick={() => handleMakeOffer(currentPrice + amount)}
+//                     disabled={waitingForResponse}
+//                   >
+//                     <FontAwesomeIcon icon={faArrowUp} /> ₹{currentPrice + amount}
+//                   </button>
+//                 ))}
+//               </div>
 //             </div>
-            
-//             <div className="ks-modal-form-group">
-//               <label className="ks-modal-label">Quantity (kg)</label>
-//               <input
-//                 type="number"
-//                 min="1"
-//                 max={selectedProduct?.availability || 100}
-//                 value={quantity}
-//                 onChange={(e) => setQuantity(Number(e.target.value))}
-//                 className="ks-modal-input"
-//               />
-//             </div>
-            
-//             {error && <div className="ks-error-message">{error}</div>}
+//           )}
 
-//             <div className="ks-modal-actions">
-//               <button 
-//                 onClick={handleBargainConfirm}
-//                 disabled={isLoading || !selectedProduct || !consumer}
-//                 className="ks-modal-confirm-btn"
-//               >
-//                 {isLoading ? (
-//                   <>
-//                     <FontAwesomeIcon icon={faSpinner} spin /> Starting Bargain...
-//                   </>
-//                 ) : (
-//                   <>
-//                     <FontAwesomeIcon icon={faComments} /> Start Bargaining
-//                   </>
-//                 )}
+//           {waitingForResponse && (
+//             <div className="waiting-indicator">
+//               <FontAwesomeIcon icon={faSpinner} spin /> Waiting for farmer's response...
+//             </div>
+//           )}
+
+//           {bargainStatus === 'accepted' && (
+//             <div className="accepted-actions">
+//               <button className="primary-action" onClick={() => navigate('/checkout')}>
+//                 Proceed to Checkout
+//               </button>
+//               <button className="secondary-action" onClick={() => navigate('/')}>
+//                 Continue Shopping
 //               </button>
 //             </div>
-            
-//           </div>
+//           )}
 //         </div>
-//       )}
-//       </div>
-//     </div>
-//   );
+//       </>
+//     )}
+//   </div>
+// );
 // };
 
 // export default BargainChatWindow;
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useAuth } from "../../context/AuthContext";
-import { 
-  faSpinner, 
-  faPaperPlane, 
+import { io } from 'socket.io-client';
+import {
+  faSpinner,
   faRupeeSign,
   faArrowUp,
   faArrowDown,
   faTimes,
-  faHandshake
+  faHandshake,
+  faCheckCircle,
+  faTimesCircle
 } from '@fortawesome/free-solid-svg-icons';
-import './cbargain.css';
+import './ConsumerChatWindow.css';
 
 const BargainChatWindow = () => {
   const navigate = useNavigate();
   const { bargainId } = useParams();
   const { token, consumer } = useAuth();
   const location = useLocation();
-  console.log("Token in BargainChatWindow:", token);
-  const { product: initialProduct, farmer: initialFarmer, quantity: initialQuantity } = location.state || {};
-  // Refs
+  const socket = useRef(null);
   const messagesEndRef = useRef(null);
-  // State
+  const reconnectAttempts = useRef(0);
+
+  // Extract initial state from location
+  const { 
+    product: initialProduct, 
+    farmer: initialFarmer, 
+    quantity: initialQuantity 
+  } = location.state || {};
+
+  // State management
   const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
-  const [currentPrice, setCurrentPrice] = useState(initialProduct?.price_per_kg || 0);
-  const [ws, setWs] = useState(null);
-  const [connectionStatus, setConnectionStatus] = useState('connecting');
-  const [bargainAccepted, setBargainAccepted] = useState(false);
-  const [waitingForReply, setWaitingForReply] = useState(false);
-  // Bargain initiation state
-  const [isBargainPopupOpen, setIsBargainPopupOpen] = useState(true); // Show popup by default
-  const [selectedProduct, setSelectedProduct] = useState(initialProduct || null);
+  const [currentPrice, setCurrentPrice] = useState(0);
+  const [connectionStatus, setConnectionStatus] = useState("connecting");
+  const [bargainStatus, setBargainStatus] = useState('pending');
+  const [waitingForResponse, setWaitingForResponse] = useState(false);
+  const [isBargainPopupOpen, setIsBargainPopupOpen] = useState(true);
   const [selectedFarmer] = useState(initialFarmer || null);
-  const [quantity, setQuantity] = useState(initialQuantity || 1);
+  const [quantity, setQuantity] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  // Initialize WebSocket connection
-  useEffect(() => {
-    if (!bargainId) return;
+  const [, setInitialPrice] = useState(0);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [selectedQuantity, setSelectedQuantity] = useState('');
+  const [showPriceSuggestions, setShowPriceSuggestions] = useState(false);
+  const [priceSuggestions, setPriceSuggestions] = useState([]);
+  const [isTyping, setIsTyping] = useState(false);
 
-    const token = localStorage.getItem('token');
-    if (!token) {
-      console.error("Missing token");
+  const closePopup = () => {
+    setIsBargainPopupOpen(false);
+    setSelectedProduct(null);
+    setSelectedQuantity('');
+  };
+
+  // Generate price suggestions based on current price
+  const generatePriceSuggestions = useCallback((basePrice) => {
+    return [
+      { amount: -3, price: basePrice - 3, label: "Good Deal" },
+      { amount: -2, price: basePrice - 2, label: "Fair Offer" },
+      { amount: -1, price: basePrice - 1, label: "Small Discount" },
+      { amount: 1, price: basePrice + 1, label: "Small Increase" },
+      { amount: 2, price: basePrice + 2, label: "Fair Increase" }
+    ].filter(suggestion => suggestion.price > 0);
+  }, []);
+
+  // WebSocket connection management
+  const initializeSocketConnection = useCallback(() => {
+    if (!bargainId || !token) {
+      console.error("Missing bargainId or token for WebSocket connection");
       return;
     }
-    const socketUrl = `ws://localhost:5000/ws/bargain/${bargainId}?token=${token}`;
-    const socket = new WebSocket(socketUrl);
+  
+    if (socket.current) {
+      socket.current.disconnect();
+      socket.current = null;
+    }
+  
+    socket.current = io(process.env.REACT_APP_API_BASE_URL || "http://localhost:5000", {
+      auth: {
+        token: token
+      },
+      query: { bargainId },
+      transports: ['websocket'],
+      withCredentials: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      extraHeaders: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+    
+    // Connection events
+    socket.current.on('connect', () => {
+      console.log("Socket connected");
+      setConnectionStatus("connected");
+      reconnectAttempts.current = 0;
+    });
+  
+    socket.current.on('connect_error', (err) => {
+      console.error("Connection error:", err.message);
+      setConnectionStatus("error");
+      
+      const maxAttempts = 5;
+      if (reconnectAttempts.current < maxAttempts) {
+        const delay = Math.min(30000, (2 ** reconnectAttempts.current) * 1000);
+        reconnectAttempts.current += 1;
+        setTimeout(() => initializeSocketConnection(), delay);
+      }
+    });
+  
+    socket.current.on('disconnect', (reason) => {
+      console.log("Socket disconnected:", reason);
+      setConnectionStatus("disconnected");
+    });
+  
+    // Application events
+    socket.current.on('priceUpdate', (data) => {
+      setCurrentPrice(data.newPrice);
+      addSystemMessage(`Farmer updated price to ₹${data.newPrice}/kg`);
+      setWaitingForResponse(false);
+    });
+  
+    socket.current.on('bargainStatusUpdate', (status) => {
+      setBargainStatus(status);
+      if (status === 'accepted') {
+        addSystemMessage("🎉 Farmer accepted your offer!");
+      } else if (status === 'rejected') {
+        addSystemMessage("❌ Farmer declined your offer");
+      }
+      setWaitingForResponse(false);
+    });
+  
+    socket.current.on('newMessage', (message) => {
+      setMessages(prev => [...prev, message]);
+      if (message.sender_type === 'farmer') {
+        setWaitingForResponse(false);
+      }
+    });
 
-    socket.onopen = () => {
-      setConnectionStatus('connected');
-      setWs(socket);
-    };
-    socket.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        
-        switch (data.type) {
-          case 'PRICE_UPDATE':
-            setCurrentPrice(data.newPrice);
-            setMessages(prev => [...prev, {
-              content: `Farmer updated price to ₹${data.newPrice}/kg`,
-              sender_type: 'system',
-              timestamp: new Date().toISOString()
-            }]);
-            setWaitingForReply(false);
-            break;
-            
-          case 'BARGAIN_ACCEPTED':
-            setBargainAccepted(true);
-            setWaitingForReply(false);
-            setMessages(prev => [...prev, {
-              content: '🎉 Farmer accepted your offer!',
-              sender_type: 'system',
-              timestamp: new Date().toISOString()
-            }]);
-            break;
-            
-          case 'MESSAGE':
-            setMessages(prev => [...prev, data.message]);
-            // If we receive a message from farmer, we're no longer waiting for reply
-            if (data.message.sender_type === 'farmer') {
-              setWaitingForReply(false);
-            }
-            break;
-            
-          case 'INITIAL_MESSAGE_SENT':
-            // Farmer acknowledged our initial message, now we can show suggestions
-            setWaitingForReply(false);
-            break;
-            
-          default:
-            console.warn('Unknown message type:', data.type);
-        }
-      } catch (error) {
-        console.error("Error parsing message:", error);
+    socket.current.on('typing', (isTyping) => {
+      setIsTyping(isTyping);
+    });
+  
+    socket.current.on('priceSuggestions', ({ suggestions }) => {
+      setPriceSuggestions(suggestions);
+      setShowPriceSuggestions(true);
+    });
+  
+    socket.current.on('error', (error) => {
+      console.error("Socket error:", error);
+      setError(error.message);
+    });
+  }, [bargainId, token]);
+
+  // Helper function to add system messages
+  const addSystemMessage = (content) => {
+    setMessages(prev => [
+      ...prev,
+      {
+        content,
+        sender_type: "consumer",
+        timestamp: new Date().toISOString()
+      }
+    ]);
+  };
+
+  // Initialize socket connection on mount
+  useEffect(() => {
+    initializeSocketConnection();
+    return () => {
+      if (socket.current) {
+        socket.current.disconnect();
       }
     };
-    socket.onerror = (error) => {
-      setConnectionStatus('error');
-      console.error('WebSocket error:', error);
-    };
-    socket.onclose = () => {
-      setConnectionStatus('disconnected');
-      setTimeout(() => {
-        setWs(new WebSocket(socketUrl));
-      }, 3000);
-    };
-    return () => socket.close();
-  }, [bargainId]);
+  }, [initializeSocketConnection]);
 
-  // Load initial messages
+  // Fetch bargain data
   useEffect(() => {
-    const fetchMessages = async () => {
+    const fetchBargainData = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/bargain/${bargainId}/messages`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        });
-        const data = await response.json();
-        setMessages(data.messages || []);
-        if (data.currentPrice) setCurrentPrice(data.currentPrice);
-        
-        // If we already have messages, close the popup
-        if (data.messages && data.messages.length > 0) {
-          setIsBargainPopupOpen(false);
+        if (!bargainId || !token) {
+          throw new Error("Missing bargain ID or authentication token");
         }
+  
+        const response = await fetch(
+          `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/bargain/${bargainId}`, 
+          {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+          }
+        );
+  
+        const contentType = response.headers.get('content-type');
+        const rawText = await response.text();
+  
+        if (!response.ok) {
+          throw new Error(`Server error: ${response.status}`);
+        }
+  
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error(`Expected JSON but got ${contentType}`);
+        }
+  
+        const data = JSON.parse(rawText);
+  
+        if (!data.success) {
+          throw new Error(data.error || "Failed to fetch bargain data");
+        }
+  
+        if (data.products && data.products.length > 0) {
+          const product = data.products[0];
+          setSelectedProduct(product);
+          setCurrentPrice(product.current_offer || product.price_per_kg);
+          setQuantity(product.quantity || 1);
+          setSelectedQuantity(product.quantity || '10');
+        }
+        
+        setBargainStatus(data.status || 'pending');
+        
       } catch (error) {
-        console.error("Error fetching messages:", error);
+        setError(error.message || "Failed to load bargain data");
       } finally {
         setLoading(false);
       }
     };
+  
+    fetchBargainData();
+  }, [bargainId, token]);
 
-    if (bargainId) {
-      fetchMessages();
-    }
-  }, [bargainId]);
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Handle bargain confirmation
   const handleBargainConfirm = async () => {
-    setError(null);
-    setIsLoading(true);
-    setWaitingForReply(true); // Wait for farmer's reply
-
+    if (!selectedProduct) {
+      setError("Please select a product");
+      return;
+    }
+  
+    if (parseFloat(selectedQuantity) < 10) {
+      alert("⚠️ Minimum quantity should be 10kg");
+      return;
+    }
+  
     try {
-      if (!selectedProduct || !selectedFarmer || quantity <= 0) {
-        throw new Error("Please select a product and valid quantity");
+      setIsLoading(true);
+      const response = await fetch(`${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/add-bargain-product`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          bargain_id: bargainId,
+          product_id: selectedProduct.product_id,
+          quantity: parseFloat(selectedQuantity),
+        }),
+      });
+  
+      const data = await response.json();
+  
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to add product');
       }
-
-      if (!consumer?.token) {
-        navigate('/login', { state: { from: location.pathname } });
-        return;
-      }
-
-      // Send initial bargain message
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        const bargainMessage = {
-          type: 'INIT_BARGAIN',
-          product: selectedProduct,
-          quantity,
-          initialPrice: selectedProduct.price_per_kg,
-          farmer: selectedFarmer,
-          consumerName: consumer.name
-        };
-        ws.send(JSON.stringify(bargainMessage));
-      }
-
-      // Add initial message to chat
-      setMessages(prev => [...prev, {
-        content: `You sent an bargain request for ${quantity}kg of ${selectedProduct.produce_name}`,
-        // at ₹${selectedProduct.price_per_kg}/kg
-        sender_type: 'consumer',
-        timestamp: new Date().toISOString()
-      }]);
-
-      // Close popup after successful initiation
-      setIsBargainPopupOpen(false);
+  
+      const systemMessageContent = `🛒 You selected ${selectedProduct.produce_name} (${parseFloat(selectedQuantity)}kg) at ₹${selectedProduct.price_per_kg}/kg`;
       
-    } catch (error) {
-      setError(error.message);
-      setWaitingForReply(false);
+      addSystemMessage(systemMessageContent);
+
+      const suggestions = generatePriceSuggestions(selectedProduct.price_per_kg);
+      setPriceSuggestions(suggestions);
+      setShowPriceSuggestions(true);
+
+      if (socket.current && socket.current.connected) {
+        socket.current.emit("bargainMessage", {
+          bargain_id: bargainId,
+          message: {
+            content: systemMessageContent,
+            sender_type: "consumer",
+            timestamp: new Date().toISOString()
+          },
+          recipientType: "farmer",
+          recipientId: selectedProduct.farmer_id,
+        });
+
+        socket.current.emit('priceSuggestions', {
+          bargainId,
+          suggestions
+        });
+      }
+  
+      setQuantity(parseFloat(selectedQuantity));
+      setCurrentPrice(selectedProduct.price_per_kg);
+      setIsBargainPopupOpen(false);
+  
+    } catch (err) {
+      setError(err.message);
     } finally {
       setIsLoading(false);
     }
   };
-  // Handle price offer
-  const handleMakeOffer = (price) => {
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      setWaitingForReply(true); // Wait for farmer's reply
-      
-      const offerMessage = {
-        type: 'PRICE_OFFER',
+  
+  const handlePriceSelection = (price) => {
+    const messageContent = `💰 Offered ₹${price}/kg for ${selectedQuantity}kg`;
+    
+    addSystemMessage(messageContent);
+    setCurrentPrice(price);
+    setShowPriceSuggestions(false);
+    setWaitingForResponse(true);
+
+    if (socket.current && socket.current.connected) {
+      socket.current.emit("bargainMessage", {
+        bargain_id: bargainId,
+        message: {
+          content: messageContent,
+          sender_type: "consumer",
+          timestamp: new Date().toISOString()
+        },
+        recipientType: "farmer",
+        recipientId: selectedProduct.farmer_id,
+      });
+
+      socket.current.emit('priceOffer', {
         price,
         productId: selectedProduct.product_id,
-        quantity
-      };
-      ws.send(JSON.stringify(offerMessage));
-      setMessages(prev => [...prev, {
-        content: `You offered ₹${price}/kg for ${quantity}kg`,
-        sender_type: 'consumer',
-        timestamp: new Date().toISOString()
-      }]);
-      setCurrentPrice(price);
+        quantity: selectedQuantity
+      });
     }
   };
-  // Handle regular message sending
-  const handleSendMessage = () => {
-    if (!newMessage.trim() || !ws || ws.readyState !== WebSocket.OPEN) return;
 
-    const message = {
-      type: 'MESSAGE',
-      content: newMessage,
-      sender_type: 'consumer',
-      timestamp: new Date().toISOString()
-    };
-    
-    ws.send(JSON.stringify(message));
-    setMessages(prev => [...prev, message]);
-    setNewMessage('');
-  };
   if (loading) {
     return (
       <div className="loading-container">
@@ -777,19 +982,18 @@ const BargainChatWindow = () => {
       </div>
     );
   }
+
   return (
     <div className="bargain-chat-container">
       {/* Bargain Initiation Popup */}
       {isBargainPopupOpen && selectedFarmer && (
         <div className="bargain-initiation-popup">
-          <div className="popup-content">
-            <button 
-              onClick={() => navigate(-1)} 
-              className="close-btn"
-            >
+          <div className="popup-content animate__animated animate__fadeInUp">
+            <button onClick={() => navigate(-1)} className="close-btn">
               <FontAwesomeIcon icon={faTimes} />
             </button>
             <h3>Initiate Bargain with {selectedFarmer.farmer_name}</h3>
+            
             <div className="form-group">
               <label>Select Product</label>
               <select
@@ -799,10 +1003,13 @@ const BargainChatWindow = () => {
                     p => p.produce_name === e.target.value
                   );
                   setSelectedProduct(product || null);
-                  if (product) setCurrentPrice(product.price_per_kg);
+                  if (product) {
+                    setCurrentPrice(product.price_per_kg);
+                    setSelectedQuantity('10');
+                  }
                 }}
               >
-                <option value="">Select a product</option>
+                <option value="">-- Select a product --</option>
                 {selectedFarmer.products?.map(product => (
                   <option key={product.product_id} value={product.produce_name}>
                     {product.produce_name} (₹{product.price_per_kg}/kg)
@@ -811,25 +1018,42 @@ const BargainChatWindow = () => {
               </select>
             </div>
             
-            <div className="form-group">
-              <label>Quantity (kg)</label>
-              <input
-                type="number"
-                min="1"
-                max={selectedProduct?.availability || 100}
-                value={quantity}
-                onChange={(e) => setQuantity(Math.max(1, e.target.value))}
-              />
-            </div>
+            {selectedProduct && (
+              <>
+                <div className="product-details">
+                  <p><strong>Category:</strong> {selectedProduct.produce_type}</p>
+                  <p><strong>Availability:</strong> {selectedProduct.availability} kg</p>
+                </div>
+                
+                <div className="form-group">
+                  <label>Quantity (kg)</label>
+                  <input
+                    type="number"
+                    min="10"
+                    max={selectedProduct.availability}
+                    value={selectedQuantity}
+                    onChange={(e) => setSelectedQuantity(e.target.value)}
+                    placeholder="Enter quantity in kg"
+                  />
+                  <div className="quantity-hints">
+                    <span>Min: 10 kg</span>
+                    <span>Max: {selectedProduct.availability} kg</span>
+                  </div>
+                </div>
+                
+                <div className="current-price-display">
+                  <p>Product Price: ₹{selectedProduct.price_per_kg}/kg</p>
+                  <p className="total-price">Total: ₹{(selectedProduct.price_per_kg * (parseFloat(selectedQuantity) || 0)).toFixed(2)}</p>
+                </div>
+              </>
+            )}
             
-            <div className="current-price-display">
-              Current Price: ₹{selectedProduct?.price_per_kg || 0}/kg
-            </div>
-            {error && <div className="error-message">{error}</div>}
+            {error && <div className="error-message animate__animated animate__shakeX">{error}</div>}
+            
             <button
               onClick={handleBargainConfirm}
               disabled={!selectedProduct || isLoading}
-              className="confirm-btn"
+              className={`confirm-btn ${isLoading ? 'loading' : ''}`}
             >
               {isLoading ? (
                 <FontAwesomeIcon icon={faSpinner} spin />
@@ -841,102 +1065,145 @@ const BargainChatWindow = () => {
           </div>
         </div>
       )}
-      {/* Main Chat Interface */}
-      <div className="chat-header">
-        <div className="header-top">
-          <h2>
-            <FontAwesomeIcon icon={faRupeeSign} /> Bargaining with {selectedFarmer?.farmer_name}
-          </h2>
-          <span className={`connection-status ${connectionStatus}`}>
-            {connectionStatus.toUpperCase()}
-          </span>
-        </div>
-        <div className="product-info">
-          {selectedProduct && (
-            <>
+
+      {/* Chat Interface */}
+      {selectedProduct && !isBargainPopupOpen && (
+        <div className="chat-interface animate__animated animate__fadeIn">
+          {/* Chat Header */}
+          <div className="chat-header">
+            <div className="header-top">
+              <h2>
+                <FontAwesomeIcon icon={faRupeeSign} /> Bargaining with {selectedFarmer?.farmer_name}
+              </h2>
+              <span className={`connection-status ${connectionStatus}`}>
+                {connectionStatus.toUpperCase()}
+              </span>
+            </div>
+            
+            <div className="product-info">
               <p><strong>Product:</strong> {selectedProduct.produce_name}</p>
-              <p><strong>Quantity:</strong> {quantity}kg</p>
-              <p className="current-price">
-                <strong>Current Price:</strong> ₹{currentPrice}/kg
-              </p>
-            </>
-          )}
-        </div>
-      </div>
-      <div className="chat-messages">
-        {messages.length === 0 ? (
-          <div className="no-messages">
-            <p>No messages yet. Start the negotiation!</p>
-          </div>
-        ) : (
-          messages.map((msg, index) => (
-            <div key={index} className={`message ${msg.sender_type}`}>
-              <div className="message-content">{msg.content}</div>
-              <div className="message-meta">
-                <span className="sender">
-                  {msg.sender_type === 'consumer' ? 'You' : 
-                   msg.sender_type === 'farmer' ? selectedFarmer?.farmer_name : 'System'}
+              <p><strong>Quantity:</strong> {selectedQuantity || quantity}kg</p>
+              <div className="price-display">
+                <span className="current-price">
+                  <strong>Current:</strong> ₹{currentPrice}/kg
                 </span>
-                <span className="timestamp">
-                  {new Date(msg.timestamp).toLocaleTimeString()}
+                <span className="base-price">
+                  <strong>Base:</strong> ₹{selectedProduct.price_per_kg}/kg
+                </span>
+                <span className="total-price">
+                  <strong>Total:</strong> ₹{(parseFloat(selectedQuantity || quantity) * currentPrice)}
                 </span>
               </div>
-            </div>
-          ))
-        )}
-        <div ref={messagesEndRef} />
-      </div>
-      <div className="chat-controls">
-        {/* Show price suggestions only after initial message is sent and not waiting for reply */}
-        {!bargainAccepted && selectedProduct && messages.length > 0 && !waitingForReply && (
-          <div className="price-suggestions">
-            <h4>Make an Offer:</h4>
-            <div className="suggestion-buttons">
-              {[1, 2, 3, 5].map(amount => (
-                <button 
-                  key={`decrease-${amount}`} 
-                  onClick={() => handleMakeOffer(currentPrice - amount)}
-                  disabled={currentPrice - amount <= 0}
-                >
-                  <FontAwesomeIcon icon={faArrowDown} /> ₹{currentPrice - amount}
-                </button>
-              ))}
-              {[1, 2, 3].map(amount => (
-                <button 
-                  key={`increase-${amount}`} 
-                  onClick={() => handleMakeOffer(currentPrice + amount)}
-                >
-                  <FontAwesomeIcon icon={faArrowUp} /> ₹{currentPrice + amount}
-                </button>
-              ))}
+              {bargainStatus === 'accepted' && (
+                <p className="status-accepted">
+                  <FontAwesomeIcon icon={faCheckCircle} /> Offer Accepted!
+                </p>
+              )}
+              {bargainStatus === 'rejected' && (
+                <p className="status-rejected">
+                  <FontAwesomeIcon icon={faTimesCircle} /> Offer Declined
+                </p>
+              )}
             </div>
           </div>
-        )}
-        {/* Show waiting indicator when waiting for farmer's reply */}
-        {waitingForReply && (
-          <div className="waiting-indicator">
-            <FontAwesomeIcon icon={faSpinner} spin /> Waiting for farmer's reply...
+
+          {/* Chat Messages */}
+          <div className="chat-messages">
+            {messages.length === 0 ? (
+              <div className="no-messages">
+                <p>No messages yet. Start the negotiation!</p>
+              </div>
+            ) : (
+              messages.map((msg, index) => (
+                <div 
+                  key={`msg-${index}`} 
+                  className={`message ${msg.sender_type} animate__animated animate__fadeIn`}
+                  style={{ animationDelay: `${index * 0.1}s` }}
+                >
+                  <div className="message-content">
+                    {msg.content}
+                  </div>
+                  <div className="message-meta">
+                    <span className="sender">
+                      {msg.sender_type === 'consumer' ? 'You' : 
+                       msg.sender_type === 'farmer' ? selectedFarmer?.farmer_name : 'System'}
+                    </span>
+                    <span className="timestamp">
+                      {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+            {isTyping && (
+              <div className="typing-indicator">
+                <div className="typing-dots">
+                  <div></div>
+                  <div></div>
+                  <div></div>
+                </div>
+                <span>{selectedFarmer?.farmer_name} is typing...</span>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
           </div>
-        )}
-        <div className="message-input">
-          <input
-            type="text"
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Type your message..."
-            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-            disabled={connectionStatus !== 'connected'}
-          />
-          <button
-            onClick={handleSendMessage}
-            disabled={!newMessage.trim() || connectionStatus !== 'connected'}
-          >
-            <FontAwesomeIcon icon={faPaperPlane} />
-          </button>
+
+          {/* Chat Controls */}
+          <div className="chat-controls">
+            {showPriceSuggestions && (
+              <div className="price-suggestions animate__animated animate__fadeInUp">
+                <h4>Make an Offer:</h4>
+                <div className="suggestion-buttons">
+                  {priceSuggestions.map((suggestion, index) => (
+                    <button
+                      key={`price-${index}`}
+                      onClick={() => handlePriceSelection(suggestion.price)}
+                      className={`suggestion-btn ${suggestion.amount < 0 ? 'decrease' : 'increase'}`}
+                      disabled={waitingForResponse}
+                    >
+                      <div className="price-change">
+                        {suggestion.amount < 0 ? (
+                          <FontAwesomeIcon icon={faArrowDown} />
+                        ) : (
+                          <FontAwesomeIcon icon={faArrowUp} />
+                        )}
+                        ₹{suggestion.price}
+                      </div>
+                      <div className="price-label">{suggestion.label}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {waitingForResponse && (
+              <div className="waiting-indicator animate__animated animate__pulse animate__infinite">
+                <FontAwesomeIcon icon={faSpinner} spin /> Waiting for farmer's response...
+              </div>
+            )}
+
+            {bargainStatus === 'accepted' && (
+              <div className="accepted-actions animate__animated animate__fadeIn">
+                <button 
+                  className="primary-action animate__animated animate__pulse"
+                  onClick={() => navigate('/checkout')}
+                >
+                  Proceed to Checkout
+                </button>
+                <button 
+                  className="secondary-action"
+                  onClick={() => navigate('/')}
+                >
+                  Continue Shopping
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
+
 
 export default BargainChatWindow;

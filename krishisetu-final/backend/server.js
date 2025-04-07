@@ -2,23 +2,290 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require('body-parser');
+const app = express();
+const session = require("express-session");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
 const { queryDatabase } = require('./src/config/db');
 // const http = require("http");
 // const socketIo = require("socket.io");
+// const { Server } = require("socket.io");
 const path = require("path");
-// const { authenticateToken } = require("./src/middlewares/authMiddleware");
+const { verifyToken, authenticate, farmerOnly } = require('./src/middlewares/authMiddleware');
 // const { initiateBargain } = require("./src/controllers/bargainController"); // Correct file
-
+// const httpServer = http.createServer(app);
 // const FarmerModel = require('./src/models/farmerModels');  // ✅ Ensure this path is correct
 // const pool = require('./src/config/db');  // Ensure this line is present
 const multer = require("multer");
+
+const { authMiddleware } = require("./src/middlewares/authMiddleware"); // your renamed one
+
+
+
+// ✅ PROPER CORS SETUP
+const corsOptions = {
+  origin: "http://localhost:3000", // your React app
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  credentials: true, // allow cookies and sessions
+  optionsSuccessStatus: 200
+};
+
+// ✅ Then these
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+app.use(cors(corsOptions));         // ✅ Proper cors middleware
+app.options('*', cors(corsOptions)); // ✅ OPTIONS preflight fix
+
+// ✅ Then session setup
+app.use(session({
+  secret: 'f1a2c3d4e5f67890123456789abcdef1234567890abcdef1234567890abcdef',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: false,         // true if using HTTPS
+    httpOnly: true,
+    sameSite: 'lax'
+  }
+}));
+// ✅ Public routes (no auth required)
+
+
+app.post("/api/consumerregister",  async (req, res) => {
+  console.log("Consumer Registration API Called ✅");  // Debugging
+
+  const { first_name, last_name, email, phone_number, password, confirm_password } = req.body;
+
+  // ✅ Check for missing fields
+  if (!first_name || !last_name || !email || !phone_number || !password || !confirm_password) {
+      return res.status(400).json({ success: false, message: "All fields are required" });
+  }
+
+  // ✅ Check if passwords match
+  if (password !== confirm_password) {
+      return res.status(400).json({ success: false, message: "Passwords do not match" });
+  }
+
+  try {
+      // ✅ Hash the password before storing
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // ✅ Insert into database (store only hashed password)
+      const result = await queryDatabase(
+          `INSERT INTO consumerregistration (first_name, last_name, email, phone_number, password) 
+           VALUES (?, ?, ?, ?, ?);`,
+          [first_name, last_name, email, phone_number, hashedPassword]
+      );
+
+      if (result.affectedRows === 0) {
+          return res.status(500).json({ success: false, message: "Registration failed" });
+      }
+
+      // ✅ Fetch the correct consumer_id
+      const consumerData = await queryDatabase(
+          `SELECT consumer_id FROM consumerregistration WHERE email = ?`, 
+          [email]
+      );
+
+      if (consumerData.length === 0) {
+          return res.status(500).json({ success: false, message: "Consumer ID retrieval failed" });
+      }
+
+      const consumer_id = consumerData[0].consumer_id;
+
+      res.json({ success: true, message: "Consumer registered successfully", consumer_id });
+
+  } catch (err) {
+      console.error("❌ Registration Error:", err);
+      res.status(500).json({ success: false, message: "Database error", error: err.message });
+  }
+});
+// ✅ Consumer Login Route
+app.post("/api/consumerlogin", async (req, res) => {
+const { emailOrPhone, password } = req.body;
+
+try {
+  const results = await queryDatabase(
+    "SELECT consumer_id, email, phone_number, first_name , last_name, password FROM consumerregistration WHERE email = ? OR phone_number = ?",
+    [emailOrPhone, emailOrPhone]
+  );
+  console.log("🔍 Query Results:", results);
+  if (results.length === 0) {
+    return res.status(401).json({ success: false, message: "Invalid credentials" });
+  }
+
+  const consumer = results[0];
+  console.log("🔍 API Returning Consumer Data:", consumer);
+  const isPasswordValid = await bcrypt.compare(password, consumer.password);
+
+  if (!isPasswordValid) {
+    return res.status(401).json({ success: false, message: "Invalid credentials" });
+  }
+
+  // ✅ Store consumer_id in session
+  req.session.consumer_id = consumer.consumer_id;
+  // ✅ Debugging
+  console.log("Session set:", req.session);
+
+  const token = jwt.sign(
+    { consumer_id: consumer.consumer_id, userType: "consumer" },
+    process.env.JWT_SECRET,
+    { expiresIn: "24h" }
+  );
+
+  const responseData = {
+    success: true,
+    token,
+    consumer_id: consumer.consumer_id,
+    first_name: consumer.first_name,
+    last_name: consumer.last_name,
+    email: consumer.email,
+    phone_number: consumer.phone_number,
+  };
+  console.log("📌 Sending Response:", responseData); // ✅ Log API response
+  res.json(responseData);
+} catch (err) {
+  console.error("Login error:", err);
+  res.status(500).json({ success: false, message: "Server error" });
+}
+});
+
+app.post("/api/farmerregister", async (req, res) => {
+  const { first_name, last_name, email, phone_number, password, confirm_password } = req.body;
+
+  if (!first_name || !last_name || !email || !phone_number || !password || !confirm_password) {
+      return res.status(400).json({ success: false, message: "All fields are required" });
+  }
+
+  if (password !== confirm_password) {
+      return res.status(400).json({ success: false, message: "Passwords do not match" });
+  }
+
+  try {
+      // ✅ Insert farmer details
+      const result = await queryDatabase(
+          `INSERT INTO farmerregistration (first_name, last_name, email, phone_number, password, confirm_password) 
+           VALUES (?, ?, ?, ?, ?, ?);`,
+          [first_name, last_name, email, phone_number, password, confirm_password]
+      );
+
+      if (result.affectedRows === 0) {
+          return res.status(500).json({ success: false, message: "Registration failed" });
+      }
+
+      // ✅ Fetch the correct farmer_id
+      const farmerData = await queryDatabase(
+          `SELECT farmer_id FROM farmerregistration WHERE email = ?`, 
+          [email]
+      );
+
+      if (farmerData.length === 0) {
+          return res.status(500).json({ success: false, message: "Farmer ID retrieval failed" });
+      }
+
+      const farmer_id = farmerData[0].farmer_id;
+
+      res.json({ success: true, message: "Farmer registered successfully", farmer_id });
+  } catch (err) {
+      res.status(500).json({ success: false, message: "Database error", error: err.message });
+  }
+});
+//farmerlogin
+app.post("/api/farmerlogin", async (req, res) => {
+  const { emailOrPhone, password } = req.body;
+
+  try {
+    const results = await queryDatabase(
+      "SELECT farmer_id, first_name, last_name,email, phone_number,  password FROM farmerregistration WHERE email = ? OR phone_number = ?",
+      [emailOrPhone, emailOrPhone]
+    );
+
+    console.log("Login Query Results:", results);
+
+    if (results.length === 0) {
+      return res.status(401).json({ success: false, message: "Invalid credentials" });
+    }
+
+    const user = results[0];
+    console.log("User Retrieved:", user);
+
+    // Debug password
+    console.log("Entered Password:", password);
+    console.log("Stored Password:", user.password);
+
+    // Password check
+    if (!user.password || password !== user.password) {
+      return res.status(401).json({ success: false, message: "Invalid password" });
+    }
+
+    // ✅ Generate JWT Token
+  // When a FARMER logs in:
+const token = jwt.sign(
+  {
+    farmer_id: user.farmer_id,  // Different ID field
+    userType: "farmer", 
+    email: user.email,        // Explicit type
+                            // Other claims
+  },
+  process.env.JWT_SECRET,
+  { expiresIn: "24h" }
+);
+
+    // ✅ Send response with token
+    res.json({
+      success: true,
+      token,
+      farmer_id: user.farmer_id,
+      full_name: `${user.first_name} ${user.last_name}`,
+      email: user.email,
+      phone_number: user.phone_number,
+      first_name: user.first_name,
+      last_name: user.last_name,
+    });
+    
+  } catch (err) {
+    console.error("❌ Farmer Login Database Error:", err);
+    res.status(500).json({ success: false, message: "Database error", error: err.message });
+  }
+});
+app.use((req, res, next) => {
+  const publicRoutes = [
+    "/api/consumerregister",
+    "/api/consumerlogin",
+    "/api/farmerregister",
+    "/api/farmerlogin"
+    // Add more public routes if needed
+  ];
+
+  const cleanPath = req.path.toLowerCase();
+
+  const isPublic = publicRoutes.some((route) => cleanPath.startsWith(route));
+
+  if (isPublic) {
+    console.log("✅ Skipping auth for public route:", cleanPath);
+    return next();
+  }
+
+  console.log("🔒 Protected route, applying token check:", cleanPath);
+  return authMiddleware(req, res, next);
+});
+
+
+
+// ⬇️ Must go before routes
+app.use(authMiddleware);
+
+
+// (Optional but helpful) Handle OPTIONS preflight for all routes
+// const cors = require('cors'); // Make sure this is at the top!
+
+
 const orderRoutes = require("./src/routes/orderRoutes");
 const farmerRoutes = require("./src/routes/farmerRoutes");
 const http = require('http');
-const setupSockets = require('./socket');
+// const setupSockets = require('./socket');
 //const db = require(".src/config/db");
 const communityRoutes = require("./src/routes/communityRoutes");
 const memberRoutes = require("./src/routes/memberRoutes");
@@ -28,73 +295,217 @@ const orderRoutesC = require("./src/routes/orderRoutesC");
 const bargainRoutes = require("./src/routes/bargainRoutes");
 const reviewsRoutes = require('./src/routes/reviews');
 
-
+const secretKey = process.env.JWT_SECRET;
 
 const fs = require("fs");
-const app = express();
-const { Server } = require("socket.io");
-// const server = http.createServer(app);
-// Attach WebSocket to Express server
-const server = require('http').createServer();
-server.on('upgrade', (request, socket, head) => {
-    wss.handleUpgrade(request, socket, head, (ws) => {
-        wss.emit('connection', ws, request);
-    });
-});
 
-// ✅ WebSocket Setup
-const io = new Server(server, {
+const { Server } = require("socket.io");
+const httpServer = http.createServer(app);
+const io = new Server(httpServer, {
   cors: {
-      origin: "*",
-      methods: ["GET", "POST"]
+    origin: "http://localhost:3000",
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
+
+// Middleware to verify JWT from HTTP API
+const authenticateJWT = (req, res, next) => {
+  const token = req.cookies.token; // assuming token is in cookies
+  if (!token) return res.sendStatus(401);
+  jwt.verify(token, "your_random_secret_key_here", (err, user) => {
+    if (err) return res.sendStatus(403);
+    req.user = user;
+    next();
+  });
+};
+// Example API route (protected)
+app.get("/api/user", authenticateJWT, (req, res) => {
+  res.json({ user: req.user });
+});
+// 🔐 WebSocket Middleware for Auth
+// io.use((socket, next) => {
+//   const token = socket.handshake.auth.token; // token passed during socket connection
+
+//   if (!token) {
+//     return next(new Error('Authentication error: Token not provided'));
+//   }
+
+//   jwt.verify(token, secretKey, (err, decoded) => {
+//     if (err) {
+//       return next(new Error('Authentication error: Invalid token'));
+//     }
+
+//     socket.user = decoded; // Attach user data to socket
+//     next();
+//   });
+// });
+io.use((socket, next) => {
+  try {
+    // 1. Extract token from multiple possible locations
+    const token = socket.handshake.auth.token;
+
+    console.log(`\n🔐 New socket connection attempt from ${socket.id}`);
+    console.log('⏱️ Timestamp:', new Date().toISOString());
+    console.log('🔍 Handshake details:', {
+      auth: socket.handshake.auth,
+      headers: pick(socket.handshake.headers, [
+        'authorization', 
+        'cookie',
+        'origin',
+        'user-agent'
+      ]),
+      ip: socket.handshake.address,
+      secure: socket.handshake.secure
+    });
+
+    // 2. Validate token presence
+
+      if (!token) {
+        const errorMsg = 'No authentication token provided';
+        console.warn(`⚠️ ${errorMsg}`);
+        socket.emit('auth_error', { 
+          message: errorMsg,
+          code: 'MISSING_TOKEN'
+        });
+        return next(new Error(errorMsg));
+      }
+
+
+    // 3. Basic token validation
+    if (typeof token !== 'string' || token.length < 30) {
+      const errorMsg = 'Invalid token format';
+      console.warn(`⚠️ ${errorMsg}`);
+      socket.emit('auth_error', {
+        message: errorMsg,
+        code: 'INVALID_TOKEN_FORMAT'
+      });
+      return next(new Error(errorMsg));
+    }
+
+    // 4. Verify token signature and decode
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+      if (err) {
+        const errorType = err.name === 'TokenExpiredError' ? 
+          'EXPIRED_TOKEN' : 'INVALID_TOKEN_SIGNATURE';
+        const errorMsg = `Token verification failed: ${err.message}`;
+        
+        console.error(`❌ ${errorMsg}`);
+        socket.emit('auth_error', {
+          message: err.message,
+          code: errorType,
+          expiredAt: err.expiredAt
+        });
+        
+        return next(new Error(errorMsg));
+      }
+
+      // 5. Validate token payload structure
+      const userId = decoded.userId || decoded.farmer_id || decoded.consumer_id;
+      if (!userId) {
+        const errorMsg = 'Token payload missing user identifier';
+        console.error(`❌ ${errorMsg}`, decoded);
+        socket.emit('auth_error', {
+          message: errorMsg,
+          code: 'INVALID_TOKEN_PAYLOAD'
+        });
+        return next(new Error(errorMsg));
+      }
+
+      // 6. Additional security checks
+      if (decoded.iss !== process.env.JWT_ISSUER) {
+        const errorMsg = 'Invalid token issuer';
+        console.error(`❌ ${errorMsg}`);
+        socket.emit('auth_error', {
+          message: errorMsg,
+          code: 'INVALID_ISSUER'
+        });
+        return next(new Error(errorMsg));
+      }
+
+      // 7. Attach user data to socket
+      socket.user = {
+        id: userId,
+        userType: decoded.userType || (decoded.farmer_id ? 'farmer' : 'consumer'),
+        sessionId: socket.id,
+        ipAddress: socket.handshake.address,
+        ...decoded
+      };
+
+      // 8. Success logging
+      console.log(`✅ Successfully authenticated socket ${socket.id}`);
+      console.log('👤 User details:', {
+        id: socket.user.id,
+        type: socket.user.userType,
+        issuedAt: new Date(decoded.iat * 1000),
+        expiresAt: new Date(decoded.exp * 1000)
+      });
+
+      next();
+    });
+
+  } catch (error) {
+    console.error('🔥 Critical authentication error:', {
+      message: error.message,
+      stack: error.stack,
+      timestamp: new Date().toISOString()
+    });
+
+    socket.emit('auth_error', {
+      message: 'Internal authentication error',
+      code: 'INTERNAL_SERVER_ERROR'
+    });
+
+    next(new Error('AUTH_ERROR: Critical server error'));
+  }
+});
+
 io.on("connection", (socket) => {
-  console.log(`User connected: ${socket.id}`);
+  const user = socket.user;
+  const userType = user?.userType;
+  const bargainId = socket.handshake.query?.bargainId;
 
-  // ✅ Join Bargaining Room
-  socket.on("joinRoom", (room_id) => {
-      socket.join(room_id);
-      console.log(`User joined room: ${room_id}`);
-  });
+  console.log("🎯 Reached io.on(connection) with socket.user:", user);
+  console.log("🔗 bargainId received in query:", bargainId);
 
-  // ✅ Handle Sending Bargain Messages
-  socket.on("sendBargainMessage", async ({ room_id, sender_id, message_type, message_text, price_offer }) => {
-      try {
-          await queryDatabase(
-              "INSERT INTO bargain_messages (room_id, sender_id, message_type, message_text, price_offer) VALUES (?, ?, ?, ?, ?)",
-              [room_id, sender_id, message_type, message_text, price_offer]
-          );
+  if (!user || (userType !== "farmer" && userType !== "consumer")) {
+    console.warn(`❌ Unauthorized socket connection attempt: ${socket.id}`);
+    socket.disconnect(true);
+    return;
+  }
 
-          // ✅ Broadcast to the room
-          io.to(room_id).emit("receiveBargainMessage", { sender_id, message_type, message_text, price_offer });
+  console.log(`📡 ${userType} connected via socket: ${socket.id} (User ID: ${user.id})`);
 
-      } catch (error) {
-          console.error("Error inserting message:", error);
-      }
-  });
+  // 💬 Handle bargain messages within the same room
+  if (bargainId) {
+    socket.join(bargainId); // ✅ Join a room for the bargain session
+    console.log(`🏠 Joined room for bargainId: ${bargainId}`);
+  }
 
-  // ✅ Handle Bargain Finalization
-  socket.on("finalizeBargain", async ({ room_id, final_price, quantity }) => {
-      try {
-          await queryDatabase(
-              "INSERT INTO bargain_finalized (room_id, final_price, quantity) VALUES (?, ?, ?)",
-              [room_id, final_price, quantity]
-          );
+  // 🔁 Listen and emit within room
+  socket.on("bargainMessage", (data) => {
+    console.log(`💬 [${userType}] Bargain Message Received from ${user.id}:`, data);
 
-          // ✅ Notify all users in the room
-          io.to(room_id).emit("bargainFinalized", { final_price, quantity });
-
-      } catch (error) {
-          console.error("Error finalizing bargain:", error);
-      }
+    if (bargainId) {
+      socket.to(bargainId).emit("bargainMessage", {
+        ...data,
+        senderId: user.id,
+        senderType: userType,
+      });
+    } else {
+      console.warn("⚠️ bargainId missing. Broadcasting to all instead.");
+      socket.broadcast.emit("bargainMessage", {
+        ...data,
+        senderId: user.id,
+        senderType: userType,
+      });
+    }
   });
 
   socket.on("disconnect", () => {
-      console.log(`User disconnected: ${socket.id}`);
+    console.log(`❌ ${userType} disconnected: ${socket.id}`);
   });
 });
-
 
 const mysql = require("mysql");
 
@@ -123,19 +534,37 @@ app.use((req, res, next) => {
   console.log(`Incoming ${req.method} request to ${req.originalUrl}`);
   next();
 });
-const session = require("express-session"); 
-// ✅ Session Middleware (Add This Before Routes)
-app.use(session({
-  secret: process.env.SESSION_SECRET || "your_secret", // Store in .env
-  resave: false,
-  saveUninitialized: false,
-  cookie: { secure: false, httpOnly: true }
-}));
+
+// const MySQLStore = require('express-mysql-session')(session);
+
+// // MySQL session store configuration
+// const sessionStoreOptions = {
+//   host: process.env.DB_HOST || 'localhost',
+//   port: process.env.DB_PORT || 3306,
+//   user: process.env.DB_USER || 'root',
+//   password: process.env.DB_PASSWORD || '',
+//   database: process.env.DB_NAME || 'krishisetur',
+//   createDatabaseTable: true,
+//   schema: {
+//     tableName: 'bargain_sessions',
+//     columnNames: {
+//       session_id: 'bargain_id',
+//       expires: 'expires',
+//       data: 'data'
+//     }
+//   }
+// };
+// const sessionStore = new MySQLStore(sessionStoreOptions);
+
+
 app.use('/api/reviews', reviewsRoutes);
-app.use((req, res, next) => {
-  console.log("Session Data:", req.session);
-  next();
-});
+// app.use((req, res, next) => {
+//   console.log("Session Data:", req.session);
+//   next();
+// });
+// 🔓 Only protect routes that are not public
+
+
 app.get("/test-session", (req, res) => {
   console.log("Session Data:", req.session); // 🔍 Debugging
 
@@ -160,37 +589,116 @@ app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ error: 'Something went wrong!' });
 });
+// app.use((req, res, next) => {
+//   console.log("Session Middleware - Current Session:", req.session);
+//   next();
+// });
 app.use((req, res, next) => {
-  console.log("Session Middleware - Current Session:", req.session);
-  next();
+  if (req.path.startsWith("/socket.io")) {
+    return next(); // Bypass auth for WebSocket connections
+  }
+  return verifyToken(req, res, next); // Use the existing verifyToken middleware
 });
-app.use(cors({
-  origin: "http://localhost:3000",  // Allow requests from React frontend
- methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allow these HTTP methods
-  allowedHeaders: ["Content-Type", "Authorization"],  // Allow these headers
-  credentials: true  // ✅ Important if you're using cookies or authentication
-}));
+// // app.use(cors({
+// //   origin: "http://localhost:3000",  // Allow requests from React frontend
+// //  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allow these HTTP methods
+// //   allowedHeaders: ["Content-Type", "Authorization"],  // Allow these headers
+// //   credentials: true  // ✅ Important if you're using cookies or authentication
+// // }));
+// // app.use(cors({
+// //   origin: "http://localhost:3000", // React app
+// //   credentials: true,               // Important for sessions
+// //   methods: ["GET", "POST", "OPTIONS"], // Allow preflight
+// //   allowedHeaders: ["Content-Type", "Authorization"], // Adjust as needed
+// // }));
+// // Configure CORS properly
+// // const corsOptions = {
+// //   origin: 'http://localhost:3000', // Your frontend URL
+// //   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+// //   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+// //   credentials: true, // Important for cookies and auth headers
+// //   optionsSuccessStatus: 200 // Some legacy browsers choke on 204
+// // };
+// const corsOptions = {
+//   origin: 'http://localhost:3000',
+//   credentials: true, // REQUIRED for cookies/sessions
+//   methods: ['GET', 'POST', 'OPTIONS', 'PUT', 'DELETE'],
+//   allowedHeaders: [
+//     'Content-Type',
+//     'Authorization',
+//     'X-Requested-With',
+//     'Accept',
+//     'Origin'
+//   ],
+//   optionsSuccessStatus: 200
+// };
 
-const corsOptions = {
-  origin: 'http://localhost:3000',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
-};
-// Apply CORS middleware
-app.use(cors(corsOptions));
+// // Apply CORS middleware
+// app.use(cors(corsOptions));
 
-// Explicitly handle OPTIONS requests
-app.options('*', cors(corsOptions)); // Enable preflight for all routes
-// ✅ Middleware setup
-app.use(bodyParser.json());
-app.use(express.urlencoded({ extended: true })); 
+
+// // Explicitly handle OPTIONS requests
+// // app.options('*', cors(corsOptions)); 
+// // // Enable preflight for all routes
+// app.options('*', (req, res) => {
+//   // Don't initialize session for OPTIONS
+//   res.header('Access-Control-Allow-Credentials', 'true');
+//   res.sendStatus(200);
+// });
+// // ✅ Middleware setup
+// app.use(bodyParser.json());
+// app.use(express.urlencoded({ extended: true }));
+
+
+// app.use(cors(corsOptions));          // CORS middleware
+// app.options("*", cors(corsOptions)); // Handle preflight
+
+// // ✅ Middleware
+// // app.use(express.json());
+// app.use(express.urlencoded({ extended: true }));
+
+// // ✅ Session setup (important if you're using req.session)
+// // ✅ Middleware
+// app.use(cookieParser());
+// const session = require("express-session"); 
+// app.use(
+//   session({
+//     secret: "your-secret-key",
+//     resave: false,
+//     saveUninitialized: true,
+//     cookie: {
+//       secure: false,
+//       httpOnly: true,
+//       sameSite: "lax",
+//     },
+//   })
+// );
+
+// app.use(
+//   cors({
+//     origin: "http://localhost:3000",
+//     methods: ["GET", "POST", "OPTIONS", "PUT", "DELETE"],
+//     credentials: true,
+//   })
+// );
+
+// app.use(express.json());
+
+
 app.use('/api/bargain', require('./src/routes/bargainRoutes'));
 // Debugging Middleware for Logging Headers
+// app.use((req, res, next) => {
+//   console.log('Request Headers:', req.headers);
+//   next();
+// });
+// Add headers before routes
 app.use((req, res, next) => {
-  console.log('Request Headers:', req.headers);
+  if (req.method !== "OPTIONS") {
+    console.log("Session Data:", req.session);
+  }
   next();
 });
+
 app.use("/api", orderRoutes);
 
 app.use(cookieParser());
@@ -344,47 +852,156 @@ app.delete("/remove-photo/:consumer_id", async (req, res) => {
 });
 //bargain sessions
 // Fetch bargain session and messages
-app.get("/api/bargain/:bargain_id", async (req, res) => {
+// app.get("/api/bargain/:bargain_id",verifyToken, async (req, res) => {
+//   try {
+//     console.log("🔍 Incoming Headers:", req.headers);
+
+//     const authHeader = req.headers.authorization;
+//     if (!authHeader) {
+//       console.error("❌ No Authorization header!");
+//       return res.status(401).json({ error: "Authorization token required" });
+//     }
+
+//     const token = authHeader.split(" ")[1];
+//     console.log("🔍 Extracted Token:", token);
+
+//     if (!token) {
+//       console.error("❌ Token is missing in Authorization header!");
+//       return res.status(401).json({ error: "Authorization token required" });
+//     }
+
+//     let decoded;
+//     try {
+//       decoded = jwt.verify(token, process.env.JWT_SECRET);
+//       console.log("✅ Token Decoded:", decoded);
+//     } catch (err) {
+//       console.error("❌ Token verification failed:", err.message);
+//       return res.status(401).json({ error: "Invalid or expired token" });
+//     }
+
+//     const { bargain_id } = req.params;
+//     console.log("🔍 Checking bargain session for ID:", bargain_id);
+
+//     const session = await queryDatabase(
+//       "SELECT * FROM bargain_sessions WHERE bargain_id = ?",
+//       [bargain_id]
+//     );
+    
+//     console.log("🔎 DB Result:", session);
+    
+
+//     if (session.length === 0) {
+//       console.error("❌ Session not found in DB!");
+//       return res.status(404).json({ error: "Session not found" });
+//     }
+   
+//     console.log("📨 Sending response to frontend:", { success: true, session: session[0] });
+
+    
+
+//   } catch (error) {
+//     console.error("🔥 Auth Error:", error.stack);
+//     res.status(500).json({ error: "Internal Server Error" });
+//   }
+// });
+app.get("/api/bargain/:bargain_id", verifyToken, async (req, res) => {
   try {
-    console.log("🔍 Incoming Headers:", req.headers);
-
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      console.error("❌ No Authorization header!");
-      return res.status(401).json({ error: "Authorization token required" });
-    }
-
-    const token = authHeader.split(" ")[1];
-    console.log("🔍 Extracted Token:", token);
-
-    if (!token) {
-      console.error("❌ Token is missing in Authorization header!");
-      return res.status(401).json({ error: "Authorization token required" });
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log("✅ Token Decoded:", decoded);
-
     const { bargain_id } = req.params;
-    console.log("🔍 Checking bargain session for ID:", bargain_id);
 
-    const session = await queryDatabase(
-      "SELECT * FROM bargain_sessions WHERE bargain_id = ?",
+    if (!bargain_id) {
+      return res.status(400).json({
+        success: false,
+        error: "Bargain ID is required"
+      });
+    }
+
+    // Get bargain session
+    console.log("🔍 Fetching bargain session for ID:", bargain_id);
+
+    const sessionResult = await queryDatabase(
+      `SELECT 
+        bargain_id,
+        consumer_id,
+        farmer_id,
+        product_id,
+        original_price,
+        quantity,
+        current_offer,
+        status,
+        initiator,
+        created_at,
+        updated_at,
+        expires_at
+      FROM bargain_sessions 
+      WHERE bargain_id = ?`,
       [bargain_id]
     );
 
-    if (session.length === 0) {
-      console.error("❌ Session not found in DB!");
-      return res.status(404).json({ error: "Session not found" });
+    console.log("🧪 Session result:", sessionResult);
+
+    if (!sessionResult || sessionResult.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: "Bargain session not found"
+      });
     }
 
-    res.json({ success: true, session: session[0] });
+    const session = sessionResult[0];
+
+    // Get messages
+    const messages = await queryDatabase(
+      `SELECT 
+        message_id,
+        bargain_id,
+        price,
+        sender_type,
+        message_type,
+        content,
+        timestamp
+       FROM bargain_messages
+       WHERE bargain_id = ?
+       ORDER BY timestamp ASC`,
+      [bargain_id]
+    );
+    if (!Array.isArray(messages)) {
+      console.warn("⚠️ messages query returned non-array:", messages);
+    }
+    // Construct response
+    const responseData = {
+      success: true,
+      session: {
+        bargain_id: session.bargain_id,
+        consumer_id: session.consumer_id,
+        farmer_id: session.farmer_id,
+        product_id: session.product_id,
+        initial_price: session.original_price,        // ← 💡 You’ll use this as base price per 1kg
+        quantity: session.quantity,
+        current_price: session.current_offer || null, // ← 💡 Updated based on selected suggestion
+        status: session.status,
+        initiator: session.initiator,
+        created_at: session.created_at,
+        updated_at: session.updated_at,
+        expires_at: session.expires_at,
+        messages: messages || []
+      }
+    };
+
+    res.status(200).json(responseData); // ✅ Let Express handle serialization
 
   } catch (error) {
-    console.error("🔥 Auth Error:", error.stack);
-    res.status(500).json({ error: "Internal Server Error" });
+    console.error("🔥 Error fetching bargain:", error);
+  
+    return res.status(500).json({ // ← ✅ Add `return`
+      success: false,
+      error: "Internal server error",
+      ...(process.env.NODE_ENV === "development" && { details: error.message })
+    });
   }
+  
 });
+
+
+
 
 // Submit an offer
 app.post("/api/bargain/:session_id/offer", async (req, res) => {
@@ -631,8 +1248,6 @@ app.get('/api/products/price', async (req, res) => {
       res.status(500).json({ error: "Database error" });
   }
 });
-
-
 app.get('/api/consumerprofile/:consumer_id', async (req, res) => {
   const { consumer_id } = req.params;
   try {
@@ -771,40 +1386,36 @@ app.get("/api/orders/:consumer_id", async (req, res) => {
   }
 });
 
-// ✅ Middleware: Verify JWT Token
-const verifyToken = (req, res, next) => {
-  const token = req.cookies.token;
-  if (!token) return res.status(401).json({ success: false, message: "Access denied. No token provided." });
+// // ✅ Middleware: Verify JWT Token
+// const verifyToken = (req, res, next) => {
+//   const token = req.cookies.token;
+//   if (!token) return res.status(401).json({ success: false, message: "Access denied. No token provided." });
 
-  try {
-    const decoded = jwt.verify(token, SECRET_KEY);
-    req.user = decoded;
-    next();
-  } catch (err) {
-    res.status(401).json({ success: false, message: "Invalid or expired token" });
-  }
-};
-// ✅ Real-Time Chat using Socket.io
-io.on("connection", (socket) => {
-  console.log("New client connected");
+//   try {
+//     const decoded = jwt.verify(token, SECRET_KEY);
+//     req.user = decoded;
+//     next();
+//   } catch (err) {
+//     res.status(401).json({ success: false, message: "Invalid or expired token" });
+//   }
+// };
 
-  socket.on("joinRoom", ({ username, room }) => {
-    socket.join(room);
-    io.to(room).emit("message", { username: "Chat Bot", text: `${username} has joined the chat!` });
-  });
-
-  socket.on("chatMessage", ({ room, username, message }) => {
-    io.to(room).emit("message", { username, text: message });
-  });
-
-  socket.on("disconnect", () => {
-    console.log("User disconnected");
-  });
-});
 // ✅ API to Fetch Products
+// app.get("/api/products", async (req, res) => {
+//   try {
+//     const products = await queryDatabase("SELECT * FROM products");
+//     res.json(products);
+//   } catch (err) {
+//     res.status(500).json({ success: false, message: "Error fetching products", error: err.message });
+//   }
+// });
+
 app.get("/api/products", async (req, res) => {
   try {
     const products = await queryDatabase("SELECT * FROM products");
+    if (!products) {
+      return res.status(200).json([]); // Always return valid JSON
+    }
     res.json(products);
   } catch (err) {
     res.status(500).json({ success: false, message: "Error fetching products", error: err.message });
@@ -812,104 +1423,6 @@ app.get("/api/products", async (req, res) => {
 });
 
 
-app.post("/api/farmerregister", async (req, res) => {
-  const { first_name, last_name, email, phone_number, password, confirm_password } = req.body;
-
-  if (!first_name || !last_name || !email || !phone_number || !password || !confirm_password) {
-      return res.status(400).json({ success: false, message: "All fields are required" });
-  }
-
-  if (password !== confirm_password) {
-      return res.status(400).json({ success: false, message: "Passwords do not match" });
-  }
-
-  try {
-      // ✅ Insert farmer details
-      const result = await queryDatabase(
-          `INSERT INTO farmerregistration (first_name, last_name, email, phone_number, password, confirm_password) 
-           VALUES (?, ?, ?, ?, ?, ?);`,
-          [first_name, last_name, email, phone_number, password, confirm_password]
-      );
-
-      if (result.affectedRows === 0) {
-          return res.status(500).json({ success: false, message: "Registration failed" });
-      }
-
-      // ✅ Fetch the correct farmer_id
-      const farmerData = await queryDatabase(
-          `SELECT farmer_id FROM farmerregistration WHERE email = ?`, 
-          [email]
-      );
-
-      if (farmerData.length === 0) {
-          return res.status(500).json({ success: false, message: "Farmer ID retrieval failed" });
-      }
-
-      const farmer_id = farmerData[0].farmer_id;
-
-      res.json({ success: true, message: "Farmer registered successfully", farmer_id });
-  } catch (err) {
-      res.status(500).json({ success: false, message: "Database error", error: err.message });
-  }
-});
-//farmerlogin
-app.post("/api/farmerlogin", async (req, res) => {
-  const { emailOrPhone, password } = req.body;
-
-  try {
-    const results = await queryDatabase(
-      "SELECT farmer_id, first_name, last_name,email, phone_number,  password FROM farmerregistration WHERE email = ? OR phone_number = ?",
-      [emailOrPhone, emailOrPhone]
-    );
-
-    console.log("Login Query Results:", results);
-
-    if (results.length === 0) {
-      return res.status(401).json({ success: false, message: "Invalid credentials" });
-    }
-
-    const user = results[0];
-    console.log("User Retrieved:", user);
-
-    // Debug password
-    console.log("Entered Password:", password);
-    console.log("Stored Password:", user.password);
-
-    // Password check
-    if (!user.password || password !== user.password) {
-      return res.status(401).json({ success: false, message: "Invalid password" });
-    }
-
-    // ✅ Generate JWT Token
-  // When a FARMER logs in:
-const token = jwt.sign(
-  {
-    farmer_id: user.farmer_id,  // Different ID field
-    userType: "farmer", 
-    email: user.email,        // Explicit type
-                            // Other claims
-  },
-  process.env.JWT_SECRET,
-  { expiresIn: "24h" }
-);
-
-    // ✅ Send response with token
-    res.json({
-      success: true,
-      token,
-      farmer_id: user.farmer_id,
-      full_name: `${user.first_name} ${user.last_name}`,
-      email: user.email,
-      phone_number: user.phone_number,
-      first_name: user.first_name,
-      last_name: user.last_name,
-    });
-    
-  } catch (err) {
-    console.error("❌ Farmer Login Database Error:", err);
-    res.status(500).json({ success: false, message: "Database error", error: err.message });
-  }
-});
 app.get("/api/getFarmerDetails", async (req, res) => {
   try {
     const { farmer_id } = req.query;
@@ -945,105 +1458,6 @@ app.get("/api/getFarmerDetails", async (req, res) => {
 
 // ✅ Consumer Registration API (With Hashing)
 
-
-app.post("/api/consumerregister", async (req, res) => {
-    console.log("Consumer Registration API Called ✅");  // Debugging
-
-    const { first_name, last_name, email, phone_number, password, confirm_password } = req.body;
-
-    // ✅ Check for missing fields
-    if (!first_name || !last_name || !email || !phone_number || !password || !confirm_password) {
-        return res.status(400).json({ success: false, message: "All fields are required" });
-    }
-
-    // ✅ Check if passwords match
-    if (password !== confirm_password) {
-        return res.status(400).json({ success: false, message: "Passwords do not match" });
-    }
-
-    try {
-        // ✅ Hash the password before storing
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        // ✅ Insert into database (store only hashed password)
-        const result = await queryDatabase(
-            `INSERT INTO consumerregistration (first_name, last_name, email, phone_number, password) 
-             VALUES (?, ?, ?, ?, ?);`,
-            [first_name, last_name, email, phone_number, hashedPassword]
-        );
-
-        if (result.affectedRows === 0) {
-            return res.status(500).json({ success: false, message: "Registration failed" });
-        }
-
-        // ✅ Fetch the correct consumer_id
-        const consumerData = await queryDatabase(
-            `SELECT consumer_id FROM consumerregistration WHERE email = ?`, 
-            [email]
-        );
-
-        if (consumerData.length === 0) {
-            return res.status(500).json({ success: false, message: "Consumer ID retrieval failed" });
-        }
-
-        const consumer_id = consumerData[0].consumer_id;
-
-        res.json({ success: true, message: "Consumer registered successfully", consumer_id });
-
-    } catch (err) {
-        console.error("❌ Registration Error:", err);
-        res.status(500).json({ success: false, message: "Database error", error: err.message });
-    }
-});
-// ✅ Consumer Login Route
-app.post("/api/consumerlogin", async (req, res) => {
-  const { emailOrPhone, password } = req.body;
-
-  try {
-    const results = await queryDatabase(
-      "SELECT consumer_id, email, phone_number, first_name , last_name, password FROM consumerregistration WHERE email = ? OR phone_number = ?",
-      [emailOrPhone, emailOrPhone]
-    );
-    console.log("🔍 Query Results:", results);
-    if (results.length === 0) {
-      return res.status(401).json({ success: false, message: "Invalid credentials" });
-    }
-
-    const consumer = results[0];
-    console.log("🔍 API Returning Consumer Data:", consumer);
-    const isPasswordValid = await bcrypt.compare(password, consumer.password);
-
-    if (!isPasswordValid) {
-      return res.status(401).json({ success: false, message: "Invalid credentials" });
-    }
-
-    // ✅ Store consumer_id in session
-    req.session.consumer_id = consumer.consumer_id;
-    // ✅ Debugging
-    console.log("Session set:", req.session);
-
-    const token = jwt.sign(
-      { consumer_id: consumer.consumer_id, userType: "consumer" },
-      process.env.JWT_SECRET,
-      { expiresIn: "24h" }
-    );
-
-    const responseData = {
-      success: true,
-      token,
-      consumer_id: consumer.consumer_id,
-      first_name: consumer.first_name,
-      last_name: consumer.last_name,
-      email: consumer.email,
-      phone_number: consumer.phone_number,
-    };
-    console.log("📌 Sending Response:", responseData); // ✅ Log API response
-    res.json(responseData);
-  } catch (err) {
-    console.error("Login error:", err);
-    res.status(500).json({ success: false, message: "Server error" });
-  }
-});
 
 
 // ✅ Logout API (Clears JWT Cookie)
@@ -1420,8 +1834,7 @@ app.get("/api/consumer/:id", async (req, res) => {
         c.email,
         COALESCE(p.address, 'Not Provided') AS address,
         COALESCE(p.pincode, 'Not Provided') AS pincode,
-        COALESCE(p.location, 'Not Provided') AS location,
-        COALESCE(NULLIF(p.photo, ''), '/uploads/default.png') AS photo,  -- ✅ Ensure photo is not empty
+       
         COALESCE(p.preferred_payment_method, 'Not Provided') AS preferred_payment_method,
         COALESCE(p.subscription_method, 'Not Provided') AS subscription_method
       FROM consumerregistration c
@@ -1818,240 +2231,257 @@ app.post('/api/add-produce', async (req, res) => {
 });
 
 
+// 🌐 WebSocket Connection Handling
+const onlineUsers = new Map();
 
-//bargain routes 
-const WebSocket = require('ws');
+// ✅ Authenticate socket connection
+// io.use((socket, next) => {
+//   const token = socket.handshake.auth.token;
+//   if (!token) return next(new Error("Authentication error"));
 
-const wss = new WebSocket.Server({ noServer: true });
-
-wss.on('connection', (ws, request) => {
-    const params = new URLSearchParams(request.url.split('?')[1]);
-    const token = params.get('token');
-
-    if (!token) {
-        ws.close(4001, 'Token required');
-        return;
-    }
-
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        ws.user = decoded;
-    } catch (error) {
-        ws.close(4002, 'Invalid token');
-        return;
-    }
-
-    console.log(`✅ WebSocket connected for user ${ws.user.id}`);
-
-    ws.on('message', (message) => {
-        console.log('Received:', message);
-        ws.send(JSON.stringify({ text: 'Message received', timestamp: Date.now() }));
-    });
-
-    ws.on('close', () => {
-        console.log(`🔌 WebSocket disconnected for user ${ws.user.id}`);
-    });
-});
-
-
-// POST /api/bargain/initiate
-// app.post('/initiate', verifyToken, async (req, res) => {
 //   try {
-//     const { farmer_id, product_id, quantity, initial_price } = req.body;
-    
-//     // 1. Verify consumer exists
-//     const consumer = await Consumer.findById(req.user.consumer_id);
-//     if (!consumer) throw new Error("Invalid consumer");
-
-//     // 2. Create bargain session
-//     const session = new BargainSession({
-//       consumer_id: req.user.consumer_id,
-//       farmer_id,
-//       product_id,
-//       quantity,
-//       current_price: initial_price,
-//       status: "pending"
-//     });
-
-//     await session.save();
-
-//     // 3. Notify farmer via WebSocket
-//     notifyFarmer(farmer_id, {
-//       type: "NEW_BARGAIN_REQUEST",
-//       session_id: session._id,
-//       product_id,
-//       consumer_name: consumer.full_name
-//     });
-
-//     res.status(201).json({
-//       session_id: session._id,
-//       message: "Bargain request sent"
-//     });
-
+//     const user = jwt.verify(token, "your_secret_key");
+//     socket.user = user;
+//     next();
 //   } catch (err) {
-//     res.status(400).json({ message: err.message });
+//     next(new Error("Authentication failed"));
 //   }
 // });
 
-// POST /api/bargain/:session_id/offer
-// app.post('/:id/offer', verifyToken, async (req, res) => {
-//   try {
-//     const session = await BargainSession.findById(req.params.id);
-    
-//     // Validate participant
-//     if (![session.consumer_id, session.farmer_id].includes(req.user.id)) {
-//       throw new Error("Not a participant in this session");
-//     }
 
-//     // Update price
-//     session.current_price = req.body.price;
-//     session.status = "counter_offer";
-//     await session.save();
+// Helper function to pick specific properties from an object
+function pick(obj, keys) {
+  return keys.reduce((acc, key) => {
+    if (obj[key] !== undefined) acc[key] = obj[key];
+    return acc;
+  }, {});
+}
 
-//     // Notify other participant
-//     const recipient = req.user.id === session.consumer_id 
-//       ? session.farmer_id 
-//       : session.consumer_id;
+// ✅ Single connection handler
+// io.on("connection", (socket) => {
+//   console.log(`📡 Socket connected: ${socket.id}`);
 
-//     notifyUser(recipient, {
-//       type: "PRICE_UPDATE",
-//       session_id: session._id,
-//       new_price: req.body.price
-//     });
+//   socket.on("bargainMessage", (data) => {
+//     console.log("💬 Bargain Message Received:", data);
+//     socket.broadcast.emit("bargainMessage", data);
+//   });
 
-//     res.json({ success: true });
-
-//   } catch (err) {
-//     res.status(400).json({ message: err.message });
-//   }
+//   socket.on("disconnect", () => {
+//     console.log(`❌ Socket disconnected: ${socket.id}`);
+//   });
 // });
-// Token verification endpoint
 
-// Route usage
-app.get('/api/verify-token', verifyToken, (req, res) => {
-  res.json({ user: req.user });
-});
 
 // POST route for creating the bargain
+// app.post('/api/create-bargain', async (req, res) => {
+//   try {
+//     const authHeader = req.headers.authorization;
+//     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+//       return res.status(401).json({ error: 'Missing or invalid authorization header' });
+//     }
+
+//     const token = authHeader.split(' ')[1];
+//     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+//     // Only require initiator (not product_id or quantity here)
+//     const { initiator } = req.body;
+//     if (!initiator) {
+//       return res.status(400).json({ error: 'Missing initiator' });
+//     }
+
+//     // You should pass farmer_id in body from frontend
+//     const { farmer_id } = req.body;
+
+//     if (!farmer_id) {
+//       return res.status(400).json({ error: 'Missing farmer_id' });
+//     }
+
+//     // Step: Insert only into bargain_sessions
+//     const bargainResult = await queryDatabase(
+//       `INSERT INTO bargain_sessions 
+//        (consumer_id, farmer_id, status, initiator)
+//        VALUES (?, ?, ?, ?)`,
+//       [
+//         decoded.consumer_id,
+//         farmer_id,
+//         'pending',
+//         initiator
+//       ]
+//     );
+
+//     const bargain_id = bargainResult.insertId;
+
+//     // Return just the bargain_id
+//     res.status(201).json({
+//       success: true,
+//       bargainId: bargain_id,
+//       message: "Bargain session created. Now submit product selection separately."
+//     });
+
+//   } catch (error) {
+//     console.error('Bargain session creation error:', error);
+//     res.status(500).json({ error: 'Internal server error' });
+//   }
+// });
+
 app.post('/api/create-bargain', async (req, res) => {
   try {
-    // 1. Verify Authorization Header
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({ error: 'Missing or invalid authorization header' });
     }
 
-    // 2. Extract and Verify Token
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
-    console.log('Decoded token payload:', decoded);
 
-    // 3. Validate Request Body
-    const { product_id, quantity, initiator } = req.body;
-    if (!product_id || !quantity || !initiator) {
-      return res.status(400).json({ 
-        error: 'Missing required fields',
-        required: ['product_id', 'quantity', 'initiator']
-      });
+    const { initiator, farmer_id } = req.body;
+
+    if (!initiator || !farmer_id) {
+      return res.status(400).json({ error: 'Missing initiator or farmer_id' });
     }
 
-    // 4. Fetch Product and Farmer from add_produce
-    const [produce] = await queryDatabase(
-      `SELECT 
-        ap.*,
-        fr.first_name,
-        fr.last_name,
-        fr.phone_number,
-        fr.email
-       FROM add_produce ap
-       JOIN farmerregistration fr ON ap.farmer_id = fr.farmer_id
-       WHERE ap.product_id = ?`,
-      [product_id]
-    );
-
-    if (!produce) {
-      return res.status(404).json({ 
-        error: 'Product not found in marketplace',
-        product_id
-      });
-    }
-
-    // 5. Create Bargain Session
     const result = await queryDatabase(
-      `INSERT INTO bargain_sessions 
-       (consumer_id, farmer_id, product_id, original_price, quantity, initiator, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [
-        decoded.consumer_id,
-        produce.farmer_id,
-        produce.product_id,
-        produce.price_per_kg * quantity,
-        quantity,
-        initiator,
-        'pending'
-      ]
+      `INSERT INTO bargain_sessions (consumer_id, farmer_id, status, initiator) VALUES (?, ?, ?, ?)`,
+      [decoded.consumer_id, farmer_id, 'pending', initiator]
     );
 
-    // 6. Success Response
-    res.status(201).json({
-      success: true,
-      bargainId: result.insertId,
-      farmer: {
-        id: produce.farmer_id,
-        name: `${produce.first_name} ${produce.last_name}`,
-        contact: produce.phone,
-        email: produce.email
-      },
-      product: {
-        id: produce.product_id,
-        name: produce.produce_name,
-        type: produce.produce_type,
-        price_per_kg: produce.price_per_kg
-      },
-      originalPrice: produce.price_per_kg * quantity,
-      quantity: quantity
-    });
+    const newId = result?.insertId;
 
-  } catch (error) {
-    console.error('Bargain creation error:', error);
-    
-    if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({ error: 'Invalid token' });
+    if (!newId) {
+      return res.status(500).json({ error: 'Failed to retrieve bargain session ID' });
     }
-    if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({ error: 'Token expired' });
-    }
-    
-    res.status(500).json({ 
-      error: 'Internal server error',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+
+    res.status(200).json({ message: 'Bargain session created', bargainId: newId });
+
+
+  } catch (err) {
+    console.error("🔥 Error in create-bargain:", err);
+    res.status(500).json({ error: 'Failed to create bargain session' });
   }
 });
+
+
+
 // GET route to check if the server is responding
 app.get('/create-bargain', (req, res) => {
   res.status(200).json({ message: 'POST route is available, use POST to create bargain.' });
 });
 
 
-
 app.get('/api/bargain/:bargainId', async (req, res) => {
   const { bargainId } = req.params;
 
   try {
-    const result = await db.query('SELECT * FROM bargain_sessions WHERE bargain_id = ?', [bargainId]);
+    const sessionQuery = `
+      SELECT 
+        bargain_id, consumer_id, farmer_id, status, initiator, created_at, updated_at
+      FROM bargain_sessions
+      WHERE bargain_id = ?
+    `;
 
-    if (result.length === 0) {
-      return res.status(404).json({ error: 'Bargain session not found' });
+    const sessionResult = await queryDatabase(sessionQuery, [bargainId]);
+
+    if (!sessionResult || sessionResult.length === 0) {
+      return res.status(404).json({ success: false, error: 'Bargain session not found' });
     }
 
-    res.json(result[0]);
+    const session = sessionResult[0];
+
+    // Now fetch associated products
+    const productsQuery = `
+      SELECT 
+        bsp.product_id,
+        bsp.original_price,
+        bsp.quantity,
+        bsp.current_offer,
+        ap.produce_name,
+        ap.produce_type,
+        ap.price_per_kg
+      FROM bargain_session_products bsp
+      LEFT JOIN add_produce ap ON bsp.product_id = ap.product_id
+      WHERE bsp.bargain_id = ?
+    `;
+
+    const productResults = await queryDatabase(productsQuery, [bargainId]);
+
+    const products = productResults.map(row => ({
+      product_id: row.product_id,
+      name: row.produce_name,
+      type: row.produce_type,
+      price_per_kg: row.price_per_kg,
+      original_price: row.original_price,
+      quantity: row.quantity,
+      current_offer: row.current_offer
+    }));
+
+    res.json({
+      success: true,
+      bargain_id: session.bargain_id,
+      consumer_id: session.consumer_id,
+      farmer_id: session.farmer_id,
+      status: session.status,
+      initiator: session.initiator,
+      created_at: session.created_at,
+      updated_at: session.updated_at,
+      products
+    });
+
   } catch (error) {
-    console.error('Error fetching bargain session:', error);
-    res.status(500).json({ error: 'Error fetching bargain session' });
+    console.error('❌ Error fetching bargain session:', error);
+    res.status(500).json({ success: false, error: 'Server error while fetching bargain data' });
   }
 });
+
+
+// routes/bargain.js or wherever you define your routes
+
+app.post('/api/add-bargain-product', verifyToken, async (req, res) => {
+  const { bargain_id, product_id, quantity } = req.body;
+
+  if (!bargain_id || !product_id || !quantity) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  try {
+    const [product] = await queryDatabase('SELECT price_per_kg FROM add_produce WHERE product_id = ?', [product_id]);
+
+    if (!product) {
+      return res.status(400).json({ error: "Invalid product_id. Product not found." });
+    }
+
+    const original_price = product.price_per_kg;
+    const current_offer = quantity * original_price;
+
+    await queryDatabase(
+      `INSERT INTO bargain_session_products (bargain_id, product_id, original_price, quantity, current_offer) 
+       VALUES (?, ?, ?, ?, ?)`,
+      [bargain_id, product_id, original_price, quantity, current_offer]
+    );
+
+    res.json({ message: "Product added to bargain session." });
+  } catch (error) {
+    console.error("Error inserting into bargain_session_products:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+app.get('/api/bargain/fetch-session-data', async (req, res) => {
+  const bargainId = req.query.id;
+  try {
+    const sessionData = await queryDatabase('SELECT * FROM bargain_sessions WHERE bargain_id = ?', [bargainId]);
+
+    if (sessionData.length === 0) {
+      return res.status(404).json({ message: 'No session found' });
+    }
+
+    res.json(sessionData[0]); // ✅ This must return JSON
+  } catch (err) {
+    console.error('Error fetching session data:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
+
 // Import necessary controllers for handling bargain messages and price updates
 const { getMessages, sendMessage, updatePrice } = require('./src/controllers/bargainController'); // Assuming these controllers are defined
 
@@ -2107,21 +2537,45 @@ app.post('/api/bargain/:bargainId/price', async (req, res) => {
 
 
 // Example backend API for fetching bargain sessions
-app.get('/api/bargain/sessions/farmer', async (req, res) => {
+// In your backend API route (server.js)
+// Updated backend route
+// Updated route handler
+// Middleware to force JSON responses
+app.get('/api/bargain/farmers/:farmerId/sessions', authenticate, farmerOnly, async (req, res) => {
   try {
-      console.log("Request received:", req.user);  // Debugging line
-      const farmerId = req.user?.id;  // Ensure farmerId is correctly extracted
+    const farmerId = req.params.farmerId;
 
-      if (!farmerId) {
-          return res.status(400).json({ error: "Farmer ID is missing" });
-      }
+    // ✅ Format validation (example: KRST01FR001)
+    if (!/^[A-Z0-9]{8,12}$/.test(farmerId)) {
+      return res.status(400).json({ error: "Invalid farmer ID format" });
+    }
 
-      const sessions = await db.query('SELECT * FROM bargain_sessions WHERE farmer_id = ?', [farmerId]);
-      res.json(sessions);
+    const sessions = await queryDatabase(
+      `SELECT * FROM bargain_sessions 
+       WHERE farmer_id = ?
+       ORDER BY created_at DESC`,
+      [farmerId]
+    );
+
+    res.status(200).json(sessions.rows);
+
   } catch (err) {
-      console.error("Error fetching bargain sessions:", err);
-      res.status(500).json({ error: "Database error" });
+    console.error("💥 DB Error:", err);
+    res.status(500).json({ error: "Database operation failed" });
   }
+});
+
+
+
+// Handle unknown routes
+app.use((req, res, next) => {
+  res.status(404).json({ error: "Route not found" });
+});
+
+// Handle unexpected server errors
+app.use((err, req, res, next) => {
+  console.error("💥 Express error:", err.stack);
+  res.status(500).json({ error: "Internal Server Error" });
 });
 
 
@@ -2131,8 +2585,21 @@ if (process.env.NODE_ENV === 'production') {
     res.sendFile(path.resolve(__dirname, 'client', 'build', 'index.html'));
   });
 }
-setupSockets(server);
-
+// setupSockets(httpServer);
+// setupSockets(io);
 // ✅ Start Server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+httpServer.listen(PORT, '0.0.0.0', () => {
+  console.log(`
+    🚀 Server running on port ${PORT}
+    Socket.IO available at ws://localhost:${PORT}
+    
+    🧪 To test:
+    1. Use a Socket.IO client (e.g., from frontend)
+    2. Ensure token is passed via 'auth' during socket connection:
+       socket = io("http://localhost:5000", {
+         auth: { token: "YOUR_JWT_TOKEN" }
+       });
+    `);
+    
+});

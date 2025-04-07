@@ -127,11 +127,13 @@
 import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
+import { useLocation } from "react-router-dom";
 import "./LogReg.css";
 
 const ConsumerLogin = () => {
   const navigate = useNavigate();
   const { loginConsumer } = useContext(AuthContext);
+  const location = useLocation();
 
   const [formData, setFormData] = useState({
     emailOrPhone: "",
@@ -150,70 +152,172 @@ const ConsumerLogin = () => {
     }));
   };
 
+  // const handleSubmit = async (e) => {
+  //   e.preventDefault();
+  //   setLoading(true);
+  //   setError("");
+  
+  //   try {
+  //     const response = await fetch("http://localhost:5000/api/consumerlogin", {
+  //       method: "POST",
+  //       credentials: "include",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({
+  //         emailOrPhone: formData.emailOrPhone,
+  //         password: formData.password
+  //       }),
+  //     });
+  
+  //     const data = await response.json();
+  //     console.log("API Response:", data);
+
+  //     if (!response.ok) {
+  //       throw new Error(data.message || "Login failed");
+  //     }
+  
+  //     if (!data.token) {
+  //       throw new Error("No authentication token received");
+  //     }
+  
+  //     const payload = JSON.parse(atob(data.token.split('.')[1]));
+      
+  //     if (!payload.consumer_id) {
+  //       throw new Error("Invalid token format - missing consumer ID");
+  //     }
+  
+  //     const consumerData = {
+  //       token: data.token,
+  //       consumer_id: payload.consumer_id,
+  //       email: data.email || payload.email || "",
+  //       phone_number: data.phone_number || payload.phone_number || "",
+  //       first_name: data.first_name || payload.first_name || "",
+  //       last_name: data.last_name || payload.last_name || "",
+  //     };
+  
+  //     localStorage.setItem("consumer", JSON.stringify(consumerData));
+  //     localStorage.setItem("consumerId", consumerData.consumer_id);
+  //     localStorage.setItem("userEmail", consumerData.email);
+  //     localStorage.setItem("userName", `${consumerData.first_name} ${consumerData.last_name}`);
+  
+  //     loginConsumer(consumerData);
+  
+  //     alert("✅ Login Successful! Redirecting...");
+  //     setTimeout(() => navigate("/consumer-dashboard"), 1000);
+  
+  //   } catch (error) {
+  //     console.error("Login Error:", error);
+  //     setError(
+  //       error.message.includes("credentials") 
+  //         ? "Invalid email/phone or password" 
+  //         : error.message
+  //     );
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+  
+  
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
   
     try {
+      // Input validation
+      if (!formData.emailOrPhone || !formData.password) {
+        throw new Error("Please fill in all fields");
+      }
+  
       const response = await fetch("http://localhost:5000/api/consumerlogin", {
         method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        credentials: "include", // For session cookies
+        headers: { 
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
         body: JSON.stringify({
-          emailOrPhone: formData.emailOrPhone,
+          emailOrPhone: formData.emailOrPhone.trim(),
           password: formData.password
         }),
       });
   
       const data = await response.json();
-      console.log("API Response:", data);
-
+  
       if (!response.ok) {
-        throw new Error(data.message || "Login failed");
+        // Handle different HTTP error statuses
+        if (response.status === 401) {
+          throw new Error("Invalid credentials");
+        } else if (response.status === 400) {
+          throw new Error(data.message || "Validation error");
+        } else {
+          throw new Error(data.message || `Login failed (${response.status})`);
+        }
       }
   
-      if (!data.token) {
-        throw new Error("No authentication token received");
+      // Token validation
+      if (!data?.token) {
+        throw new Error("Authentication token missing in response");
       }
   
-      const payload = JSON.parse(atob(data.token.split('.')[1]));
-      
-      if (!payload.consumer_id) {
-        throw new Error("Invalid token format - missing consumer ID");
+      // Verify token structure
+      let payload;
+      try {
+        payload = JSON.parse(atob(data.token.split('.')[1]));
+      } catch (parseError) {
+        throw new Error("Invalid token format");
       }
   
+      // Required fields check
+      if (!payload.consumer_id || !payload.exp) {
+        throw new Error("Invalid token payload");
+      }
+  
+      // Check token expiration
+      if (payload.exp * 1000 < Date.now()) {
+        throw new Error("Session expired. Please login again");
+      }
+  
+      // Prepare consumer data
       const consumerData = {
         token: data.token,
         consumer_id: payload.consumer_id,
-        email: data.email || payload.email || "",
-        phone_number: data.phone_number || payload.phone_number || "",
-        first_name: data.first_name || payload.first_name || "",
-        last_name: data.last_name || payload.last_name || "",
+        email: payload.email || "",
+        phone_number: payload.phone_number || "",
+        name: payload.name || `${payload.first_name || ""} ${payload.last_name || ""}`.trim(),
+        // Add any other necessary fields from payload
       };
   
-      localStorage.setItem("consumer", JSON.stringify(consumerData));
-      localStorage.setItem("consumerId", consumerData.consumer_id);
-      localStorage.setItem("userEmail", consumerData.email);
-      localStorage.setItem("userName", `${consumerData.first_name} ${consumerData.last_name}`);
+      // Store authentication data
+      localStorage.setItem("auth", JSON.stringify({
+        token: data.token,
+        consumer_id: payload.consumer_id,
+        expiresAt: payload.exp * 1000 // Convert to milliseconds
+      }));
   
+      // Update context/auth state
       loginConsumer(consumerData);
   
-      alert("✅ Login Successful! Redirecting...");
-      setTimeout(() => navigate("/consumer-dashboard"), 1000);
+      // Successful login handling
+      console.log("Login successful for consumer:", payload.consumer_id);
+      navigate("/consumer-dashboard", { 
+        replace: true,
+        state: { from: location.state?.from || "/" }
+      });
   
     } catch (error) {
       console.error("Login Error:", error);
       setError(
-        error.message.includes("credentials") 
-          ? "Invalid email/phone or password" 
-          : error.message
+        error.message.includes("credentials") || 
+        error.message.includes("Invalid") ||
+        error.message.includes("expired")
+          ? error.message
+          : "Login failed. Please try again later"
       );
     } finally {
       setLoading(false);
     }
   };
-
   return (
     <div className="log-container">
       <main className="auth-container">
@@ -290,6 +394,7 @@ const ConsumerLogin = () => {
             >
               Forgot password?
             </button>
+            
           </div>
         </div>
       </main>

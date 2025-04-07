@@ -1,9 +1,48 @@
+
 const jwt = require("jsonwebtoken");
 const pool = require("../config/db");
 
-const JWT_SECRET = process.env.JWT_SECRET; // Ensure consistency
+const JWT_SECRET = process.env.JWT_SECRET || "your_fallback_secret_key";
 
 // 🛡️ Unified Authentication Middleware
+const verifyToken = (req, res, next) => {
+  const token = req.cookies?.token || req.headers['authorization']?.split(' ')[1]; 
+
+  if (!token) {
+    return res.status(401).json({ success: false, message: "Access denied. No token provided." });
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ success: false, message: "Invalid or expired token" });
+  }
+};
+
+// const authenticate = (req, res, next) => {
+//   const authHeader = req.headers["authorization"];
+//   console.log("🔍 Received Authorization Header:", authHeader);
+
+//   if (!authHeader) {
+//     return res.status(401).json({ error: "No token provided" });
+//   }
+
+//   const token = authHeader.split(" ")[1];
+//   console.log("🔍 Extracted Token:", token);
+
+//   try {
+//     const decoded = jwt.verify(token, JWT_SECRET);
+//     console.log("✅ Decoded Token:", decoded);
+//     req.user = decoded;
+//     next();
+//   } catch (err) {
+//     console.error("❌ Invalid Token:", err.message);
+//     return res.status(403).json({ error: "Invalid token" });
+//   }
+// };
+
 const authenticate = (req, res, next) => {
   const authHeader = req.headers["authorization"];
   console.log("🔍 Received Authorization Header:", authHeader);
@@ -16,8 +55,14 @@ const authenticate = (req, res, next) => {
   console.log("🔍 Extracted Token:", token);
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET);
     console.log("✅ Decoded Token:", decoded);
+    
+    // Add this validation
+    if (!decoded.farmer_id && !decoded.consumer_id) {
+      return res.status(400).json({ error: "Token missing user identity" });
+    }
+    
     req.user = decoded;
     next();
   } catch (err) {
@@ -25,79 +70,48 @@ const authenticate = (req, res, next) => {
     return res.status(403).json({ error: "Invalid token" });
   }
 };
-
-
 // 🔒 Consumer-Specific Middleware
 const consumerOnly = (req, res, next) => {
-  const token = req.header("Authorization");
-
-  if (!token || !token.startsWith("Bearer ")) {
-    return res.status(401).json({ error: "Token required" });
+  if (!req.user) {
+    return res.status(401).json({ error: "Authentication required" });
   }
 
-  const extractedToken = token.replace("Bearer ", "");
-
-  try {
-    const decoded = jwt.verify(extractedToken, JWT_SECRET);
-    console.log("Consumer Token Data:", decoded); // Log consumer token
-
-    if (decoded.farmer_id) {
-      return res.status(403).json({ error: "Farmer account cannot access consumer features" });
-    }
-
-    if (!decoded.consumer_id && decoded.userType !== "consumer") {
-      return res.status(403).json({ error: "Consumer access only" });
-    }
-
-    req.user = { consumer_id: decoded.consumer_id };
-    next();
-  } catch (err) {
-    console.error("Consumer JWT Error:", err.message);
-    return res.status(401).json({ error: "Invalid or expired token" });
+  if (req.user.farmer_id) {
+    return res.status(403).json({ error: "Farmer account cannot access consumer features" });
   }
+
+  if (!req.user.consumer_id && req.user.userType !== "consumer") {
+    return res.status(403).json({ error: "Consumer access only" });
+  }
+
+  next();
 };
 
 // 🔒 Farmer-Specific Middleware
 const farmerOnly = (req, res, next) => {
-  const token = req.header("Authorization");
-
-  if (!token || !token.startsWith("Bearer ")) {
-    return res.status(401).json({ error: "Token required" });
+  if (!req.user) {
+    return res.status(401).json({ error: "Authentication required" });
   }
 
-  const extractedToken = token.replace("Bearer ", "");
-
-  try {
-    const decoded = jwt.verify(extractedToken, JWT_SECRET);
-    console.log("Farmer Token Data:", decoded); // Log farmer token
-
-    if (!decoded.farmer_id || decoded.userType !== "farmer") {
-      return res.status(403).json({ error: "Farmer access only" });
-    }
-
-    req.farmer = decoded;
-    next();
-  } catch (err) {
-    console.error("Farmer JWT Error:", err.message);
-    return res.status(401).json({ error: "Invalid or expired token" });
+  if (!req.user.farmer_id || req.user.userType !== "farmer") {
+    return res.status(403).json({ error: "Farmer access only" });
   }
+
+  next();
 };
 
 // 🌐 Guest-Friendly Middleware
 const authenticateOptional = (req, res, next) => {
-  const token = req.header("Authorization");
+  const token = req.cookies?.token || req.headers['authorization']?.split(' ')[1];
 
-  if (!token || !token.startsWith("Bearer ")) {
+  if (!token) {
     req.user = null;
     return next();
   }
 
-  const extractedToken = token.replace("Bearer ", "");
-
   try {
-    const decoded = jwt.verify(extractedToken, JWT_SECRET);
-    console.log("Optional Auth Token Data:", decoded); // Log guest token
-
+    const decoded = jwt.verify(token, JWT_SECRET);
+    console.log("Optional Auth Token Data:", decoded);
     req.user = {
       id: decoded.farmer_id || decoded.consumer_id || decoded.id,
       userType: decoded.userType || (decoded.farmer_id ? "farmer" : "consumer"),
@@ -109,39 +123,67 @@ const authenticateOptional = (req, res, next) => {
   next();
 };
 
+
 // 🔄 Bargain Status Middleware
 const checkBargainStatus = (allowedStatuses) => (req, res, next) => {
-  if (!allowedStatuses.includes(req.bargain.status)) {
-    return res.status(403).json({ error: `Bargain must be in ${allowedStatuses.join(" or ")} state` });
+  if (!req.bargain || !allowedStatuses.includes(req.bargain.status)) {
+    return res.status(403).json({ 
+      error: `Bargain must be in ${allowedStatuses.join(" or ")} state` 
+    });
   }
   next();
 };
-exports.authenticate = (req, res, next) => {
-  console.log("🔍 Incoming Headers:", req.headers);  // ✅ Debugging
 
-  const authHeader = req.headers["authorization"];  // Read header correctly
-  console.log("🔍 Extracted Auth Header:", authHeader);
-
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ error: "Unauthorized: No valid token provided" });
+// Socket.IO Authentication Middleware
+const socketAuth = (socket, next) => {
+  const token = socket.handshake.auth.token;
+  if (!token) {
+    return next(new Error('Authentication error: Token not provided'));
   }
 
-  const token = authHeader.split(" ")[1];  // Extract token
-  console.log("✅ Extracted Token:", token);
+  jwt.verify(token, JWT_SECRET, (err, decoded) => {
+    if (err) {
+      return next(new Error('Authentication error: Invalid token'));
+    }
+    socket.user = decoded;
+    next();
+  });
+};
+const authMiddleware = (req, res, next) => {
+  // Allow public routes
+  const publicRoutes = [
+    "/api/consumerregister",
+    "/api/consumerlogin",
+    "/api/farmerregister",
+    "/api/farmerlogin"
+  ];
+
+  if (publicRoutes.includes(req.path)) {
+    return next(); // Skip auth
+  }
+
+  // Else, verify token
+  const token = req.headers.authorization?.split(" ")[1];
+  if (!token) {
+    return res.status(401).json({ message: "Access denied. No token provided." });
+  }
 
   try {
-    const decoded = jwt.verify(token, secretKey);
-    req.user = decoded;  // Attach user data to request
-    console.log("✅ Decoded Token Data:", decoded);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
     next();
-  } catch (error) {
-    return res.status(403).json({ error: "Forbidden: Invalid token" });
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid token." });
   }
 };
+
 module.exports = {
+  verifyToken,
   authenticate,
   consumerOnly,
   farmerOnly,
-  checkBargainStatus,
   authenticateOptional,
+  checkBargainStatus,
+  socketAuth,
+  authMiddleware
 };

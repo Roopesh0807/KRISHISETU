@@ -1,0 +1,462 @@
+/* FarmerChatWindow.css */
+
+/* Base Styles */
+.bargain-chat-container {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  max-width: 800px;
+  margin-top:100px;
+  height: 80vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #f5f7fa;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Loading State */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  color: #4a6fa5;
+}
+
+.loading-container p {
+  margin-top: 20px;
+  font-size: 1.2rem;
+}
+
+/* Chat Interface */
+.chat-interface {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.chat-header {
+  background: linear-gradient(135deg, #4a6fa5, #3a5a80);
+  color: white;
+  padding: 15px 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.header-top h2 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.connection-status {
+  font-size: 0.7rem;
+  padding: 3px 8px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  font-weight: bold;
+}
+
+.connection-status.connected {
+  background: #28a745;
+}
+
+.connection-status.error,
+.connection-status.disconnected {
+  background: #dc3545;
+}
+
+.connection-status.connecting {
+  background: #ffc107;
+  color: #000;
+}
+
+.product-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  font-size: 0.9rem;
+}
+
+.product-info p {
+  margin: 3px 0;
+}
+
+.price-display {
+  display: flex;
+  gap: 15px;
+  margin-top: 5px;
+}
+
+.price-display span {
+  display: flex;
+  flex-direction: column;
+}
+
+.current-price {
+  color: #ffc107;
+}
+
+.base-price {
+  color: #adb5bd;
+}
+
+.total-price {
+  color: white;
+  font-weight: bold;
+}
+
+.status-accepted {
+  color: #28a745;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.status-rejected {
+  color: #dc3545;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Chat Messages */
+.chat-messages {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  background: #f0f2f5;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.no-messages {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #666;
+  font-style: italic;
+}
+
+.message {
+  max-width: 70%;
+  padding: 12px 15px;
+  border-radius: 18px;
+  position: relative;
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Message Alignment */
+.message.left {
+  align-self: flex-start;
+  background: white;
+  color: #333;
+  border-bottom-left-radius: 5px;
+  border-top-right-radius: 18px;
+  border-bottom-right-radius: 18px;
+  margin-right: auto;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.message.right {
+  align-self: flex-end;
+  background: #4a6fa5;
+  color: white;
+  border-bottom-right-radius: 5px;
+  border-top-left-radius: 18px;
+  border-bottom-left-radius: 18px;
+  margin-left: auto;
+}
+
+.message.system.right {
+  align-self: flex-end;
+  background: #f0f4f8;
+  color: #555;
+  border-radius: 8px;
+  max-width: 90%;
+}
+
+.message-content {
+  word-wrap: break-word;
+}
+
+.message-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  margin-top: 5px;
+  opacity: 0.8;
+}
+
+.message.right .message-meta {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.message.left .message-meta {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+/* Typing Indicator */
+.typing-indicator.left {
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 15px;
+  background: white;
+  border-radius: 18px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.typing-dots {
+  display: flex;
+  gap: 4px;
+}
+
+.typing-dots div {
+  width: 8px;
+  height: 8px;
+  background: #4a6fa5;
+  border-radius: 50%;
+  animation: typingAnimation 1.4s infinite ease-in-out;
+}
+
+.typing-dots div:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.typing-dots div:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-dots div:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+/* Chat Controls */
+.chat-controls {
+  padding: 15px 20px;
+  background: white;
+  border-top: 1px solid #eee;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.price-suggestions {
+  margin-bottom: 15px;
+}
+
+.price-suggestions h4 {
+  margin: 0 0 10px 0;
+  color: #444;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.suggestion-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  padding: 5px;
+}
+
+.suggestion-card {
+  padding: 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.suggestion-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.suggestion-card.increase {
+  background: linear-gradient(135deg, #f0fff4, #e6ffed);
+  border: 1px solid #ddffdd;
+}
+
+.suggestion-card.accept {
+  background: linear-gradient(135deg, #e6f7ff, #d0ebff);
+  border: 1px solid #cce5ff;
+}
+
+.suggestion-card.reject {
+  background: linear-gradient(135deg, #fff5f5, #ffebeb);
+  border: 1px solid #ffdddd;
+}
+
+.price-change {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-weight: bold;
+  font-size: 1.1rem;
+  margin-bottom: 5px;
+}
+
+.price-amount {
+  font-size: 1.1rem;
+}
+
+.per-kg {
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+.price-label {
+  font-size: 0.8rem;
+  margin-bottom: 3px;
+  color: #555;
+}
+
+.price-difference {
+  font-size: 0.7rem;
+  opacity: 0.8;
+}
+
+.suggestion-card.increase .price-change {
+  color: #28a745;
+}
+
+.suggestion-card.accept .price-change {
+  color: #4a6fa5;
+}
+
+.suggestion-card.reject .price-change {
+  color: #dc3545;
+}
+
+.waiting-indicator {
+  text-align: center;
+  padding: 10px;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.accepted-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.primary-action {
+  flex: 2;
+  padding: 12px;
+  background: linear-gradient(135deg, #28a745, #218838);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.primary-action:hover {
+  background: linear-gradient(135deg, #218838, #1e7e34);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+}
+
+.secondary-action {
+  flex: 1;
+  padding: 12px;
+  background: #f8f9fa;
+  color: #333;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.secondary-action:hover {
+  background: #e9ecef;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes typingAnimation {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-5px); }
+}
+
+/* Scrollbar Styles */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .product-info {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .price-display {
+    flex-direction: column;
+    gap: 5px;
+  }
+  
+  .message {
+    max-width: 85%;
+  }
+  
+  .suggestion-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .header-top h2 {
+    font-size: 1.1rem;
+  }
+  
+  .product-info {
+    grid-template-columns: 1fr;
+  }
+  
+  .accepted-actions {
+    flex-direction: column;
+  }
+  
+  .suggestion-grid {
+    grid-template-columns: 1fr;
+  }
+}

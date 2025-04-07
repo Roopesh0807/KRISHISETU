@@ -188,3 +188,44 @@
     padding: 1rem;
   }
 }
+.consumer-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.consumer-photo {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.consumer-details {
+  flex-grow: 1;
+}
+
+.consumer-name {
+  font-weight: bold;
+}
+
+.consumer-id {
+  font-size: 12px;
+  color: gray;
+}
+
+/* Online Status Dot */
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: gray;
+}
+
+.status-dot.online {
+  background-color: green;
+}
+
+.status-dot.offline {
+  background-color: red;
+}
