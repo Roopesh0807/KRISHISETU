@@ -244,7 +244,6 @@ app.use(cookieParser());
 app.use("/api/community", communityRoutes);
 app.use("/api/member", memberRoutes);
 app.use("/api/order", orderRoutesC);
-
 const SECRETE_KEY = process.env.SECRET_KEY;
 const SECRET_KEY = process.env.JWT_SECRET || "krishisetu_secret_key";
 const uploadDir = path.join(__dirname, "uploads"); // Correct path
@@ -289,18 +288,322 @@ app.post("/api/upload/:id", upload.single("file"), (req, res) => {
     res.json({ filePath });
   });
 });
+
+
+///this is before place order
+// app.post("/api/place-order", async (req, res) => {
+//   const { consumer_id, name, mobile_number, email, address, pincode, produce_name, quantity, amount } = req.body;
+//   try {
+//     const query = `
+//       INSERT INTO orders (consumer_id, name, mobile_number, email, address, pincode, produce_name, quantity, amount, status, payment_status)
+//       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', 'Pending')
+//     `;
+//     await queryDatabase(query, [consumer_id, name, mobile_number, email, address, pincode, produce_name, quantity, amount]);
+//     res.json({ success: true, message: "Order placed successfully" });
+//   } catch (error) {
+//     console.error("Error placing order:", error);
+//     res.status(500).json({ error: "Failed to place order" });
+//   }
+// });
+// Add this endpoint to fetch consumer profile
+// Add this endpoint to fetch consumer profile
+app.get("/api/consumerprofile/:consumer_id", async (req, res) => {
+  try {
+    const { consumer_id } = req.params;
+    const query = `
+      SELECT 
+        consumer_id, 
+        name, 
+        mobile_number, 
+        email, 
+        address, 
+        pincode, 
+        location, 
+        photo, 
+        preferred_payment_method, 
+        subscription_method 
+      FROM consumerprofile 
+      WHERE consumer_id = ?`;
+    
+    const results = await queryDatabase(query, [consumer_id]);
+    
+    if (results.length > 0) {
+      res.json(results[0]);
+    } else {
+      res.status(404).json({ message: 'Consumer profile not found' });
+    }
+  } catch (error) {
+    console.error('Error fetching consumer profile:', error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
+
+// Add this endpoint to update consumer profile address
+app.put("/api/consumerprofile/:consumer_id", async (req, res) => {
+  try {
+    const { consumer_id } = req.params;
+    const { address, pincode, location } = req.body;
+
+    const query = `
+      UPDATE consumerprofile 
+      SET address = ?, pincode = ?, location = ?
+      WHERE consumer_id = ?`;
+    
+    await queryDatabase(query, [address, pincode, location, consumer_id]);
+    
+    res.json({ success: true, message: "Address updated successfully" });
+  } catch (error) {
+    console.error('Error updating consumer profile:', error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
+
+// Add this endpoint to fetch consumer profile
+app.get("/api/consumerprofile/:consumer_id", async (req, res) => {
+  try {
+    const { consumer_id } = req.params;
+    const query = `
+      SELECT 
+        consumer_id, 
+        name, 
+        mobile_number, 
+        email, 
+        address, 
+        pincode, 
+        location, 
+        photo, 
+        preferred_payment_method, 
+        subscription_method 
+      FROM consumerprofile 
+      WHERE consumer_id = ?`;
+    
+    const results = await queryDatabase(query, [consumer_id]);
+    
+    if (results.length > 0) {
+      res.json(results[0]);
+    } else {
+      res.status(404).json({ message: 'Consumer profile not found' });
+    }
+  } catch (error) {
+    console.error('Error fetching consumer profile:', error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
+
+// Update the place-order endpoint
 app.post("/api/place-order", async (req, res) => {
-  const { consumer_id, name, mobile_number, email, address, pincode, produce_name, quantity, amount } = req.body;
+  const { 
+    consumer_id,
+    name,
+    mobile_number,
+    email,
+    produce_name,
+    quantity,
+    amount,
+    is_self_delivery,
+    recipient_name,
+    recipient_phone,
+    address,
+    payment_method
+  } = req.body;
+
+  console.log("Received payment method:", payment_method); // Debug log
+
   try {
     const query = `
-      INSERT INTO orders (consumer_id, name, mobile_number, email, address, pincode, produce_name, quantity, amount, status, payment_status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', 'Pending')
+      INSERT INTO placeorder (
+        consumer_id, 
+        name, 
+        mobile_number, 
+        email, 
+        produce_name, 
+        quantity, 
+        amount,
+        status,
+        payment_status,
+        payment_method,
+        is_self_delivery,
+        recipient_name,
+        recipient_phone,
+        address
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending', 'Pending', ?, ?, ?, ?, ?)
     `;
-    await queryDatabase(query, [consumer_id, name, mobile_number, email, address, pincode, produce_name, quantity, amount]);
-    res.json({ success: true, message: "Order placed successfully" });
+    
+    const values = [
+      consumer_id,
+      is_self_delivery ? name : recipient_name,
+      is_self_delivery ? mobile_number : recipient_phone,
+      email,
+      produce_name,
+      quantity,
+      amount,
+      payment_method, // This should be the 10th parameter
+      is_self_delivery,
+      recipient_name || null,
+      recipient_phone || null,
+      address
+    ];
+    const result = await queryDatabase(query, values);
+
+    // Get the inserted order with its auto-generated ID
+    const [order] = await queryDatabase(
+      "SELECT * FROM placeorder WHERE id = ?",
+      [result.insertId]
+    );
+    
+    res.json({ 
+      success: true, 
+      message: "Order placed successfully",
+      order_id: order.order_id 
+    });
   } catch (error) {
     console.error("Error placing order:", error);
     res.status(500).json({ error: "Failed to place order" });
+  }
+});
+
+
+// Save address to placeorder table (before order is placed)
+// Add this endpoint to save address
+// Add these endpoints to your server.js
+
+// Endpoint to save address
+app.post("/api/save-address", async (req, res) => {
+  try {
+    const { 
+      consumer_id, 
+      name, 
+      mobile_number, 
+      email, 
+      street, 
+      city, 
+      state, 
+      landmark, 
+      pincode 
+    } = req.body;
+
+    // Validate required fields
+    const requiredFields = ['consumer_id', 'street', 'city', 'state', 'pincode'];
+    const missingFields = requiredFields.filter(field => !req.body[field]);
+    
+    if (missingFields.length > 0) {
+      return res.status(400).json({ 
+        error: "Missing required fields",
+        missingFields,
+        details: `Please provide: ${missingFields.join(', ')}`
+      });
+    }
+
+    // Construct full address string
+    const fullAddress = [street, landmark, city, state]
+      .filter(Boolean) // Remove empty parts
+      .join(', ');
+
+    // Update consumer profile
+    await queryDatabase(
+      "UPDATE consumerprofile SET address = ?, pincode = ? WHERE consumer_id = ?",
+      [fullAddress, pincode, consumer_id]
+    );
+
+    // Save to placeorder table
+    const [existing] = await queryDatabase(
+      "SELECT order_id FROM placeorder WHERE consumer_id = ? AND status = 'Draft' LIMIT 1",
+      [consumer_id]
+    );
+
+    if (existing) {
+      await queryDatabase(
+        "UPDATE placeorder SET address = ?, pincode = ?, name = ?, mobile_number = ?, email = ? WHERE order_id = ?",
+        [fullAddress, pincode, name, mobile_number, email, existing.order_id]
+      );
+    } else {
+      await queryDatabase(
+        "INSERT INTO placeorder (consumer_id, name, mobile_number, email, address, pincode, status) VALUES (?, ?, ?, ?, ?, ?, 'Draft')",
+        [consumer_id, name, mobile_number, email, fullAddress, pincode]
+      );
+    }
+
+    res.json({ 
+      success: true, 
+      message: "Address saved successfully",
+      address: fullAddress,
+      pincode: pincode
+    });
+  } catch (error) {
+    console.error("Error saving address:", error);
+    res.status(500).json({ 
+      error: "Failed to save address",
+      details: process.env.NODE_ENV === 'development' ? {
+        message: error.message,
+        sqlMessage: error.sqlMessage
+      } : undefined
+    });
+  }
+});
+
+
+// Update existing address (won't create new records)
+// Update address endpoint
+// PUT endpoint for updating address - place this with your other API routes
+app.put("/api/update-address", async (req, res) => {
+  console.log("PUT /api/update-address hit"); // Debug log
+  try {
+    const { consumer_id, street, city, state, pincode } = req.body;
+    
+    if (!consumer_id || !street || !city || !state || !pincode) {
+      return res.status(400).json({ 
+        error: "Missing required fields",
+        required: ['consumer_id', 'street', 'city', 'state', 'pincode']
+      });
+    }
+
+    const fullAddress = `${street}, ${city}, ${state} ${pincode}`;
+    
+    // Update consumer profile
+    await queryDatabase(
+      `UPDATE consumerprofile 
+       SET address = ?, pincode = ?
+       WHERE consumer_id = ?`,
+      [fullAddress, pincode, consumer_id]
+    );
+
+    res.json({ 
+      success: true,
+      address: fullAddress,
+      pincode: pincode
+    });
+
+  } catch (error) {
+    console.error("Update error:", error);
+    res.status(500).json({ error: "Failed to update address" });
+  }
+});
+
+
+// Add this temporary test route in your server.js
+// Add these test endpoints in your server.js file
+
+
+
+
+
+// Endpoint to get saved address
+app.get("/api/saved-address/:consumer_id", async (req, res) => {
+  try {
+    const { consumer_id } = req.params;
+    const [result] = await queryDatabase(
+      "SELECT address FROM placeorder WHERE consumer_id = ? AND status = 'Draft' ORDER BY created_at DESC LIMIT 1",
+      [consumer_id]
+    );
+
+    res.json({ 
+      success: true,
+      address: result?.address || null 
+    });
+  } catch (error) {
+    console.error("Error fetching address:", error);
+    res.status(500).json({ error: "Failed to fetch address" });
   }
 });
 
@@ -2667,6 +2970,76 @@ app.post('/api/create-bargain', async (req, res) => {
 app.get('/create-bargain', (req, res) => {
   res.status(200).json({ message: 'POST route is available, use POST to create bargain.' });
 });
+// ... (other route imports and middleware above)
+
+// Add this after other route declarations but before error handlers
+app.post('/api/subscriptions', async (req, res) => {
+  const { consumer_id, subscription_type, product_id, product_name, quantity, price, start_date } = req.body;
+  
+  try {
+      // Verify consumer exists
+      const consumerCheck = await queryDatabase(
+          "SELECT consumer_id FROM consumerregistration WHERE consumer_id = ?",
+          [consumer_id]
+      );
+      
+      if (consumerCheck.length === 0) {
+          return res.status(404).json({ success: false, message: "Consumer not found" });
+      }
+
+      // Insert subscription into database
+      const result = await queryDatabase(
+          `INSERT INTO subscriptions 
+          (consumer_id, subscription_type, product_id, product_name, quantity, price, start_date)
+          VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [consumer_id, subscription_type, product_id, product_name, quantity, price, start_date]
+      );
+
+      if (result.affectedRows === 0) {
+          return res.status(400).json({ success: false, message: "Failed to create subscription" });
+      }
+
+      res.status(201).json({ 
+          success: true, 
+          message: "Subscription created successfully",
+          subscription_id: result.insertId
+      });
+  } catch (error) {
+      console.error("Error creating subscription:", error);
+      res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+
+app.get('/api/subscriptions/:consumer_id', async (req, res) => {
+  const { consumer_id } = req.params;
+
+  try {
+      // Verify consumer exists
+      const consumerCheck = await queryDatabase(
+          "SELECT consumer_id FROM consumerregistration WHERE consumer_id = ?",
+          [consumer_id]
+      );
+      
+      if (consumerCheck.length === 0) {
+          return res.status(404).json({ success: false, message: "Consumer not found" });
+      }
+
+      const subscriptions = await queryDatabase(
+          `SELECT * FROM subscriptions 
+           WHERE consumer_id = ? 
+           ORDER BY start_date DESC`,
+          [consumer_id]
+      );
+
+      res.json({ success: true, subscriptions });
+  } catch (error) {
+      console.error("Error fetching subscriptions:", error);
+      res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+
+// ... (error handlers and server startup below)
+
 
 
 
@@ -2739,6 +3112,62 @@ app.post('/api/bargain/:bargainId/price', async (req, res) => {
   }
 });
 
+<<<<<<< HEAD
+// Get personal details
+app.get("/api/getpersonaldetails", async (req, res) => {
+  try {
+    const { farmer_id } = req.query;
+    if (!farmer_id) {
+      return res.status(400).json({ success: false, message: "Farmer ID is required" });
+    }
+
+    const result = await queryDatabase(
+      `SELECT * FROM personaldetails WHERE farmer_id = ?;`,
+      [farmer_id]
+    );
+
+    if (result.length === 0) {
+      return res.status(404).json({ success: false, message: "Personal details not found" });
+    }
+
+    res.json(result[0]);
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Error fetching personal details", error: err.message });
+  }
+});
+
+// Update personal details
+app.post("/api/updatepersonaldetails", async (req, res) => {
+  try {
+    const { user_id, email, contact, identification_number, address, bank_account_no, ifsc_code, upi_id, date_of_birth, gender } = req.body;
+
+    if (!user_id || !email || !contact || !identification_number || !address || !date_of_birth || !gender) {
+      return res.status(400).json({ success: false, message: "Required fields are missing" });
+    }
+
+    const existingDetails = await queryDatabase(
+      `SELECT * FROM personaldetails WHERE farmer_id = ?;`, [user_id]
+    );
+
+    if (existingDetails.length > 0) {
+      await queryDatabase(
+        `UPDATE personaldetails 
+         SET email=?, contact_no=?, identification_number=?, residential_address=?, bank_account_no=?, ifsc_code=?, upi_id=?, date_of_birth=?, gender=?
+         WHERE farmer_id = ?;`,
+        [email, contact, identification_number, address, bank_account_no, ifsc_code, upi_id, date_of_birth, gender, user_id]
+      );
+    } else {
+      await queryDatabase(
+        `INSERT INTO personaldetails (farmer_id, email, contact_no, identification_number, residential_address, bank_account_no, ifsc_code, upi_id, date_of_birth, gender) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+        [user_id, email, contact, identification_number, address, bank_account_no, ifsc_code, upi_id, date_of_birth, gender]
+      );
+    }
+
+    res.json({ success: true, message: "Personal details updated successfully" });
+  } catch (err) {
+    console.error("Database error:", err);
+=======
 // ✅ Get Farmer Profile
 // ✅ Get Farmer Profile with combined personal and farm details
 app.get("/api/farmerprofile/:farmer_id", 
@@ -2971,10 +3400,67 @@ app.put("/api/farmerprofile/:farmer_id/personal", verifyToken, async (req, res) 
 
     res.json({ success: true, message: "Personal details updated successfully" });
   } catch (err) {
+>>>>>>> 900171a80af3d29e4a4f0dd74ad718a21c6ef72a
     res.status(500).json({ success: false, message: "Error updating personal details", error: err.message });
   }
 });
 
+<<<<<<< HEAD
+// Get farm details
+app.get("/api/getfarmdetails", async (req, res) => {
+  try {
+    const { farmer_id } = req.query;
+    if (!farmer_id) {
+      return res.status(400).json({ success: false, message: "Farmer ID is required" });
+    }
+
+    const result = await queryDatabase(
+      `SELECT * FROM farmdetails WHERE farmer_id = ?;`,
+      [farmer_id]
+    );
+
+    if (result.length === 0) {
+      return res.status(404).json({ success: false, message: "Farm details not found" });
+    }
+
+    res.json(result[0]);
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Error fetching farm details", error: err.message });
+  }
+});
+
+// Update farm details
+app.post("/api/updatefarmdetails", async (req, res) => {
+  try {
+    const { user_id, farm_name, location, land_size, farming_type, soil_type, irrigation_method, types_of_crops, farm_equipment } = req.body;
+
+    if (!user_id || !farm_name || !location || !land_size || !farming_type) {
+      return res.status(400).json({ success: false, message: "Required fields are missing" });
+    }
+
+    const existingDetails = await queryDatabase(
+      `SELECT * FROM farmdetails WHERE farmer_id = ?;`, [user_id]
+    );
+
+    if (existingDetails.length > 0) {
+      await queryDatabase(
+        `UPDATE farmdetails 
+         SET farm_name=?, location=?, land_size=?, farming_type=?, soil_type=?, irrigation_method=?, types_of_crops=?, farm_equipment=?
+         WHERE farmer_id = ?;`,
+        [farm_name, location, land_size, farming_type, soil_type, irrigation_method, types_of_crops, farm_equipment, user_id]
+      );
+    } else {
+      await queryDatabase(
+        `INSERT INTO farmdetails (user_id, farm_name, location, land_size, farming_type, soil_type, irrigation_method, types_of_crops, farm_equipment) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+        [user_id, farm_name, location, land_size, farming_type, soil_type, irrigation_method, types_of_crops, farm_equipment]
+      );
+    }
+
+    res.json({ success: true, message: "Farm details updated successfully" });
+  } catch (err) {
+    console.error("Database error:", err);
+=======
 
 // ✅ Update Farm Details
 app.put("/api/farmerprofile/:farmer_id/farm", verifyToken, async (req, res) => {
@@ -3014,11 +3500,14 @@ app.put("/api/farmerprofile/:farmer_id/farm", verifyToken, async (req, res) => {
 
     res.json({ success: true, message: "Farm details updated successfully" });
   } catch (err) {
+>>>>>>> 900171a80af3d29e4a4f0dd74ad718a21c6ef72a
     res.status(500).json({ success: false, message: "Error updating farm details", error: err.message });
   }
 });
 
 
+<<<<<<< HEAD
+=======
 // ✅ Upload Profile Photo
 app.post("/api/farmerprofile/:farmer_id/photo", verifyToken, upload.single('photo'), async (req, res) => {
   try {
@@ -3071,6 +3560,131 @@ app.post("/api/farmerprofile/:farmer_id/file", verifyToken, upload.single('file'
   }
 });
 
+>>>>>>> 900171a80af3d29e4a4f0dd74ad718a21c6ef72a
+
+
+
+
+
+
+
+
+
+
+
+const router = express.Router();
+// const { queryDatabase } = require('./database');
+
+// Get all subscriptions for a consumer
+router.get('/:consumer_id', async (req, res) => {
+  try {
+    const { consumer_id } = req.params;
+    
+    const subscriptions = await queryDatabase(
+      `SELECT 
+        subscription_id AS id,
+        subscription_type AS type,
+        product_name AS name,
+        quantity,
+        price,
+        start_date AS startDate
+       FROM subscriptions 
+       WHERE consumer_id = ? AND status = 'Active'
+       ORDER BY start_date DESC`,
+      [consumer_id]
+    );
+    
+    // Always return an array, even if empty
+    res.json(subscriptions || []);
+    
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      message: error.message 
+    });
+  }
+});
+
+// Update subscription quantity
+router.put('/:subscription_id', async (req, res) => {
+  try {
+    const { subscription_id } = req.params;
+    const { quantity } = req.body;
+
+    if (!quantity || isNaN(quantity)) {
+      return res.status(400).json({ error: 'Valid quantity required' });
+    }
+
+    await queryDatabase(
+      `UPDATE subscriptions 
+       SET quantity = ?, 
+           price = quantity * (
+             SELECT price_per_kg 
+             FROM products 
+             WHERE product_id = subscriptions.product_id
+           )
+       WHERE subscription_id = ?`,
+      [quantity, subscription_id]
+    );
+
+    const updated = await queryDatabase(
+      `SELECT 
+        subscription_id AS id,
+        subscription_type AS type,
+        product_name AS name,
+        quantity,
+        price,
+        start_date AS startDate
+       FROM subscriptions 
+       WHERE subscription_id = ?`,
+      [subscription_id]
+    );
+    
+    res.json(updated[0] || {});
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      message: error.message 
+    });
+  }
+});
+
+// Cancel subscription
+router.delete('/:subscription_id', async (req, res) => {
+  try {
+    const { subscription_id } = req.params;
+    
+    await queryDatabase(
+      `UPDATE subscriptions 
+       SET status = 'Cancelled' 
+       WHERE subscription_id = ?`,
+      [subscription_id]
+    );
+    
+    res.json({ 
+      success: true, 
+      message: 'Subscription cancelled' 
+    });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      message: error.message 
+    });
+  }
+});
+
+module.exports = router;
+
+
+
+
+
+
+
+
 
 
 // Example backend API for fetching bargain sessions
@@ -3098,8 +3712,22 @@ if (process.env.NODE_ENV === 'production') {
     res.sendFile(path.resolve(__dirname, 'client', 'build', 'index.html'));
   });
 }
+
+
+
+
 setupSockets(server);
 
 // ✅ Start Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+
+
+
+
+
+
+
+
+
+

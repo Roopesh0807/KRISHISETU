@@ -17,6 +17,7 @@
     "i18next": "^23.16.8",
     "jspdf": "^2.5.2",
     "jspdf-autotable": "^3.8.4",
+    "jwt-decode": "^4.0.0",
     "lucide-react": "^0.475.0",
     "mdb-react-ui-kit": "^9.0.0",
     "react": "^18.3.1",
@@ -29,6 +30,8 @@
     "react-redux": "^9.2.0",
     "react-router-dom": "^7.1.5",
     "react-scripts": "5.0.1",
+    "react-slick": "^0.30.3",
+    "slick-carousel": "^1.8.1",
     "socket.io-client": "^4.8.1",
     "web-vitals": "^4.2.4"
   },

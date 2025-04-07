@@ -222,4 +222,60 @@ router.post("/verify-email", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
+
+
+//member ordercart
+router.put('/member/:orderId/quantity', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { quantity } = req.body;
+
+    // Validate quantity
+    if (!quantity || isNaN(quantity) || quantity < 1) {
+      return res.status(400).json({ error: 'Invalid quantity' });
+    }
+
+    const updateQuery = 'UPDATE orders SET quantity = ? WHERE order_id = ? RETURNING *';
+    const [result] = await queryDatabase(updateQuery, [quantity, orderId]);
+
+    if (!result) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to update quantity' });
+  }
+});
+
+// Remove order item
+router.delete('/member/:orderId', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+
+    const deleteQuery = 'DELETE FROM orders WHERE order_id = ? RETURNING *';
+    const [result] = await queryDatabase(deleteQuery, [orderId]);
+
+    if (!result) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    res.json({ message: 'Order item removed successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to remove order item' });
+  }
+});
+
+
+
+
+
+
+
+
+
+
 module.exports = router;

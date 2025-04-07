@@ -152,4 +152,140 @@ router.get("/:communityId/members", async (req, res) => {
 
 
 
+
+
+
+
+
+
+// Get member orders with product details
+router.get('/:communityId/member/:memberId/orders', async (req, res) => {
+  try {
+    const { communityId, memberId } = req.params;
+
+    // Verify member belongs to community
+    const verifyQuery = `
+      SELECT m.member_id, m.member_name, m.phone_number
+      FROM members m
+      WHERE m.member_id = ? AND m.community_id = ?
+    `;
+    const [member] = await queryDatabase(verifyQuery, [memberId, communityId]);
+
+    if (!member) {
+      return res.status(404).json({ 
+        error: "Member not found in this community" 
+      });
+    }
+
+    // Get community details
+    const communityQuery = `
+      SELECT 
+        c.community_id as id,
+        c.community_name as name,
+        c.address,
+        DATE_FORMAT(c.delivery_date, '%Y-%m-%d') as delivery_date,
+        TIME_FORMAT(c.delivery_time, '%H:%i') as delivery_time,
+        CONCAT(cr.first_name, ' ', cr.last_name) as admin_name,
+        c.admin_id
+      FROM communities c
+      JOIN consumerregistration cr ON c.admin_id = cr.consumer_id
+      WHERE c.community_id = ?
+    `;
+    const [community] = await queryDatabase(communityQuery, [communityId]);
+
+    if (!community) {
+      return res.status(404).json({ error: "Community not found" });
+    }
+
+    // Get orders with product details
+    const ordersQuery = `
+      SELECT 
+        o.order_id,
+        o.product_id,
+        p.product_name,
+        p.category,
+        p.price_1kg as price,
+        o.quantity
+      FROM orders o
+      JOIN products p ON o.product_id = p.product_id
+      WHERE o.community_id = ? AND o.member_id = ?
+    `;
+    const orders = await queryDatabase(ordersQuery, [communityId, memberId]);
+
+    // Calculate total
+    const total = orders.reduce((sum, order) => sum + (order.price * order.quantity), 0);
+
+    res.json({
+      community,
+      member,
+      orders,
+      total: total.toFixed(2)
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch orders' });
+  }
+});
+
+// Update order quantity
+router.put('/order/:orderId/quantity', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { quantity } = req.body;
+
+    // Validate quantity
+    if (!quantity || isNaN(quantity) || quantity < 1) {
+      return res.status(400).json({ error: 'Invalid quantity' });
+    }
+
+    const updateQuery = 'UPDATE orders SET quantity = ? WHERE order_id = ? RETURNING *';
+    const [result] = await queryDatabase(updateQuery, [quantity, orderId]);
+
+    if (!result) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to update quantity' });
+  }
+});
+
+// Remove order item
+router.delete('/order/:orderId', async (req, res) => {
+  console.log('DELETE order route hit!', req.params); // Add this line
+  try {
+    const { orderId } = req.params;
+    console.log('Deleting order:', orderId); // And this one
+    
+    const deleteQuery = 'DELETE FROM orders WHERE order_id = ? RETURNING *';
+    const [result] = await queryDatabase(deleteQuery, [orderId]);
+    
+    if (!result) {
+      console.log('Order not found in DB');
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    
+    console.log('Delete successful');
+    res.json({ message: 'Order item removed successfully' });
+  } catch (err) {
+    console.error('Delete error:', err);
+    res.status(500).json({ error: 'Failed to remove order item' });
+  }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 module.exports = router;

@@ -1,6 +1,10 @@
 // import React, { useState, useEffect } from "react";
 // import { useParams } from "react-router-dom";
+<<<<<<< HEAD
+// //import axios from "axios";
+=======
 // import axios from "axios";
+>>>>>>> 900171a80af3d29e4a4f0dd74ad718a21c6ef72a
 // import { 
 //   FiEdit, 
 //   FiSave, 
@@ -53,11 +57,14 @@
 //       certification: null,
 //       land_lease_agreement: null,
 //       farm_photographs: null,
+<<<<<<< HEAD
+=======
 //     },
 //     basicInfo: {
 //       name: "",
 //       email: "",
 //       contact_no: ""
+>>>>>>> 900171a80af3d29e4a4f0dd74ad718a21c6ef72a
 //     }
 //   });
 
@@ -73,6 +80,47 @@
 //     const fetchData = async () => {
 //       try {
 //         setLoading(true);
+<<<<<<< HEAD
+//         // Simulated API calls - replace with actual API endpoints
+//         const personalRes = { data: {
+//           dob: "1990-05-15",
+//           gender: "Male",
+//           contact_no: "9876543210",
+//           aadhaar_no: "123456789012",
+//           residential_address: "123 Green Valley, Farm Town",
+//           bank_account_no: "12345678901234",
+//           ifsc_code: "SBIN0001234",
+//           bank_branch: "Main Branch",
+//           upi_id: "farmer@upi",
+//         }};
+        
+//         const farmRes = { data: {
+//           farm_address: "456 Agriculture Lane, Rural District",
+//           farm_size: "5 acres",
+//           crops_grown: "Wheat, Rice, Vegetables",
+//           farming_method: "Organic",
+//           soil_type: "Alluvial",
+//           water_sources: "Well, Canal",
+//           farm_equipment: "Tractor, Plow, Irrigation System",
+//           land_ownership_proof: "uploaded",
+//           certification: "Organic_Certificate.pdf",
+//           land_lease_agreement: null,
+//           farm_photographs: "farm1.jpg, farm2.jpg",
+//         }};
+        
+//         const photoRes = { data: { photo: null }};
+
+//         setFormData({
+//           personal: personalRes.data,
+//           farm: farmRes.data
+//         });
+
+//         if (photoRes.data.photo) {
+//           setProfilePhoto(`http://localhost:5000/uploads/${photoRes.data.photo}`);
+//         }
+//       } catch (error) {
+//         console.error("Error fetching data:", error);
+=======
         
 //         // Make parallel requests to get all data
 //         const [basicRes, personalRes, farmRes, photoRes] = await Promise.all([
@@ -107,6 +155,7 @@
 //       } catch (error) {
 //         console.error("Fetch error:", error);
 //         alert('Error loading farmer data. Please try again.');
+>>>>>>> 900171a80af3d29e4a4f0dd74ad718a21c6ef72a
 //       } finally {
 //         setLoading(false);
 //       }
@@ -115,7 +164,10 @@
 //     fetchData();
 //   }, [farmer_id]);
 
+<<<<<<< HEAD
+=======
 
+>>>>>>> 900171a80af3d29e4a4f0dd74ad718a21c6ef72a
 //   // Handle form field changes
 //   const handleChange = (section, e) => {
 //     const { name, value } = e.target;
@@ -132,10 +184,18 @@
 //   // Fetch bank branch details
 //   const fetchBranchDetails = async (ifsc) => {
 //     try {
+<<<<<<< HEAD
+//       // Simulated API call - replace with actual API
+//       const res = { data: { BRANCH: "Main Branch" } };
+//       setFormData(prev => ({
+//         ...prev,
+//         personal: { ...prev.personal, bank_branch: res.data.BRANCH || "Branch Not Found" }
+=======
 //       const { data } = await axios.get(`https://ifsc.razorpay.com/${ifsc}`);
 //       setFormData(prev => ({
 //         ...prev,
 //         personal: { ...prev.personal, bank_branch: data.BRANCH || "Branch Not Found" }
+>>>>>>> 900171a80af3d29e4a4f0dd74ad718a21c6ef72a
 //       }));
 //     } catch (error) {
 //       console.error("Invalid IFSC Code", error);
@@ -152,6 +212,13 @@
 //     if (!file) return;
 
 //     try {
+<<<<<<< HEAD
+//       // Simulated upload - replace with actual API call
+//       console.log(`Uploading ${field}...`);
+//       setFormData(prev => ({
+//         ...prev,
+//         [section]: { ...prev[section], [field]: file.name }
+=======
 //       const formData = new FormData();
 //       formData.append('file', file);
       
@@ -168,6 +235,7 @@
 //       setFormData(prev => ({
 //         ...prev,
 //         [section]: { ...prev[section], [field]: res.data.fileUrl }
+>>>>>>> 900171a80af3d29e4a4f0dd74ad718a21c6ef72a
 //       }));
 //     } catch (error) {
 //       console.error("Error uploading file", error);
@@ -180,6 +248,12 @@
 //     if (!file) return;
 
 //     try {
+<<<<<<< HEAD
+//       // Simulated upload - replace with actual API call
+//       console.log("Uploading profile photo...");
+//       const imageUrl = URL.createObjectURL(file);
+//       setProfilePhoto(imageUrl);
+=======
 //       const formData = new FormData();
 //       formData.append('photo', file);
       
@@ -194,10 +268,13 @@
 //       );
 
 //       setProfilePhoto(`http://localhost:5000/uploads/${res.data.profile_photo}`);
+>>>>>>> 900171a80af3d29e4a4f0dd74ad718a21c6ef72a
 //     } catch (error) {
 //       console.error("Error uploading photo", error);
 //     }
 //   };
+<<<<<<< HEAD
+=======
 //   // Remove profile photo
 //   const handleRemovePhoto = async () => {
 //     try {
@@ -208,11 +285,16 @@
 //     }
 //   };
 
+>>>>>>> 900171a80af3d29e4a4f0dd74ad718a21c6ef72a
 
 //   // Handle form submission
 //   const handleSubmit = async (section, e) => {
 //     e.preventDefault();
 //     try {
+<<<<<<< HEAD
+//       // Simulated API call - replace with actual API
+//       console.log(`Updating ${section} details:`, formData[section]);
+=======
 //       if (section === 'personal') {
 //         await axios.put(
 //           `http://localhost:5000/api/farmer/${farmer_id}/personal-details`, 
@@ -225,6 +307,7 @@
 //         );
 //       }
       
+>>>>>>> 900171a80af3d29e4a4f0dd74ad718a21c6ef72a
 //       setEditMode(prev => ({ ...prev, [section]: false }));
 //       alert(`${section === 'personal' ? 'Personal' : 'Farm'} details updated successfully!`);
 //     } catch (error) {
@@ -232,6 +315,10 @@
 //       alert(`Error updating ${section} details. Please try again.`);
 //     }
 //   };
+<<<<<<< HEAD
+
+=======
+>>>>>>> 900171a80af3d29e4a4f0dd74ad718a21c6ef72a
 //   // Loading state
 //   if (loading) {
 //     return (
@@ -370,11 +457,14 @@
 //                 </div>
 //               )}
 //             </div>
+<<<<<<< HEAD
+=======
 //             <div className="farmer-profile-user-info">
 //               <h3>{formData.basicInfo.name}</h3>
 //               <p><FiUser /> {formData.basicInfo.email}</p>
 //               <p><FiPhone /> {formData.basicInfo.contact_no}</p>
 //             </div>
+>>>>>>> 900171a80af3d29e4a4f0dd74ad718a21c6ef72a
 //             <div className="farmer-profile-photo-actions">
 //               <input
 //                 type="file"
@@ -389,7 +479,11 @@
 //               {profilePhoto && (
 //                 <button 
 //                   className="farmer-profile-photo-action-btn farmer-profile-remove-btn"
+<<<<<<< HEAD
+//                   onClick={() => setProfilePhoto(null)}
+=======
 //                   onClick={handleRemovePhoto}
+>>>>>>> 900171a80af3d29e4a4f0dd74ad718a21c6ef72a
 //                 >
 //                   <FiTrash2 /> Remove
 //                 </button>
@@ -538,6 +632,8 @@
 
 
 
+<<<<<<< HEAD
+=======
 
 // import React, { useState, useEffect } from "react";
 // import { useParams } from "react-router-dom";
@@ -1132,6 +1228,7 @@
 // export default FarmerProfile;
 
 import { useAuth } from "../context/AuthContext";
+>>>>>>> 900171a80af3d29e4a4f0dd74ad718a21c6ef72a
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
@@ -1166,15 +1263,15 @@ const FarmerProfile = () => {
   // Form data state
   const [formData, setFormData] = useState({
     personal: {
-      dob: "",
-      gender: "",
+      email: "",
       contact_no: "",
       aadhaar_no: "",
       residential_address: "",
       bank_account_no: "",
       ifsc_code: "",
-      bank_branch: "",
       upi_id: "",
+      dob: "",
+      gender: ""
     },
     farm: {
       farm_address: "",
@@ -1183,6 +1280,9 @@ const FarmerProfile = () => {
       farming_method: "",
       soil_type: "",
       water_sources: "",
+<<<<<<< HEAD
+      farm_equipment: ""
+=======
       farm_equipment: "",
       land_ownership_proof: null,
       certification: null,
@@ -1193,6 +1293,7 @@ const FarmerProfile = () => {
       name: "",
       email: "",
       contact_no: ""
+>>>>>>> 900171a80af3d29e4a4f0dd74ad718a21c6ef72a
     }
   });
 
@@ -1203,11 +1304,51 @@ const FarmerProfile = () => {
 
   // Fetch farmer data
   useEffect(() => {
-    if (!farmer_id) return;
-
     const fetchData = async () => {
       try {
         setLoading(true);
+<<<<<<< HEAD
+        const id = farmer_id || localStorage.getItem("farmerID");
+        
+        if (!id) {
+          console.error("No farmer ID found");
+          return;
+        }
+        
+        
+        // Fetch personal details
+        const personalRes = await axios.get(`http://localhost:5000/api/getpersonaldetails?farmer_id=${id}`);
+        
+        // Fetch farm details
+        const farmRes = await axios.get(`http://localhost:5000/api/getfarmdetails?farmer_id=${id}`);
+
+        setFormData({
+          personal: {
+            email: personalRes.data.email || "",
+            contact_no: personalRes.data.contact_no || "",
+            aadhaar_no: personalRes.data.aadhaar_no || "",
+            residential_address: personalRes.data.residential_address || "",
+            bank_account_no: personalRes.data.bank_account_no || "",
+            ifsc_code: personalRes.data.ifsc_code || "",
+            upi_id: personalRes.data.upi_id || "",
+            dob: personalRes.data.dob || "",
+            gender: personalRes.data.gender || ""
+          },
+          farm: {
+            farm_address: farmRes.data.farm_address || "",
+            farm_size: farmRes.data.farm_size || "",
+            crops_grown: farmRes.data.crops_grown || "",
+            farming_method: farmRes.data.farming_method || "",
+            soil_type: farmRes.data.soil_type || "",
+            water_sources: farmRes.data.water_sources || "",
+            farm_equipment: farmRes.data.farm_equipment || ""
+          }
+        });
+
+        // Fetch profile photo if available
+        if (personalRes.data.profile_photo) {
+          setProfilePhoto(`http://localhost:5000/uploads/${personalRes.data.profile_photo}`);
+=======
         
         // Fetch farmer profile data
         const response = await axios.get(`http://localhost:5000/api/farmerprofile/${farmer_id}`,
@@ -1288,6 +1429,7 @@ const FarmerProfile = () => {
         // Handle profile photo
         if (personal.profile_photo) {
           setProfilePhoto(`http://localhost:5000/uploads/${personal.profile_photo}`);
+>>>>>>> 900171a80af3d29e4a4f0dd74ad718a21c6ef72a
         }
 
         // Fetch bank branch details if IFSC is available
@@ -1336,6 +1478,19 @@ const FarmerProfile = () => {
     }
   };
 
+<<<<<<< HEAD
+  // Fetch bank branch details
+  const fetchBranchDetails = async (ifsc) => {
+    try {
+      // This would be replaced with actual IFSC lookup API
+      console.log("Fetching branch details for IFSC:", ifsc);
+    } catch (error) {
+      console.error("Invalid IFSC Code", error);
+    }
+  };
+
+=======
+>>>>>>> 900171a80af3d29e4a4f0dd74ad718a21c6ef72a
   // Handle file uploads
   const handleFileUpload = async (section, field, e) => {
     const file = e.target.files[0];
@@ -1343,6 +1498,16 @@ const FarmerProfile = () => {
 
     try {
       const formData = new FormData();
+<<<<<<< HEAD
+      formData.append("file", file);
+      
+      const res = await axios.post(
+        `http://localhost:5000/api/upload/${localStorage.getItem("farmerID")}`, 
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data"
+=======
       formData.append('file', file);
       
       const res = await axios.post(
@@ -1351,13 +1516,18 @@ const FarmerProfile = () => {
         {
           headers: {
             'Content-Type': 'multipart/form-data'
+>>>>>>> 900171a80af3d29e4a4f0dd74ad718a21c6ef72a
           }
         }
       );
 
       setFormData(prev => ({
         ...prev,
+<<<<<<< HEAD
+        [section]: { ...prev[section], [field]: res.data.filePath }
+=======
         [section]: { ...prev[section], [field]: res.data.fileUrl }
+>>>>>>> 900171a80af3d29e4a4f0dd74ad718a21c6ef72a
       }));
     } catch (error) {
       console.error("Error uploading file", error);
@@ -1371,6 +1541,16 @@ const FarmerProfile = () => {
 
     try {
       const formData = new FormData();
+<<<<<<< HEAD
+      formData.append("file", file);
+      
+      const res = await axios.post(
+        `http://localhost:5000/api/upload/${localStorage.getItem("farmerID")}`, 
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data"
+=======
       formData.append('photo', file);
       
       const res = await axios.post(
@@ -1379,11 +1559,17 @@ const FarmerProfile = () => {
         {
           headers: {
             'Content-Type': 'multipart/form-data'
+>>>>>>> 900171a80af3d29e4a4f0dd74ad718a21c6ef72a
           }
         }
       );
 
+<<<<<<< HEAD
+      const imageUrl = `http://localhost:5000${res.data.filePath}`;
+      setProfilePhoto(imageUrl);
+=======
       setProfilePhoto(`http://localhost:5000/uploads/${res.data.profile_photo}`);
+>>>>>>> 900171a80af3d29e4a4f0dd74ad718a21c6ef72a
     } catch (error) {
       console.error("Error uploading photo", error);
     }
@@ -1404,6 +1590,20 @@ const FarmerProfile = () => {
   const handleSubmit = async (section, e) => {
     e.preventDefault();
     try {
+<<<<<<< HEAD
+      const id = localStorage.getItem("farmerID");
+      const endpoint = section === "personal" 
+        ? "/api/updatepersonaldetails" 
+        : "/api/updatefarmdetails";
+      
+      await axios.post(`http://localhost:5000${endpoint}`, {
+        user_id: id,
+        ...formData[section]
+      });
+
+      setEditMode(prev => ({ ...prev, [section]: false }));
+      alert(`${section === 'personal' ? 'Personal' : 'Farm'} details updated successfully!`);
+=======
       // Debug: Check what tokens are available
       console.log('Context farmer token:', farmer?.token);
       console.log('LocalStorage token:', localStorage.getItem('farmerToken'));
@@ -1434,6 +1634,7 @@ const FarmerProfile = () => {
   
       console.log('Update response:', data);
       // ... rest of your success handling
+>>>>>>> 900171a80af3d29e4a4f0dd74ad718a21c6ef72a
     } catch (error) {
       console.error('Full error:', error);
       console.error('Error response:', error.response);
@@ -1469,7 +1670,6 @@ const FarmerProfile = () => {
       case 'farm_address': return <FiMapPin className="farmer-profile-field-icon" />;
       case 'bank_account_no': 
       case 'ifsc_code': 
-      case 'bank_branch': 
       case 'upi_id': return <FiCreditCard className="farmer-profile-field-icon" />;
       case 'water_sources': return <FiDroplet className="farmer-profile-field-icon" />;
       case 'crops_grown': return <FiCrop className="farmer-profile-field-icon" />;
