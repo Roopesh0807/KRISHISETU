@@ -51,7 +51,7 @@ const FarmerDetails = () => {
     } finally {
       setIsLoadingReviews(false);
     }
-  }, [farmer_id]);
+  }, [farmer_id, consumer?.token]);
 
   // useEffect(() => {
   //   const fetchFarmerData = async () => {
@@ -91,8 +91,8 @@ const FarmerDetails = () => {
       try {
         const response = await axios.get(`http://localhost:5000/farmer/${farmer_id}`, {
           headers: {
-            "Authorization": `Bearer ${consumer?.token}`,
-          },
+            "Authorization": `Bearer ${consumer?.token}`
+          }
         });
   
         if (response.data) {
@@ -126,7 +126,7 @@ const FarmerDetails = () => {
         return [];
       });
     };
-  }, [farmer_id, fetchReviews]);
+  }, [farmer_id, fetchReviews, consumer?.token]);
   
   const handleImageChange = (e) => {
     if (e.target.files) {
