@@ -216,15 +216,25 @@ const ConsumerDashboard = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const productData = await fetchProducts("/api/products");
+        // const token = localStorage.getItem("token"); // or get from cookies
+  
+        const productData = await fetchProducts("/api/products", {
+          headers: {
+         
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${consumer?.token}`,
+          }
+        });
+  
         setProducts(productData);
       } catch (error) {
         console.error("Error fetching products:", error);
       }
     };
+  
     fetchData();
   }, []);
-
+  
   // const handleNewMessage = (senderType, content) => {
   //   setMessages((prevMessages) => [
   //     ...prevMessages,

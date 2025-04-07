@@ -29,8 +29,29 @@ const ProductDetails = () => {
   const [subscriptionConfirmed, setSubscriptionConfirmed] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
+  // useEffect(() => {
+  //   fetch(`http://localhost:5000/api/products/${product_id}`)
+  //     .then((res) => res.json())
+  //     .then((data) => {
+  //       if (data.error) {
+  //         setError("Product not found");
+  //       } else {
+  //         setProduct(data);
+  //         setSelectedQuantity(1);
+  //       }
+  //     })
+  //     .catch(() => setError("Error fetching product"));
+  // }, [product_id]);
   useEffect(() => {
-    fetch(`http://localhost:5000/api/products/${product_id}`)
+    // const token = localStorage.getItem("token"); // or wherever you store the token
+  
+    fetch(`http://localhost:5000/api/products/${product_id}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${consumer?.token}`,
+      },
+    })
       .then((res) => res.json())
       .then((data) => {
         if (data.error) {
@@ -42,6 +63,7 @@ const ProductDetails = () => {
       })
       .catch(() => setError("Error fetching product"));
   }, [product_id]);
+  
 
   const handleAddToCommunityCart = async () => {
     if (!consumer) {
@@ -98,6 +120,7 @@ const ProductDetails = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${consumer?.token}`,
         },
         body: JSON.stringify({
           community_id: selectedCommunity,
@@ -222,7 +245,8 @@ const ProductDetails = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem('token')}`
+          // "Authorization": `Bearer ${localStorage.getItem('token')}`
+          "Authorization": `Bearer ${consumer?.token}`,
         },
         body: JSON.stringify(subscriptionData)
       });
@@ -260,9 +284,14 @@ const ProductDetails = () => {
     navigate("/cart");
   };
 
+  // const getImagePath = (productName) => {
+  //   return `/images/${productName.toLowerCase().replace(/\s+/g, '-')}.jpg`;
+  // };
   const getImagePath = (productName) => {
+    if (!productName) return '/images/default.jpg'; // fallback image
     return `/images/${productName.toLowerCase().replace(/\s+/g, '-')}.jpg`;
   };
+  
 
   const handleIncrease = () => {
     setSelectedQuantity((prev) => Math.max(1, prev + 1));

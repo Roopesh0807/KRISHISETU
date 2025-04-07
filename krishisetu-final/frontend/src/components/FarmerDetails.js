@@ -49,18 +49,62 @@ const FarmerDetails = () => {
     }
   }, [farmer_id]);
 
+  // useEffect(() => {
+  //   const fetchFarmerData = async () => {
+  //     try {
+  //       const response = await axios.get(`http://localhost:5000/farmer/${farmer_id}`);
+  //       if (response.data) {
+  //         const reviewsResponse = await axios.get(`http://localhost:5000/reviews/${farmer_id}`);
+  //         const averageRating = calculateAverageRating(reviewsResponse.data);
+  //         setFarmer({
+  //           ...response.data,
+  //           ratings: averageRating
+  //         });
+  //         await fetchReviews();
+  //       } else {
+  //         setLoadingError("Farmer data not found");
+  //       }
+  //     } catch (error) {
+  //       console.error("Error fetching farmer details:", error);
+  //       setLoadingError("Failed to load farmer details");
+  //     }
+  //   };
+  
+  //   fetchFarmerData();
+  
+  //   return () => {
+  //     setImagePreviews((prevPreviews) => {
+  //       prevPreviews.forEach((preview) => URL.revokeObjectURL(preview));
+  //       return [];
+  //     });
+  //   };
+  // }, [farmer_id, fetchReviews]);
+
   useEffect(() => {
     const fetchFarmerData = async () => {
+     
+  
       try {
-        const response = await axios.get(`http://localhost:5000/farmer/${farmer_id}`);
+        const response = await axios.get(`http://localhost:5000/farmer/${farmer_id}`, {
+          headers: {
+            "Authorization": `Bearer ${consumer?.token}`,
+          },
+        });
+  
         if (response.data) {
-          const reviewsResponse = await axios.get(`http://localhost:5000/reviews/${farmer_id}`);
+          const reviewsResponse = await axios.get(`http://localhost:5000/reviews/${farmer_id}`, {
+            headers: {
+              "Authorization": `Bearer ${consumer?.token}`,
+            },
+          });
+  
           const averageRating = calculateAverageRating(reviewsResponse.data);
           setFarmer({
             ...response.data,
-            ratings: averageRating
+            ratings: averageRating,
           });
-          await fetchReviews();
+  
+          await fetchReviews(); // if fetchReviews internally makes requests, make sure it also uses the token
         } else {
           setLoadingError("Farmer data not found");
         }
@@ -79,7 +123,7 @@ const FarmerDetails = () => {
       });
     };
   }, [farmer_id, fetchReviews]);
-
+  
   const handleImageChange = (e) => {
     if (e.target.files) {
       const files = Array.from(e.target.files);
