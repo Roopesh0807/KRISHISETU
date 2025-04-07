@@ -54,7 +54,13 @@ const Dashboard = () => {
   }
 
   try {
-    const response = await axios.get(`http://localhost:5000/api/getFarmerDetails?farmer_id=${farmer_id}`);
+    const response = await axios.get(`http://localhost:5000/api/getFarmerDetails?farmer_id=${farmer_id}`,
+    {
+     
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
     console.log("API Response:", response.data); // ✅ Logs the API response
 
     if (response.data.success) {

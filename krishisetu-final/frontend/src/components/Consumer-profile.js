@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import "./ConsumerProfile.css";
+import { useAuth } from '../context/AuthContext';
+
 
 const ConsumerProfile = () => {
   const { consumer_id } = useParams();
@@ -20,7 +22,7 @@ const ConsumerProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
+  const { consumer } = useAuth();
   useEffect(() => {
     if (!consumer_id) {
       setError("Consumer ID is missing.");
@@ -30,7 +32,13 @@ const ConsumerProfile = () => {
 
     const fetchProfile = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/consumer/${consumer_id}`);
+        const response = await fetch(`http://localhost:5000/api/consumer/${consumer_id}`, {
+          method: 'GET',
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${consumer?.token}`,
+          },
+        });
         if (!response.ok) {
           throw new Error(`Failed to fetch profile: ${response.statusText}`);
         }
@@ -90,6 +98,9 @@ const ConsumerProfile = () => {
       const response = await fetch(`http://localhost:5000/api/upload/${consumer_id}`, {
         method: "POST",
         body: formData,
+        headers: {
+          "Authorization": `Bearer ${consumer?.token}`
+        }
       });
   
       if (!response.ok) {
@@ -110,8 +121,11 @@ const ConsumerProfile = () => {
   
   const removePhoto = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/remove-photo/${profile.consumer_id}`, {
+       const response = await fetch(`http://localhost:5000/remove-photo/${profile.consumer_id}`, {
         method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${consumer?.token}`,
+        },
       });
   
       if (response.ok) {
@@ -135,9 +149,11 @@ const ConsumerProfile = () => {
       }
 
       const response = await fetch(`http://localhost:5000/api/consumerprofile/${consumer_id}`, {
+        "Authorization": `Bearer ${consumer?.token}`,
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${consumer?.token}`
         },
         body: JSON.stringify({
           address: profile.address,

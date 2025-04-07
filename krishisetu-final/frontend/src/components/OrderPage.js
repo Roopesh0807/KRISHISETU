@@ -84,7 +84,13 @@ const [editingRecipientId, setEditingRecipientId] = useState(null);
 
     const fetchConsumerProfile = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/consumerprofile/${consumer.consumer_id}`);
+        const response = await fetch(`http://localhost:5000/api/consumerprofile/${consumer.consumer_id}`,{
+          headers: {
+         
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${consumer?.token}`,
+          }
+        });
         if (!response.ok) throw new Error("Failed to fetch profile");
         const data = await response.json();
         setConsumerProfile(data);

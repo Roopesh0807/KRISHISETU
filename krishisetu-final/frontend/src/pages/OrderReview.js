@@ -21,8 +21,13 @@ const OrderReview = ({ isSidebarOpen }) => {
           throw new Error("Farmer ID is required. Please ensure you're logged in.");
         }
 
-        const response = await axios.get(`http://localhost:5000/api/farmer/orders/${farmer_id}`);
-        console.log("Orders response:", response.data); // Debug log
+        const response = await axios.get(`http://localhost:5000/api/farmer/orders/${farmer_id}`, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            
+          }
+        });        console.log("Orders response:", response.data); // Debug log
         setOrders(response.data);
         setError(null);
       } catch (err) {
