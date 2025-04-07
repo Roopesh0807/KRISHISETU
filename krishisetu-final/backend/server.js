@@ -1403,6 +1403,82 @@ app.get("/api/check-user-details", async (req, res) => {
   }
 });
 
+
+// Add these routes to your server.js
+
+// Get produces for a farmer and market type
+app.get("/api/produces", async (req, res) => {
+  const { farmer_id, market_type } = req.query;
+  
+  try {
+    const query = `
+      SELECT * FROM add_produce 
+      WHERE farmer_id = ? AND market_type = ?
+      ORDER BY produce_name
+    `;
+    const results = await queryDatabase(query, [farmer_id, market_type]);
+    res.json(results);
+  } catch (error) {
+    console.error("Error fetching produces:", error);
+    res.status(500).json({ error: "Failed to fetch produces" });
+  }
+});
+
+// Add new produce
+app.post("/api/produces", async (req, res) => {
+  const { farmer_id, farmer_name, produce_name, availability, price_per_kg, produce_type, market_type, email } = req.body;
+  
+  try {
+    const query = `
+      INSERT INTO add_produce 
+      (farmer_id, farmer_name, produce_name, availability, price_per_kg, produce_type, market_type, email)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+    await queryDatabase(query, [
+      farmer_id, farmer_name, produce_name, availability, price_per_kg, produce_type, market_type, email
+    ]);
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error adding produce:", error);
+    res.status(500).json({ error: "Failed to add produce" });
+  }
+});
+
+// Update produce
+app.put("/api/produces/:product_id", async (req, res) => {
+  const { product_id } = req.params;
+  const { produce_name, availability, price_per_kg, produce_type } = req.body;
+  
+  try {
+    const query = `
+      UPDATE add_produce 
+      SET produce_name = ?, availability = ?, price_per_kg = ?, produce_type = ?
+      WHERE product_id = ?
+    `;
+    await queryDatabase(query, [produce_name, availability, price_per_kg, produce_type, product_id]);
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error updating produce:", error);
+    res.status(500).json({ error: "Failed to update produce" });
+  }
+});
+
+// Delete produce
+app.delete("/api/produces/:product_id", async (req, res) => {
+  const { product_id } = req.params;
+  
+  try {
+    const query = "DELETE FROM add_produce WHERE product_id = ?";
+    await queryDatabase(query, [product_id]);
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting produce:", error);
+    res.status(500).json({ error: "Failed to delete produce" });
+  }
+});
+
+
+
 app.get("/farmer/:farmer_id", async (req, res) => {
   try {
     const { farmer_id } = req.params;
