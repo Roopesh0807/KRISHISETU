@@ -1,8 +1,16 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate , useLocation} from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import "./farmerDetails.css";
+import { faSpinner } from '@fortawesome/free-solid-svg-icons';
+
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { 
+ 
+  faHandshake,
+ 
+} from '@fortawesome/free-solid-svg-icons';
 
 
 import Farmer from "../assets/farmer.jpeg";
@@ -10,11 +18,16 @@ import Farmer from "../assets/farmer.jpeg";
 const FarmerDetails = () => {
   const { farmer_id } = useParams();
   const { consumer } = useAuth();
+  const location = useLocation();
   const navigate = useNavigate();
   const [farmer, setFarmer] = useState(null);
   const [loadingError, setLoadingError] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [showAddReviewForm, setShowAddReviewForm] = useState(false);
+  const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+   
+
   const [newReview, setNewReview] = useState({
     rating: "",
     comment: "",
@@ -139,6 +152,84 @@ const FarmerDetails = () => {
     }
   };
 
+  const handleBargainClick = async (farmer, product, e) => {
+    e.stopPropagation();
+    setError(null);
+    setIsLoading(true);
+  
+    try {
+      if (!consumer?.token) {
+        navigate('/loginpage', { state: { from: location.pathname } });
+        return;
+      }
+  
+      const quantity = 10;
+  
+      const response = await fetch('http://localhost:5000/api/create-bargain', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${consumer.token}`
+        },
+        body: JSON.stringify({
+          farmer_id: farmer.farmer_id,
+          initiator: "consumer",
+        })
+      });
+  
+      // const rawText = await response.text();
+      // console.log("🐞 Raw Response:", rawText);
+  
+      // if (!response.ok) {
+      //   throw new Error(`Server responded with ${response.status}: ${rawText}`);
+      // }
+  
+      // if (!rawText || rawText.trim() === "") {
+      //   throw new Error("Empty response received from server.");
+      // }
+  
+      // let data;
+      // try {
+      //   data = JSON.parse(rawText);
+      // } catch (err) {
+      //   console.error("❌ JSON Parse Error:", err.message);
+      //   setError("Server returned invalid JSON: " + err.message);
+      //   return;
+      // }
+      const text = await response.text();
+      console.log("📦 Raw Response Text:", text);
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (err) {
+        console.error("❌ Failed to parse JSON:", err);
+      }
+
+      console.log("📄 Parsed Data:", data);
+        
+      if (!data.bargainId) {
+        throw new Error("Missing bargainId in server response.");
+      }
+  
+      // ✅ Now navigate with data
+      navigate(`/bargain/${data.bargainId}`, {
+        state: {
+          product,
+          farmer,
+          quantity,
+          originalPrice: data.originalPrice,
+          isNewBargain: true
+        }
+      });
+  
+    } catch (error) {
+      console.error("🔥 Bargain initiation failed:", error.message);
+      setError(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
   const removeImage = (index) => {
     URL.revokeObjectURL(imagePreviews[index]);
     setImages(prev => prev.filter((_, i) => i !== index));
@@ -267,12 +358,21 @@ const FarmerDetails = () => {
             >
               ← Back to Dashboard
             </button>
-            <button
-              onClick={() => navigate(`/bargain/${farmer.farmer_id}`)}
-              className="action-button bargain-button"
-            >
-              Bargain Now
-            </button>
+          
+                              <button 
+                                onClick={(e) => handleBargainClick(farmer, farmer.products[0], e)} 
+                                className="ks-farmer-action-btn ks-bargain-btn"
+                                disabled={isLoading}
+                              >
+                                {isLoading ? (
+                                  <FontAwesomeIcon icon={faSpinner} spin />
+                                ) : (
+                                  <>
+                                    <FontAwesomeIcon icon={faHandshake} /> Bargain
+                                  </>
+                                )}
+                              </button>
+                            
           </div>
 
           {showAddReviewForm && (

@@ -621,14 +621,33 @@ const BargainChatWindow = () => {
   const [isTyping, setIsTyping] = useState(false);
 
   // Generate price suggestions based on current price
+  // const generatePriceSuggestions = useCallback((basePrice) => {
+  //   return [
+  //     { amount: -5, price: basePrice - 5, label: "Good Deal" },
+  //     { amount: -4, price: basePrice - 4, label: "Fair Offer" },
+  //     { amount: -3, price: basePrice - 3, label: "Small Discount" },
+  //     { amount: -2, price: basePrice - 2, label: "Small Increase" },
+  //     { amount: -1, price: basePrice - 1, label: "Fair Increase" }
+  //   ].filter(suggestion => suggestion.price > 0);
+  // }, []);
   const generatePriceSuggestions = useCallback((basePrice) => {
-    return [
-      { amount: -3, price: basePrice - 3, label: "Good Deal" },
-      { amount: -2, price: basePrice - 2, label: "Fair Offer" },
-      { amount: -1, price: basePrice - 1, label: "Small Discount" },
-      { amount: 1, price: basePrice + 1, label: "Small Increase" },
-      { amount: 2, price: basePrice + 2, label: "Fair Increase" }
-    ].filter(suggestion => suggestion.price > 0);
+    const suggestions = [];
+    
+    // Generate 6 suggestions, each ₹1 less than the previous
+    for (let i = 1; i <= 6; i++) {
+      const newPrice = basePrice - i;
+      if (newPrice > 0) { // Only include positive prices
+        suggestions.push({
+          amount: -i,
+          price: newPrice,
+          label: `₹${newPrice} (₹${i} less)`
+        });
+      } else {
+        break; // Stop if price would go below 0
+      }
+    }
+  
+    return suggestions;
   }, []);
 
   // Fetch messages from database
