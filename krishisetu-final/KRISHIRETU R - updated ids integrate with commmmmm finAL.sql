@@ -58,6 +58,27 @@ CREATE TABLE consumerregistration (
 );
 
 -- Trigger for Auto-Generating Consumer ID
+-- DELIMITER $$
+
+-- CREATE TRIGGER before_insert_consumer
+-- BEFORE INSERT ON consumerregistration
+-- FOR EACH ROW
+-- BEGIN
+--     DECLARE max_id INT DEFAULT 0;
+--     DECLARE next_id VARCHAR(15);
+
+--     -- Get the highest numeric part of consumer_id (e.g., 001 from 'KRST01CS001')
+--     SELECT IFNULL(MAX(CAST(SUBSTRING(consumer_id, 9) AS UNSIGNED)), 0) INTO max_id 
+--     FROM consumerregistration;
+
+--     -- Generate new consumer_id in the format 'KRST01CS001', 'KRST01CS002', etc.
+--     SET next_id = CONCAT('KRST01CS', LPAD(max_id + 1, 3, '0'));
+
+--     -- Assign the new consumer_id to the inserting row
+--     SET NEW.consumer_id = next_id;
+-- END $$
+
+-- DELIMITER ;
 DELIMITER $$
 
 CREATE TRIGGER before_insert_consumer
@@ -68,7 +89,8 @@ BEGIN
     DECLARE next_id VARCHAR(15);
 
     -- Get the highest numeric part of consumer_id (e.g., 001 from 'KRST01CS001')
-    SELECT IFNULL(MAX(CAST(SUBSTRING(consumer_id, 9) AS UNSIGNED)), 0) INTO max_id 
+    SELECT IFNULL(MAX(CAST(SUBSTRING(consumer_id, 9) AS UNSIGNED)), 0)
+    INTO max_id
     FROM consumerregistration;
 
     -- Generate new consumer_id in the format 'KRST01CS001', 'KRST01CS002', etc.
@@ -79,7 +101,6 @@ BEGIN
 END $$
 
 DELIMITER ;
-
 -- Insert Consumer Registration Data
 INSERT INTO consumerregistration (first_name, last_name, email, phone_number, password, confirm_password) 
 VALUES 
