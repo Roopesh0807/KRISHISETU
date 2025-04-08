@@ -1190,3 +1190,19 @@ BEGIN
 END $$
 
 DELIMITER ;
+
+INSERT INTO orderall (orderid, farmer_id, farmer_name, order_date, produce_name, quantity, amount, status, payment_status)
+VALUES 
+('ORD006', 'KRST01FR005', 'Deepika Mashetty', '2025-02-10', 'Chilies', 35, 210.00, 'Fulfilled', 'Paid');
+
+INSERT INTO orderall (orderid, farmer_id, farmer_name, order_date, produce_name, quantity, amount, status, payment_status)
+VALUES 
+('ORD007', 'KRST01FR005', 'Deepika Mashetty', '2025-02-11', 'Rice', 50, 400.00, 'Unfulfilled', 'Unpaid');
+
+INSERT INTO orderall (orderid, farmer_id, farmer_name, order_date, produce_name, quantity, amount, status, payment_status)
+VALUES 
+('ORD008', 'KRST01FR005', 'Deepika Mashetty', '2025-02-12', 'Corn', 40, 280.00, 'Fulfilled', 'Paid');
+
+INSERT INTO orderall (orderid, farmer_id, farmer_name, order_date, produce_name, quantity, amount, status, payment_status)
+VALUES 
+('ORD009', 'KRST01FR005', 'Deepika Mashetty', '2025-02-13', 'Brinjal', 20, 100.00, 'Unfulfilled', 'Paid');

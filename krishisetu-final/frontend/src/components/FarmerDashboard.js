@@ -248,23 +248,7 @@ useEffect(() => {
               </tbody>
             </table>
           </div>
-{/* Product Performance Overview Section */}
-<div className="product-performance">
-            <h3>{t("product performance overview")}</h3>
-            <div className="product-list">
-              {/* Example products with sales info */}
-              <div className="product-item">
-                <h4>Tomato</h4>
-                <p>{t("total sales")}: 500kg</p>
-                <p>{t("profit")}: ₹5000</p>
-              </div>
-              <div className="product-item">
-                <h4>Potato</h4>
-                <p>{t("total sales")}: 600kg</p>
-                <p>{t("profit")}: ₹4000</p>
-              </div>
-            </div>
-          </div>
+
         </div>
       </div>
     </div>

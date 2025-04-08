@@ -217,7 +217,7 @@ const FarmerDetails = () => {
             <img src={Farmer} alt="Farmer" className="farmer-image" />
             <div className="farmer-details">
               <h2>{farmer.farmer_name}</h2>
-              <p><span className="detail-label">Location:</span> {farmer.location || 'Not specified'}</p>
+              {/* <p><span className="detail-label">Location:</span> {farmer.location || 'Not specified'}</p> */}
               <p><span className="detail-label">Farming Method:</span> {farmer.produce_type || 'Organic'}</p>
               <div className="rating-container">
                 <span className="detail-label">Rating:</span>
