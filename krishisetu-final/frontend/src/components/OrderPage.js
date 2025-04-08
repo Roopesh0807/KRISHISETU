@@ -1015,6 +1015,8 @@ const KrishiOrderPage = () => {
 const [savedRecipientAddresses, setSavedRecipientAddresses] = useState([]);
 const [selectedRecipientAddress, setSelectedRecipientAddress] = useState(null);
 const [editingRecipientId, setEditingRecipientId] = useState(null);
+  const [error, setError] = useState(null);
+
 // const [showRecipientForm, setShowRecipientForm] = useState(false);
   const [newAddress, setNewAddress] = useState({
     pincode: "",
@@ -1048,10 +1050,28 @@ const [editingRecipientId, setEditingRecipientId] = useState(null);
     { code: "FARM50", discount: 50 },
   ];
 
-  const loadInstamojo = () => {
+  // const loadInstamojo = () => {
+  //   return new Promise((resolve) => {
+  //     const script = document.createElement('script');
+  //     script.src = 'https://js.instamojo.com/v1/checkout.js';
+  //     script.onload = () => {
+  //       resolve(true);
+  //     };
+  //     script.onerror = () => {
+  //       resolve(false);
+  //     };
+  //     document.body.appendChild(script);
+  //   });
+  // };
+
+  // const initializeInstamojo = async () => {
+  //   return await loadInstamojo();
+  // };
+
+  const loadRazorpayScript = () => {
     return new Promise((resolve) => {
       const script = document.createElement('script');
-      script.src = 'https://js.instamojo.com/v1/checkout.js';
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
       script.onload = () => {
         resolve(true);
       };
@@ -1062,9 +1082,8 @@ const [editingRecipientId, setEditingRecipientId] = useState(null);
     });
   };
 
-  // const initializeInstamojo = async () => {
-  //   return await loadInstamojo();
-  // };
+
+
 
   const processPayment = async (orderData) => {
     // const isInstamojoLoaded = await initializeInstamojo();
@@ -1115,11 +1134,11 @@ const [editingRecipientId, setEditingRecipientId] = useState(null);
 
       const paymentData = await response.json();
       
-      if (!paymentData.payment_request) {
-        alert('Failed to create payment request');
-        return;
-      }
-      await loadInstamojo();
+      // if (!paymentData.payment_request) {
+      //   alert('Failed to create payment request');
+      //   return;
+      // }
+      // await loadInstamojo();
       // Open Instamojo payment widget
       const options = {
         data: {
@@ -1377,66 +1396,117 @@ const [editingRecipientId, setEditingRecipientId] = useState(null);
   //     alert("Error placing order. Try again.");
   //   }
   // };
-  const handlePlaceOrder = async () => {
-    console.log("Current payment method:", paymentMethod); // Debug log
-    if (deliveryOption === "self" && !consumerprofile.address) {
-      alert("Please add an address.");
+  // 
+  
+
+// In OrderPage.js, update the handlePlaceOrder function:
+
+const handlePlaceOrder = async () => {
+  try {
+    // 1. Load Razorpay script
+    const isRazorpayLoaded = await loadRazorpayScript();
+    if (!isRazorpayLoaded) {
+      alert('Razorpay SDK failed to load. Are you online?');
       return;
     }
-  
-    if (deliveryOption === "other") {
-      // Check if using saved recipient or new one
-      if (selectedRecipientAddress) {
-        const recipientExists = savedRecipientAddresses.some(
-          addr => addr.id === selectedRecipientAddress
-        );
-        if (!recipientExists) {
-          alert("Selected recipient not found. Please select again.");
-          return;
-        }
-      } else {
-        // Creating new recipient - validate all fields
-        if (!recipientDetails.name || 
-            !recipientDetails.phone || 
-            !recipientDetails.pincode || 
-            !recipientDetails.city || 
-            !recipientDetails.state || 
-            !recipientDetails.street) {
-          alert("Please fill all recipient details or select a saved recipient.");
-          return;
-        }
-      }
+
+    // 2. Prepare order data (your existing code)
+    const orderData = {
+          consumer_id: consumerprofile.consumer_id,
+          name: consumerprofile.name,
+          mobile_number: consumerprofile.mobile_number,
+          email: consumerprofile.email,
+          produce_name: cart.map(p => p.product_name).join(", "),
+          quantity: cart.reduce((total, p) => total + p.quantity, 0),
+          amount: calculateFinalPrice(),
+          is_self_delivery: deliveryOption === "self",
+        };
+    
+          if (deliveryOption === "self") {
+            orderData.address = consumerprofile.address;
+            orderData.pincode = newAddress.pincode;
+          } else {
+            orderData.recipient_name = recipientDetails.name;
+            orderData.recipient_phone = recipientDetails.phone;
+            orderData.address = `${recipientDetails.street}, ${recipientDetails.landmark ? recipientDetails.landmark + ', ' : ''}${recipientDetails.city}, ${recipientDetails.state} - ${recipientDetails.pincode}`;
+            orderData.pincode = recipientDetails.pincode;
+          }
+
+    // 3. Create Razorpay order
+    const orderResponse = await fetch('http://localhost:5000/api/create-razorpay-order', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({
+        amount: orderData.amount,
+        currency: 'INR',
+        receipt: `order_${Date.now()}_${orderData.consumer_id}`
+      })
+    });
+
+    const orderResult = await orderResponse.json();
+    if (!orderResult.success) {
+      throw new Error('Failed to create payment order');
     }
-    try {
-      // Prepare the order data
-      const orderData = {
-        consumer_id: consumerprofile.consumer_id,
-        name: consumerprofile.name,
-        mobile_number: consumerprofile.mobile_number,
-        email: consumerprofile.email,
-        produce_name: cart.map(p => p.product_name).join(", "),
-        quantity: cart.reduce((total, p) => total + p.quantity, 0),
-        amount: calculateFinalPrice(),
-        is_self_delivery: deliveryOption === "self",
-        payment_method: paymentMethod // This is now properly included
-      };
-  
-      // Add recipient details if delivery is for someone else
-      if (deliveryOption === "other") {
-        const selectedRecipient = savedRecipientAddresses.find(
-          addr => addr.id === selectedRecipientAddress
-        );
-        
-        orderData.recipient_name = selectedRecipient ? selectedRecipient.name : recipientDetails.name;
-        orderData.recipient_phone = selectedRecipient ? selectedRecipient.phone : recipientDetails.phone;
-        orderData.address = selectedRecipient ? 
-          selectedRecipient.address : 
-          `${recipientDetails.street}, ${recipientDetails.landmark ? recipientDetails.landmark + ', ' : ''}${recipientDetails.city}, ${recipientDetails.state} - ${recipientDetails.pincode}`;
-      } else {
-        // Use consumer's own address
-        orderData.address = consumerprofile.address;
+
+    // 4. Open Razorpay checkout
+    const options = {
+      key: process.env.RAZORPAY_KEY_ID,
+      amount: orderResult.order.amount,
+      currency: orderResult.order.currency,
+      name: "KrishiSetu",
+      description: "Farm Fresh Order",
+      image: "/logo.png",
+      order_id: orderResult.order.id,
+      handler: async function(response) {
+        // Verify payment on your server
+        const verificationResponse = await fetch('http://localhost:5000/api/verify-razorpay-payment', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({
+            order_id: response.razorpay_order_id,
+            payment_id: response.razorpay_payment_id,
+            signature: response.razorpay_signature,
+            orderData: orderData
+          })
+        });
+
+        const verificationResult = await verificationResponse.json();
+        if (verificationResult.success) {
+          // Payment successful
+          setShowSuccessPopup(true);
+          localStorage.removeItem(`cart_${orderData.consumer_id}`);
+          setTimeout(() => navigate("/consumer-dashboard"), 3000);
+        } else {
+          alert('Payment verification failed. Please contact support.');
+        }
+      },
+      prefill: {
+        name: orderData.name,
+        email: orderData.email,
+        contact: orderData.mobile_number
+      },
+      notes: {
+        order: JSON.stringify(orderData)
+      },
+      theme: {
+        color: "#3399cc"
       }
-  
+    };
+
+    const rzp = new window.Razorpay(options);
+    rzp.open();
+  } catch (error) {
+    console.error('Order error:', error);
+    alert('Error processing payment. Please try again.');
+  }
+};
+
       // // Send the order to the backend
       // const response = await fetch("http://localhost:5000/api/place-order", {
       //   method: "POST",
@@ -1467,17 +1537,17 @@ const [editingRecipientId, setEditingRecipientId] = useState(null);
   //   }
   // };
      // For cash on delivery, skip payment gateway
-     if (paymentMethod === 'cash-on-delivery') {
-      await placeOrderDirectly(orderData);
-    } else {
-      // For other payment methods, use Instamojo
-      await processPayment(orderData);
-    }
-  } catch (error) {
-    console.error("Error placing order:", error);
-    alert("Error placing order. Try again.");
-  }
-};
+//      if (paymentMethod === 'cash-on-delivery') {
+//       await placeOrderDirectly(orderData);
+//     } else {
+//       // For other payment methods, use Instamojo
+//       await processPayment(orderData);
+//     }
+//   } catch (error) {
+//     console.error("Error placing order:", error);
+//     alert("Error placing order. Try again.");
+//   }
+// };
 
 
 

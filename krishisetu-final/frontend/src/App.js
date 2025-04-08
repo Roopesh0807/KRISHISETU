@@ -52,6 +52,10 @@ import MemberCommunityPage from './pages/MemberCommunityPage';
 import OrderPageC from './pages/OrderPage';
 import MemberOrderPage from "./pages/MemberOrderPage";
 
+// In your main App.js or routing file
+import PaymentSuccess from './components/PaymentSuccess';
+import PaymentFailed from './components/PaymentFailed';
+
 function App() {
   return (
     <ProductProvider>
@@ -189,6 +193,11 @@ const Main = () => {
           <Route path="/community-page/:communityId/member" element={<MemberCommunityPage />} />
           <Route path="/order/:communityId" element={<OrderPageC />} />
           <Route path="/community/:communityId/member/:memberId" element={<MemberOrderPage />} />
+
+
+          // Add these to your routes
+<Route path="/payment-success" element={<PaymentSuccess />} />
+<Route path="/payment-failed" element={<PaymentFailed />} />
 
 
 

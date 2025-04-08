@@ -5,7 +5,10 @@ const bodyParser = require('body-parser');
 const app = express();
 const session = require("express-session");
 const bcrypt = require("bcryptjs");
+const Razorpay = require('razorpay');
+const crypto = require('crypto');
 const jwt = require("jsonwebtoken");
+// const bodyParser = require('body-parser');
 const cookieParser = require("cookie-parser");
 const { queryDatabase } = require('./src/config/db');
 const http = require("http");
@@ -37,6 +40,13 @@ const multer = require("multer");
 const { authMiddleware } = require("./src/middlewares/authMiddleware"); // your renamed one
 
 
+//const Instamojo = require('instamojo-nodejs');
+const axios = require('axios');
+// Initialize Razorpay
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET
+});
 
 // ✅ PROPER CORS SETUP
 const corsOptions = {
@@ -735,7 +745,7 @@ app.use((req, res, next) => {
 
 // app.use(express.json());
 
-
+app.use(bodyParser.json());
 app.use('/api/bargain', require('./src/routes/bargainRoutes'));
 // Debugging Middleware for Logging Headers
 // app.use((req, res, next) => {
@@ -3627,74 +3637,202 @@ app.get('/create-bargain', (req, res) => {
 });
 // ... (other route imports and middleware above)
 
-// Add this after other route declarations but before error handlers
-app.post('/api/subscriptions', async (req, res) => {
-  const { consumer_id, subscription_type, product_id, product_name, quantity, price, start_date } = req.body;
+// // Add this after other route declarations but before error handlers
+// app.post('/api/subscriptions', async (req, res) => {
+//   const { consumer_id, subscription_type, product_id, product_name, quantity, price, start_date } = req.body;
   
-  try {
-      // Verify consumer exists
-      const consumerCheck = await queryDatabase(
-          "SELECT consumer_id FROM consumerregistration WHERE consumer_id = ?",
-          [consumer_id]
-      );
+//   try {
+//       // Verify consumer exists
+//       const consumerCheck = await queryDatabase(
+//           "SELECT consumer_id FROM consumerregistration WHERE consumer_id = ?",
+//           [consumer_id]
+//       );
       
-      if (consumerCheck.length === 0) {
-          return res.status(404).json({ success: false, message: "Consumer not found" });
-      }
+//       if (consumerCheck.length === 0) {
+//           return res.status(404).json({ success: false, message: "Consumer not found" });
+//       }
 
-      // Insert subscription into database
-      const result = await queryDatabase(
-          `INSERT INTO subscriptions 
-          (consumer_id, subscription_type, product_id, product_name, quantity, price, start_date)
-          VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          [consumer_id, subscription_type, product_id, product_name, quantity, price, start_date]
-      );
+//       // Insert subscription into database
+//       const result = await queryDatabase(
+//           `INSERT INTO subscriptions 
+//           (consumer_id, subscription_type, product_id, product_name, quantity, price, start_date)
+//           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+//           [consumer_id, subscription_type, product_id, product_name, quantity, price, start_date]
+//       );
 
-      if (result.affectedRows === 0) {
-          return res.status(400).json({ success: false, message: "Failed to create subscription" });
-      }
+//       if (result.affectedRows === 0) {
+//           return res.status(400).json({ success: false, message: "Failed to create subscription" });
+//       }
 
-      res.status(201).json({ 
-          success: true, 
-          message: "Subscription created successfully",
-          subscription_id: result.insertId
-      });
-  } catch (error) {
-      console.error("Error creating subscription:", error);
-      res.status(500).json({ success: false, message: "Internal server error" });
-  }
-});
+//       res.status(201).json({ 
+//           success: true, 
+//           message: "Subscription created successfully",
+//           subscription_id: result.insertId
+//       });
+//   } catch (error) {
+//       console.error("Error creating subscription:", error);
+//       res.status(500).json({ success: false, message: "Internal server error" });
+//   }
+// });
 
-app.get('/api/subscriptions/:consumer_id', async (req, res) => {
-  const { consumer_id } = req.params;
+// app.get('/api/subscriptions/:consumer_id', async (req, res) => {
+//   const { consumer_id } = req.params;
 
-  try {
-      // Verify consumer exists
-      const consumerCheck = await queryDatabase(
-          "SELECT consumer_id FROM consumerregistration WHERE consumer_id = ?",
-          [consumer_id]
-      );
+//   try {
+//       // Verify consumer exists
+//       const consumerCheck = await queryDatabase(
+//           "SELECT consumer_id FROM consumerregistration WHERE consumer_id = ?",
+//           [consumer_id]
+//       );
       
-      if (consumerCheck.length === 0) {
-          return res.status(404).json({ success: false, message: "Consumer not found" });
-      }
+//       if (consumerCheck.length === 0) {
+//           return res.status(404).json({ success: false, message: "Consumer not found" });
+//       }
 
-      const subscriptions = await queryDatabase(
-          `SELECT * FROM subscriptions 
-           WHERE consumer_id = ? 
-           ORDER BY start_date DESC`,
-          [consumer_id]
-      );
+//       const subscriptions = await queryDatabase(
+//           `SELECT * FROM subscriptions 
+//            WHERE consumer_id = ? 
+//            ORDER BY start_date DESC`,
+//           [consumer_id]
+//       );
 
-      res.json({ success: true, subscriptions });
-  } catch (error) {
-      console.error("Error fetching subscriptions:", error);
-      res.status(500).json({ success: false, message: "Internal server error" });
-  }
-});
+//       res.json({ success: true, subscriptions });
+//   } catch (error) {
+//       console.error("Error fetching subscriptions:", error);
+//       res.status(500).json({ success: false, message: "Internal server error" });
+//   }
+// });
 
 // ... (error handlers and server startup below)
+// Add these routes to server.js before the error handlers
 
+// Get subscriptions for a consumer
+app.get("/api/subscriptions/:consumer_id", verifyToken, async (req, res) => {
+  try {
+    const { consumer_id } = req.params;
+    
+    // Verify the consumer exists
+    const consumerCheck = await queryDatabase(
+      "SELECT consumer_id FROM consumerregistration WHERE consumer_id = ?",
+      [consumer_id]
+    );
+    
+    if (consumerCheck.length === 0) {
+      return res.status(404).json({ error: "Consumer not found" });
+    }
+
+    const subscriptions = await queryDatabase(
+      `SELECT 
+        subscription_id,
+        subscription_type,
+        product_id,
+        product_name,
+        quantity,
+        price,
+        start_date,
+        status
+       FROM subscriptions
+       WHERE consumer_id = ?
+       ORDER BY subscription_type, start_date DESC`,
+      [consumer_id]
+    );
+
+    res.json(subscriptions);
+  } catch (error) {
+    console.error("Error fetching subscriptions:", error);
+    res.status(500).json({ error: "Failed to fetch subscriptions" });
+  }
+});
+
+// Create new subscription
+app.post("/api/subscriptions", verifyToken, async (req, res) => {
+  try {
+    const { 
+      consumer_id,
+      subscription_type,
+      product_id,
+      product_name,
+      quantity,
+      price,
+      start_date
+    } = req.body;
+
+    // Validate required fields
+    if (!consumer_id || !subscription_type || !product_id || !product_name || 
+        !quantity || !price || !start_date) {
+      return res.status(400).json({ error: "All fields are required" });
+    }
+
+    // Insert new subscription
+    const result = await queryDatabase(
+      `INSERT INTO subscriptions (
+        consumer_id,
+        subscription_type,
+        product_id,
+        product_name,
+        quantity,
+        price,
+        start_date
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        consumer_id,
+        subscription_type,
+        product_id,
+        product_name,
+        quantity,
+        price,
+        start_date
+      ]
+    );
+
+    res.status(201).json({ 
+      success: true,
+      subscription_id: result.insertId
+    });
+  } catch (error) {
+    console.error("Error creating subscription:", error);
+    res.status(500).json({ error: "Failed to create subscription" });
+  }
+});
+
+// Update subscription
+app.put("/api/subscriptions/:subscription_id", verifyToken, async (req, res) => {
+  try {
+    const { subscription_id } = req.params;
+    const { quantity } = req.body;
+
+    if (!quantity || quantity < 1) {
+      return res.status(400).json({ error: "Valid quantity is required" });
+    }
+
+    await queryDatabase(
+      "UPDATE subscriptions SET quantity = ? WHERE subscription_id = ?",
+      [quantity, subscription_id]
+    );
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error updating subscription:", error);
+    res.status(500).json({ error: "Failed to update subscription" });
+  }
+});
+
+// Delete subscription
+app.delete("/api/subscriptions/:subscription_id", verifyToken, async (req, res) => {
+  try {
+    const { subscription_id } = req.params;
+    
+    await queryDatabase(
+      "DELETE FROM subscriptions WHERE subscription_id = ?",
+      [subscription_id]
+    );
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting subscription:", error);
+    res.status(500).json({ error: "Failed to delete subscription" });
+  }
+});
 
 
 app.get('/api/bargain/:bargainId', async (req, res) => {
@@ -4828,103 +4966,231 @@ app.post("/api/farmerprofile/:farmer_id/upload-file",
 //   }
 // });
 
-const paymentRoutes = require('./src/routes/payment'); // Assuming you put the route in routes/payment.js
+// const paymentRoutes = require('./src/routes/payment'); // Assuming you put the route in routes/payment.js
 
-app.use('/api', paymentRoutes);
-const axios = require('axios');
-// Instamojo API configuration
-const INSTAMOJO_API_KEY = process.env.INSTAMOJO_API_KEY || '37393680f8c2f74c4962a7128cd25ad9';
-const INSTAMOJO_AUTH_TOKEN = process.env.INSTAMOJO_AUTH_TOKEN || '371fd9a798b0bf71538b6e1a2603dced';
-const INSTAMOJO_BASE_URL = 'https://test.instamojo.com/api/1.1/'; // Use https://www.instamojo.com/api/1.1/ for live
-// Create Instamojo payment request
-app.post('/create-instamojo-payment', async (req, res) => {
+// app.use('/api', paymentRoutes);
+// const axios = require('axios');
+// // Instamojo API configuration
+// const INSTAMOJO_API_KEY = process.env.INSTAMOJO_API_KEY || '37393680f8c2f74c4962a7128cd25ad9';
+// const INSTAMOJO_AUTH_TOKEN = process.env.INSTAMOJO_AUTH_TOKEN || '371fd9a798b0bf71538b6e1a2603dced';
+// const INSTAMOJO_BASE_URL = 'https://test.instamojo.com/api/1.1/'; // Use https://www.instamojo.com/api/1.1/ for live
+// // Create Instamojo payment request
+// app.post('/create-instamojo-payment', async (req, res) => {
+//   try {
+//     const response = await axios.post(`${INSTAMOJO_BASE_URL}payment-requests/`, req.body, {
+//       headers: {
+//         'X-Api-Key': INSTAMOJO_API_KEY,
+//         'X-Auth-Token': INSTAMOJO_AUTH_TOKEN,
+//         'Content-Type': 'application/json'
+//       }
+//     });
+
+//     res.json(response.data);
+//   } catch (error) {
+//     console.error('Instamojo payment request error:', error.response?.data || error.message);
+//     res.status(500).json({ error: 'Failed to create payment request' });
+//   }
+// });
+
+// // Verify Instamojo payment
+// app.post('/api/verify-instamojo-payment', async (req, res) => {
+//   const { payment_id, payment_request_id, orderData } = req.body;
+
+//   try {
+//     // First verify the payment with Instamojo
+//     const response = await axios.get(`${INSTAMOJO_BASE_URL}payments/${payment_id}/`, {
+//       headers: {
+//         'X-Api-Key': INSTAMOJO_API_KEY,
+//         'X-Auth-Token': INSTAMOJO_AUTH_TOKEN
+//       }
+//     });
+
+//     const paymentDetails = response.data.payment;
+
+//     if (paymentDetails.status === 'Credit' && paymentDetails.payment_request.id === payment_request_id) {
+//       // Payment is successful, create your order
+//       const query = `
+//         INSERT INTO placeorder (
+//           consumer_id, name, mobile_number, email, produce_name, 
+//           quantity, amount, status, payment_status, payment_method,
+//           instamojo_payment_id, instamojo_payment_request_id, is_self_delivery,
+//           recipient_name, recipient_phone, address
+//         )
+//         VALUES (?, ?, ?, ?, ?, ?, ?, 'Confirmed', 'Paid', ?, ?, ?, ?, ?, ?, ?)
+//       `;
+
+//       await queryDatabase(query, [
+//         orderData.consumer_id,
+//         orderData.name,
+//         orderData.mobile_number,
+//         orderData.email,
+//         orderData.produce_name,
+//         orderData.quantity,
+//         orderData.amount,
+//         orderData.payment_method,
+//         paymentDetails.id,
+//         paymentDetails.payment_request.id,
+//         orderData.is_self_delivery,
+//         orderData.recipient_name || null,
+//         orderData.recipient_phone || null,
+//         orderData.address
+//       ]);
+
+//       res.json({ success: true });
+//     } else {
+//       res.status(400).json({ error: 'Payment verification failed' });
+//     }
+//   } catch (error) {
+//     console.error('Payment verification error:', error.response?.data || error.message);
+//     res.status(500).json({ error: 'Payment verification failed' });
+//   }
+// });
+
+// // Instamojo webhook handler
+// app.post('/api/instamojo-webhook', async (req, res) => {
+//   try {
+//     const { payment_id, payment_request_id, status } = req.body;
+
+//     if (status === 'Credit') {
+//       // Update your database with payment confirmation
+//       await queryDatabase(
+//         'UPDATE placeorder SET payment_status = ? WHERE instamojo_payment_id = ?',
+//         ['Paid', payment_id]
+//       );
+//     }
+
+//     res.status(200).send('OK');
+//   } catch (error) {
+//     console.error('Webhook error:', error);
+//     res.status(500).send('Error processing webhook');
+//   }
+// });
+
+
+// // Instamojo Configuration
+// const INSTAMOJO_CONFIG = {
+//   BASE_URL: process.env.INSTAMOJO_BASE_URL || 'https://test.instamojo.com/v2/',
+//   API_KEY: process.env.INSTAMOJO_API_KEY,
+//   AUTH_TOKEN: process.env.INSTAMOJO_AUTH_TOKEN
+// };
+
+// //Create Payment Request
+// app.post('/api/create-instamojo-payment', async (req, res) => {
+//   try {
+//     const { amount, purpose, buyer_name, email, phone, orderData } = req.body;
+
+//     // Validate required fields
+//     if (!amount || !purpose || !buyer_name || !email || !phone) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Missing required payment fields"
+//       });
+//     }
+
+//     // Create payment request payload
+//     const payload = {
+//       purpose: purpose,
+//       amount: amount,
+//       buyer_name: buyer_name,
+//       email: email,
+//       phone: phone,
+//       redirect_url: "http://localhost:3000/payment-success",
+//       webhook: "http://localhost:5000/api/instamojo-webhook",
+//       allow_repeated_payments: false,
+//       send_email: false,
+//       send_sms: false
+//     };
+
+// // Make API call to Instamojo
+// const response = await axios.post(
+//   `${INSTAMOJO_CONFIG.BASE_URL}payment_requests/`,
+//   payload,
+//   {
+//     headers: {
+//       'X-Api-Key': INSTAMOJO_CONFIG.API_KEY,
+//       'X-Auth-Token': INSTAMOJO_CONFIG.AUTH_TOKEN,
+//       'Content-Type': 'application/json'
+//     }
+//   }
+// );
+
+// // Here you would typically save the payment request to your database
+// // For example:
+// // await savePaymentRequestToDB(response.data.id, orderData);
+
+// res.json({
+//   success: true,
+//   payment_request: response.data
+// });
+// } catch (error) {
+// console.error("Payment error:", error.response?.data || error.message);
+// res.status(500).json({
+//   success: false,
+//   message: "Payment creation failed",
+//   error: error.response?.data || error.message
+// });
+// }
+// });
+
+// Create Order Endpoint
+app.post('/api/create-razorpay-order', async (req, res) => {
   try {
-    const response = await axios.post(`${INSTAMOJO_BASE_URL}payment-requests/`, req.body, {
-      headers: {
-        'X-Api-Key': INSTAMOJO_API_KEY,
-        'X-Auth-Token': INSTAMOJO_AUTH_TOKEN,
-        'Content-Type': 'application/json'
-      }
-    });
+    const { amount, currency, receipt } = req.body;
+    
+    const options = {
+      amount: amount * 100, // Razorpay expects amount in paise
+      currency: currency || 'INR',
+      receipt: receipt || 'order_' + Date.now()
+    };
 
-    res.json(response.data);
+    const order = await razorpay.orders.create(options);
+    
+    res.json({
+      success: true,
+      order
+    });
   } catch (error) {
-    console.error('Instamojo payment request error:', error.response?.data || error.message);
-    res.status(500).json({ error: 'Failed to create payment request' });
+    console.error('Razorpay order error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create order'
+    });
   }
 });
 
-// Verify Instamojo payment
-app.post('/api/verify-instamojo-payment', async (req, res) => {
-  const { payment_id, payment_request_id, orderData } = req.body;
-
+// Verify Payment Endpoint
+app.post('/api/verify-razorpay-payment', async (req, res) => {
   try {
-    // First verify the payment with Instamojo
-    const response = await axios.get(`${INSTAMOJO_BASE_URL}payments/${payment_id}/`, {
-      headers: {
-        'X-Api-Key': INSTAMOJO_API_KEY,
-        'X-Auth-Token': INSTAMOJO_AUTH_TOKEN
-      }
-    });
+    const { order_id, payment_id, signature } = req.body;
+    
+    const generated_signature = crypto
+      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+      .update(order_id + "|" + payment_id)
+      .digest('hex');
 
-    const paymentDetails = response.data.payment;
-
-    if (paymentDetails.status === 'Credit' && paymentDetails.payment_request.id === payment_request_id) {
-      // Payment is successful, create your order
-      const query = `
-        INSERT INTO placeorder (
-          consumer_id, name, mobile_number, email, produce_name, 
-          quantity, amount, status, payment_status, payment_method,
-          instamojo_payment_id, instamojo_payment_request_id, is_self_delivery,
-          recipient_name, recipient_phone, address
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, 'Confirmed', 'Paid', ?, ?, ?, ?, ?, ?, ?)
-      `;
-
-      await queryDatabase(query, [
-        orderData.consumer_id,
-        orderData.name,
-        orderData.mobile_number,
-        orderData.email,
-        orderData.produce_name,
-        orderData.quantity,
-        orderData.amount,
-        orderData.payment_method,
-        paymentDetails.id,
-        paymentDetails.payment_request.id,
-        orderData.is_self_delivery,
-        orderData.recipient_name || null,
-        orderData.recipient_phone || null,
-        orderData.address
-      ]);
-
-      res.json({ success: true });
+    if (generated_signature === signature) {
+      // Payment is successful
+      // Here you would typically:
+      // 1. Save payment details to your database
+      // 2. Create the order in your system
+      // 3. Send confirmation email, etc.
+      
+      res.json({
+        success: true,
+        message: 'Payment verified successfully'
+      });
     } else {
-      res.status(400).json({ error: 'Payment verification failed' });
+      res.status(400).json({
+        success: false,
+        message: 'Payment verification failed'
+      });
     }
   } catch (error) {
-    console.error('Payment verification error:', error.response?.data || error.message);
-    res.status(500).json({ error: 'Payment verification failed' });
-  }
-});
-
-// Instamojo webhook handler
-app.post('/api/instamojo-webhook', async (req, res) => {
-  try {
-    const { payment_id, payment_request_id, status } = req.body;
-
-    if (status === 'Credit') {
-      // Update your database with payment confirmation
-      await queryDatabase(
-        'UPDATE placeorder SET payment_status = ? WHERE instamojo_payment_id = ?',
-        ['Paid', payment_id]
-      );
-    }
-
-    res.status(200).send('OK');
-  } catch (error) {
-    console.error('Webhook error:', error);
-    res.status(500).send('Error processing webhook');
+    console.error('Payment verification error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Payment verification failed'
+    });
   }
 });
 
@@ -4932,6 +5198,81 @@ app.post('/api/instamojo-webhook', async (req, res) => {
 
 
 
+
+
+// // Payment Webhook
+// app.post('/api/instamojo-webhook', async (req, res) => {
+//   try {
+//     const { payment_request_id, payment_id } = req.body;
+
+//     // Verify payment with Instamojo
+//     const verification = await axios.get(
+//       `${INSTAMOJO_CONFIG.BASE_URL}payment_requests/${payment_request_id}/${payment_id}/`,
+//       {
+//         headers: {
+//           'X-Api-Key': INSTAMOJO_CONFIG.API_KEY,
+//           'X-Auth-Token': INSTAMOJO_CONFIG.AUTH_TOKEN
+//         }
+//       }
+//     );
+
+//     if (verification.data.payment.status !== 'Credit') {
+//       return res.status(400).json({ success: false, message: "Payment not completed" });
+//     }
+
+//     // Here you would typically:
+//     // 1. Update payment status in your database
+//     // 2. Create the order in your system
+//     // 3. Send confirmation email, etc.
+
+//     res.status(200).json({ success: true });
+//   } catch (error) {
+//     console.error("Webhook error:", error.response?.data || error.message);
+//     res.status(500).json({ success: false, message: "Webhook processing failed" });
+//   }
+// });
+
+// // Verify Payment
+// app.post('/api/verify-instamojo-payment', async (req, res) => {
+//   try {
+//     const { payment_request_id, payment_id } = req.body;
+
+//     // Verify payment with Instamojo
+//     const verification = await axios.get(
+//       `${INSTAMOJO_CONFIG.BASE_URL}payment_requests/${payment_request_id}/${payment_id}/`,
+//       {
+//         headers: {
+//           'X-Api-Key': INSTAMOJO_CONFIG.API_KEY,
+//           'X-Auth-Token': INSTAMOJO_CONFIG.AUTH_TOKEN
+//         }
+//       }
+//     );
+
+//     if (verification.data.payment.status !== 'Credit') {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Payment verification failed"
+//       });
+//     }
+
+    // Here you would typically:
+    // 1. Update payment status in your database
+    // 2. Create the order in your system
+    // 3. Send confirmation email, etc.
+
+//     res.json({
+//       success: true,
+//       message: "Payment verified successfully"
+//     });
+//   } catch (error) {
+//     console.error("Verification error:", error.response?.data || error.message);
+//     res.status(500).json({
+//       success: false,
+//       message: "Payment verification failed",
+//       error: error.response?.data || error.message
+//     });
+//   }
+// });
 
 
 
