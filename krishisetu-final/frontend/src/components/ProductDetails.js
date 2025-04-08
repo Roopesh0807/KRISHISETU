@@ -284,13 +284,13 @@ const ProductDetails = () => {
     navigate("/cart");
   };
 
-  // const getImagePath = (productName) => {
-  //   return `/images/${productName.toLowerCase().replace(/\s+/g, '-')}.jpg`;
-  // };
   const getImagePath = (productName) => {
-    if (!productName) return '/images/default.jpg'; // fallback image
     return `/images/${productName.toLowerCase().replace(/\s+/g, '-')}.jpg`;
   };
+  // const getImagePath = (productName) => {
+  //   if (!productName) return '/images/default.jpg'; // fallback image
+  //   return `/images/${productName.toLowerCase().replace(/\s+/g, '-')}.jpg`;
+  // };
   
 
   const handleIncrease = () => {

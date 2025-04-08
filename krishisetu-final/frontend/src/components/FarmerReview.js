@@ -4,10 +4,33 @@ import { AuthContext } from "../context/AuthContext";
 import "./FarmerReview.css";
 
 const FarmerReview = () => {
-    const { user } = useContext(AuthContext);
+    const { user , consumer} = useContext(AuthContext);
     const loggedInFarmerId = user?.farmer_id;
     const [reviews, setReviews] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+
+    // useEffect(() => {
+    //     const fetchReviews = async () => {
+    //         if (!loggedInFarmerId) {
+    //             setIsLoading(false);
+    //             return;
+    //         }
+
+    //         try {
+    //             setIsLoading(true);
+    //             const response = await fetch(`/api/reviews/farmer/${loggedInFarmerId}`);
+    //             const data = await response.json();
+    //             setReviews(data);
+    //         } catch (error) {
+    //             console.error("Error fetching reviews:", error);
+    //         } finally {
+    //             setIsLoading(false);
+    //         }
+    //     };
+
+    //     fetchReviews();
+    // }, [loggedInFarmerId]);
+
 
     useEffect(() => {
         const fetchReviews = async () => {
@@ -15,10 +38,25 @@ const FarmerReview = () => {
                 setIsLoading(false);
                 return;
             }
-
+    
             try {
                 setIsLoading(true);
-                const response = await fetch(`/api/reviews/farmer/${loggedInFarmerId}`);
+    
+                // Get token from localStorage (or sessionStorage if you're using that)
+                // const token = localStorage.getItem("token");
+    
+                const response = await fetch(`/api/reviews/farmer/${loggedInFarmerId}`, {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${consumer.token}`
+                    }
+                });
+    
+                if (!response.ok) {
+                    throw new Error("Failed to fetch reviews");
+                }
+    
                 const data = await response.json();
                 setReviews(data);
             } catch (error) {
@@ -27,10 +65,10 @@ const FarmerReview = () => {
                 setIsLoading(false);
             }
         };
-
+    
         fetchReviews();
     }, [loggedInFarmerId]);
-
+    
     return (
         <>
             
