@@ -1,8 +1,16 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate , useLocation} from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import "./farmerDetails.css";
+import { faSpinner } from '@fortawesome/free-solid-svg-icons';
+
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { 
+ 
+  faHandshake,
+ 
+} from '@fortawesome/free-solid-svg-icons';
 
 
 import Farmer from "../assets/farmer.jpeg";
@@ -10,11 +18,16 @@ import Farmer from "../assets/farmer.jpeg";
 const FarmerDetails = () => {
   const { farmer_id } = useParams();
   const { consumer } = useAuth();
+  const location = useLocation();
   const navigate = useNavigate();
   const [farmer, setFarmer] = useState(null);
   const [loadingError, setLoadingError] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [showAddReviewForm, setShowAddReviewForm] = useState(false);
+  const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+   
+
   const [newReview, setNewReview] = useState({
     rating: "",
     comment: "",
@@ -139,12 +152,135 @@ const FarmerDetails = () => {
     }
   };
 
+  const handleBargainClick = async (farmer, product, e) => {
+    e.stopPropagation();
+    setError(null);
+    setIsLoading(true);
+  
+    try {
+      if (!consumer?.token) {
+        navigate('/loginpage', { state: { from: location.pathname } });
+        return;
+      }
+  
+      const quantity = 10;
+  
+      const response = await fetch('http://localhost:5000/api/create-bargain', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${consumer.token}`
+        },
+        body: JSON.stringify({
+          farmer_id: farmer.farmer_id,
+          initiator: "consumer",
+        })
+      });
+  
+      // const rawText = await response.text();
+      // console.log("🐞 Raw Response:", rawText);
+  
+      // if (!response.ok) {
+      //   throw new Error(`Server responded with ${response.status}: ${rawText}`);
+      // }
+  
+      // if (!rawText || rawText.trim() === "") {
+      //   throw new Error("Empty response received from server.");
+      // }
+  
+      // let data;
+      // try {
+      //   data = JSON.parse(rawText);
+      // } catch (err) {
+      //   console.error("❌ JSON Parse Error:", err.message);
+      //   setError("Server returned invalid JSON: " + err.message);
+      //   return;
+      // }
+      const text = await response.text();
+      console.log("📦 Raw Response Text:", text);
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (err) {
+        console.error("❌ Failed to parse JSON:", err);
+      }
+
+      console.log("📄 Parsed Data:", data);
+        
+      if (!data.bargainId) {
+        throw new Error("Missing bargainId in server response.");
+      }
+  
+      // ✅ Now navigate with data
+      navigate(`/bargain/${data.bargainId}`, {
+        state: {
+          product,
+          farmer,
+          quantity,
+          originalPrice: data.originalPrice,
+          isNewBargain: true
+        }
+      });
+  
+    } catch (error) {
+      console.error("🔥 Bargain initiation failed:", error.message);
+      setError(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
   const removeImage = (index) => {
     URL.revokeObjectURL(imagePreviews[index]);
     setImages(prev => prev.filter((_, i) => i !== index));
     setImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
   
+  // const handleAddReview = async () => {
+  //   if (!consumer) {
+  //     alert("Please login to submit a review");
+  //     navigate("/consumer-login");
+  //     return;
+  //   }
+  
+  //   if (!newReview.rating || !newReview.comment) {
+  //     alert("Please fill all required fields");
+  //     return;
+  //   }
+  
+  //   if (!farmer_id || farmer_id === '0') {
+  //     alert("Invalid farmer selection");
+  //     return;
+  //   }
+    
+  //   const formData = new FormData();
+  //   formData.append("farmer_id", farmer_id);
+  //   formData.append("consumer_id", consumer.consumer_id);
+  //   formData.append("consumer_name", consumer.full_name || "Anonymous");
+  //   formData.append("rating", newReview.rating);
+  //   formData.append("comment", newReview.comment);
+  //   images.forEach((image) => formData.append("images", image));
+
+  //   try {
+  //     await axios.post("http://localhost:5000/reviews", formData, {
+  //       headers: { "Authorization": `Bearer ${consumer?.token}`,
+  //                  "Content-Type": "multipart/form-data" 
+                   
+  //       },
+      
+  //     });
+
+  //     setNewReview({ consumer_name: consumer.name, rating: "", comment: "" });
+  //     setImages([]);
+  //     setImagePreviews([]);
+  //     setShowAddReviewForm(false);
+  //     await fetchReviews();
+  //     alert("✅ Review added successfully!");
+  //   } catch (error) {
+  //     console.error("Error adding review:", error);
+  //     alert("Failed to add review. Please try again.");
+  //   }
+  // };
   const handleAddReview = async () => {
     if (!consumer) {
       alert("Please login to submit a review");
@@ -169,28 +305,36 @@ const FarmerDetails = () => {
     formData.append("rating", newReview.rating);
     formData.append("comment", newReview.comment);
     images.forEach((image) => formData.append("images", image));
-
+  
     try {
-      await axios.post("http://localhost:5000/reviews", formData, {
-        headers: { "Authorization": `Bearer ${consumer?.token}`,
-                   "Content-Type": "multipart/form-data" 
-                   
+      const response = await axios.post("http://localhost:5000/reviews", formData, {
+        headers: { 
+          "Authorization": `Bearer ${consumer?.token}`,
+          "Content-Type": "multipart/form-data" 
         },
-      
       });
-
+  
+      // Update the reviews state with the new review
+      setReviews(prevReviews => [response.data, ...prevReviews]);
+      
+      // Update the average rating
+      const avgRating = calculateAverageRating([response.data, ...reviews]);
+      setFarmer(prevFarmer => ({
+        ...prevFarmer,
+        ratings: avgRating
+      }));
+  
       setNewReview({ consumer_name: consumer.name, rating: "", comment: "" });
       setImages([]);
       setImagePreviews([]);
       setShowAddReviewForm(false);
-      await fetchReviews();
+      
       alert("✅ Review added successfully!");
     } catch (error) {
       console.error("Error adding review:", error);
       alert("Failed to add review. Please try again.");
     }
   };
-
   if (!farmer) {
     return (
       <div className="loading-container">
@@ -267,12 +411,21 @@ const FarmerDetails = () => {
             >
               ← Back to Dashboard
             </button>
-            <button
-              onClick={() => navigate(`/bargain/${farmer.farmer_id}`)}
-              className="action-button bargain-button"
-            >
-              Bargain Now
-            </button>
+          
+                              <button 
+                                onClick={(e) => handleBargainClick(farmer, farmer.products[0], e)} 
+                                className="ks-farmer-action-btn ks-bargain-btn"
+                                disabled={isLoading}
+                              >
+                                {isLoading ? (
+                                  <FontAwesomeIcon icon={faSpinner} spin />
+                                ) : (
+                                  <>
+                                    <FontAwesomeIcon icon={faHandshake} /> Bargain
+                                  </>
+                                )}
+                              </button>
+                            
           </div>
 
           {showAddReviewForm && (
@@ -393,25 +546,33 @@ const FarmerDetails = () => {
                     <p className="review-comment">{review.comment}</p>
                     {review.image_urls?.length > 0 && (
                       <div className="review-images">
-                        {review.image_urls.map((imgPath, i) => (
-                          <div key={i} className="review-image-container">
-                            <img
-                              src={`http://localhost:5000${imgPath}`}
-                              alt={`Review image ${i + 1}`}
-                              style={{
-                                width: "100px",
-                                height: "100px",
-                                objectFit: "cover",
-                                borderRadius: "8px",
-                                border: "1px solid #ccc"
-                              }}
-                              onError={(e) => {
-                                e.target.onerror = null; // Prevent infinite loop
-                                e.target.src = '/default-image.png'; // Fallback image
-                              }}
-                            />
-                          </div>
-                        ))}
+                        {review.image_urls.map((imgPath, i) => {
+                          // Handle both full URLs and relative paths
+                          let imgUrl = imgPath;
+                          if (!imgPath.startsWith('http') && !imgPath.startsWith('/uploads')) {
+                            imgUrl = `/uploads/${imgPath}`;
+                          }
+                          return (
+                            <div key={i} className="review-image-container">
+                              <img
+                                  src={`http://localhost:5000${imgPath}`}
+                                  alt={`Review image ${i + 1}`}
+                                  onError={(e) => {
+                                    e.target.onerror = null;
+                                    e.target.src = 'https://via.placeholder.com/100?text=Not+Found'; // temporary fallback
+                                  }}
+                                  style={{
+                                    width: "100px",
+                                    height: "100px",
+                                    objectFit: "cover",
+                                    borderRadius: "8px",
+                                    border: "1px solid #ccc"
+                                  }}
+                                />
+
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>

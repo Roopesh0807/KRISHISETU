@@ -1,137 +1,183 @@
 import React, { useEffect, useState, useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
-
 import "./FarmerReview.css";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const FarmerReview = () => {
-    const { user , consumer} = useContext(AuthContext);
-    const loggedInFarmerId = user?.farmer_id;
+    const { farmer, logout } = useContext(AuthContext);
+    const navigate = useNavigate();
     const [reviews, setReviews] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-    // useEffect(() => {
-    //     const fetchReviews = async () => {
-    //         if (!loggedInFarmerId) {
-    //             setIsLoading(false);
-    //             return;
-    //         }
-
-    //         try {
-    //             setIsLoading(true);
-    //             const response = await fetch(`/api/reviews/farmer/${loggedInFarmerId}`);
-    //             const data = await response.json();
-    //             setReviews(data);
-    //         } catch (error) {
-    //             console.error("Error fetching reviews:", error);
-    //         } finally {
-    //             setIsLoading(false);
-    //         }
-    //     };
-
-    //     fetchReviews();
-    // }, [loggedInFarmerId]);
-
+    // Debug farmer authentication status
+    console.log("Current farmer auth status:", {
+        isAuthenticated: !!farmer,
+        farmerId: farmer?.farmer_id,
+        hasToken: !!farmer?.token
+    });
 
     useEffect(() => {
         const fetchReviews = async () => {
-            if (!loggedInFarmerId) {
-                setIsLoading(false);
-                return;
-            }
-    
             try {
-                setIsLoading(true);
-    
-                // Get token from localStorage (or sessionStorage if you're using that)
-                // const token = localStorage.getItem("token");
-    
-                const response = await fetch(`/api/reviews/farmer/${loggedInFarmerId}`, {
-                    method: "GET",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${consumer.token}`
-                    }
-                });
-    
-                if (!response.ok) {
-                    throw new Error("Failed to fetch reviews");
+                // 1. Validate farmer authentication
+                if (!farmer || !farmer.farmer_id || !farmer.token) {
+                    console.warn("Farmer not properly authenticated", farmer);
+                    setError("Please log in as a farmer");
+                    setIsLoading(false);
+                    return;
                 }
-    
-                const data = await response.json();
-                setReviews(data);
+
+                setIsLoading(true);
+                setError(null);
+
+                console.log(`Fetching reviews for farmer ID: ${farmer.farmer_id}`);
+                
+                // 2. Make authenticated request
+                const response = await axios.get(
+                    `http://localhost:5000/reviews/${farmer.farmer_id}`,
+                    {
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Authorization": `Bearer ${farmer.token}`,
+                        },
+                    }
+                );
+
+                console.log("Received reviews:", response.data);
+                setReviews(response.data || []);
             } catch (error) {
-                console.error("Error fetching reviews:", error);
+                console.error("Failed to fetch reviews:", error);
+                
+                // Handle specific error cases
+                if (error.response?.status === 401) {
+                    setError("Session expired. Please log in again.");
+                    logout();
+                    setTimeout(() => navigate("/farmer-login"), 2000);
+                } else {
+                    setError(error.response?.data?.error || "Failed to load reviews");
+                }
             } finally {
                 setIsLoading(false);
             }
         };
-    
+
         fetchReviews();
-    }, [loggedInFarmerId]);
-    
-    return (
-        <>
-            
-            <div className="farmer-reviews-container">
-                <div className="farmer-reviews">
-                    <div className="reviews-header">
-                        <h2 className="section-title">
-                            <span className="title-icon">📝</span> Customer Reviews
-                            {reviews.length > 0 && <span className="review-count">{reviews.length} reviews</span>}
-                        </h2>
-                    </div>
-                    
-                    {isLoading ? (
-                        <div className="loading-spinner">
-                            <div className="spinner"></div>
-                            <p>Loading reviews...</p>
-                        </div>
-                    ) : reviews.length > 0 ? (
-                        <div className="reviews-list">
-                            {reviews.map((review, index) => (
-                                <div key={index} className="review-card">
-                                    <div className="reviewer-info">
-                                        <div className="reviewer-avatar">
-                                            {review.consumer_name.charAt(0).toUpperCase()}
-                                        </div>
-                                        <div className="reviewer-main">
-                                            <div className="reviewer-top">
-                                                <h3 className="reviewer-name">{review.consumer_name}</h3>
-                                                <div className="rating">
-                                                    {Array(5).fill(0).map((_, i) => (
-                                                        <span 
-                                                            key={i} 
-                                                            className={i < review.rating ? "star-filled" : "star-empty"}
-                                                        >
-                                                            ★
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                            {review.created_at && (
-                                                <span className="review-date">
-                                                    {new Date(review.created_at).toLocaleDateString('en-US', {
-                                                        year: 'numeric',
-                                                        month: 'short',
-                                                        day: 'numeric'
-                                                    })}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <p className="review-comment">{review.comment}</p>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="no-reviews">
-                            <img src="/images/no-reviews.svg" alt="No reviews" className="no-reviews-img" />
-                            <p>No reviews yet. Your customers haven't left any feedback.</p>
-                        </div>
+    }, [farmer, navigate, logout]);
+
+    // Helper function to create image URLs
+    const createImageUrl = (imgPath) => {
+        if (!imgPath) return "";
+        if (imgPath.startsWith("http")) return imgPath;
+        if (imgPath.startsWith("uploads/")) return `http://localhost:5000/${imgPath}`;
+        if (imgPath.startsWith("/uploads")) return `http://localhost:5000${imgPath}`;
+        return `http://localhost:5000/uploads/${imgPath}`;
+    };
+
+    // Render loading state
+    if (isLoading) {
+        return (
+            <div className="loading-spinner">
+                <div className="spinner"></div>
+                <p>Loading your reviews...</p>
+            </div>
+        );
+    }
+
+    // Render error state
+    if (error) {
+        return (
+            <div className="error-container">
+                <h2>Error</h2>
+                <p>{error}</p>
+                <div className="error-actions">
+                    <button onClick={() => window.location.reload()}>
+                        Retry
+                    </button>
+                    {error.includes("log in") && (
+                        <button 
+                            onClick={() => navigate("/farmer-login")}
+                            className="login-button"
+                        >
+                            Go to Login
+                        </button>
                     )}
                 </div>
             </div>
-        </>
+        );
+    }
+
+    // Main content
+    return (
+        <div className="farmer-reviews-container">
+            <div className="farmer-reviews">
+                <div className="reviews-header">
+                    <h2>
+                        <span>📝</span> Your Customer Reviews
+                        {reviews.length > 0 && (
+                            <span className="review-count">
+                                ({reviews.length})
+                            </span>
+                        )}
+                    </h2>
+                </div>
+
+                {reviews.length > 0 ? (
+                    <div className="reviews-list">
+                        {reviews.map((review) => (
+                            <div key={review.review_id} className="review-card">
+                                <div className="reviewer-info">
+                                    <div className="reviewer-avatar">
+                                        {review.consumer_name?.charAt(0)?.toUpperCase() || 'C'}
+                                    </div>
+                                    <div className="reviewer-details">
+                                        <h3>{review.consumer_name || "Anonymous"}</h3>
+                                        <div className="rating">
+                                            {[1, 2, 3, 4, 5].map((star) => (
+                                                <span
+                                                    key={star}
+                                                    className={star <= review.rating ? "filled" : ""}
+                                                >
+                                                    ★
+                                                </span>
+                                            ))}
+                                        </div>
+                                        <span className="review-date">
+                                            {new Date(review.created_at).toLocaleDateString()}
+                                        </span>
+                                    </div>
+                                </div>
+                                <p className="review-comment">{review.comment}</p>
+                                {review.image_urls?.length > 0 && (
+                                    <div className="review-images">
+                                        {review.image_urls.map((img, i) => (
+                                            <img
+                                                key={i}
+                                                src={createImageUrl(img)}
+                                                alt={`Review ${i + 1}`}
+                                                onError={(e) => {
+                                                    e.target.onerror = null;
+                                                    e.target.src = "https://via.placeholder.com/100?text=Image+Not+Found";
+                                                }}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="no-reviews">
+                        <img
+                            src="/images/no-reviews.svg"
+                            alt="No reviews yet"
+                        />
+                        <p>No reviews yet from your customers</p>
+                    </div>
+                )}
+            </div>
+        </div>
     );
 };
 

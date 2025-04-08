@@ -608,14 +608,14 @@ const handleSubmit = async (section, e) => {
             <div className="farmer-profile-photo-container">
               {profilePhoto ? (
                 <img 
-                  src={profilePhoto} 
-                  alt="Profile" 
-                  className="farmer-profile-photo"
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = 'https://via.placeholder.com/150?text=No+Photo'; // new reliable fallback
-                  }}
-                />
+               src={`/uploads/farmer-documents/${profilePhoto}`}
+                alt="Profile"
+                className="farmer-profile-photo"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = '/default-profile.png'; // Local fallback
+                }}
+              />              
               ) : (
                 <div className="farmer-profile-photo-placeholder">
                   <FiUser size={48} />
