@@ -236,6 +236,51 @@ const FarmerDetails = () => {
     setImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
   
+  // const handleAddReview = async () => {
+  //   if (!consumer) {
+  //     alert("Please login to submit a review");
+  //     navigate("/consumer-login");
+  //     return;
+  //   }
+  
+  //   if (!newReview.rating || !newReview.comment) {
+  //     alert("Please fill all required fields");
+  //     return;
+  //   }
+  
+  //   if (!farmer_id || farmer_id === '0') {
+  //     alert("Invalid farmer selection");
+  //     return;
+  //   }
+    
+  //   const formData = new FormData();
+  //   formData.append("farmer_id", farmer_id);
+  //   formData.append("consumer_id", consumer.consumer_id);
+  //   formData.append("consumer_name", consumer.full_name || "Anonymous");
+  //   formData.append("rating", newReview.rating);
+  //   formData.append("comment", newReview.comment);
+  //   images.forEach((image) => formData.append("images", image));
+
+  //   try {
+  //     await axios.post("http://localhost:5000/reviews", formData, {
+  //       headers: { "Authorization": `Bearer ${consumer?.token}`,
+  //                  "Content-Type": "multipart/form-data" 
+                   
+  //       },
+      
+  //     });
+
+  //     setNewReview({ consumer_name: consumer.name, rating: "", comment: "" });
+  //     setImages([]);
+  //     setImagePreviews([]);
+  //     setShowAddReviewForm(false);
+  //     await fetchReviews();
+  //     alert("✅ Review added successfully!");
+  //   } catch (error) {
+  //     console.error("Error adding review:", error);
+  //     alert("Failed to add review. Please try again.");
+  //   }
+  // };
   const handleAddReview = async () => {
     if (!consumer) {
       alert("Please login to submit a review");
@@ -260,28 +305,36 @@ const FarmerDetails = () => {
     formData.append("rating", newReview.rating);
     formData.append("comment", newReview.comment);
     images.forEach((image) => formData.append("images", image));
-
+  
     try {
-      await axios.post("http://localhost:5000/reviews", formData, {
-        headers: { "Authorization": `Bearer ${consumer?.token}`,
-                   "Content-Type": "multipart/form-data" 
-                   
+      const response = await axios.post("http://localhost:5000/reviews", formData, {
+        headers: { 
+          "Authorization": `Bearer ${consumer?.token}`,
+          "Content-Type": "multipart/form-data" 
         },
-      
       });
-
+  
+      // Update the reviews state with the new review
+      setReviews(prevReviews => [response.data, ...prevReviews]);
+      
+      // Update the average rating
+      const avgRating = calculateAverageRating([response.data, ...reviews]);
+      setFarmer(prevFarmer => ({
+        ...prevFarmer,
+        ratings: avgRating
+      }));
+  
       setNewReview({ consumer_name: consumer.name, rating: "", comment: "" });
       setImages([]);
       setImagePreviews([]);
       setShowAddReviewForm(false);
-      await fetchReviews();
+      
       alert("✅ Review added successfully!");
     } catch (error) {
       console.error("Error adding review:", error);
       alert("Failed to add review. Please try again.");
     }
   };
-
   if (!farmer) {
     return (
       <div className="loading-container">
@@ -493,25 +546,33 @@ const FarmerDetails = () => {
                     <p className="review-comment">{review.comment}</p>
                     {review.image_urls?.length > 0 && (
                       <div className="review-images">
-                        {review.image_urls.map((imgPath, i) => (
-                          <div key={i} className="review-image-container">
-                            <img
-                              src={`http://localhost:5000${imgPath}`}
-                              alt={`Review image ${i + 1}`}
-                              style={{
-                                width: "100px",
-                                height: "100px",
-                                objectFit: "cover",
-                                borderRadius: "8px",
-                                border: "1px solid #ccc"
-                              }}
-                              onError={(e) => {
-                                e.target.onerror = null; // Prevent infinite loop
-                                e.target.src = '/default-image.png'; // Fallback image
-                              }}
-                            />
-                          </div>
-                        ))}
+                        {review.image_urls.map((imgPath, i) => {
+                          // Handle both full URLs and relative paths
+                          let imgUrl = imgPath;
+                          if (!imgPath.startsWith('http') && !imgPath.startsWith('/uploads')) {
+                            imgUrl = `/uploads/${imgPath}`;
+                          }
+                          return (
+                            <div key={i} className="review-image-container">
+                              <img
+                                  src={`http://localhost:5000${imgPath}`}
+                                  alt={`Review image ${i + 1}`}
+                                  onError={(e) => {
+                                    e.target.onerror = null;
+                                    e.target.src = 'https://via.placeholder.com/100?text=Not+Found'; // temporary fallback
+                                  }}
+                                  style={{
+                                    width: "100px",
+                                    height: "100px",
+                                    objectFit: "cover",
+                                    borderRadius: "8px",
+                                    border: "1px solid #ccc"
+                                  }}
+                                />
+
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>

@@ -12,6 +12,83 @@ const http = require("http");
 // const socketIo = require("socket.io");
 // const { Server } = require("socket.io");
 const path = require("path");
+const multer = require("multer");
+app.use('/uploads/reviews', express.static(path.join(__dirname, 'uploads/reviews')));
+// Add this near your other middleware
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+// app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use("/uploads", express.static("uploads"));
+app.use('/uploads', express.static('uploads'));
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    // let folder = 'uploads/others/'; // default
+
+    if (req.url.includes('/upload/review')) {
+      folder = 'uploads/reviews/';
+    } else if (req.url.includes('/upload/profile')) {
+      folder = 'uploads/farmer-documents/';
+    } else if (req.url.includes('/upload/product')) {
+      folder = 'uploads/products/';
+    }
+
+    // Ensure folder exists before saving (optional but recommended)
+    fs.mkdirSync(folder, { recursive: true });
+    cb(null, folder);
+  },
+  filename: (req, file, cb) => {
+    const uniqueName = Date.now() + path.extname(file.originalname);
+    cb(null, uniqueName);
+  }
+});
+
+const upload = multer({ storage });
+const reviewStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const reviewFolder = 'uploads/reviews';
+    fs.mkdirSync(reviewFolder, { recursive: true });
+    cb(null, reviewFolder);
+  },
+  filename: (req, file, cb) => {
+    const uniqueName = Date.now() + path.extname(file.originalname);
+    cb(null, uniqueName);
+  }
+});
+
+const uploadReviewImages = multer({ storage: reviewStorage });
+
+
+const farmerDocumentStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = 'F:/Project/KRISHISETU/krishisetu-final/backend/uploads/farmer-documents';
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const farmerId = req.params.farmer_id;
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, `farmer-${farmerId}-${uniqueSuffix}${ext}`);
+  }
+});
+
+const farmerDocumentUpload = multer({ 
+  storage: farmerDocumentStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'application/pdf' || 
+        file.mimetype.startsWith('image/') ||
+        file.mimetype === 'application/msword' ||
+        file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF, Word, and image files are allowed!'), false);
+    }
+  }
+});
+
 const { verifyToken, authenticate, farmerOnly } = require('./src/middlewares/authMiddleware');
 // const { initiateBargain } = require("./src/controllers/bargainController"); // Correct file
 
@@ -32,7 +109,7 @@ const router = express.Router();
 
 // const FarmerModel = require('./src/models/farmerModels');  // ✅ Ensure this path is correct
 // const pool = require('./src/config/db');  // Ensure this line is present
-const multer = require("multer");
+
 
 const { authMiddleware } = require("./src/middlewares/authMiddleware"); // your renamed one
 
@@ -290,7 +367,8 @@ app.use((req, res, next) => {
     "/api/farmerregister",
     "/api/farmerlogin",
     "api/community/consumer/:consumerId/communities",
-    "api/community/:communityId/update-details"
+    "api/community/:communityId/update-details",
+    // "/uploads/reviews",
 
     // Add more public routes if needed
   ];
@@ -642,18 +720,8 @@ const documentStorage = multer.diskStorage({
 });
 
 const documentUpload = multer({ storage: documentStorage });
-// Add this near your other middleware
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
-// app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-app.use("/uploads", express.static("uploads"));
+
 app.use("/api", farmerRoutes);
-
-
-// ✅ Publicly serve review images
-app.use("/uploads/reviews", express.static(path.join(__dirname, "uploads/reviews")));
-
-// // ✅ If needed: other public folders like profile photos
-// app.use("/uploads/profiles", express.static(path.join(__dirname, "uploads/profiles")));
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -797,44 +865,7 @@ if (!fs.existsSync(uploadDir)) {
 // });
 
 // const upload = multer({ storage });
-app.use('/uploads', express.static('uploads'));
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    let folder = 'uploads/others/'; // default
-
-    if (req.url.includes('/upload/review')) {
-      folder = 'uploads/reviews/';
-    } else if (req.url.includes('/upload/profile')) {
-      folder = 'uploads/farmer-documents/';
-    } else if (req.url.includes('/upload/product')) {
-      folder = 'uploads/products/';
-    }
-
-    // Ensure folder exists before saving (optional but recommended)
-    fs.mkdirSync(folder, { recursive: true });
-    cb(null, folder);
-  },
-  filename: (req, file, cb) => {
-    const uniqueName = Date.now() + path.extname(file.originalname);
-    cb(null, uniqueName);
-  }
-});
-
-const upload = multer({ storage });
-const reviewStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const reviewFolder = 'uploads/reviews';
-    fs.mkdirSync(reviewFolder, { recursive: true });
-    cb(null, reviewFolder);
-  },
-  filename: (req, file, cb) => {
-    const uniqueName = Date.now() + path.extname(file.originalname);
-    cb(null, uniqueName);
-  }
-});
-
-const uploadReviewImages = multer({ storage: reviewStorage });
 
 app.post("/api/upload/:id", upload.single("file"), (req, res) => {
   const userId = req.params.id;
@@ -4614,36 +4645,6 @@ app.put("/api/farmerprofile/:farmer_id/:section",
 // });
 
 
-const farmerDocumentStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = 'F:/Project/KRISHISETU/krishisetu-final/backend/uploads/farmer-documents';
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const farmerId = req.params.farmer_id;
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname);
-    cb(null, `farmer-${farmerId}-${uniqueSuffix}${ext}`);
-  }
-});
-
-const farmerDocumentUpload = multer({ 
-  storage: farmerDocumentStorage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype === 'application/pdf' || 
-        file.mimetype.startsWith('image/') ||
-        file.mimetype === 'application/msword' ||
-        file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-      cb(null, true);
-    } else {
-      cb(new Error('Only PDF, Word, and image files are allowed!'), false);
-    }
-  }
-});
 
 
 // ✅ Update Personal Details
@@ -5465,6 +5466,14 @@ app.use((req, res, next) => {
 app.use((err, req, res, next) => {
   console.error("💥 Express error:", err.stack);
   res.status(500).json({ error: "Internal Server Error" });
+});
+
+app.use((req, res, next) => {
+  if (req.path.startsWith('/uploads/reviews')) {
+    return next(); // allow access
+  }
+  // else check JWT
+  verifyToken(req, res, next);
 });
 
 
