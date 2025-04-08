@@ -471,11 +471,14 @@ useEffect(() => {
     navigate(`/farmerDetails/${farmerId}`);
   };
 
-  const handleAddToCommunityOrders = (product, e) => {
-    e.stopPropagation();
-    console.log("Added to community orders:", product);
-    alert(`${product.product_name} added to community orders!`);
+  const handleAddToCommunityOrders = () => {
+    navigate(`/community-home`);
   };
+
+  // const handleSubscribe = (product, e) => {
+  //   e.stopPropagation();
+  //   navigate("/subscribe", { state: { product } });
+  // };
 
   const handleSubscribe = (product, e) => {
     e.stopPropagation();

@@ -13,6 +13,7 @@ function CreateCommunity() {
   const navigate = useNavigate();
    const { consumer } = useAuth();
 
+   
   const consumerId = localStorage.getItem("consumerId");
 
   const handleCreate = async () => {
