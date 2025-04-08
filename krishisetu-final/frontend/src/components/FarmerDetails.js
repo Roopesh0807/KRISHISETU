@@ -391,26 +391,27 @@ const FarmerDetails = () => {
                     </div>
                     
                     <p className="review-comment">{review.comment}</p>
-                    
-                    {review.image_urls && review.image_urls.length > 0 && (
+                    {review.image_urls?.length > 0 && (
                       <div className="review-images">
-                        {review.image_urls.map((img, idx) => {
-                          const imageUrl = img.startsWith('/uploads/') 
-                            ? `http://localhost:5000${img}`
-                            : `http://localhost:5000/uploads/${img}`;
-                          
-                          return (
+                        {review.image_urls.map((imgPath, i) => (
+                          <div key={i} className="review-image-container">
                             <img
-                              key={idx}
-                              src={imageUrl}
-                              alt={`Review ${idx}`}
+                              src={`http://localhost:5000${imgPath}`}
+                              alt={`Review image ${i + 1}`}
+                              style={{
+                                width: "100px",
+                                height: "100px",
+                                objectFit: "cover",
+                                borderRadius: "8px",
+                                border: "1px solid #ccc"
+                              }}
                               onError={(e) => {
-                                console.error("Failed to load image:", imageUrl);
-                                e.target.style.display = 'none';
+                                e.target.onerror = null; // Prevent infinite loop
+                                e.target.src = '/default-image.png'; // Fallback image
                               }}
                             />
-                          );
-                        })}
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>

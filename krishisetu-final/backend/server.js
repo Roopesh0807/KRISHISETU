@@ -641,9 +641,17 @@ const documentStorage = multer.diskStorage({
 const documentUpload = multer({ storage: documentStorage });
 // Add this near your other middleware
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/uploads", express.static("uploads"));
 app.use("/api", farmerRoutes);
+
+
+// ✅ Publicly serve review images
+app.use("/uploads/reviews", express.static(path.join(__dirname, "uploads/reviews")));
+
+// // ✅ If needed: other public folders like profile photos
+// app.use("/uploads/profiles", express.static(path.join(__dirname, "uploads/profiles")));
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
@@ -775,17 +783,56 @@ if (!fs.existsSync(uploadDir)) {
 
 
 // 🔹 Storage settings for uploaded images
+// const storage = multer.diskStorage({
+//   destination: (req, file, cb) => {
+//       cb(null, "uploads/"); // Save images in uploads folder
+//   },
+//   filename: (req, file, cb) => {
+//       const uniqueName = Date.now() + path.extname(file.originalname);
+//       cb(null, uniqueName); // Unique filename
+//   }
+// });
+
+// const upload = multer({ storage });
+app.use('/uploads', express.static('uploads'));
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-      cb(null, "uploads/"); // Save images in uploads folder
+    let folder = 'uploads/others/'; // default
+
+    if (req.url.includes('/upload/review')) {
+      folder = 'uploads/reviews/';
+    } else if (req.url.includes('/upload/profile')) {
+      folder = 'uploads/farmer-documents/';
+    } else if (req.url.includes('/upload/product')) {
+      folder = 'uploads/products/';
+    }
+
+    // Ensure folder exists before saving (optional but recommended)
+    fs.mkdirSync(folder, { recursive: true });
+    cb(null, folder);
   },
   filename: (req, file, cb) => {
-      const uniqueName = Date.now() + path.extname(file.originalname);
-      cb(null, uniqueName); // Unique filename
+    const uniqueName = Date.now() + path.extname(file.originalname);
+    cb(null, uniqueName);
   }
 });
 
 const upload = multer({ storage });
+const reviewStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const reviewFolder = 'uploads/reviews';
+    fs.mkdirSync(reviewFolder, { recursive: true });
+    cb(null, reviewFolder);
+  },
+  filename: (req, file, cb) => {
+    const uniqueName = Date.now() + path.extname(file.originalname);
+    cb(null, uniqueName);
+  }
+});
+
+const uploadReviewImages = multer({ storage: reviewStorage });
+
 app.post("/api/upload/:id", upload.single("file"), (req, res) => {
   const userId = req.params.id;
   if (!userId) {
@@ -3391,39 +3438,78 @@ app.get("/reviews/:farmer_id", async (req, res) => {
   }
 });  
 // API to add a review with an image
-app.post("/reviews", upload.array("images", 5), async (req, res) => {
+// app.post("/reviews", upload.array("images", 5), async (req, res) => {
+//   console.log("🛠️ Received review data:", req.body);
+//   const { farmer_id, consumer_name, rating, comment } = req.body;
+
+//   console.log("📌 Extracted Data:");
+//   console.log("Farmer ID:", farmer_id);
+//   console.log("Consumer Name:", consumer_name);
+//   console.log("Rating:", rating);
+//   console.log("Comment:", comment);
+
+//   if (!farmer_id || farmer_id === "0") {
+//     return res.status(400).json({ error: "Farmer ID is required" });
+//   }
+//   try {
+//     // Start transaction
+//     await queryDatabase("START TRANSACTION");
+
+//     // Insert review
+//     // Insert review
+//     const reviewSql = `
+//       INSERT INTO reviews (farmer_id, consumer_name, rating, comment)
+//       VALUES (?, ?, ?, ?)
+//     `;
+//     const reviewResult = await queryDatabase(reviewSql, [farmer_id, consumer_name, rating, comment]);
+
+//     console.log("✅ Inserted Review with farmer_id:", farmer_id);
+
+//     // Insert images
+//     if (req.files?.length > 0) {
+//       for (const file of req.files) {
+//         await queryDatabase(
+//           `INSERT INTO review_images (review_id, image_url) VALUES (?, ?)`,
+//           [reviewResult.insertId, `/uploads/reviews/${file.filename}`]
+//         );
+//       }
+//     }
+
+//     await queryDatabase("COMMIT");
+//     res.json({ success: true, reviewId: reviewResult.insertId });
+
+//   } catch (error) {
+//     await queryDatabase("ROLLBACK");
+//     console.error("Database error:", error);
+//     res.status(500).json({ error: "Failed to save review" });
+//   }
+// });
+
+
+
+app.post("/reviews", uploadReviewImages.array("images", 5), async (req, res) => {
   console.log("🛠️ Received review data:", req.body);
   const { farmer_id, consumer_name, rating, comment } = req.body;
-
-  console.log("📌 Extracted Data:");
-  console.log("Farmer ID:", farmer_id);
-  console.log("Consumer Name:", consumer_name);
-  console.log("Rating:", rating);
-  console.log("Comment:", comment);
 
   if (!farmer_id || farmer_id === "0") {
     return res.status(400).json({ error: "Farmer ID is required" });
   }
+
   try {
-    // Start transaction
     await queryDatabase("START TRANSACTION");
 
-    // Insert review
-    // Insert review
     const reviewSql = `
       INSERT INTO reviews (farmer_id, consumer_name, rating, comment)
       VALUES (?, ?, ?, ?)
     `;
     const reviewResult = await queryDatabase(reviewSql, [farmer_id, consumer_name, rating, comment]);
 
-    console.log("✅ Inserted Review with farmer_id:", farmer_id);
-
-    // Insert images
+    // Insert images into review_images table
     if (req.files?.length > 0) {
       for (const file of req.files) {
         await queryDatabase(
           `INSERT INTO review_images (review_id, image_url) VALUES (?, ?)`,
-          [reviewResult.insertId, `/uploads/${file.filename}`]
+          [reviewResult.insertId, `/uploads/reviews/${file.filename}`]
         );
       }
     }
@@ -3433,10 +3519,11 @@ app.post("/reviews", upload.array("images", 5), async (req, res) => {
 
   } catch (error) {
     await queryDatabase("ROLLBACK");
-    console.error("Database error:", error);
+    console.error("❌ Database error:", error);
     res.status(500).json({ error: "Failed to save review" });
   }
 });
+
 app.get("/consumerregistration/:consumer_id", async (req, res) => {
   const { consumer_id } = req.params;
 
@@ -3703,6 +3790,151 @@ app.get('/api/subscriptions/:consumer_id', async (req, res) => {
 });
 
 // ... (error handlers and server startup below)
+
+
+// Get subscriptions for a consumer
+app.get("/api/subscriptions/:consumer_id", verifyToken, async (req, res) => {
+  try {
+    const { consumer_id } = req.params;
+    
+    // Verify the consumer exists
+    const consumerCheck = await queryDatabase(
+      "SELECT consumer_id FROM consumerregistration WHERE consumer_id = ?",
+      [consumer_id]
+    );
+    
+    if (consumerCheck.length === 0) {
+      return res.status(404).json({ error: "Consumer not found" });
+    }
+
+    const subscriptions = await queryDatabase(
+      `SELECT 
+        subscription_id,
+        subscription_type,
+        product_id,
+        product_name,
+        quantity,
+        price,
+        start_date,
+        status
+       FROM subscriptions
+       WHERE consumer_id = ?
+       ORDER BY subscription_type, start_date DESC`,
+      [consumer_id]
+    );
+
+    res.json(subscriptions);
+  } catch (error) {
+    console.error("Error fetching subscriptions:", error);
+    res.status(500).json({ error: "Failed to fetch subscriptions" });
+  }
+});
+
+// Create new subscription
+app.post("/api/subscriptions", verifyToken, async (req, res) => {
+  try {
+    const { 
+      consumer_id,
+      subscription_type,
+      product_id,
+      product_name,
+      quantity,
+      price,
+      start_date
+    } = req.body;
+
+    // Validate required fields
+    if (!consumer_id || !subscription_type || !product_id || !product_name || 
+        !quantity || !price || !start_date) {
+      return res.status(400).json({ error: "All fields are required" });
+    }
+
+    // Insert new subscription
+    const result = await queryDatabase(
+      `INSERT INTO subscriptions (
+        consumer_id,
+        subscription_type,
+        product_id,
+        product_name,
+        quantity,
+        price,
+        start_date
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        consumer_id,
+        subscription_type,
+        product_id,
+        product_name,
+        quantity,
+        price,
+        start_date
+      ]
+    );
+
+    res.status(201).json({ 
+      success: true,
+      subscription_id: result.insertId
+    });
+  } catch (error) {
+    console.error("Error creating subscription:", error);
+    res.status(500).json({ error: "Failed to create subscription" });
+  }
+});
+
+
+
+
+
+
+
+
+
+
+// Update subscription
+app.put("/api/subscriptions/:subscription_id", verifyToken, async (req, res) => {
+  try {
+    const { subscription_id } = req.params;
+    const { quantity } = req.body;
+
+    if (!quantity || quantity < 1) {
+      return res.status(400).json({ error: "Valid quantity is required" });
+    }
+
+    await queryDatabase(
+      "UPDATE subscriptions SET quantity = ? WHERE subscription_id = ?",
+      [quantity, subscription_id]
+    );
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error updating subscription:", error);
+    res.status(500).json({ error: "Failed to update subscription" });
+  }
+});
+
+// Delete subscription
+app.delete("/api/subscriptions/:subscription_id", verifyToken, async (req, res) => {
+  try {
+    const { subscription_id } = req.params;
+    
+    await queryDatabase(
+      "DELETE FROM subscriptions WHERE subscription_id = ?",
+      [subscription_id]
+    );
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting subscription:", error);
+    res.status(500).json({ error: "Failed to delete subscription" });
+  }
+});
+
+
+
+
+
+
+
 
 
 
@@ -5118,6 +5350,7 @@ router.put('/:subscription_id', async (req, res) => {
     });
   }
 });
+
 
 // Cancel subscription
 router.delete('/:subscription_id', async (req, res) => {
