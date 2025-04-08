@@ -220,7 +220,7 @@ const organizedSubscriptions = {
       setShowWallet(true);
       return;
     }
-    navigate('/products', { state: { subscriptionType: plan } });
+    navigate('/consumer-dashboard', { state: { subscriptionType: plan } });
   };
 
   const toggleActionMenu = (planId, itemId) => {

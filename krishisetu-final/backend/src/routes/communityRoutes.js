@@ -26,13 +26,13 @@ router.get("/:communityId/members", communityController.getCommunityMembers);
 router.post("/:communityId/add-member", communityController.addMember);
 router.delete("/:communityId/remove-member/:memberId", communityController.removeMember); // Corrected route
 router.put("/:communityId/update-details", communityController.updateCommunityDetails);
-// router.post("/join", communityController.joinCommunity);
+router.post("/join", communityController.joinCommunity);
 router.post('/verify-access', communityController.verifyCommunityAccess);
 // Add this route in communityRoutes.js
 // router.get("/:communityId/member/:memberId", communityController.getMemberOrders);
 // Update this in communityRoutes.js
 // Add this to your communityRoutes.js
-router.get("address-suggestions", communityController.getAddressSuggestions);
+// router.get("address-suggestions", communityController.getAddressSuggestions);
 router.get("/:communityId/member/:memberId/orders", communityController.getMembersOrders);
 router.get('/consumer/:consumerId/communities', communityController.getConsumerCommunities);
 router.get("/community/create", async (req, res) => {
@@ -77,94 +77,94 @@ router.get("/community/create", async (req, res) => {
     }
   });
 
-  // Join community by name or ID
-  router.post('/join', async (req, res) => {
-    try {
-      const { communityName, password, userEmail, communityId } = req.body;
+//   // Join community by name or ID
+//   router.post('/join', async (req, res) => {
+//     try {
+//       const { communityName, password, userEmail, communityId } = req.body;
   
-      let community;
-      if (communityId) {
-        // Join by community ID (address method)
-        community = await Community.findById(communityId);
-      } else {
-        // Join by community name (original method)
-        community = await Community.findOne({ name: communityName });
-      }
+//       let community;
+//       if (communityId) {
+//         // Join by community ID (address method)
+//         community = await Community.findById(communityId);
+//       } else {
+//         // Join by community name (original method)
+//         community = await Community.findOne({ name: communityName });
+//       }
   
-      if (!community) {
-        return res.status(404).json({ error: 'Community not found' });
-      }
+//       if (!community) {
+//         return res.status(404).json({ error: 'Community not found' });
+//       }
   
-      const isMatch = await community.comparePassword(password);
-      if (!isMatch) {
-        return res.status(401).json({ error: 'Invalid password' });
-      }
+//       const isMatch = await community.comparePassword(password);
+//       if (!isMatch) {
+//         return res.status(401).json({ error: 'Invalid password' });
+//       }
   
-      // Check if user is already a member
-      const existingMember = await Member.findOne({
-        community: community._id,
-        email: userEmail
-      });
+//       // Check if user is already a member
+//       const existingMember = await Member.findOne({
+//         community: community._id,
+//         email: userEmail
+//       });
   
-      if (existingMember) {
-        return res.status(400).json({ error: 'You are already a member of this community' });
-      }
+//       if (existingMember) {
+//         return res.status(400).json({ error: 'You are already a member of this community' });
+//       }
   
-      // Create new member
-      const member = new Member({
-        community: community._id,
-        email: userEmail,
-        isAdmin: false
-      });
+//       // Create new member
+//       const member = new Member({
+//         community: community._id,
+//         email: userEmail,
+//         isAdmin: false
+//       });
   
-      await member.save();
+//       await member.save();
   
-      res.status(200).json({
-        message: 'Successfully joined community',
-        communityId: community._id,
-        memberId: member._id
-      });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: 'Server error' });
-    }
-  });
+//       res.status(200).json({
+//         message: 'Successfully joined community',
+//         communityId: community._id,
+//         memberId: member._id
+//       });
+//     } catch (error) {
+//       console.error(error);
+//       res.status(500).json({ error: 'Server error' });
+//     }
+//   });
   
-// Get address suggestions
-// Get address suggestions
-router.get('/suggest', async (req, res) => {
-  try {
-    const { address } = req.query;
+// // Get address suggestions
+// // Get address suggestions
+// router.get('/suggest', async (req, res) => {
+//   try {
+//     const { address } = req.query;
     
-    if (!address || address.length < 1) {
-      return res.status(400).json({ error: 'Address query too short' });
-    }
+//     if (!address || address.length < 1) {
+//       return res.status(400).json({ error: 'Address query too short' });
+//     }
 
-    const communities = await Community.find({
-      address: { $regex: address, $options: 'i' }
-    }).limit(10);
+//     const communities = await Community.find({
+//       address: { $regex: address, $options: 'i' }
+//     }).limit(10);
 
-    res.json(communities.map(comm => ({
-      _id: comm._id,
-      name: comm.name,
-      address: comm.address
-    })));
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
+//     res.json(communities.map(comm => ({
+//       _id: comm._id,
+//       name: comm.name,
+//       address: comm.address
+//     })));
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ error: 'Server error' });
+//   }
+// });
 
-router.get('/all-addresses', async (req, res) => {
-  try {
-    const communities = await Community.find({}, 'address');
-    const addresses = communities.map(comm => comm.address);
-    res.json(addresses);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
+// router.get('/all-addresses', async (req, res) => {
+//   try {
+//     const communities = await Community.find({}, 'address');
+//     const addresses = communities.map(comm => comm.address);
+//     res.json(addresses);
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ error: 'Server error' });
+//   }
+// });
 
 
 

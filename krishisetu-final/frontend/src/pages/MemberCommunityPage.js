@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import Navbar3 from "../components/Navbar3.js";
+import { useAuth } from '../context/AuthContext';
 import "../styles/MemberCommunity.css";
 
 function MemberCommunityPage() {
@@ -15,6 +16,7 @@ function MemberCommunityPage() {
   const [loggedInMember, setLoggedInMember] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const { consumer } = useAuth();
 
   useEffect(() => {
     if (location.state?.showInstructions) {
@@ -30,7 +32,11 @@ function MemberCommunityPage() {
         
         // Fetch community details
         const communityRes = await fetch(
-          `http://localhost:5000/api/community/${communityId}`
+          `http://localhost:5000/api/community/${communityId}`,{
+            headers: { 
+              'Authorization': `Bearer ${consumer.token}`
+            },
+          }
         );
         if (!communityRes.ok) throw new Error("Failed to fetch community details");
         const communityData = await communityRes.json();
@@ -38,7 +44,11 @@ function MemberCommunityPage() {
 
         // Fetch members
         const membersRes = await fetch(
-          `http://localhost:5000/api/community/${communityId}/members`
+          `http://localhost:5000/api/community/${communityId}/members`,{
+            headers: { 
+              'Authorization': `Bearer ${consumer.token}`
+            },
+          }
         );
         if (!membersRes.ok) throw new Error("Failed to fetch members");
         const membersData = await membersRes.json();

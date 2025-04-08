@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Navbar3 from '../components/Navbar3.js';
+import { useAuth } from '../context/AuthContext';
 import "../styles/CommunityDetails.css";
 
 function CommunityDetails() {
@@ -13,6 +14,7 @@ function CommunityDetails() {
   const [showInstructions, setShowInstructions] = useState(false);
   const [communityId, setCommunityId] = useState(null);
   const [error, setError] = useState('');
+  const { consumer } = useAuth();
 
   useEffect(() => {
     if (location.state?.showInstructions) {
@@ -51,7 +53,9 @@ function CommunityDetails() {
     try {
       const response = await fetch(`http://localhost:5000/api/community/${communityId}/update-details`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json",
+           'Authorization': `Bearer ${consumer.token}`
+         },
         body: JSON.stringify({ address, deliveryDate, deliveryTime }),
       });
 
@@ -76,7 +80,13 @@ function CommunityDetails() {
     }
   
     try {
-      const response = await fetch(`http://localhost:5000/api/community/${communityId}`);
+      const response = await fetch(`http://localhost:5000/api/community/${communityId}`,{
+        headers: { 
+          'Authorization': `Bearer ${consumer.token}`
+        },
+      }
+
+      );
       const data = await response.json();
   
       if (!response.ok) {

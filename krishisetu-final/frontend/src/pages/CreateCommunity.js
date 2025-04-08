@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar3 from "../components/Navbar3.js";
+import { useAuth } from '../context/AuthContext';
 import "../styles/CreateCommunity.css";
 
 function CreateCommunity() {
@@ -10,6 +11,7 @@ function CreateCommunity() {
   const [error, setError] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const navigate = useNavigate();
+   const { consumer } = useAuth();
 
   const consumerId = localStorage.getItem("consumerId");
 
@@ -28,8 +30,11 @@ function CreateCommunity() {
     try {
       const response = await fetch("http://localhost:5000/api/community/create", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json" ,
+           'Authorization': `Bearer ${consumer.token}`
+        },
         body: JSON.stringify({ name, password, consumerId }),
+       
       });
 
       const data = await response.json();

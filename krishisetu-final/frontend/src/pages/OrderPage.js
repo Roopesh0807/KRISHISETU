@@ -451,6 +451,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Navbar3 from "../components/Navbar3.js";
+import { useAuth } from '../context/AuthContext';
 import "../styles/OrderPageC.css";
 
 function OrderPage() {
@@ -463,6 +464,7 @@ function OrderPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const { consumer } = useAuth();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -471,7 +473,11 @@ function OrderPage() {
         
         // Fetch community details
         const communityResponse = await fetch(
-          `http://localhost:5000/api/community/${communityId}`
+          `http://localhost:5000/api/community/${communityId}`,{
+            headers: { 
+              'Authorization': `Bearer ${consumer.token}`
+            },
+          }
         );
         if (!communityResponse.ok) throw new Error("Failed to fetch community details");
         const communityData = await communityResponse.json();
@@ -479,7 +485,11 @@ function OrderPage() {
 
         // Fetch community members
         const membersResponse = await fetch(
-          `http://localhost:5000/api/community/${communityId}/members`
+          `http://localhost:5000/api/community/${communityId}/members`,{
+            headers: { 
+              'Authorization': `Bearer ${consumer.token}`
+            },
+          }
         );
         if (!membersResponse.ok) throw new Error("Failed to fetch members");
         const membersData = await membersResponse.json();
@@ -487,7 +497,11 @@ function OrderPage() {
 
         // Fetch all products
         const productsResponse = await fetch(
-          `http://localhost:5000/api/products`
+          `http://localhost:5000/api/products`,{
+            headers: { 
+              'Authorization': `Bearer ${consumer.token}`
+            },
+          }
         );
         if (!productsResponse.ok) throw new Error("Failed to fetch products");
         const productsData = await productsResponse.json();
@@ -495,7 +509,11 @@ function OrderPage() {
 
         // Fetch all orders
         const ordersResponse = await fetch(
-          `http://localhost:5000/api/order/${communityId}/all-orders`
+          `http://localhost:5000/api/order/${communityId}/all-orders`,{
+            headers: {
+              'Authorization': `Bearer ${consumer.token}`
+            },
+          }
         );
         if (!ordersResponse.ok) throw new Error("Failed to fetch orders");
         const ordersData = await ordersResponse.json();
@@ -552,7 +570,14 @@ function OrderPage() {
     try {
       const response = await fetch(
         `http://localhost:5000/api/order/${orderId}`,
-        { method: 'DELETE' }
+        { method: 'DELETE' ,
+          
+            headers: { 
+              'Authorization': `Bearer ${consumer.token}`,
+              'Content-Type': 'application/json' // Recommended to include
+            
+          }
+        }
       );
       if (!response.ok) throw new Error("Failed to delete order");
       
@@ -586,6 +611,7 @@ function OrderPage() {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
+             'Authorization': `Bearer ${consumer.token}`
           },
           body: JSON.stringify({ quantity: newQuantity })
         }
