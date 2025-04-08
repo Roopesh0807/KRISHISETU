@@ -47,6 +47,15 @@ const corsOptions = {
   optionsSuccessStatus: 200
 };
 
+
+
+const Razorpay = require('razorpay');
+
+const razorpay = new Razorpay({
+  key_id: 'rzp_test_VLCfnymiyd6HGf',
+  key_secret: 'dwcSRSRah7Y4eBZUzL8M'
+});
+
 // ✅ Then these
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -4751,7 +4760,97 @@ app.post("/api/farmerprofile/:farmer_id/upload-file",
     }
   }
 );
+// Add this endpoint for payment verification
+app.post('/api/verify-payment', express.json(), async (req, res) => {
+  const crypto = require('crypto');
+  
+  try {
+    const { razorpay_payment_id, razorpay_order_id, razorpay_signature, amount } = req.body;
+    
+    // Create the expected signature
+    const hmac = crypto.createHmac('sha256', 'dwcSRSRah7Y4eBZUzL8M');
+    hmac.update(`${razorpay_order_id}|${razorpay_payment_id}`);
+    const expectedSignature = hmac.digest('hex');
+    
+    if (expectedSignature === razorpay_signature) {
+      // Signature is valid
+      res.json({ 
+        success: true,
+        paymentId: razorpay_payment_id,
+        orderId: razorpay_order_id
+      });
+    } else {
+      // Signature is invalid
+      res.status(400).json({ 
+        success: false,
+        error: 'Invalid payment signature' 
+      });
+    }
+  } catch (error) {
+    console.error('Payment verification error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Payment verification failed' 
+    });
+  }
+});
 
+
+
+
+// Add this endpoint for creating Razorpay orders
+app.post('/api/create-razorpay-order', async (req, res) => {
+  try {
+    const { amount, currency } = req.body;
+    
+    // Validate amount
+    if (!amount || isNaN(amount)) {
+      return res.status(400).json({ error: 'Invalid amount' });
+    }
+
+    const options = {
+      amount: Math.round(amount * 100), // Convert to paise
+      currency: currency || 'INR',
+      receipt: `order_${Date.now()}`,
+      payment_capture: 1 // Auto-capture payment
+    };
+
+    const order = await razorpay.orders.create(options);
+    res.json({
+      id: order.id,
+      currency: order.currency,
+      amount: order.amount
+    });
+    
+  } catch (error) {
+    console.error('Razorpay order error:', error);
+    res.status(500).json({ 
+      error: 'Failed to create Razorpay order',
+      details: error.error ? error.error.description : error.message 
+    });
+  }
+});
+
+app.post('/api/razorpay-webhook', express.json(), (req, res) => {
+  // Verify the payment signature
+  const crypto = require('crypto');
+  const secret = 'YOUR_WEBHOOK_SECRET'; // Set this in Razorpay dashboard
+  
+  const shasum = crypto.createHmac('sha256', secret);
+  shasum.update(JSON.stringify(req.body));
+  const digest = shasum.digest('hex');
+
+  if (digest === req.headers['x-razorpay-signature']) {
+    // Signature is valid - process the payment
+    console.log('Payment verified:', req.body.payload.payment.entity);
+    // Update your database with payment status
+  } else {
+    // Signature is invalid - possible fraud attempt
+    console.warn('Invalid signature - possible fraud attempt');
+  }
+
+  res.json({ status: 'ok' });
+});
 // const Razorpay = require('razorpay');
 
 // const razorpay = new Razorpay({

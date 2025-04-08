@@ -1500,15 +1500,14 @@ const Subscribe = () => {
         throw new Error('Failed to fetch subscriptions');
       }
       
-      const data = await response.json();
-      
-      // Organize subscriptions by type
-      const organizedSubscriptions = {
-        Daily: data.filter(sub => sub.subscription_type === 'Daily'),
-        'Alternate Days': data.filter(sub => sub.subscription_type === 'Alternate Days'),
-        Weekly: data.filter(sub => sub.subscription_type === 'Weekly'),
-        Monthly: data.filter(sub => sub.subscription_type === 'Monthly')
-      };
+      const { subscriptions } = await response.json();
+
+const organizedSubscriptions = {
+  Daily: subscriptions.filter(sub => sub.subscription_type === 'Daily'),
+  'Alternate Days': subscriptions.filter(sub => sub.subscription_type === 'Alternate Days'),
+  Weekly: subscriptions.filter(sub => sub.subscription_type === 'Weekly'),
+  Monthly: subscriptions.filter(sub => sub.subscription_type === 'Monthly')
+};
 
       setSubscriptions(organizedSubscriptions);
     } catch (error) {
