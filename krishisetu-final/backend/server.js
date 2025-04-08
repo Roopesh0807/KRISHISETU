@@ -14,6 +14,7 @@ const http = require("http");
 const path = require("path");
 const multer = require("multer");
 app.use('/uploads/reviews', express.static(path.join(__dirname, 'uploads/reviews')));
+app.use('/uploads/farmer-documents', express.static(path.join(__dirname, 'uploads/farmer-documents')));
 // Add this near your other middleware
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 // app.use("/uploads", express.static(path.join(__dirname, "uploads")));
@@ -41,6 +42,8 @@ const storage = multer.diskStorage({
     cb(null, uniqueName);
   }
 });
+const auth = require('./src/middlewares/authMiddleware'); // Adjust path as needed
+
 
 const upload = multer({ storage });
 const reviewStorage = multer.diskStorage({
@@ -60,7 +63,7 @@ const uploadReviewImages = multer({ storage: reviewStorage });
 
 const farmerDocumentStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadDir = 'F:/Project/KRISHISETU/krishisetu-final/backend/uploads/farmer-documents';
+    const uploadDir = '/uploads/farmer-documents';
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
@@ -360,6 +363,248 @@ const token = jwt.sign(
     res.status(500).json({ success: false, message: "Database error", error: err.message });
   }
 });
+
+
+
+
+
+
+
+
+
+
+
+
+// ✅ Upload Profile Photo
+app.post("/api/farmerprofile/:farmer_id/photo", verifyToken, upload.single('photo'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "No file uploaded" });
+    }
+
+    const farmerId = req.params.farmer_id;
+    const photoPath = req.file.filename;
+
+    await queryDatabase(`
+      UPDATE personaldetails 
+      SET profile_photo = ?
+      WHERE farmer_id = ?
+    `, [photoPath, farmerId]);
+
+    res.json({ success: true, message: "Profile photo uploaded", profile_photo: photoPath });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Error uploading photo", error: err.message });
+  }
+});
+// ✅ Remove Profile Photo
+app.delete("/api/farmerprofile/:farmer_id/photo", verifyToken, async (req, res) => {
+  try {
+    const farmerId = req.params.farmer_id;
+
+    await queryDatabase(`
+      UPDATE personaldetails 
+      SET profile_photo = NULL
+      WHERE farmer_id = ?
+    `, [farmerId]);
+
+    res.json({ success: true, message: "Profile photo removed" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Error removing photo", error: err.message });
+  }
+});
+
+// app.delete("/api/farmerprofile/:farmer_id/remove-file", 
+//   auth.authenticate,
+//   auth.farmerOnly,
+//   async (req, res) => {
+//     try {
+//       const { farmer_id } = req.params;
+//       const { field } = req.body;
+
+//       if (!field) {
+//         return res.status(400).json({ success: false, message: "Field name is required" });
+//       }
+
+//       // Determine which table to update based on field
+//       let table, idField;
+//       if (field.includes('profile_photo') || field.includes('aadhaar_proof') || field.includes('bank_proof')) {
+//         table = 'personaldetails';
+//         idField = 'farmer_id';
+//       } else {
+//         table = 'farmdetails';
+//         idField = 'farmer_id';
+//       }
+
+//       // First get the file path to delete it from the filesystem
+//       const [result] = await queryDatabase(
+//         `SELECT ${field} FROM ${table} WHERE ${idField} = ?`,
+//         [farmer_id]
+//       );
+
+//       if (result && result[field]) {
+//         const filePath = path.join('F:/Project/KRISHISETU/krishisetu-final/backend', result[field]);
+//         if (fs.existsSync(filePath)) {
+//           fs.unlinkSync(filePath);
+//         }
+//       }
+
+//       // Update the database to remove the file reference
+//       await queryDatabase(
+//         `UPDATE ${table} SET ${field} = NULL WHERE ${idField} = ?`,
+//         [farmer_id]
+//       );
+
+//       res.json({ 
+//         success: true, 
+//         message: "File removed successfully" 
+//       });
+
+//     } catch (error) {
+//       console.error("Error removing file:", error);
+//       res.status(500).json({ 
+//         success: false, 
+//         message: "Error removing file",
+//         error: error.message 
+//       });
+//     }
+//   }
+// );
+
+
+
+// ✅ Upload File
+// app.post("/api/farmerprofile/:farmer_id/file", verifyToken, upload.single('file'), async (req, res) => {
+//   try {
+//     if (!req.file) {
+//       return res.status(400).json({ success: false, message: "No file uploaded" });
+//     }
+
+//     res.json({ success: true, message: "File uploaded", fileUrl: req.file.filename });
+//   } catch (err) {
+//     res.status(500).json({ success: false, message: "Error uploading file", error: err.message });
+//   }
+// });
+
+// In server.js, update the farmer profile photo upload endpoint
+
+app.delete("/api/farmerprofile/:farmer_id/remove-file", 
+  auth.authenticate,
+  auth.farmerOnly,
+  async (req, res) => {
+    try {
+      const { farmer_id } = req.params;
+      const { field } = req.body;
+
+      if (!field) {
+        return res.status(400).json({ success: false, message: "Field name is required" });
+      }
+
+      // Determine table and ID field
+      let table = field.includes('profile_photo') || field.includes('aadhaar_proof') || field.includes('bank_proof')
+        ? 'personaldetails'
+        : 'farmdetails';
+
+      const idField = 'farmer_id';
+
+      // Get the file path from DB
+      const [result] = await queryDatabase(
+        `SELECT ${field} FROM ${table} WHERE ${idField} = ?`,
+        [farmer_id]
+      );
+
+      if (result && result[field]) {
+        let filePath = result[field];
+
+        // Ensure it's a string (in case it's Buffer or anything else)
+        if (Buffer.isBuffer(filePath)) {
+          filePath = filePath.toString();
+        }
+
+        const fullPath = path.join(__dirname, filePath);
+
+        if (fs.existsSync(fullPath)) {
+          fs.unlinkSync(fullPath);
+        }
+      }
+
+      // Remove the reference from DB
+      await queryDatabase(
+        `UPDATE ${table} SET ${field} = NULL WHERE ${idField} = ?`,
+        [farmer_id]
+      );
+
+      res.json({ 
+        success: true, 
+        message: "File removed successfully" 
+      });
+
+    } catch (error) {
+      console.error("Error removing file:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Error removing file",
+        error: error.message 
+      });
+    }
+  }
+);
+
+
+
+
+app.post("/api/farmerprofile/:farmer_id/upload-file", 
+  auth.authenticate,
+  auth.farmerOnly,
+  farmerDocumentUpload.single('file'),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ success: false, message: "No file uploaded" });
+      }
+
+      const { farmer_id } = req.params;
+      const { field } = req.body;
+
+      if (!field) {
+        return res.status(400).json({ success: false, message: "Field name is required" });
+      }
+
+      const filePath = `/uploads/farmer-documents/${req.file.filename}`;
+
+      // Update the database with the file path
+      let table, idField;
+      if (field === 'profile_photo' || field === 'aadhaar_proof' || field === 'bank_proof') {
+        table = 'personaldetails';
+        idField = 'farmer_id';
+      } else {
+        table = 'farmdetails';
+        idField = 'farmer_id';
+      }
+
+      await queryDatabase(
+        `UPDATE ${table} SET ${field} = ? WHERE ${idField} = ?`,
+        [filePath, farmer_id]
+      );
+
+      res.json({ 
+        success: true, 
+        message: "File uploaded successfully",
+        filePath: filePath,
+        filename: req.file.filename
+      });
+
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Error uploading file",
+        error: error.message 
+      });
+    }
+  }
+);
+
+
 app.use((req, res, next) => {
   const publicRoutes = [
     "/api/consumerregister",
@@ -418,8 +663,6 @@ const secretKey = process.env.JWT_SECRET;
 
 
 // At the top of server.js with your other requires
-const auth = require('./src/middlewares/authMiddleware'); // Adjust path as needed
-
 
 
 
@@ -4834,168 +5077,9 @@ app.put("/api/farmerprofile/:farmer_id/farm",
 );
 
 
-// ✅ Upload Profile Photo
-app.post("/api/farmerprofile/:farmer_id/photo", verifyToken, upload.single('photo'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: "No file uploaded" });
-    }
-
-    const farmerId = req.params.farmer_id;
-    const photoPath = req.file.filename;
-
-    await queryDatabase(`
-      UPDATE personaldetails 
-      SET profile_photo = ?
-      WHERE farmer_id = ?
-    `, [photoPath, farmerId]);
-
-    res.json({ success: true, message: "Profile photo uploaded", profile_photo: photoPath });
-  } catch (err) {
-    res.status(500).json({ success: false, message: "Error uploading photo", error: err.message });
-  }
-});
-// ✅ Remove Profile Photo
-app.delete("/api/farmerprofile/:farmer_id/photo", verifyToken, async (req, res) => {
-  try {
-    const farmerId = req.params.farmer_id;
-
-    await queryDatabase(`
-      UPDATE personaldetails 
-      SET profile_photo = NULL
-      WHERE farmer_id = ?
-    `, [farmerId]);
-
-    res.json({ success: true, message: "Profile photo removed" });
-  } catch (err) {
-    res.status(500).json({ success: false, message: "Error removing photo", error: err.message });
-  }
-});
-
-app.delete("/api/farmerprofile/:farmer_id/remove-file", 
-  auth.authenticate,
-  auth.farmerOnly,
-  async (req, res) => {
-    try {
-      const { farmer_id } = req.params;
-      const { field } = req.body;
-
-      if (!field) {
-        return res.status(400).json({ success: false, message: "Field name is required" });
-      }
-
-      // Determine which table to update based on field
-      let table, idField;
-      if (field.includes('profile_photo') || field.includes('aadhaar_proof') || field.includes('bank_proof')) {
-        table = 'personaldetails';
-        idField = 'farmer_id';
-      } else {
-        table = 'farmdetails';
-        idField = 'farmer_id';
-      }
-
-      // First get the file path to delete it from the filesystem
-      const [result] = await queryDatabase(
-        `SELECT ${field} FROM ${table} WHERE ${idField} = ?`,
-        [farmer_id]
-      );
-
-      if (result && result[field]) {
-        const filePath = path.join('F:/Project/KRISHISETU/krishisetu-final/backend', result[field]);
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
-        }
-      }
-
-      // Update the database to remove the file reference
-      await queryDatabase(
-        `UPDATE ${table} SET ${field} = NULL WHERE ${idField} = ?`,
-        [farmer_id]
-      );
-
-      res.json({ 
-        success: true, 
-        message: "File removed successfully" 
-      });
-
-    } catch (error) {
-      console.error("Error removing file:", error);
-      res.status(500).json({ 
-        success: false, 
-        message: "Error removing file",
-        error: error.message 
-      });
-    }
-  }
-);
 
 
 
-// ✅ Upload File
-// app.post("/api/farmerprofile/:farmer_id/file", verifyToken, upload.single('file'), async (req, res) => {
-//   try {
-//     if (!req.file) {
-//       return res.status(400).json({ success: false, message: "No file uploaded" });
-//     }
-
-//     res.json({ success: true, message: "File uploaded", fileUrl: req.file.filename });
-//   } catch (err) {
-//     res.status(500).json({ success: false, message: "Error uploading file", error: err.message });
-//   }
-// });
-
-// In server.js, update the farmer profile photo upload endpoint
-app.post("/api/farmerprofile/:farmer_id/upload-file", 
-  auth.authenticate,
-  auth.farmerOnly,
-  farmerDocumentUpload.single('file'),
-  async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ success: false, message: "No file uploaded" });
-      }
-
-      const { farmer_id } = req.params;
-      const { field } = req.body;
-
-      if (!field) {
-        return res.status(400).json({ success: false, message: "Field name is required" });
-      }
-
-      const filePath = `/uploads/farmer-documents/${req.file.filename}`;
-
-      // Update the database with the file path
-      let table, idField;
-      if (field === 'profile_photo' || field === 'aadhaar_proof' || field === 'bank_proof') {
-        table = 'personaldetails';
-        idField = 'farmer_id';
-      } else {
-        table = 'farmdetails';
-        idField = 'farmer_id';
-      }
-
-      await queryDatabase(
-        `UPDATE ${table} SET ${field} = ? WHERE ${idField} = ?`,
-        [filePath, farmer_id]
-      );
-
-      res.json({ 
-        success: true, 
-        message: "File uploaded successfully",
-        filePath: filePath,
-        filename: req.file.filename
-      });
-
-    } catch (error) {
-      console.error("Error uploading file:", error);
-      res.status(500).json({ 
-        success: false, 
-        message: "Error uploading file",
-        error: error.message 
-      });
-    }
-  }
-);
 // Add this endpoint for payment verification
 app.post('/api/verify-payment', express.json(), async (req, res) => {
   const crypto = require('crypto');
