@@ -3695,7 +3695,7 @@ app.get('/api/subscriptions/:consumer_id', async (req, res) => {
 
 // ... (error handlers and server startup below)
 
-<<<<<<< HEAD
+
 // Get subscriptions for a consumer
 app.get("/api/subscriptions/:consumer_id", verifyToken, async (req, res) => {
   try {
@@ -3832,8 +3832,7 @@ app.delete("/api/subscriptions/:subscription_id", verifyToken, async (req, res) 
     res.status(500).json({ error: "Failed to delete subscription" });
   }
 });
-=======
->>>>>>> f7f31ad473bd89afa3b253e57d41e1727939037f
+
 
 
 
