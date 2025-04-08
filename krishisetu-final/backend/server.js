@@ -3696,6 +3696,151 @@ app.get('/api/subscriptions/:consumer_id', async (req, res) => {
 // ... (error handlers and server startup below)
 
 
+// Get subscriptions for a consumer
+app.get("/api/subscriptions/:consumer_id", verifyToken, async (req, res) => {
+  try {
+    const { consumer_id } = req.params;
+    
+    // Verify the consumer exists
+    const consumerCheck = await queryDatabase(
+      "SELECT consumer_id FROM consumerregistration WHERE consumer_id = ?",
+      [consumer_id]
+    );
+    
+    if (consumerCheck.length === 0) {
+      return res.status(404).json({ error: "Consumer not found" });
+    }
+
+    const subscriptions = await queryDatabase(
+      `SELECT 
+        subscription_id,
+        subscription_type,
+        product_id,
+        product_name,
+        quantity,
+        price,
+        start_date,
+        status
+       FROM subscriptions
+       WHERE consumer_id = ?
+       ORDER BY subscription_type, start_date DESC`,
+      [consumer_id]
+    );
+
+    res.json(subscriptions);
+  } catch (error) {
+    console.error("Error fetching subscriptions:", error);
+    res.status(500).json({ error: "Failed to fetch subscriptions" });
+  }
+});
+
+// Create new subscription
+app.post("/api/subscriptions", verifyToken, async (req, res) => {
+  try {
+    const { 
+      consumer_id,
+      subscription_type,
+      product_id,
+      product_name,
+      quantity,
+      price,
+      start_date
+    } = req.body;
+
+    // Validate required fields
+    if (!consumer_id || !subscription_type || !product_id || !product_name || 
+        !quantity || !price || !start_date) {
+      return res.status(400).json({ error: "All fields are required" });
+    }
+
+    // Insert new subscription
+    const result = await queryDatabase(
+      `INSERT INTO subscriptions (
+        consumer_id,
+        subscription_type,
+        product_id,
+        product_name,
+        quantity,
+        price,
+        start_date
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        consumer_id,
+        subscription_type,
+        product_id,
+        product_name,
+        quantity,
+        price,
+        start_date
+      ]
+    );
+
+    res.status(201).json({ 
+      success: true,
+      subscription_id: result.insertId
+    });
+  } catch (error) {
+    console.error("Error creating subscription:", error);
+    res.status(500).json({ error: "Failed to create subscription" });
+  }
+});
+
+
+
+
+
+
+
+
+
+
+// Update subscription
+app.put("/api/subscriptions/:subscription_id", verifyToken, async (req, res) => {
+  try {
+    const { subscription_id } = req.params;
+    const { quantity } = req.body;
+
+    if (!quantity || quantity < 1) {
+      return res.status(400).json({ error: "Valid quantity is required" });
+    }
+
+    await queryDatabase(
+      "UPDATE subscriptions SET quantity = ? WHERE subscription_id = ?",
+      [quantity, subscription_id]
+    );
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error updating subscription:", error);
+    res.status(500).json({ error: "Failed to update subscription" });
+  }
+});
+
+// Delete subscription
+app.delete("/api/subscriptions/:subscription_id", verifyToken, async (req, res) => {
+  try {
+    const { subscription_id } = req.params;
+    
+    await queryDatabase(
+      "DELETE FROM subscriptions WHERE subscription_id = ?",
+      [subscription_id]
+    );
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting subscription:", error);
+    res.status(500).json({ error: "Failed to delete subscription" });
+  }
+});
+
+
+
+
+
+
+
+
+
 
 app.get('/api/bargain/:bargainId', async (req, res) => {
   const { bargainId } = req.params;
