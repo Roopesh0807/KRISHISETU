@@ -1,6 +1,7 @@
 // import "../styles/MemberOrderPage.css";
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useAuth } from '../context/AuthContext';
 import Navbar3 from "../components/Navbar3.js";
 
 function MemberOrderPage() {
@@ -12,6 +13,7 @@ function MemberOrderPage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const { consumer } = useAuth();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -20,7 +22,11 @@ function MemberOrderPage() {
         setError("");
         
         const response = await fetch(
-          `http://localhost:5000/api/community/${communityId}/member/${memberId}/orders`
+          `http://localhost:5000/api/community/${communityId}/member/${memberId}/orders`,{
+            headers: { 
+              'Authorization': `Bearer ${consumer.token}`
+            },
+          }
         );
         
         if (!response.ok) {
@@ -54,6 +60,7 @@ function MemberOrderPage() {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
+             'Authorization': `Bearer ${consumer.token}`
           },
           body: JSON.stringify({ quantity: newQuantity })
         }
@@ -97,6 +104,7 @@ const handleRemoveItem = async (orderId) => {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
+         'Authorization': `Bearer ${consumer.token}`
       }
     });
     

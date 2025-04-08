@@ -1,191 +1,127 @@
-/* Join Community Container */
+/* JoinCommunity.css */
 .krishi-join-community {
-    padding-top: 80px; /* Adjust for fixed Navbar3 */
-    background-color: #f9fafb; /* Light background */
-    min-height: 100vh;
-    font-family: 'Poppins', sans-serif; /* Modern font */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(129, 199, 132, 0.1)),
-                url('https://images.unsplash.com/photo-1464226184884-fa280b87c399?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80'); /* Farm background */
-    background-size: cover;
-    background-position: center;
-  }
-  
-  /* Form Container */
+  font-family: 'Poppins', sans-serif;
+  background-color: #f5f9f1;
+  min-height: 100vh;
+  color: #2c3e2c;
+  padding-bottom: 2rem;
+}
+
+.krishi-form-container {
+  max-width: 500px;
+  margin: 2rem auto;
+  padding: 2.5rem;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(52, 73, 45, 0.1);
+  border: 1px solid #d8e3d5;
+  text-align: center;
+}
+
+.krishi-form-container h1 {
+  color: #3a5a3a;
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+}
+
+.krishi-subtitle {
+  color: #6a7c6a;
+  margin-bottom: 2rem;
+  font-size: 1rem;
+}
+
+.krishi-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.krishi-input {
+  padding: 0.9rem 1.2rem;
+  border: 2px solid #d8e3d5;
+  border-radius: 8px;
+  font-size: 1rem;
+  color: #2c3e2c;
+  transition: all 0.3s ease;
+  background-color: #f8fbf3;
+}
+
+.krishi-input:focus {
+  outline: none;
+  border-color: #8ba888;
+  box-shadow: 0 0 0 3px rgba(139, 168, 136, 0.2);
+}
+
+.krishi-input::placeholder {
+  color: #a8b8a8;
+}
+
+.krishi-error-message {
+  color: #c0392b;
+  background-color: #fde8e8;
+  padding: 0.8rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.krishi-join-button {
+  background-color: #5a8f5a;
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.krishi-join-button:hover {
+  background-color: #4a7c4a;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(52, 73, 45, 0.2);
+}
+
+.krishi-join-button:disabled {
+  background-color: #a8b8a8;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
   .krishi-form-container {
-    background-color: rgba(255, 255, 255, 0.95); /* Semi-transparent white */
-    padding: 40px;
-    border-radius: 15px;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-    max-width: 500px;
-    width: 100%;
-    text-align: center;
-    animation: fadeInUp 1s ease-in-out;
+    margin: 1rem;
+    padding: 1.5rem;
   }
   
   .krishi-form-container h1 {
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: #2e7d32; /* Dark green */
-    margin-bottom: 20px;
-  }
-  
-  .krishi-form-container .krishi-subtitle {
-    font-size: 1.2rem;
-    color: #666;
-    margin-bottom: 30px;
-  }
-  
-  /* Input Group */
-  .krishi-input-group {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    margin-bottom: 20px;
+    font-size: 1.8rem;
   }
   
   .krishi-input {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    font-size: 1rem;
-    color: #333;
-    transition: all 0.3s ease;
+    padding: 0.8rem 1rem;
   }
   
-  .krishi-input:focus {
-    border-color: #4caf50; /* Green */
-    outline: none;
-    box-shadow: 0 0 8px rgba(76, 175, 80, 0.3);
-  }
-  
-  /* Error Message */
-  .krishi-error-message {
-    color: #dc3545; /* Red */
-    font-size: 0.9rem;
-    margin-bottom: 20px;
-  }
-  
-  /* Join Button */
   .krishi-join-button {
-    background-color: #4caf50; /* Green */
-    color: #fff;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 8px;
-    font-size: 1.1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
+    padding: 0.9rem;
   }
-  
-  .krishi-join-button:hover {
-    background-color: #388e3c; /* Darker green */
-    transform: translateY(-3px);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-  }
-  
-  /* Animations */
-  @keyframes fadeInUp {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-  
-  /* Responsive Design */
-  @media (max-width: 768px) {
-    .krishi-form-container {
-      padding: 20px;
-    }
-  
-    .krishi-form-container h1 {
-      font-size: 2rem;
-    }
-  
-    .krishi-form-container .krishi-subtitle {
-      font-size: 1rem;
-    }
-  
-    .krishi-input {
-      padding: 10px;
-      font-size: 0.9rem;
-    }
-  
-    .krishi-join-button {
-      padding: 10px 20px;
-      font-size: 1rem;
-    }
-  }
-
-
-
-  /* Join Method Toggle */
-.krishi-join-method-toggle {
-  display: flex;
-  margin-bottom: 20px;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid #ddd;
 }
 
-.krishi-toggle-button {
-  flex: 1;
-  padding: 10px;
-  border: none;
-  background-color: #f5f5f5;
-  cursor: pointer;
-  font-size: 14px;
-  transition: all 0.3s;
+/* Animation for loading state */
+@keyframes krishi-pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
 }
 
-.krishi-toggle-button.active {
-  background-color: #4CAF50;
-  color: white;
-}
-
-/* Address Autocomplete */
-.krishi-address-autocomplete {
-  position: relative;
-  width: 100%;
-}
-
-.krishi-address-suggestions {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  z-index: 1000;
-  max-height: 200px;
-  overflow-y: auto;
-  background: white;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.krishi-address-suggestions li {
-  padding: 10px;
-  cursor: pointer;
-  border-bottom: 1px solid #eee;
-}
-
-.krishi-address-suggestions li:hover {
-  background-color: #f5f5f5;
-}
-
-.krishi-address-suggestions li:last-child {
-  border-bottom: none;
+.krishi-join-button:disabled {
+  animation: krishi-pulse 1.5s infinite ease-in-out;
 }

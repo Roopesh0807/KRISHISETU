@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar3 from '../components/Navbar3.js';
+import { useAuth } from '../context/AuthContext';
 import '../styles/HomePage.css';
 
 function HomePage() {
@@ -9,11 +10,15 @@ function HomePage() {
   const [password, setPassword] = useState('');
   const [selectedCommunity, setSelectedCommunity] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-
+  const { consumer } = useAuth();
+  const consumerId = consumer?.consumer_id || localStorage.getItem('consumerId');
   useEffect(() => {
-    const consumerId = localStorage.getItem('consumerId');
     if (consumerId) {
-      fetch(`http://localhost:5000/api/community/consumer/${consumerId}/communities`)
+      fetch(`http://localhost:5000/api/community/consumer/${consumerId}/communities`, {
+        headers: { 
+          'Authorization': `Bearer ${consumer.token}`
+        },
+      })
         .then((response) => {
           if (!response.ok) throw new Error('Failed to fetch communities');
           return response.json();
@@ -29,7 +34,7 @@ function HomePage() {
     } else {
       setIsLoading(false);
     }
-  }, []);
+  }, [consumer]); // Add consumer to dependency array
 
   const handleCommunityClick = (community) => {
     setSelectedCommunity(community);
@@ -42,12 +47,14 @@ function HomePage() {
       return;
     }
 
-    const consumerId = localStorage.getItem('consumerId');
+    const consumerId = consumer?.consumer_id || localStorage.getItem('consumerId');
 
     try {
       const response = await fetch('http://localhost:5000/api/community/verify-access', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json',
+           'Authorization': `Bearer ${consumer.token}`
+         },
         body: JSON.stringify({
           communityName: selectedCommunity.community_name,
           password,

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useAuth } from '../context/AuthContext';
 import Navbar3 from "../components/Navbar3.js";
 import { 
   FaEdit, 
@@ -29,6 +30,7 @@ function AdminCommunityPage() {
   const [showAddMemberForm, setShowAddMemberForm] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { consumer } = useAuth();
 
   useEffect(() => {
     const fetchCommunityData = async () => {
@@ -37,8 +39,16 @@ function AdminCommunityPage() {
         setError(null);
         
         const [communityRes, membersRes] = await Promise.all([
-          fetch(`http://localhost:5000/api/community/${communityId}`),
-          fetch(`http://localhost:5000/api/community/${communityId}/members`)
+          fetch(`http://localhost:5000/api/community/${communityId}`,{
+            headers: { 
+              'Authorization': `Bearer ${consumer.token}`
+            },
+          }),
+          fetch(`http://localhost:5000/api/community/${communityId}/members`,{
+            headers: { 
+              'Authorization': `Bearer ${consumer.token}`
+            },
+          })
         ]);
 
         const [communityData, membersData] = await Promise.all([
@@ -83,7 +93,9 @@ function AdminCommunityPage() {
     try {
       const response = await fetch(`http://localhost:5000/api/community/${communityId}/add-member`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json" ,
+          'Authorization': `Bearer ${consumer.token}`
+        },
         body: JSON.stringify({ 
           communityId, 
           name: newMember.name,
@@ -100,7 +112,11 @@ function AdminCommunityPage() {
 
         // Fetch updated members list
         const updatedMembersResponse = await fetch(
-         ` http://localhost:5000/api/community/${communityId}/members`
+         ` http://localhost:5000/api/community/${communityId}/members`,{
+          headers: { 
+            'Authorization': `Bearer ${consumer.token}`
+          },
+         }
         );
         const updatedMembers = await updatedMembersResponse.json();
 
@@ -134,7 +150,13 @@ function AdminCommunityPage() {
     try {
       const response = await fetch(
         `http://localhost:5000/api/community/${communityId}/remove-member/${memberId}`,
-        { method: "DELETE" }
+          {
+            method: "DELETE",
+            headers: { 
+              'Authorization': `Bearer ${consumer.token}`,
+              'Content-Type': 'application/json' // Recommended to include
+            }
+          }
       );
 
       if (!response.ok) throw new Error(await response.text());
@@ -151,7 +173,9 @@ function AdminCommunityPage() {
     try {
       const response = await fetch(`http://localhost:5000/api/community/${communityId}/update-details`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json" ,
+           'Authorization': `Bearer ${consumer.token}`
+        },
         body: JSON.stringify(editDetails),
       });
 

@@ -288,7 +288,10 @@ app.use((req, res, next) => {
     "/api/consumerregister",
     "/api/consumerlogin",
     "/api/farmerregister",
-    "/api/farmerlogin"
+    "/api/farmerlogin",
+    "api/community/consumer/:consumerId/communities",
+    "api/community/:communityId/update-details"
+
     // Add more public routes if needed
   ];
 

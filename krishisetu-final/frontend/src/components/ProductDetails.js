@@ -78,7 +78,12 @@ const ProductDetails = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/consumer-communities/${consumer.consumer_id}`);
+      const response = await fetch(`http://localhost:5000/api/consumer-communities/${consumer.consumer_id}`,{
+        headers: { 
+         
+          "Authorization": `Bearer ${localStorage.getItem('token')}`
+        },
+      });
       const data = await response.json();
       
       if (response.ok) {

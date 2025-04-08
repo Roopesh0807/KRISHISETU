@@ -381,17 +381,18 @@ exports.updateCommunityDetails = async (req, res) => {
 // };
 
 exports.joinCommunity = async (req, res) => {
-  const { communityName, password, userEmail } = req.body;
+  const { communityName, password } = req.body;
+  const consumerId = req.user?.consumer_id; // Get from authenticated user
 
-  if (!communityName || !password || !userEmail) {
+  if (!communityName || !password || !consumerId) {
     return res.status(400).json({ error: "All fields are required" });
   }
 
   try {
-    // Get consumer details from email
+    // Get consumer details from consumer_id
     const userResult = await queryDatabase(
-      "SELECT consumer_id, first_name, last_name, email, phone_number FROM consumerregistration WHERE email = ?",
-      [userEmail]
+      "SELECT first_name, last_name, email, phone_number FROM consumerregistration WHERE consumer_id = ?",
+      [consumerId]
     );
 
     if (userResult.length === 0) {
@@ -399,11 +400,11 @@ exports.joinCommunity = async (req, res) => {
     }
 
     const user = userResult[0];
-    const consumerId = user.consumer_id;
 
     // Check if community exists
     const communityResult = await queryDatabase(
-      "SELECT * FROM communities WHERE community_name = ?",
+      `SELECT community_id, community_name, admin_id, password 
+       FROM communities WHERE community_name = ?`,
       [communityName]
     );
 
@@ -427,34 +428,33 @@ exports.joinCommunity = async (req, res) => {
 
     // Check if already a member
     const memberResult = await queryDatabase(
-      "SELECT * FROM members WHERE community_id = ? AND consumer_id = ?",
+      "SELECT member_id FROM members WHERE community_id = ? AND consumer_id = ?",
       [community.community_id, consumerId]
     );
 
     if (memberResult.length > 0) {
       return res.status(400).json({ 
-        error: "You are already a member of this community" 
+        error: "You are already a member of this community",
+        memberId: memberResult[0].member_id
       });
     }
 
-    // Add as member
-    const addMemberResult = await queryDatabase(
-      `INSERT INTO members 
-       (community_id, consumer_id, member_name, member_email, phone_number) 
-       VALUES (?, ?, ?, ?, ?)`,
-      [
-        community.community_id,
-        consumerId,
-        `${user.first_name} ${user.last_name}`,
-        user.email,
-        user.phone_number,
-      ]
+    // Add as member (trigger will handle member_id generation and data consistency)
+    await queryDatabase(
+      `INSERT INTO members (community_id, consumer_id) VALUES (?, ?)`,
+      [community.community_id, consumerId]
+    );
+
+    // Get the newly created member ID
+    const newMemberResult = await queryDatabase(
+      "SELECT member_id FROM members WHERE community_id = ? AND consumer_id = ?",
+      [community.community_id, consumerId]
     );
 
     res.status(200).json({
       message: "Joined community successfully",
       communityId: community.community_id,
-      memberId: addMemberResult.insertId
+      memberId: newMemberResult[0].member_id
     });
 
   } catch (error) {
@@ -467,33 +467,35 @@ exports.joinCommunity = async (req, res) => {
 };
 
 // Add this to your communityController.js
-exports.getAddressSuggestions = async (req, res) => {
-  console.log('\n=== REQUEST RECEIVED ===');
-  console.log('Method:', req.method);
-  console.log('Full URL:', req.originalUrl);
-  console.log('Query params:', req.query);
+// exports.getAddressSuggestions = async (req, res) => {
+//   console.log('\n=== REQUEST RECEIVED ===');
+//   console.log('Method:', req.method);
+//   console.log('Full URL:', req.originalUrl);
+//   console.log('Query params:', req.query);
   
-  try {
-    const { query } = req.query;
-    if (!query) {
-      return res.status(200).json([]);
-    }
+//   try {
+//     const { query } = req.query;
+//     if (!query) {
+//       return res.status(200).json([]);
+//     }
 
-    const results = await queryDatabase(
-      `SELECT community_id, community_name, address 
-       FROM communities 
-       WHERE address LIKE ? OR community_name LIKE ? 
-       LIMIT 5`,
-      [`%${query}%`, `%${query}%`]
-    );
+//     const results = await queryDatabase(
+//       `SELECT community_id, community_name, address 
+//        FROM communities 
+//        WHERE address LIKE ? OR community_name LIKE ? 
+//        LIMIT 5`,
+//       [`%${query}%`, `%${query}%`]
+//     );
 
-    console.log('Results:', results);
-    res.status(200).json(results);
-  } catch (error) {
-    console.error('Database error:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-};
+//     console.log('Results:', results);
+//     res.status(200).json(results);
+//   } catch (error) {
+//     console.error('Database error:', error);
+//     res.status(500).json({ error: 'Internal server error' });
+//   }
+// };
+
+
 
 // Keep your existing joinCommunity function as is
 
