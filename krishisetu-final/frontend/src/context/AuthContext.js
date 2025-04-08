@@ -97,6 +97,90 @@ useEffect(() => {
     }
   };
 
+  // const loginConsumer = async (data) => {
+  //   try {
+  //     console.group("🔐 loginConsumer");
+  //     console.log("📥 Raw login data received:", data);
+  
+  //     // Validate required fields
+  //     if (!data?.token) {
+  //       const error = new Error("No authentication token received");
+  //       console.error("❌ Validation error:", error.message);
+  //       console.groupEnd();
+  //       throw error;
+  //     }
+  
+  //     if (!data.consumer_id) {
+  //       console.warn("⚠️ Missing consumer_id in login response");
+  //     }
+  
+  //     // Normalize data with fallbacks
+  //     const normalizedData = {
+  //       token: data.token,
+  //       consumer_id: data.consumer_id || "",
+  //       email: data.email || "",
+  //       phone_number: data.phone_number || "",
+  //       // first_name: data.first_name && data.first_name.trim() !== "" ? data.first_name : (data.firstName || ""),
+  //       // last_name: data.last_name && data.last_name.trim() !== "" ? data.last_name : (data.lastName || ""),        
+  //       // full_name: `${data.first_name || data.firstName || ""} ${
+  //       //   data.last_name || data.lastName || ""
+  //       // }`.trim(),
+  //       first_name: data.first_name ,
+  //       last_name: data.last_name ,
+  //       full_name: `${data.first_name } ${data.last_name }`.trim(),
+
+  //       // Preserve other fields but don't overwrite core fields
+  //       ...Object.fromEntries(
+  //         Object.entries(data).filter(
+  //           ([key]) =>
+  //             ![
+  //               "token",
+  //               "consumer_id",
+  //               "email",
+  //               "phone_number",
+  //               "first_name",
+  //               "last_name",
+  //              "full_name",
+  //              "name",
+  //             ].includes(key)
+  //         )
+  //       ),
+  //     };
+  
+  //     console.log("🔄 Normalized consumer data:", normalizedData);
+  
+  //     // Verify token structure (basic check)
+  //     if (typeof normalizedData.token !== "string" || !normalizedData.token.includes(".")) {
+  //       console.warn("⚠️ Token structure appears invalid");
+  //     }
+  
+  //     // Update state and storage
+  //     setConsumer(normalizedData);
+  //     localStorage.setItem("consumer", JSON.stringify(normalizedData));
+  
+  //     // Verify storage
+  //     const storedData = localStorage.getItem("consumer");
+  //     if (!storedData) {
+  //       console.error("❌ Failed to persist consumer data");
+  //     } else {
+  //       console.log("💾 Successfully stored consumer data");
+  //     }
+  
+  //     console.groupEnd();
+  //     return normalizedData;
+  //   } catch (error) {
+  //     console.error("🔥 Critical login error:", error);
+  
+  //     // Clean up on error
+  //     setConsumer(null);
+  //     localStorage.removeItem("consumer");
+  
+  //     // Re-throw with additional context
+  //     error.message = `Login failed: ${error.message}`;
+  //     throw error;
+  //   }
+  // };
+
   const loginConsumer = async (data) => {
     try {
       console.group("🔐 loginConsumer");
@@ -110,77 +194,42 @@ useEffect(() => {
         throw error;
       }
   
-      if (!data.consumer_id) {
-        console.warn("⚠️ Missing consumer_id in login response");
-      }
+      // Decode token to get payload
+      const payload = JSON.parse(atob(data.token.split('.')[1]));
+      console.log("🔍 Token payload:", payload);
   
-      // Normalize data with fallbacks
+      // Normalize data with fallbacks - use payload data first, then response data
       const normalizedData = {
         token: data.token,
-        consumer_id: data.consumer_id || "",
-        email: data.email || "",
-        phone_number: data.phone_number || "",
-        // first_name: data.first_name && data.first_name.trim() !== "" ? data.first_name : (data.firstName || ""),
-        // last_name: data.last_name && data.last_name.trim() !== "" ? data.last_name : (data.lastName || ""),        
-        // full_name: `${data.first_name || data.firstName || ""} ${
-        //   data.last_name || data.lastName || ""
-        // }`.trim(),
-        first_name: data.first_name ,
-        last_name: data.last_name ,
-        full_name: `${data.first_name } ${data.last_name }`.trim(),
-
-        // Preserve other fields but don't overwrite core fields
-        ...Object.fromEntries(
-          Object.entries(data).filter(
-            ([key]) =>
-              ![
-                "token",
-                "consumer_id",
-                "email",
-                "phone_number",
-                "first_name",
-                "last_name",
-               "full_name",
-               "name",
-              ].includes(key)
-          )
-        ),
+        consumer_id: payload.consumer_id || data.consumer_id || "",
+        email: payload.email || data.email || "",
+        phone_number: payload.phone_number || data.phone_number || "",
+        first_name: payload.first_name || data.first_name || "",
+        last_name: payload.last_name || data.last_name || "",
+        full_name: payload.full_name || 
+                  `${payload.first_name || data.first_name || ""} ${payload.last_name || data.last_name || ""}`.trim(),
+        // Preserve other fields
+        ...data
       };
   
       console.log("🔄 Normalized consumer data:", normalizedData);
-  
-      // Verify token structure (basic check)
-      if (typeof normalizedData.token !== "string" || !normalizedData.token.includes(".")) {
-        console.warn("⚠️ Token structure appears invalid");
-      }
   
       // Update state and storage
       setConsumer(normalizedData);
       localStorage.setItem("consumer", JSON.stringify(normalizedData));
   
-      // Verify storage
-      const storedData = localStorage.getItem("consumer");
-      if (!storedData) {
-        console.error("❌ Failed to persist consumer data");
-      } else {
-        console.log("💾 Successfully stored consumer data");
-      }
-  
       console.groupEnd();
       return normalizedData;
     } catch (error) {
       console.error("🔥 Critical login error:", error);
-  
-      // Clean up on error
       setConsumer(null);
       localStorage.removeItem("consumer");
-  
-      // Re-throw with additional context
       error.message = `Login failed: ${error.message}`;
       throw error;
     }
   };
-// ✅ Farmer Authentication (NEW)
+
+  // ✅ Farmer Authentication (NEW)
 const registerFarmer = (farmerData) => {
   try {
     console.log("✅ Farmer Data Received for Registration:", farmerData);
