@@ -3795,6 +3795,15 @@ app.post("/api/subscriptions", verifyToken, async (req, res) => {
   }
 });
 
+
+
+
+
+
+
+
+
+
 // Update subscription
 app.put("/api/subscriptions/:subscription_id", verifyToken, async (req, res) => {
   try {
@@ -3833,6 +3842,13 @@ app.delete("/api/subscriptions/:subscription_id", verifyToken, async (req, res) 
     res.status(500).json({ error: "Failed to delete subscription" });
   }
 });
+
+
+
+
+
+
+
 
 
 app.get('/api/bargain/:bargainId', async (req, res) => {
