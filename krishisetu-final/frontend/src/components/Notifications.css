@@ -1,180 +1,271 @@
-/* Notification Container */
+/* Notifications.css */
 .notification-container {
-  max-width: 800px; /* Increased width for better readability */
-  margin: 80px auto 20px; /* Center the container horizontally */
-  background: rgba(255, 255, 255, 0.95); /* Semi-transparent background */
-  padding: 25px;
-  border-radius: 15px;
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(15px); /* Glassmorphism effect */
-  animation: fadeIn 0.8s ease-in-out;
+  max-width: 1200px;
+  margin-top: 80px;
+  margin-left: 15%;
+  padding: 20px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f8faf7;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Adjust margin when sidebar is open */
-.sidebar.open ~ .notification-container {
-  margin-left: 240px; /* Adjusted for expanded sidebar width */
-  margin-right: auto; /* Center the container */
-}
-
-/* Header */
 .notification-container h2 {
+  color: #2c5e1a;
   font-size: 28px;
-  color: #2e7d32; /* Green text */
-  text-align: center;
-  margin-bottom: 20px;
-  background: linear-gradient(135deg, #4CAF50, #81C784); /* Green gradient */
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: textGlow 2s infinite alternate;
-}
-
-@keyframes textGlow {
-  0% {
-    text-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
-  }
-  100% {
-    text-shadow: 0 0 20px rgba(76, 175, 80, 0.8);
-  }
-}
-
-/* Notifications List */
-.notifications {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-/* Notification Card */
-.notification-card {
+  margin-bottom: 25px;
+  padding-bottom: 10px;
+  border-bottom: 2px dashed #c1d8b7;
   display: flex;
   align-items: center;
-  padding: 15px;
+  gap: 10px;
+}
+
+.notification-container h3 {
+  color: #3a7d22;
+  font-size: 20px;
+  margin: 25px 0 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notifications-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 15px;
+  margin-bottom: 10px;
+}
+
+.notification-card {
+  background: white;
   border-radius: 10px;
-  transition: all 0.3s ease;
+  padding: 15px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
   cursor: pointer;
-  border-left: 5px solid transparent;
-  background-color: rgba(255, 255, 255, 0.9); /* Semi-transparent background */
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  border-left: 4px solid;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .notification-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.notification-card.read {
+  opacity: 0.8;
+  background-color: #f5f5f5;
 }
 
 .notification-card .icon {
-  margin-right: 15px;
-}
-
-.notification-card .icon svg {
-  width: 24px;
-  height: 24px;
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .notification-card .text {
-  flex-grow: 1;
+  flex: 1;
 }
 
 .notification-card .text p {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 500;
+  margin: 0 0 5px 0;
   color: #333;
+  font-weight: 500;
 }
 
 .notification-card .text span {
   font-size: 12px;
-  color: #888;
+  color: #777;
 }
 
-/* 🛒 Order Accepted Notification */
-.notification-card.order {
-  background: rgba(230, 248, 232, 0.9); /* Semi-transparent background */
-  border-left-color: #28a745;
+/* Notification type specific styles */
+.notification-card.order-placed {
+  border-color: #4a6fa5;
+  background-color: #f0f5ff;
+}
+.notification-card.order-placed .icon {
+  background-color: #d6e2ff;
+  color: #4a6fa5;
 }
 
-.notification-card.order .icon svg {
-  color: #28a745;
+.notification-card.order-accepted {
+  border-color: #4caf50;
+  background-color: #f0f9f0;
+}
+.notification-card.order-accepted .icon {
+  background-color: #d8efd8;
+  color: #4caf50;
 }
 
-/* 🌩️ Weather Alert */
 .notification-card.weather {
-  background: rgba(231, 241, 255, 0.9); /* Semi-transparent background */
-  border-left-color: #007bff;
+  border-color: #2196f3;
+  background-color: #e8f4fd;
+}
+.notification-card.weather .icon {
+  background-color: #cce5fb;
+  color: #2196f3;
 }
 
-.notification-card.weather .icon svg {
-  color: #007bff;
-}
-
-/* 📜 Government Scheme */
 .notification-card.scheme {
-  background: rgba(255, 249, 230, 0.9); /* Semi-transparent background */
-  border-left-color: #ff9800;
+  border-color: #ff9800;
+  background-color: #fff5e6;
 }
-
-.notification-card.scheme .icon svg {
+.notification-card.scheme .icon {
+  background-color: #ffeacc;
   color: #ff9800;
 }
 
-/* 🚨 Disease Detection */
 .notification-card.disease {
-  background: rgba(255, 230, 230, 0.9); /* Semi-transparent background */
-  border-left-color: #dc3545;
+  border-color: #f44336;
+  background-color: #ffebee;
+}
+.notification-card.disease .icon {
+  background-color: #ffcdd2;
+  color: #f44336;
 }
 
-.notification-card.disease .icon svg {
-  color: #dc3545;
-}
-
-/* 💰 Payment Update */
 .notification-card.payment {
-  background: rgba(230, 247, 255, 0.9); /* Semi-transparent background */
-  border-left-color: #17a2b8;
+  border-color: #9c27b0;
+  background-color: #f5e6fa;
+}
+.notification-card.payment .icon {
+  background-color: #e9c8f1;
+  color: #9c27b0;
 }
 
-.notification-card.payment .icon svg {
-  color: #17a2b8;
+.notification-card.bargain {
+  border-color: #607d8b;
+  background-color: #eceff1;
+}
+.notification-card.bargain .icon {
+  background-color: #d7dbdd;
+  color: #607d8b;
 }
 
-/* ✅ Read Notifications */
-.notification-card.read {
-  opacity: 0.6;
-  pointer-events: none;
+.notification-card.harvest-reminder {
+  border-color: #8bc34a;
+  background-color: #f1f8e9;
+}
+.notification-card.harvest-reminder .icon {
+  background-color: #dcedc8;
+  color: #8bc34a;
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
+.notification-card.equipment-maintenance {
+  border-color: #795548;
+  background-color: #efebe9;
+}
+.notification-card.equipment-maintenance .icon {
+  background-color: #d7ccc8;
+  color: #795548;
+}
+
+.notification-card.market-update {
+  border-color: #009688;
+  background-color: #e0f2f1;
+}
+.notification-card.market-update .icon {
+  background-color: #b2dfdb;
+  color: #009688;
+}
+
+.notification-card.community-event {
+  border-color: #e91e63;
+  background-color: #fce4ec;
+}
+.notification-card.community-event .icon {
+  background-color: #f8bbd0;
+  color: #e91e63;
+}
+
+/* Popup styles */
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.popup {
+  background-color: white;
+  padding: 25px;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  position: relative;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  border-top: 6px solid #8bc34a;
+}
+
+.popup h3 {
+  color: #2c5e1a;
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-size: 20px;
+}
+
+.popup p {
+  color: #555;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.popup-time {
+  display: block;
+  font-size: 13px;
+  color: #888;
+  text-align: right;
+  margin-top: 15px;
+}
+
+.close-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #888;
+  transition: color 0.2s;
+}
+
+.close-btn:hover {
+  color: #333;
+}
+
+/* Empty state styles */
+.notifications-grid p {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: #888;
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  font-style: italic;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .notifications-grid {
+    grid-template-columns: 1fr;
+  }
+  
   .notification-container {
-    margin-left: 20px; /* Adjusted for mobile */
-    margin-right: 20px;
+    padding: 15px;
   }
-
-  .sidebar.open ~ .notification-container {
-    margin-left: 20px; /* Adjusted for mobile */
-    margin-right: 20px;
-  }
-
+  
   .notification-container h2 {
     font-size: 24px;
-  }
-
-  .notification-card .text p {
-    font-size: 14px;
-  }
-
-  .notification-card .text span {
-    font-size: 10px;
   }
 }
