@@ -6,8 +6,9 @@ const { queryDatabase } = require('../config/db');
 // ✅ Create Community
 exports.createCommunity = async (req, res) => {
   try {
-    const { name, password, consumerId } = req.body;
-
+    const { name, password } = req.body;
+    const consumerId = req.user.consumer_id; // assuming your JWT middleware adds this
+    
     // Validate input
     if (!name || !password || !consumerId) {
       return res.status(400).json({ error: "All fields are required." });
