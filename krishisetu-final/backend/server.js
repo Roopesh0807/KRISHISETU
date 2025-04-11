@@ -10,7 +10,7 @@ const cookieParser = require("cookie-parser");
 const { queryDatabase } = require('./src/config/db');
 const http = require("http");
 // const socketIo = require("socket.io");
-// const { Server } = require("socket.io");
+const { Server } = require("socket.io");
 const path = require("path");
 const multer = require("multer");
 const fs = require("fs");
@@ -25,6 +25,8 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 // app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/uploads", express.static("uploads"));
 app.use('/uploads', express.static('uploads'));
+
+const crypto = require('crypto');
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -48,6 +50,21 @@ const storage = multer.diskStorage({
   }
 });
 const auth = require('./src/middlewares/authMiddleware'); // Adjust path as needed
+
+
+// Protected route middleware
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  
+  if (!token) return res.status(401).json({ message: "Access denied. No token provided." });
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) return res.status(403).json({ message: "Invalid token" });
+    req.user = user;
+    next();
+  });
+};
 
 
 const upload = multer({ storage });
@@ -123,13 +140,18 @@ const { verifyToken, authenticate, farmerOnly } = require('./src/middlewares/aut
 // const httpServer = http.createServer(app);
 
 
-const { Server } = require("socket.io");
-const httpServer = http.createServer(app);
+// const { Server } = require("socket.io");
+// const httpServer = http.createServer(app);
+const httpServer = require("http").createServer(app);
 const io = new Server(httpServer, {
   cors: {
     origin: "http://localhost:3000",
     methods: ["GET", "POST"],
     credentials: true
+  },
+  connectionStateRecovery: {
+    maxDisconnectionDuration: 2 * 60 * 1000,
+    skipMiddlewares: true
   }
 });
 const router = express.Router();
@@ -164,6 +186,7 @@ const Razorpay = require('razorpay');
 
 console.log('Loading Razorpay with key:', process.env.RAZORPAY_KEY_ID);
 const razorpay = new Razorpay({
+<<<<<<< HEAD
   key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_VLCfnymiyd6HGf', // Fallback for testing
   key_secret: process.env.RAZORPAY_KEY_SECRET || 'JXgWqR4bQ9mN2kL7pS8hT3wZ'
 });
@@ -177,6 +200,10 @@ razorpay.orders.create({
   console.log('✅ Razorpay credentials verified successfully');
 }).catch(err => {
   console.error('❌ Razorpay credential verification failed:');
+=======
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET
+>>>>>>> 9da2dfeb87fcd1e215bdb559167260f227106f0a
 });
 
 // ✅ Then these
@@ -991,23 +1018,27 @@ io.on("connection", (socket) => {
 
   // 🔁 Listen and emit within room
   socket.on("bargainMessage", (data) => {
-    console.log(`💬 [${userType}] Bargain Message Received from ${user.id}:`, data);
-
+    const bargainId = data.bargain_id; // ✅ Correct way to fetch bargainId from message
+    const user = socket.user;
+  
+    console.log(`💬 [${user.userType}] Bargain Message Received from ${user.id}:`, data);
+  
     if (bargainId) {
       socket.to(bargainId).emit("bargainMessage", {
         ...data,
         senderId: user.id,
-        senderType: userType,
+        senderType: user.userType,
       });
     } else {
-      console.warn("⚠️ bargainId missing. Broadcasting to all instead.");
+      console.warn("⚠️ bargainId missing in message. Broadcasting to all instead.");
       socket.broadcast.emit("bargainMessage", {
         ...data,
         senderId: user.id,
-        senderType: userType,
+        senderType: user.userType,
       });
     }
   });
+  
 
   socket.on("disconnect", () => {
     console.log(`❌ ${userType} disconnected: ${socket.id}`);
@@ -4121,42 +4152,84 @@ function pick(obj, keys) {
 //   }
 // });
 
-app.post('/api/create-bargain', async (req, res) => {
+// app.post('/api/create-bargain', async (req, res) => {
+//   try {
+//     const authHeader = req.headers.authorization;
+//     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+//       return res.status(401).json({ error: 'Missing or invalid authorization header' });
+//     }
+
+//     const token = authHeader.split(' ')[1];
+//     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+//     const { initiator, farmer_id } = req.body;
+
+//     if (!initiator || !farmer_id) {
+//       return res.status(400).json({ error: 'Missing initiator or farmer_id' });
+//     }
+
+//     const result = await queryDatabase(
+//       `INSERT INTO bargain_sessions (consumer_id, farmer_id, status, initiator, created_at, updated_at)
+//        VALUES (?, ?, ?, ?, NOW(), NOW())`,
+//       [decoded.consumer_id, farmer_id, 'pending', initiator]
+//     );
+
+//     const newId = result?.insertId;
+
+//     if (!newId) {
+//       return res.status(500).json({ error: 'Failed to retrieve bargain session ID' });
+//     }
+
+//     // ✅ Full response with required data
+//     res.status(200).json({
+//       success: true,
+//       message: 'Bargain session created',
+//       bargainId: newId,
+//       consumer_id: decoded.consumer_id,
+//       farmer_id
+//     });
+
+//   } catch (err) {
+//     console.error("🔥 Error in create-bargain:", err);
+//     res.status(500).json({ error: 'Failed to create bargain session' });
+//   }
+// });
+// Enhanced create-bargain endpoint
+app.post('/api/create-bargain', verifyToken, async (req, res) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'Missing or invalid authorization header' });
+    // Get consumer_id from the verified token
+    const consumer_id = req.user.consumer_id; 
+    const { farmer_id } = req.body;
+
+    if (!farmer_id) {
+      return res.status(400).json({ 
+        success: false,
+        error: "Farmer ID is required" 
+      });
     }
 
-    const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    const { initiator, farmer_id } = req.body;
-
-    if (!initiator || !farmer_id) {
-      return res.status(400).json({ error: 'Missing initiator or farmer_id' });
-    }
-
+    // Create bargain session (always initiated by consumer)
     const result = await queryDatabase(
-      `INSERT INTO bargain_sessions (consumer_id, farmer_id, status, initiator) VALUES (?, ?, ?, ?)`,
-      [decoded.consumer_id, farmer_id, 'pending', initiator]
+      `INSERT INTO bargain_sessions 
+       (consumer_id, farmer_id, status, initiator, created_at, updated_at)
+       VALUES (?, ?, 'pending', 'consumer', NOW(), NOW())`,
+      [consumer_id, farmer_id]
     );
 
-    const newId = result?.insertId;
+    res.status(201).json({
+      success: true,
+      bargainId: result.insertId,
+      message: 'Bargain session created successfully'
+    });
 
-    if (!newId) {
-      return res.status(500).json({ error: 'Failed to retrieve bargain session ID' });
-    }
-
-    res.status(200).json({ message: 'Bargain session created', bargainId: newId });
-
-
-  } catch (err) {
-    console.error("🔥 Error in create-bargain:", err);
-    res.status(500).json({ error: 'Failed to create bargain session' });
+  } catch (error) {
+    console.error("Error creating bargain:", error);
+    res.status(500).json({
+      success: false,
+      error: "Internal server error"
+    });
   }
 });
-
 
 
 // GET route to check if the server is responding
@@ -4448,35 +4521,175 @@ app.get('/api/bargain/:bargainId', async (req, res) => {
 
 // routes/bargain.js or wherever you define your routes
 
+// app.post('/api/add-bargain-product', verifyToken, async (req, res) => {
+//   const { bargain_id, product_id, quantity } = req.body;
+
+//   if (!bargain_id || !product_id || !quantity) {
+//     return res.status(400).json({ error: "Missing required fields" });
+//   }
+
+//   try {
+//     const [product] = await queryDatabase('SELECT price_per_kg FROM add_produce WHERE product_id = ?', [product_id]);
+
+//     if (!product) {
+//       return res.status(400).json({ error: "Invalid product_id. Product not found." });
+//     }
+
+//     const original_price = product.price_per_kg;
+//     const current_offer = quantity * original_price;
+
+//     await queryDatabase(
+//       `INSERT INTO bargain_session_products (bargain_id, product_id, original_price, quantity, current_offer) 
+//        VALUES (?, ?, ?, ?, ?)`,
+//       [bargain_id, product_id, original_price, quantity, current_offer]
+//     );
+
+//     res.json({ message: "Product added to bargain session." });
+//   } catch (error) {
+//     console.error("Error inserting into bargain_session_products:", error);
+//     res.status(500).json({ error: "Server error" });
+//   }
+// });
+// app.post('/api/add-bargain-product', verifyToken, async (req, res) => {
+//   const { bargain_id, product_id, quantity } = req.body;
+
+//   if (!bargain_id || !product_id || !quantity) {
+//     return res.status(400).json({ 
+//       success: false,
+//       error: "Missing required fields" 
+//     });
+//   }
+
+//   try {
+//     // 1. Check if bargain session exists
+//     const [bargain] = await queryDatabase(
+//       'SELECT * FROM bargain_sessions WHERE bargain_id = ?', 
+//       [bargain_id]
+//     );
+
+//     if (!bargain) {
+//       return res.status(404).json({
+//         success: false,
+//         error: "Bargain session not found"
+//       });
+//     }
+
+//     // 2. Get product details
+//     const [product] = await queryDatabase(
+//       'SELECT price_per_kg, produce_name FROM add_produce WHERE product_id = ?', 
+//       [product_id]
+//     );
+
+//     if (!product) {
+//       return res.status(404).json({
+//         success: false,
+//         error: "Product not found"
+//       });
+//     }
+
+//     const price = product.price_per_kg;
+
+//     // 3. Insert into bargain_session_products
+//     await queryDatabase(`
+//       INSERT INTO bargain_session_products (bargain_id, product_id, original_price, current_offer, quantity)
+//       VALUES (?, ?, ?, ?, ?)
+//       ON DUPLICATE KEY UPDATE 
+//         original_price = VALUES(original_price),
+//         current_offer = VALUES(current_offer),
+//         quantity = VALUES(quantity)
+//     `, [bargain_id, product_id, price, price, quantity]);
+
+//     // 4. Return success
+//     res.json({ 
+//       success: true,
+//       message: "Product added to bargain session",
+//       product_name: product.produce_name,
+//       price_per_kg: price,
+//       quantity: quantity
+//     });
+
+//   } catch (error) {
+//     console.error("Error in /api/add-bargain-product:", error);
+//     res.status(500).json({
+//       success: false,
+//       error: "Internal server error"
+//     });
+//   }
+// });
 app.post('/api/add-bargain-product', verifyToken, async (req, res) => {
-  const { bargain_id, product_id, quantity } = req.body;
-
-  if (!bargain_id || !product_id || !quantity) {
-    return res.status(400).json({ error: "Missing required fields" });
-  }
-
   try {
-    const [product] = await queryDatabase('SELECT price_per_kg FROM add_produce WHERE product_id = ?', [product_id]);
+    console.log('Received product addition request:', req.body);
+    
+    const { bargain_id, product_id, quantity } = req.body;
 
-    if (!product) {
-      return res.status(400).json({ error: "Invalid product_id. Product not found." });
+    // Validate input types
+    if (isNaN(quantity)) {
+      return res.status(400).json({ 
+        success: false,
+        error: "Quantity must be a number" 
+      });
     }
 
-    const original_price = product.price_per_kg;
-    const current_offer = quantity * original_price;
-
-    await queryDatabase(
-      `INSERT INTO bargain_session_products (bargain_id, product_id, original_price, quantity, current_offer) 
-       VALUES (?, ?, ?, ?, ?)`,
-      [bargain_id, product_id, original_price, quantity, current_offer]
+    // Verify bargain exists
+    const [bargain] = await queryDatabase(
+      'SELECT 1 FROM bargain_sessions WHERE bargain_id = ? LIMIT 1',
+      [bargain_id]
     );
 
-    res.json({ message: "Product added to bargain session." });
+    if (!bargain) {
+      return res.status(404).json({
+        success: false,
+        error: "Bargain session not found"
+      });
+    }
+
+    // Get product details with availability check
+    const [product] = await queryDatabase(
+      `SELECT price_per_kg, produce_name 
+       FROM add_produce 
+       WHERE product_id = ? AND availability >= ?`,
+      [product_id, quantity]
+    );
+
+    if (!product) {
+      return res.status(400).json({
+        success: false,
+        error: "Product not found or insufficient quantity available"
+      });
+    }
+
+    // Insert product
+    await queryDatabase(
+      `INSERT INTO bargain_session_products
+       (bargain_id, product_id, original_price, quantity, current_offer)
+       VALUES (?, ?, ?, ?, ?)`,
+      [bargain_id, product_id, product.price_per_kg, quantity, product.price_per_kg]
+    );
+
+    // Return complete response
+    return res.status(200).json({
+      success: true,
+      data: {
+        bargain_id,
+        product_id,
+        product_name: product.produce_name,
+        price_per_kg: product.price_per_kg,
+        quantity: Number(quantity),
+        total_price: (product.price_per_kg * quantity).toFixed(2)
+      },
+      message: "Product successfully added to bargain"
+    });
+
   } catch (error) {
-    console.error("Error inserting into bargain_session_products:", error);
-    res.status(500).json({ error: "Server error" });
+    console.error('Database error:', error);
+    return res.status(500).json({
+      success: false,
+      error: "Internal server error",
+      system_error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
+
 app.get('/api/bargain/fetch-session-data', async (req, res) => {
   const bargainId = req.query.id;
   try {
@@ -5247,36 +5460,40 @@ app.put("/api/farmerprofile/:farmer_id/farm",
 
 
 // Add this endpoint for payment verification
-app.post('/api/verify-payment', express.json(), async (req, res) => {
-  const crypto = require('crypto');
-  
+app.post("/api/verify-payment", authenticateToken, async (req, res) => {
   try {
     const { razorpay_payment_id, razorpay_order_id, razorpay_signature, amount } = req.body;
     
+    if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
+      return res.status(400).json({ error: "Missing payment verification data" });
+    }
+
     // Create the expected signature
-    const hmac = crypto.createHmac('sha256', 'dwcSRSRah7Y4eBZUzL8M');
+    const hmac = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET);
     hmac.update(`${razorpay_order_id}|${razorpay_payment_id}`);
-    const expectedSignature = hmac.digest('hex');
-    
-    if (expectedSignature === razorpay_signature) {
-      // Signature is valid
-      res.json({ 
+    const generated_signature = hmac.digest('hex');
+
+    if (generated_signature === razorpay_signature) {
+      // Signature is valid - update your database
+      await saveSuccessfulPayment(razorpay_payment_id, razorpay_order_id, amount);
+      
+      return res.json({ 
         success: true,
-        paymentId: razorpay_payment_id,
-        orderId: razorpay_order_id
+        message: "Payment verified successfully"
       });
     } else {
-      // Signature is invalid
-      res.status(400).json({ 
-        success: false,
-        error: 'Invalid payment signature' 
+      return res.status(400).json({ 
+        success: false, 
+        error: "Invalid signature",
+        details: "Payment verification failed" 
       });
     }
   } catch (error) {
-    console.error('Payment verification error:', error);
-    res.status(500).json({ 
+    console.error("Payment verification error:", error);
+    return res.status(500).json({ 
       success: false,
-      error: 'Payment verification failed' 
+      error: "Payment verification failed",
+      details: error.message 
     });
   }
 });
@@ -5285,24 +5502,92 @@ app.post('/api/verify-payment', express.json(), async (req, res) => {
 
 
 // Add this endpoint for creating Razorpay orders
-app.post('/api/create-razorpay-order', async (req, res) => {
-  try {
-    const { amount, currency } = req.body;
+// Razorpay Order Creation
+// Initialize Razorpay with your actual keys
+
+
+
+
+
+// Create Order Endpoint
+// app.post("/api/create-razorpay-order", authenticateToken, async (req, res) => {
+//   try {
+//     const { amount } = req.body;
     
-    // Validate amount
+//     if (!amount || isNaN(amount)) {
+//       return res.status(400).json({ error: "Invalid amount" });
+//     }
+
+//     const options = {
+//       amount: Math.round(amount * 100), // Convert to paise
+//       currency: 'INR',
+//       receipt: `order_${Date.now()}`
+//     };
+
+//     console.log("Creating Razorpay order with options:", options);
+    
+//     const order = await razorpay.orders.create(options);
+    
+//     res.json({
+//       id: order.id,
+//       currency: order.currency,
+//       amount: order.amount
+//     });
+//   } catch (error) {
+//     console.error("Razorpay order creation error:", error);
+    
+//     // More detailed error response
+//     res.status(500).json({ 
+//       error: "Payment gateway error",
+//       razorpayError: error.error ? error.error.description : error.message,
+//       details: "Check your Razorpay API keys and account status"
+//     });
+//   }
+// });
+
+// // Verify Payment
+// app.post("/api/verify-payment", (req, res) => {
+//   try {
+//     const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = req.body;
+    
+//     const generated_signature = crypto
+//       .createHmac('sha256', 'dwcSRSRah7Y4eBZUzL8M') // Same as above
+//       .update(razorpay_order_id + "|" + razorpay_payment_id)
+//       .digest('hex');
+
+//     if (generated_signature === razorpay_signature) {
+//       res.json({ success: true });
+//     } else {
+//       res.status(400).json({ success: false, error: "Invalid signature" });
+//     }
+//   } catch (error) {
+//     console.error("Payment verification error:", error);
+//     res.status(500).json({ success: false, error: "Payment verification failed" });
+//   }
+// });
+
+
+
+
+
+// Create Order Endpoint
+app.post('/api/razorpay/create-order', authenticateToken, async (req, res) => {
+  try {
+    const { amount } = req.body;
+    
     if (!amount || isNaN(amount)) {
-      return res.status(400).json({ error: 'Invalid amount' });
+      return res.status(400).json({ error: "Invalid amount" });
     }
 
     const options = {
-      amount: Math.round(amount * 100), // Convert to paise
-      currency: currency || 'INR',
-      receipt: `order_${Date.now()}`,
-      payment_capture: 1 // Auto-capture payment
+      amount: Math.round(amount), // Ensure it's an integer
+      currency: 'INR',
+      receipt: `order_${Date.now()}`
     };
     
     const order = await razorpay.orders.create(options);
     
+<<<<<<< HEAD
     console.log("Order created successfully:", order.id);
     
     res.json({
@@ -5313,11 +5598,64 @@ app.post('/api/create-razorpay-order', async (req, res) => {
       amount: order.amount
   }});
     
+=======
+    res.json({
+      id: order.id,
+      currency: order.currency,
+      amount: order.amount,
+      display_amount: (order.amount / 100).toFixed(2) // For frontend display
+    });
+>>>>>>> 9da2dfeb87fcd1e215bdb559167260f227106f0a
   } catch (error) {
-    console.error('Razorpay order error:', error);
+    console.error("Order creation error:", error);
     res.status(500).json({ 
-      error: 'Failed to create Razorpay order',
-      details: error.error ? error.error.description : error.message 
+      error: "Failed to create order",
+      details: error.error?.description || error.message 
+    });
+  }
+});
+
+// server.js
+app.post('/api/razorpay/verify', authenticateToken, async (req, res) => {
+  try {
+    const { razorpay_payment_id, razorpay_order_id, razorpay_signature,amount } = req.body;
+    const amountInPaise = Math.round(amount * 100);
+    // 1. Verify the signature
+    const hmac = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET);
+    hmac.update(`${razorpay_order_id}|${razorpay_payment_id}`);
+    const generatedSignature = hmac.digest('hex');
+
+    if (generatedSignature !== razorpay_signature) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid signature - Possible tampering detected"
+      });
+    }
+
+    // 2. Update your database
+    // Replace saveSuccessfulPayment with your actual DB logic
+    await YourOrderModel.updateOne(
+      { razorpay_order_id },
+      {
+        $set: {
+          payment_status: 'completed',
+          razorpay_payment_id,
+          updated_at: new Date()
+        }
+      }
+    );
+
+    return res.json({
+      success: true,
+      message: "Payment verified and recorded successfully"
+    });
+
+  } catch (error) {
+    console.error("Verification error:", error);
+    return res.status(500).json({
+      success: false,
+      error: "Payment verification failed",
+      details: error.message
     });
   }
 });
@@ -5675,7 +6013,6 @@ module.exports = router;
 //     res.status(500).json({ error: "Database operation failed" });
 //   }
 // });
-
 app.get('/api/bargain/farmers/:farmerId/sessions', authenticate, farmerOnly, async (req, res) => {
   try {
     const farmerId = req.params.farmerId;
@@ -5686,29 +6023,76 @@ app.get('/api/bargain/farmers/:farmerId/sessions', authenticate, farmerOnly, asy
 
     const sessions = await queryDatabase(
       `
-      SELECT 
-        MAX(bs.bargain_id) AS latest_bargain_id,
-        bs.consumer_id,
-        cr.first_name,
-        cr.last_name,
-        MAX(bs.updated_at) AS last_updated
-      FROM bargain_sessions bs
-      JOIN consumerregistration cr ON bs.consumer_id = cr.consumer_id
-      WHERE bs.farmer_id = ?
-      GROUP BY bs.consumer_id, cr.first_name, cr.last_name
-      ORDER BY last_updated DESC
+     SELECT 
+  bs.bargain_id,
+  bs.consumer_id,
+  cr.first_name,
+  cr.last_name,
+  p.product_name,
+  bsp.quantity,
+  bsp.current_offer AS current_price,
+  bsp.original_price AS initial_price,
+  bs.status,
+  bs.updated_at,
+  (
+    SELECT 
+      CASE 
+        WHEN bm.message_type = 'suggestion' THEN CONCAT('Suggested ₹', FORMAT(bm.price_suggestion, 2))
+        WHEN bm.message_type = 'accept' THEN 'Accepted the offer'
+        WHEN bm.message_type = 'reject' THEN 'Rejected the offer'
+        WHEN bm.message_type = 'finalize' THEN 'Finalized the deal'
+        ELSE 'Unknown'
+      END
+    FROM bargain_messages bm
+    WHERE bm.bargain_id = bs.bargain_id
+    ORDER BY bm.created_at DESC
+    LIMIT 1
+  ) as last_message_content,
+  (
+    SELECT bm.created_at
+    FROM bargain_messages bm
+    WHERE bm.bargain_id = bs.bargain_id
+    ORDER BY bm.created_at DESC
+    LIMIT 1
+  ) as last_message_timestamp
+FROM bargain_sessions bs
+JOIN consumerregistration cr ON bs.consumer_id = cr.consumer_id
+JOIN bargain_session_products bsp ON bs.bargain_id = bsp.bargain_id
+JOIN products p ON bsp.product_id = p.product_id
+WHERE bs.farmer_id = ?
+  AND bsp.product_id IS NOT NULL
+ORDER BY bs.updated_at DESC
+
       `,
       [farmerId]
     );
 
-    console.log("🔥 Sessions Result:", sessions);
-    res.status(200).json(sessions); // ✅ Fix is here
+    const transformedSessions = sessions.map(session => ({
+      bargain_id: session.bargain_id,
+      consumer_id: session.consumer_id,
+      consumer_name: `${session.first_name} ${session.last_name}`,
+      product_name: session.product_name,
+      quantity: session.quantity,
+      current_price: session.current_price,
+      initial_price: session.initial_price,
+      status: session.status,
+      updated_at: session.updated_at,
+      last_message: session.last_message_content ? {
+        content: session.last_message_content,
+        timestamp: session.last_message_timestamp
+      } : null
+    }));
+
+    console.log("🔥 Sessions Result:", transformedSessions);
+    res.status(200).json(transformedSessions);
 
   } catch (err) {
     console.error("💥 DB Error:", err);
     res.status(500).json({ error: "Database operation failed" });
   }
 });
+
+
 
 
 

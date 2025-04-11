@@ -1145,7 +1145,8 @@ const KrishiOrderPage = () => {
     { code: "VEGGIE40", discount: 40 },
     { code: "FARM50", discount: 50 },
   ];
-
+  const [razorpayOrderId, setRazorpayOrderId] = useState(null);
+  const [razorpayPaymentId, setRazorpayPaymentId] = useState(null);
   useEffect(() => {
     const storedConsumer = localStorage.getItem("consumer");
     if (storedConsumer) {
@@ -1267,6 +1268,8 @@ const KrishiOrderPage = () => {
     }
 
     try {
+      // ... existing validation code ...
+  
       const orderData = {
         consumer_id: consumerprofile.consumer_id,
         name: consumerprofile.name,
@@ -1277,9 +1280,12 @@ const KrishiOrderPage = () => {
         amount: calculateFinalPrice(),
         is_self_delivery: deliveryOption === "self",
         payment_status: isPaid ? 'Paid' : 'Pending',
-        payment_method: isPaid ? 'razorpay' : 'cash-on-delivery'
+        payment_method: isPaid ? 'razorpay' : 'cash-on-delivery',
+        // Add these for better debugging
+        razorpay_order_id: isPaid ? razorpayOrderId : null,
+        razorpay_payment_id: isPaid ? razorpayPaymentId : null
       };
-
+  
       if (deliveryOption === "other") {
         const selectedRecipient = savedRecipientAddresses.find(
           addr => addr.id === selectedRecipientAddress
@@ -1302,8 +1308,13 @@ const KrishiOrderPage = () => {
         },
         body: JSON.stringify(orderData)
       });
-
+  
       const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || "Order failed. Try again.");
+      }
+  
       if (data.success) {
         setShowSuccessPopup(true);
         setTimeout(() => {
@@ -1311,14 +1322,13 @@ const KrishiOrderPage = () => {
           navigate("/consumer-dashboard");
         }, 3000);
       } else {
-        alert(data.error || "Order failed. Try again.");
+        throw new Error(data.message || "Order processing failed");
       }
     } catch (error) {
-      console.error("Error placing order:", error);
-      alert("Error placing order. Try again.");
+      console.error("Order placement error:", error);
+      alert(`Error placing order: ${error.message}`);
     }
   };
-
   // const handleRazorpayPayment = async () => {
   //   if (deliveryOption === "self" && !consumerprofile.address) {
   //     alert("Please add an address.");
@@ -1417,8 +1427,8 @@ const KrishiOrderPage = () => {
   //   }
   // };
 
-
   const handleRazorpayPayment = async () => {
+    // Validate prerequisites
     if (deliveryOption === "self" && !consumerprofile.address) {
       alert("Please add an address.");
       return;
@@ -1435,12 +1445,119 @@ const KrishiOrderPage = () => {
       return;
     }
   
-    // Redirect to Razorpay payment link
-    window.location.href = "https://rzp.io/rzp/TTzBL6z";
     
-    // Alternatively, you can open in a new tab with:
-    // window.open("https://rzp.io/rzp/TTzBL6z", "_blank");
+    try {
+      
+      // 1. Create order
+      const orderResponse = await fetch('http://localhost:5000/api/razorpay/create-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          amount: Math.round(calculateFinalPrice() * 100), // in paise
+          currency: 'INR'
+        })
+      });
+  
+      const orderData = await orderResponse.json();
+  
+      // 2. Initialize Razorpay
+      const options = {
+        key: process.env.RAZORPAY_KEY_ID || 'rzp_test_VLCfnymiyd6HGf',
+        amount: orderData.amount,
+        currency: orderData.currency,
+        order_id: orderData.id,
+        name: 'KrishiSetu',
+        description: 'Farm Fresh Products',
+        image: logo,
+        handler: async (response) => {
+          try {
+            // 3. Verify payment
+            const verification = await verifyPayment({
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_signature: response.razorpay_signature,
+              amount: orderData.amount / 100 // convert back to rupees
+            });
+  
+            if (verification.success) {
+              // 4. Complete order
+              await handlePlaceOrder(true);
+              alert('Payment successful! Order confirmed.');
+            } else {
+              throw new Error(verification.error || 'Payment verification failed');
+            }
+          } catch (error) {
+            console.error('Payment processing error:', error);
+            alert(`Payment processing failed: ${error.message}`);
+          }
+        },
+        theme: {
+          color: '#3399cc'
+        }
+      };
+  
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+  
+    } catch (error) {
+      console.error('Payment initialization error:', error);
+      alert(`Payment failed to start: ${error.message}`);
+    }
   };
+// Helper functions
+const createRazorpayOrder = async (amount) => {
+  try {
+    const response = await fetch('http://localhost:5000/api/razorpay/create-order', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({ 
+        amount, 
+        currency: 'INR' 
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to create order');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Order creation error:', error);
+    throw error;
+  }
+};
+
+const verifyPayment = async (paymentData) => {
+  try {
+    const response = await fetch('http://localhost:5000/api/razorpay/verify', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify(paymentData)
+    });
+
+    const data = await response.json();
+    
+    if (!response.ok) {
+      console.error('Verification failed:', data);
+      throw new Error(data.error || 'Payment verification failed');
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Verification error:', error);
+    throw error;
+  }
+};
 
   const handlePincodeChange = (e, isRecipient = false) => {
     const pincode = e.target.value;
@@ -1937,7 +2054,7 @@ const KrishiOrderPage = () => {
                 <span>Cash on Delivery</span>
               </label>
             </div>
-            {paymentMethod === "razorpay" && (
+            {/* {paymentMethod === "razorpay" && (
               <div className="razorpay-embed-btn" 
                    data-url="https://pages.razorpay.com/pl_QGSNwHvRphGTJO/view" 
                    data-text="Pay Now" 
@@ -1953,7 +2070,7 @@ const KrishiOrderPage = () => {
                   `}
                 </script>
               </div>
-            )}
+            )} */}
           </div>
 
           <div className="krishi-total-card">
@@ -1974,17 +2091,17 @@ const KrishiOrderPage = () => {
               <span><FaRupeeSign /> {calculateFinalPrice()}</span>
             </div>
             <button 
-              className="krishi-place-order-btn"
-              onClick={() => {
-                if (paymentMethod === 'razorpay') {
-                  handleRazorpayPayment();
-                } else {
-                  handlePlaceOrder();
-                }
-              }}
-            >
-              {paymentMethod === 'razorpay' ? 'Pay Now' : 'Place Order'}
-            </button>
+  className="krishi-place-order-btn"
+  onClick={() => {
+    if (paymentMethod === 'razorpay') {
+      handleRazorpayPayment();
+    } else {
+      handlePlaceOrder();
+    }
+  }}
+>
+  {paymentMethod === 'razorpay' ? `Pay ₹${calculateFinalPrice()}` : 'Place Order (Cash on Delivery)'}
+</button>
           </div>
         </div>
       </div>

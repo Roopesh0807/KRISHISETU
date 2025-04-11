@@ -17,6 +17,7 @@ import {
   // faComments,
   faStar,
   faStarHalfAlt,
+  faExclamationTriangle,
   // faTimes
 } from '@fortawesome/free-solid-svg-icons';
 
@@ -218,7 +219,7 @@ const ConsumerDashboard = () => {
       try {
         // const token = localStorage.getItem("token"); // or get from cookies
   
-        const productData = await fetchProducts("/api/products", {  
+        const productData = await fetchProducts("http://localhost:5000/api/products", {  
           headers: {
          
             "Content-Type": "application/json",
@@ -327,80 +328,64 @@ const ConsumerDashboard = () => {
   //     setIsLoading(false);
   //   }
   // };
-  const handleBargainClick = async (farmer, product, e) => {
-    e.stopPropagation();
-    setError(null);
-    setIsLoading(true);
-  
+  const handleBargainClick = async (farmer, product) => {
     try {
-      if (!consumer?.token) {
-        navigate('/loginpage', { state: { from: location.pathname } });
-        return;
-      }
+      setIsLoading(true);
+      setError(null);
   
-      const quantity = 10;
-  
-      const response = await fetch('http://localhost:5000/api/create-bargain', {
+      // 1. Create bargain session
+      const response = await fetch(`http://localhost:5000/api/create-bargain`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${consumer.token}`
         },
         body: JSON.stringify({
-          farmer_id: farmer.farmer_id,
-          initiator: "consumer",
+          farmer_id: farmer.farmer_id // Only send farmer_id
         })
       });
   
-      // const rawText = await response.text();
-      // console.log("🐞 Raw Response:", rawText);
-  
-      // if (!response.ok) {
-      //   throw new Error(`Server responded with ${response.status}: ${rawText}`);
-      // }
-  
-      // if (!rawText || rawText.trim() === "") {
-      //   throw new Error("Empty response received from server.");
-      // }
-  
-      // let data;
-      // try {
-      //   data = JSON.parse(rawText);
-      // } catch (err) {
-      //   console.error("❌ JSON Parse Error:", err.message);
-      //   setError("Server returned invalid JSON: " + err.message);
-      //   return;
-      // }
-      const text = await response.text();
-      console.log("📦 Raw Response Text:", text);
-
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch (err) {
-        console.error("❌ Failed to parse JSON:", err);
-      }
-
-      console.log("📄 Parsed Data:", data);
-        
-      if (!data.bargainId) {
-        throw new Error("Missing bargainId in server response.");
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to create bargain session');
       }
   
-      // ✅ Now navigate with data
+      // 2. Add product to bargain
+      const productResponse = await fetch(`http://localhost:5000/api/add-bargain-product`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${consumer.token}`
+        },
+        body: JSON.stringify({
+          bargain_id: data.bargainId,
+          product_id: product.product_id,
+          quantity: 10 // Default quantity
+        })
+      });
+  
+      const productData = await productResponse.json();
+      
+      if (!productData.success) {
+        throw new Error(productData.error || 'Failed to add product');
+      }
+  
+      // 3. Navigate to chat window
       navigate(`/bargain/${data.bargainId}`, {
         state: {
-          product,
           farmer,
-          quantity,
-          originalPrice: data.originalPrice,
-          isNewBargain: true
+          product: {
+            ...product,
+            price_per_kg: productData.price_per_kg,
+            quantity: productData.quantity
+          }
         }
       });
   
     } catch (error) {
-      console.error("🔥 Bargain initiation failed:", error.message);
       setError(error.message);
+      console.error("Bargain error:", error);
     } finally {
       setIsLoading(false);
     }
@@ -767,7 +752,21 @@ useEffect(() => {
                       </>
                     )}
                   </button>
-                  {error && <div className="error-message">{error}</div>}
+                  {error && (
+  <div className="error-message">
+    <FontAwesomeIcon icon={faExclamationTriangle} />
+    <div>
+      {error.includes('initiator') ? (
+        <>
+          <p>Session initialization error</p>
+          <button onClick={() => window.location.reload()}>Refresh Page</button>
+        </>
+      ) : (
+        error
+      )}
+    </div>
+  </div>
+)}
                 </div>
               </div>
             );
