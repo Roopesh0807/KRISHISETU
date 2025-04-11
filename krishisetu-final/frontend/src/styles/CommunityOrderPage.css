@@ -1,0 +1,182 @@
+.community-order-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+  
+  .header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 30px;
+  }
+  
+  .header h1 {
+    margin-left: 20px;
+    color: #2c3e50;
+  }
+  
+  .back-btn {
+    background: #3498db;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  
+  .back-btn:hover {
+    background: #2980b9;
+  }
+  
+  .order-summary {
+    background: white;
+    border-radius: 10px;
+    padding: 30px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .community-info, .member-info {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .community-info h2 {
+    color: #27ae60;
+    margin-bottom: 10px;
+  }
+  
+  .member-info h3 {
+    color: #2c3e50;
+    margin-bottom: 10px;
+  }
+  
+  .order-items {
+    margin-bottom: 30px;
+  }
+  
+  .order-items h3 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+  }
+  
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  th, td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+  }
+  
+  .discount-summary {
+    margin-bottom: 30px;
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+  }
+  
+  .discount-summary h3 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+  }
+  
+  .discount-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  
+  .discount-total {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #ddd;
+    font-weight: 600;
+  }
+  
+  .payment-section {
+    margin-bottom: 30px;
+  }
+  
+  .payment-section h3 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+  }
+  
+  .payment-options {
+    display: flex;
+    gap: 30px;
+  }
+  
+  .payment-options label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+  }
+  
+  .order-total {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+  }
+  
+  .total-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  
+  .final-total {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #ddd;
+    font-weight: 600;
+    font-size: 18px;
+  }
+  
+  .place-order-btn {
+    background: #27ae60;
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    width: 100%;
+    font-weight: 600;
+  }
+  
+  .place-order-btn:hover {
+    background: #219653;
+  }
+  
+  .loading, .no-data, .error {
+    text-align: center;
+    padding: 50px;
+    font-size: 18px;
+  }
+  
+  .error button {
+    margin-top: 20px;
+    background: #3498db;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+  }

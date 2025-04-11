@@ -13,6 +13,11 @@ const http = require("http");
 const { Server } = require("socket.io");
 const path = require("path");
 const multer = require("multer");
+const fs = require("fs");
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
 app.use('/uploads/reviews', express.static(path.join(__dirname, 'uploads/reviews')));
 app.use('/uploads/farmer-documents', express.static(path.join(__dirname, 'uploads/farmer-documents')));
 // Add this near your other middleware
@@ -20,6 +25,8 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 // app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/uploads", express.static("uploads"));
 app.use('/uploads', express.static('uploads'));
+
+const crypto = require('crypto');
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -45,6 +52,21 @@ const storage = multer.diskStorage({
 const auth = require('./src/middlewares/authMiddleware'); // Adjust path as needed
 
 
+// Protected route middleware
+// const authenticateToken = (req, res, next) => {
+//   const authHeader = req.headers['authorization'];
+//   const token = authHeader && authHeader.split(' ')[1];
+  
+//   if (!token) return res.status(401).json({ message: "Access denied. No token provided." });
+
+//   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+//     if (err) return res.status(403).json({ message: "Invalid token" });
+//     req.user = user;
+//     next();
+//   });
+// };
+
+
 const upload = multer({ storage });
 const reviewStorage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -59,44 +81,64 @@ const reviewStorage = multer.diskStorage({
 });
 
 const uploadReviewImages = multer({ storage: reviewStorage });
+app.use('/uploads', express.static(uploadsDir));
+// Add this near the top of server.js (after the imports)
 
 
+
+
+// const farmerDocumentStorage = multer.diskStorage({
+//   destination: (req, file, cb) => {
+//     const uploadDir = '/uploads/farmer-documents';
+//     if (!fs.existsSync(uploadDir)) {
+//       fs.mkdirSync(uploadDir, { recursive: true });
+//     }
+//     cb(null, uploadDir);
+//   },
+//   filename: (req, file, cb) => {
+//     const farmerId = req.params.farmer_id;
+//     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+//     const ext = path.extname(file.originalname);
+//     cb(null, `farmer-${farmerId}-${uniqueSuffix}${ext}`);
+//   }
+// });
+// Update the farmerDocumentStorage configuration (around line 50)
 const farmerDocumentStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadDir = '/uploads/farmer-documents';
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
+    const subfolder = path.join(uploadsDir, 'farmer-documents');
+    fs.mkdirSync(subfolder, { recursive: true });
+    cb(null, subfolder);
   },
   filename: (req, file, cb) => {
-    const farmerId = req.params.farmer_id;
+    const farmerId = req.params.farmer_id || 'unknown';
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const ext = path.extname(file.originalname);
     cb(null, `farmer-${farmerId}-${uniqueSuffix}${ext}`);
   }
 });
+const farmerDocumentUpload = multer({ storage: farmerDocumentStorage });
 
-const farmerDocumentUpload = multer({ 
-  storage: farmerDocumentStorage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype === 'application/pdf' || 
-        file.mimetype.startsWith('image/') ||
-        file.mimetype === 'application/msword' ||
-        file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-      cb(null, true);
-    } else {
-      cb(new Error('Only PDF, Word, and image files are allowed!'), false);
-    }
-  }
-});
+
+// const farmerDocumentUpload = multer({ 
+//   storage: farmerDocumentStorage,
+//   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+//   fileFilter: (req, file, cb) => {
+//     if (file.mimetype === 'application/pdf' || 
+//         file.mimetype.startsWith('image/') ||
+//         file.mimetype === 'application/msword' ||
+//         file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+//       cb(null, true);
+//     } else {
+//       cb(new Error('Only PDF, Word, and image files are allowed!'), false);
+//     }
+//   }
+// });
 
 const { verifyToken, authenticate, farmerOnly } = require('./src/middlewares/authMiddleware');
 // const { initiateBargain } = require("./src/controllers/bargainController"); // Correct file
 
 // const httpServer = http.createServer(app);
-const fs = require("fs");
+
 
 // const { Server } = require("socket.io");
 // const httpServer = http.createServer(app);
@@ -136,10 +178,33 @@ const corsOptions = {
 
 const Razorpay = require('razorpay');
 
-const razorpay = new Razorpay({
-  key_id: 'rzp_test_VLCfnymiyd6HGf',
-  key_secret: 'dwcSRSRah7Y4eBZUzL8M'
-});
+// const razorpay = new Razorpay({
+//   key_id: 'rzp_test_VLCfnymiyd6HGf',
+//   key_secret: 'dwcSRSRah7Y4eBZUzL8M'
+// });
+
+
+// console.log('Loading Razorpay with key:', process.env.RAZORPAY_KEY_ID);
+// const razorpay = new Razorpay({
+
+//   key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_VLCfnymiyd6HGf', // Fallback for testing
+//   key_secret: process.env.RAZORPAY_KEY_SECRET || 'JXgWqR4bQ9mN2kL7pS8hT3wZ'
+// });
+
+// // Add this error handling to verify credentials on startup
+// razorpay.orders.create({
+//   amount: 100, // 1 INR
+//   currency: 'INR',
+//   receipt: 'test_receipt'
+// }).then(() => {
+//   console.log('✅ Razorpay credentials verified successfully');
+// }).catch(err => {
+//   console.error('❌ Razorpay credential verification failed:');
+
+//   key_id: process.env.RAZORPAY_KEY_ID,
+//   key_secret: process.env.RAZORPAY_KEY_SECRET
+
+// });
 
 // ✅ Then these
 app.use(express.json());
@@ -492,6 +557,70 @@ app.delete("/api/farmerprofile/:farmer_id/photo", verifyToken, async (req, res) 
 
 // In server.js, update the farmer profile photo upload endpoint
 
+// app.delete("/api/farmerprofile/:farmer_id/remove-file", 
+//   auth.authenticate,
+//   auth.farmerOnly,
+//   async (req, res) => {
+//     try {
+//       const { farmer_id } = req.params;
+//       const { field } = req.body;
+
+//       if (!field) {
+//         return res.status(400).json({ success: false, message: "Field name is required" });
+//       }
+
+//       // Determine table and ID field
+//       let table = field.includes('profile_photo') || field.includes('aadhaar_proof') || field.includes('bank_proof')
+//         ? 'personaldetails'
+//         : 'farmdetails';
+
+//       const idField = 'farmer_id';
+
+//       // Get the file path from DB
+//       const [result] = await queryDatabase(
+//         `SELECT ${field} FROM ${table} WHERE ${idField} = ?`,
+//         [farmer_id]
+//       );
+
+//       if (result && result[field]) {
+//         let filePath = result[field];
+
+//         // Ensure it's a string (in case it's Buffer or anything else)
+//         if (Buffer.isBuffer(filePath)) {
+//           filePath = filePath.toString();
+//         }
+
+//         const fullPath = path.join(__dirname, filePath);
+
+//         if (fs.existsSync(fullPath)) {
+//           fs.unlinkSync(fullPath);
+//         }
+//       }
+
+//       // Remove the reference from DB
+//       await queryDatabase(
+//         `UPDATE ${table} SET ${field} = NULL WHERE ${idField} = ?`,
+//         [farmer_id]
+//       );
+
+//       res.json({ 
+//         success: true, 
+//         message: "File removed successfully" 
+//       });
+
+//     } catch (error) {
+//       console.error("Error removing file:", error);
+//       res.status(500).json({ 
+//         success: false, 
+//         message: "Error removing file",
+//         error: error.message 
+//       });
+//     }
+//   }
+// );
+
+
+// Update the file removal endpoint (around line 250)
 app.delete("/api/farmerprofile/:farmer_id/remove-file", 
   auth.authenticate,
   auth.farmerOnly,
@@ -504,37 +633,43 @@ app.delete("/api/farmerprofile/:farmer_id/remove-file",
         return res.status(400).json({ success: false, message: "Field name is required" });
       }
 
-      // Determine table and ID field
-      let table = field.includes('profile_photo') || field.includes('aadhaar_proof') || field.includes('bank_proof')
-        ? 'personaldetails'
-        : 'farmdetails';
+      // Determine which table to update based on field
+      let table;
+      if (field.includes('profile_photo') || field.includes('aadhaar_proof') || field.includes('bank_proof')) {
+        table = 'personaldetails';
+      } else {
+        table = 'farmdetails';
+      }
 
-      const idField = 'farmer_id';
-
-      // Get the file path from DB
+      // First get the file path from DB
       const [result] = await queryDatabase(
-        `SELECT ${field} FROM ${table} WHERE ${idField} = ?`,
+        `SELECT ${field} FROM ${table} WHERE farmer_id = ?`,
         [farmer_id]
       );
 
       if (result && result[field]) {
+        // Convert Buffer to string if needed
         let filePath = result[field];
-
-        // Ensure it's a string (in case it's Buffer or anything else)
         if (Buffer.isBuffer(filePath)) {
-          filePath = filePath.toString();
+          filePath = filePath.toString('utf-8');
         }
-
-        const fullPath = path.join(__dirname, filePath);
+        
+        // Remove any backslashes and ensure proper path formatting
+        filePath = filePath.replace(/\\/g, '/');
+        
+        // Construct full path - ensure it points to the correct uploads directory
+        const fullPath = path.join(__dirname, filePath.startsWith('/') ? filePath.substring(1) : filePath);
 
         if (fs.existsSync(fullPath)) {
           fs.unlinkSync(fullPath);
+        } else {
+          console.warn(`File not found at path: ${fullPath}`);
         }
       }
 
       // Remove the reference from DB
       await queryDatabase(
-        `UPDATE ${table} SET ${field} = NULL WHERE ${idField} = ?`,
+        `UPDATE ${table} SET ${field} = NULL WHERE farmer_id = ?`,
         [farmer_id]
       );
 
@@ -555,8 +690,58 @@ app.delete("/api/farmerprofile/:farmer_id/remove-file",
 );
 
 
+// app.post("/api/farmerprofile/:farmer_id/upload-file", 
+//   auth.authenticate,
+//   auth.farmerOnly,
+//   farmerDocumentUpload.single('file'),
+//   async (req, res) => {
+//     try {
+//       if (!req.file) {
+//         return res.status(400).json({ success: false, message: "No file uploaded" });
+//       }
 
+//       const { farmer_id } = req.params;
+//       const { field } = req.body;
 
+//       if (!field) {
+//         return res.status(400).json({ success: false, message: "Field name is required" });
+//       }
+
+//       const filePath = `/uploads/farmer-documents/${req.file.filename}`;
+
+//       // Update the database with the file path
+//       let table, idField;
+//       if (field === 'profile_photo' || field === 'aadhaar_proof' || field === 'bank_proof') {
+//         table = 'personaldetails';
+//         idField = 'farmer_id';
+//       } else {
+//         table = 'farmdetails';
+//         idField = 'farmer_id';
+//       }
+
+//       await queryDatabase(
+//         `UPDATE ${table} SET ${field} = ? WHERE ${idField} = ?`,
+//         [filePath, farmer_id]
+//       );
+
+//       res.json({ 
+//         success: true, 
+//         message: "File uploaded successfully",
+//         filePath: filePath,
+//         filename: req.file.filename
+//       });
+
+//     } catch (error) {
+//       console.error("Error uploading file:", error);
+//       res.status(500).json({ 
+//         success: false, 
+//         message: "Error uploading file",
+//         error: error.message 
+//       });
+//     }
+//   }
+// );
+// Update the file upload endpoint (around line 300)
 app.post("/api/farmerprofile/:farmer_id/upload-file", 
   auth.authenticate,
   auth.farmerOnly,
@@ -574,20 +759,20 @@ app.post("/api/farmerprofile/:farmer_id/upload-file",
         return res.status(400).json({ success: false, message: "Field name is required" });
       }
 
+      // Use consistent forward slashes for the path
       const filePath = `/uploads/farmer-documents/${req.file.filename}`;
 
-      // Update the database with the file path
-      let table, idField;
-      if (field === 'profile_photo' || field === 'aadhaar_proof' || field === 'bank_proof') {
+      // Determine which table to update based on field
+      let table;
+      if (field.includes('profile_photo') || field.includes('aadhaar_proof') || field.includes('bank_proof')) {
         table = 'personaldetails';
-        idField = 'farmer_id';
       } else {
         table = 'farmdetails';
-        idField = 'farmer_id';
       }
 
+      // Update the database with the consistent file path
       await queryDatabase(
-        `UPDATE ${table} SET ${field} = ? WHERE ${idField} = ?`,
+        `UPDATE ${table} SET ${field} = ? WHERE farmer_id = ?`,
         [filePath, farmer_id]
       );
 
@@ -595,7 +780,7 @@ app.post("/api/farmerprofile/:farmer_id/upload-file",
         success: true, 
         message: "File uploaded successfully",
         filePath: filePath,
-        filename: req.file.filename
+         accessibleUrl: `http://localhost:5000/uploads/farmer-documents/${req.file.filename}`
       });
 
     } catch (error) {
@@ -608,6 +793,8 @@ app.post("/api/farmerprofile/:farmer_id/upload-file",
     }
   }
 );
+
+
 
 
 app.use((req, res, next) => {
@@ -2279,6 +2466,230 @@ app.get("/api/orders/:consumer_id", async (req, res) => {
       res.status(500).json({ error: "Failed to fetch order products" });
   }
 });
+
+
+
+
+
+
+
+
+
+// Authentication Middleware
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  
+  if (!token) {
+    return res.status(401).json({ 
+      success: false,
+      message: 'Authorization token is required' 
+    });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET || 'your_fallback_secret_key', (err, user) => {
+    if (err) {
+      return res.status(403).json({ 
+        success: false,
+        message: 'Invalid or expired token' 
+      });
+    }
+    
+    req.user = {
+      consumer_id: user.consumer_id,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      email: user.email
+    };
+    
+    next();
+  });
+};
+
+
+
+// 10/04, wallet
+// Wallet Routes
+app.get('/api/wallet/balance/:consumer_id', authenticateToken, async (req, res) => {
+  try {
+    const { consumer_id } = req.params;
+    
+    // Verify the requested consumer_id matches the authenticated user
+    if (consumer_id !== req.user.consumer_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized access to wallet'
+      });
+    }
+
+    // Get the latest balance
+    const balanceQuery = `
+      SELECT balance 
+      FROM wallet_transactions 
+      WHERE consumer_id = ? 
+      ORDER BY transaction_date DESC 
+      LIMIT 1`;
+    const balanceResult = await queryDatabase(balanceQuery, [consumer_id]);
+
+    const balance = balanceResult[0]?.balance || 0;
+    
+    res.json({ 
+      success: true,
+      balance,
+      consumer_id,
+      consumer_name: `${req.user.first_name} ${req.user.last_name}`
+    });
+  } catch (error) {
+    console.error('Wallet balance error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to fetch wallet balance' 
+    });
+  }
+});
+
+app.get('/api/wallet/transactions/:consumer_id', authenticateToken, async (req, res) => {
+  try {
+    const { consumer_id } = req.params;
+    
+    // Verify the requested consumer_id matches the authenticated user
+    if (consumer_id !== req.user.consumer_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized access to transaction history'
+      });
+    }
+
+    const transactionsQuery = `
+      SELECT 
+        transaction_id,
+        transaction_type,
+        amount,
+        balance,
+        description,
+        payment_method,
+        DATE_FORMAT(transaction_date, '%Y-%m-%d %H:%i:%s') as transaction_date
+      FROM wallet_transactions 
+      WHERE consumer_id = ? 
+      ORDER BY transaction_date DESC
+      LIMIT 50`;
+    const transactions = await queryDatabase(transactionsQuery, [consumer_id]);
+    
+    res.json({ 
+      success: true,
+      transactions,
+      consumer_id,
+      consumer_name: `${req.user.first_name} ${req.user.last_name}`
+    });
+  } catch (error) {
+    console.error('Wallet transactions error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to fetch transactions' 
+    });
+  }
+});
+
+app.post('/api/wallet/add', authenticateToken, async (req, res) => {
+  try {
+    const { amount, payment_method } = req.body;
+    const { consumer_id } = req.user;
+    
+    // Validate input
+    if (!amount || isNaN(amount) || amount <= 0) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Amount must be a positive number' 
+      });
+    }
+
+    // Insert new transaction
+    const insertQuery = `
+      INSERT INTO wallet_transactions 
+      (consumer_id, transaction_type, amount, description, payment_method) 
+      VALUES (?, 'Credit', ?, 'Wallet top up', ?)`;
+    const result = await queryDatabase(insertQuery, [
+      consumer_id, 
+      amount, 
+      payment_method || 'Online Payment'
+    ]);
+
+    // Get the complete transaction details
+    const transactionQuery = `
+      SELECT 
+        transaction_id,
+        transaction_type,
+        amount,
+        balance,
+        description,
+        payment_method,
+        DATE_FORMAT(transaction_date, '%Y-%m-%d %H:%i:%s') as transaction_date
+      FROM wallet_transactions 
+      WHERE transaction_id = ?`;
+    const transactionResult = await queryDatabase(transactionQuery, [result.insertId]);
+
+    res.json({
+      success: true,
+      message: 'Money added successfully',
+      newBalance: transactionResult[0].balance,
+      transaction: transactionResult[0],
+      consumer_id,
+      consumer_name: `${req.user.first_name} ${req.user.last_name}`
+    });
+    
+  } catch (error) {
+    console.error('Add money error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to add money to wallet' 
+    });
+  }
+});
+
+app.get('/api/wallet/transactions/:consumer_id', authenticateToken, async (req, res) => {
+  try {
+    const { consumer_id } = req.params;
+    
+    if (consumer_id !== req.user.consumer_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized access to transaction history'
+      });
+    }
+
+    const transactionsQuery = `
+      SELECT 
+        transaction_id,
+        transaction_type,
+        CAST(amount AS DECIMAL(10,2)) as amount,
+        CAST(balance AS DECIMAL(10,2)) as balance,
+        description,
+        payment_method,
+        DATE_FORMAT(transaction_date, '%Y-%m-%d %H:%i:%s') as transaction_date
+      FROM wallet_transactions 
+      WHERE consumer_id = ? 
+      ORDER BY transaction_date DESC
+      LIMIT 50`;
+    const transactions = await queryDatabase(transactionsQuery, [consumer_id]);
+    
+    res.json({ 
+      success: true,
+      transactions,
+      consumer_id,
+      consumer_name: `${req.user.first_name} ${req.user.last_name}`
+    });
+  } catch (error) {
+    console.error('Wallet transactions error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to fetch transactions' 
+    });
+  }
+});
+
+
+
+
 
 // // ✅ Middleware: Verify JWT Token
 // const verifyToken = (req, res, next) => {
@@ -4166,6 +4577,7 @@ app.post('/api/subscriptions', async (req, res) => {
           return res.status(400).json({ success: false, message: "Failed to create subscription" });
       }
 
+
       res.status(201).json({ 
           success: true, 
           message: "Subscription created successfully",
@@ -4344,6 +4756,14 @@ app.delete("/api/subscriptions/:subscription_id", verifyToken, async (req, res) 
     res.status(500).json({ error: "Failed to delete subscription" });
   }
 });
+
+
+
+
+
+
+
+
 
 
 
@@ -5360,36 +5780,40 @@ app.put("/api/farmerprofile/:farmer_id/farm",
 
 
 // Add this endpoint for payment verification
-app.post('/api/verify-payment', express.json(), async (req, res) => {
-  const crypto = require('crypto');
-  
+app.post("/api/verify-payment", authenticateToken, async (req, res) => {
   try {
     const { razorpay_payment_id, razorpay_order_id, razorpay_signature, amount } = req.body;
     
+    if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
+      return res.status(400).json({ error: "Missing payment verification data" });
+    }
+
     // Create the expected signature
-    const hmac = crypto.createHmac('sha256', 'dwcSRSRah7Y4eBZUzL8M');
+    const hmac = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET);
     hmac.update(`${razorpay_order_id}|${razorpay_payment_id}`);
-    const expectedSignature = hmac.digest('hex');
-    
-    if (expectedSignature === razorpay_signature) {
-      // Signature is valid
-      res.json({ 
+    const generated_signature = hmac.digest('hex');
+
+    if (generated_signature === razorpay_signature) {
+      // Signature is valid - update your database
+      await saveSuccessfulPayment(razorpay_payment_id, razorpay_order_id, amount);
+      
+      return res.json({ 
         success: true,
-        paymentId: razorpay_payment_id,
-        orderId: razorpay_order_id
+        message: "Payment verified successfully"
       });
     } else {
-      // Signature is invalid
-      res.status(400).json({ 
-        success: false,
-        error: 'Invalid payment signature' 
+      return res.status(400).json({ 
+        success: false, 
+        error: "Invalid signature",
+        details: "Payment verification failed" 
       });
     }
   } catch (error) {
-    console.error('Payment verification error:', error);
-    res.status(500).json({ 
+    console.error("Payment verification error:", error);
+    return res.status(500).json({ 
       success: false,
-      error: 'Payment verification failed' 
+      error: "Payment verification failed",
+      details: error.message 
     });
   }
 });
@@ -5398,34 +5822,160 @@ app.post('/api/verify-payment', express.json(), async (req, res) => {
 
 
 // Add this endpoint for creating Razorpay orders
-app.post('/api/create-razorpay-order', async (req, res) => {
-  try {
-    const { amount, currency } = req.body;
+// Razorpay Order Creation
+// Initialize Razorpay with your actual keys
+
+
+
+
+
+// Create Order Endpoint
+// app.post("/api/create-razorpay-order", authenticateToken, async (req, res) => {
+//   try {
+//     const { amount } = req.body;
     
-    // Validate amount
+//     if (!amount || isNaN(amount)) {
+//       return res.status(400).json({ error: "Invalid amount" });
+//     }
+
+//     const options = {
+//       amount: Math.round(amount * 100), // Convert to paise
+//       currency: 'INR',
+//       receipt: `order_${Date.now()}`
+//     };
+
+//     console.log("Creating Razorpay order with options:", options);
+    
+//     const order = await razorpay.orders.create(options);
+    
+//     res.json({
+//       id: order.id,
+//       currency: order.currency,
+//       amount: order.amount
+//     });
+//   } catch (error) {
+//     console.error("Razorpay order creation error:", error);
+    
+//     // More detailed error response
+//     res.status(500).json({ 
+//       error: "Payment gateway error",
+//       razorpayError: error.error ? error.error.description : error.message,
+//       details: "Check your Razorpay API keys and account status"
+//     });
+//   }
+// });
+
+// // Verify Payment
+// app.post("/api/verify-payment", (req, res) => {
+//   try {
+//     const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = req.body;
+    
+//     const generated_signature = crypto
+//       .createHmac('sha256', 'dwcSRSRah7Y4eBZUzL8M') // Same as above
+//       .update(razorpay_order_id + "|" + razorpay_payment_id)
+//       .digest('hex');
+
+//     if (generated_signature === razorpay_signature) {
+//       res.json({ success: true });
+//     } else {
+//       res.status(400).json({ success: false, error: "Invalid signature" });
+//     }
+//   } catch (error) {
+//     console.error("Payment verification error:", error);
+//     res.status(500).json({ success: false, error: "Payment verification failed" });
+//   }
+// });
+
+
+
+
+
+// Create Order Endpoint
+app.post('/api/razorpay/create-order', authenticateToken, async (req, res) => {
+  try {
+    const { amount } = req.body;
+    
     if (!amount || isNaN(amount)) {
-      return res.status(400).json({ error: 'Invalid amount' });
+      return res.status(400).json({ error: "Invalid amount" });
     }
 
     const options = {
-      amount: Math.round(amount * 100), // Convert to paise
-      currency: currency || 'INR',
-      receipt: `order_${Date.now()}`,
-      payment_capture: 1 // Auto-capture payment
+      amount: Math.round(amount), // Ensure it's an integer
+      currency: 'INR',
+      receipt: `order_${Date.now()}`
     };
-
+    
     const order = await razorpay.orders.create(options);
+    
+
+    console.log("Order created successfully:", order.id);
+    
+    res.json({
+      success: true,
+      order: {
+        id: order.id,
+        currency: order.currency,
+      amount: order.amount
+  }});
+    
+
     res.json({
       id: order.id,
       currency: order.currency,
-      amount: order.amount
+      amount: order.amount,
+      display_amount: (order.amount / 100).toFixed(2) // For frontend display
     });
-    
+
   } catch (error) {
-    console.error('Razorpay order error:', error);
+    console.error("Order creation error:", error);
     res.status(500).json({ 
-      error: 'Failed to create Razorpay order',
-      details: error.error ? error.error.description : error.message 
+      error: "Failed to create order",
+      details: error.error?.description || error.message 
+    });
+  }
+});
+
+// server.js
+app.post('/api/razorpay/verify', authenticateToken, async (req, res) => {
+  try {
+    const { razorpay_payment_id, razorpay_order_id, razorpay_signature,amount } = req.body;
+    const amountInPaise = Math.round(amount * 100);
+    // 1. Verify the signature
+    const hmac = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET);
+    hmac.update(`${razorpay_order_id}|${razorpay_payment_id}`);
+    const generatedSignature = hmac.digest('hex');
+
+    if (generatedSignature !== razorpay_signature) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid signature - Possible tampering detected"
+      });
+    }
+
+    // 2. Update your database
+    // Replace saveSuccessfulPayment with your actual DB logic
+    await YourOrderModel.updateOne(
+      { razorpay_order_id },
+      {
+        $set: {
+          payment_status: 'completed',
+          razorpay_payment_id,
+          updated_at: new Date()
+        }
+      }
+    );
+
+    return res.json({
+      success: true,
+      message: "Payment verified and recorded successfully"
+    });
+
+  } catch (error) {
+    console.error("Verification error:", error);
+    return res.status(500).json({
+      success: false,
+      error: "Payment verification failed",
+      details: error.message
     });
   }
 });

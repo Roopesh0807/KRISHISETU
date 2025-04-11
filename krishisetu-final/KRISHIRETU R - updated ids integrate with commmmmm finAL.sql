@@ -1206,3 +1206,23 @@ VALUES
 INSERT INTO orderall (orderid, farmer_id, farmer_name, order_date, produce_name, quantity, amount, status, payment_status)
 VALUES 
 ('ORD009', 'KRST01FR005', 'Deepika Mashetty', '2025-02-13', 'Brinjal', 20, 100.00, 'Unfulfilled', 'Paid');
+
+
+
+
+ALTER TABLE orders ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+
+CREATE TABLE frozen_orders (
+  order_id INT AUTO_INCREMENT PRIMARY KEY,
+  community_id VARCHAR(15) NOT NULL,
+  member_id VARCHAR(15) NOT NULL,
+  order_data TEXT NOT NULL,
+  discount_data TEXT NOT NULL,
+  total_amount DECIMAL(10, 2) NOT NULL,
+  payment_method VARCHAR(50),
+  status ENUM('pending', 'completed') DEFAULT 'pending',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  completed_at DATETIME,
+  FOREIGN KEY (community_id) REFERENCES communities(community_id),
+  FOREIGN KEY (member_id) REFERENCES members(member_id)
+);

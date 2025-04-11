@@ -1,5 +1,5 @@
 // import "../styles/MemberOrderPage.css";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect ,useRef} from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from '../context/AuthContext';
 import Navbar3 from "../components/Navbar3.js";
@@ -14,6 +14,48 @@ function MemberOrderPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const { consumer } = useAuth();
+// Add similar states and effects as OrderPage.js
+const [freezeStatus, setFreezeStatus] = useState({
+  isFrozen: false,
+  timeUntilFreeze: 0
+});
+const [countdown, setCountdown] = useState('');
+const countdownIntervalRef = useRef(null);
+
+// Add these functions inside the component
+const startCountdown = (seconds) => {
+  if (countdownIntervalRef.current) {
+    clearInterval(countdownIntervalRef.current);
+  }
+
+  updateCountdownDisplay(seconds);
+
+  countdownIntervalRef.current = setInterval(() => {
+    seconds--;
+    updateCountdownDisplay(seconds);
+
+    if (seconds <= 0) {
+      clearInterval(countdownIntervalRef.current);
+      setFreezeStatus(prev => ({ ...prev, isFrozen: true }));
+    }
+  }, 1000);
+};
+
+const updateCountdownDisplay = (seconds) => {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+  setCountdown(`${hours}h ${minutes}m ${secs}s`);
+};
+
+  // Add this state
+const [discount, setDiscount] = useState({
+  memberCount: 0,
+  itemCount: 0,
+  memberDiscount: 0,
+  itemDiscount: 0,
+  totalDiscount: 0
+});
 
   useEffect(() => {
     const fetchData = async () => {
@@ -48,6 +90,92 @@ function MemberOrderPage() {
 
     fetchData();
   }, [communityId, memberId]);
+  useEffect(() => {
+    const fetchFreezeStatus = async () => {
+      try {
+        const response = await fetch(
+          `http://localhost:5000/api/order/${communityId}/freeze-status`, {
+            headers: { 
+              'Authorization': `Bearer ${consumer.token}`
+            }
+          }
+        );
+        const data = await response.json();
+        if (response.ok) {
+          setFreezeStatus(data);
+          if (!data.isFrozen && data.timeUntilFreeze > 0) {
+            startCountdown(data.timeUntilFreeze);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching freeze status:", error);
+      }
+    };
+  
+    fetchFreezeStatus();
+  
+    return () => {
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+      }
+    };
+  }, [communityId]);
+
+  // Add this component to display freeze status
+const FreezeStatusBanner = () => {
+  if (freezeStatus.isFrozen) {
+    return (
+      <div className="freeze-banner frozen">
+        <strong>COMMUNITY FROZEN:</strong> No order modifications allowed. 
+        Delivery coming soon!
+      </div>
+    );
+  } else if (freezeStatus.timeUntilFreeze > 0) {
+    return (
+      <div className="freeze-banner warning">
+        <strong>Community will freeze in:</strong> {countdown}
+      </div>
+    );
+  }
+  return null;
+};
+
+  // Add this useEffect to calculate discount
+
+// Update the discount calculation in the useEffect
+useEffect(() => {
+  const fetchDiscount = async () => {
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/community/${communityId}/member/${memberId}/discount`, {
+          headers: { 
+            'Authorization': `Bearer ${consumer.token}`
+          }
+        }
+      );
+      const data = await response.json();
+      if (response.ok) {
+        setDiscount(data);
+      }
+    } catch (error) {
+      console.error("Error fetching discount:", error);
+    }
+  };
+
+  // Only fetch discount if community is frozen
+  if (freezeStatus.isFrozen) {
+    fetchDiscount();
+  } else {
+    // Reset discount if not frozen
+    setDiscount({
+      memberCount: 0,
+      itemCount: 0,
+      memberDiscount: 0,
+      itemDiscount: 0,
+      totalDiscount: 0
+    });
+  }
+}, [orders, communityId, memberId, freezeStatus.isFrozen]);
 
   const handleUpdateQuantity = async (orderId, productId, change) => {
     try {
@@ -55,7 +183,7 @@ function MemberOrderPage() {
       const newQuantity = Math.max(1, order.quantity + change);
 
       const response = await fetch(
-        `http://localhost:5000/api/member/order/${orderId}/quantity`,
+        `http://localhost:5000/api/member/${communityId}/order/${orderId}`,
         {
           method: 'PUT',
           headers: {
@@ -97,7 +225,7 @@ function MemberOrderPage() {
 const handleRemoveItem = async (orderId) => {
   console.log('Attempting to delete order:', orderId); // Add this
   try {
-    const url = `http://localhost:5000/api/member/order/${orderId}`;
+    const url = `http://localhost:5000/api/member/${communityId}/order/${orderId}`;
     console.log('Request URL:', url); // And this
     
     const response = await fetch(url, { 
@@ -129,6 +257,9 @@ const handleRemoveItem = async (orderId) => {
   const handleProceedToPayment = () => {
     navigate(`/orderpage`);
   };
+
+  
+
 
   const getProductImage = (productId) => {
     try {
@@ -252,7 +383,7 @@ const handleRemoveItem = async (orderId) => {
               </div>
 
               <div className="krishi-cart-summary">
-                <div className="krishi-summary-card">
+                {/* <div className="krishi-summary-card">
                   <h3 className="krishi-summary-title">Order Summary</h3>
                   <div className="krishi-summary-row">
                     <span>Items:</span>
@@ -262,15 +393,105 @@ const handleRemoveItem = async (orderId) => {
                     <span>Total:</span>
                     <span>₹{total}</span>
                   </div>
-                </div>
+                </div> */}
 
+{/* <div className="krishi-summary-card">
+  <h3 className="krishi-summary-title">Order Summary</h3>
+  <div className="krishi-summary-row">
+    <span>Items:</span>
+    <span>{orders.length}</span>
+  </div>
+  {discount.totalDiscount > 0 && (
+    <>
+      <div className="krishi-summary-row">
+        <span>Member Discount ({discount.memberCount} members):</span>
+        <span>{discount.memberDiscount}%</span>
+      </div>
+      <div className="krishi-summary-row">
+        <span>Volume Discount ({discount.itemCount} items):</span>
+        <span>{discount.itemDiscount}%</span>
+      </div>
+      <div className="krishi-summary-row discount-total">
+        <span>Total Discount:</span>
+        <span>{discount.totalDiscount}%</span>
+      </div>
+    </>
+  )}
+  <div className="krishi-summary-row krishi-summary-total">
+    <span>Subtotal:</span>
+    <span>₹{total}</span>
+  </div>
+  <div className="krishi-summary-row krishi-summary-final">
+    <span>Final Total:</span>
+    <span>₹{(total * (1 - discount.totalDiscount/100)).toFixed(2)}</span>
+  </div>
+</div> */}
+
+
+<div className="krishi-summary-card">
+  <h3 className="krishi-summary-title">Order Summary</h3>
+  <div className="krishi-summary-row">
+    <span>Items:</span>
+    <span>{orders.length}</span>
+  </div>
+  
+  {freezeStatus.isFrozen && (discount?.totalDiscount || 0) > 0 && (
+    <>
+      <div className="krishi-summary-row">
+        <span>Community Discount ({discount?.memberCount || 0} members):</span>
+        <span>₹{Number(discount?.memberDiscountAmount || 0).toFixed(2)}</span>
+      </div>
+      <div className="krishi-summary-row">
+        <span>Volume Discount ({discount?.itemCount || 0} items):</span>
+        <span>₹{Number(discount?.itemDiscountAmount || 0).toFixed(2)}</span>
+      </div>
+      <div className="krishi-summary-row discount-total">
+        <span>Total Discount:</span>
+        <span>₹{Number(discount?.totalDiscountAmount || 0).toFixed(2)}</span>
+      </div>
+    </>
+  )}
+  
+  <div className="krishi-summary-row krishi-summary-total">
+    <span>Subtotal:</span>
+    <span>₹{Number(discount?.subtotal || total || 0).toFixed(2)}</span>
+  </div>
+  
+  {freezeStatus.isFrozen && (discount?.totalDiscount || 0) > 0 && (
+    <div className="krishi-summary-row krishi-summary-final">
+      <span>Final Amount:</span>
+      <span>
+        ₹{(
+          Number(discount?.subtotal || total || 0) - 
+          Number(discount?.totalDiscountAmount || 0)
+        ).toFixed(2)}
+      </span>
+    </div>
+  )}
+</div>
                 <div className="krishi-cart-actions">
-                  <button 
+                  {/* <button 
                     className="krishi-btn-checkout" 
                     onClick={handleProceedToPayment}
                   >
                     Proceed to Payment
-                  </button>
+                  </button> */}
+                  {!freezeStatus.isFrozen ? (
+  <button 
+  className="krishi-btn-checkout disabled" 
+  disabled
+>
+  Orders Locked - Delivery Pending
+  </button>
+) : (
+  <button
+  className="krishi-btn-checkout" 
+  onClick={handleProceedToPayment}
+  >
+    Proceed to Payment
+  </button>
+)}
+
                 </div>
               </div>
             </>

@@ -55,18 +55,20 @@ function MemberCommunityPage() {
         
         setMembers(Array.isArray(membersData) ? membersData : []);
 
-        // Find logged in member
-        const loggedInMemberId = localStorage.getItem("memberId");
-        const loggedInUserEmail = localStorage.getItem("userEmail");
+        // Find logged in member - check by consumer_id or email
+        const currentUserConsumerId = consumer?.consumer_id;
+        const currentUserEmail = consumer?.email;
         
         const foundMember = membersData.find(
-          member =>
-            (loggedInMemberId && String(member.id || member.member_id) === String(loggedInMemberId)) ||
-            (loggedInUserEmail && (member.member_email || member.email) === loggedInUserEmail)
+          member => 
+            (currentUserConsumerId && member.consumer_id === currentUserConsumerId) ||
+            (currentUserEmail && (member.member_email || member.email) === currentUserEmail)
         );
         
         if (foundMember) {
           setLoggedInMember(foundMember);
+          localStorage.setItem("memberId", foundMember.id || foundMember.member_id);
+          localStorage.setItem("currentCommunityId", communityId);
         }
       } catch (err) {
         console.error("Error fetching data:", err);
@@ -77,7 +79,7 @@ function MemberCommunityPage() {
     };
 
     fetchData();
-  }, [communityId]);
+  }, [communityId,consumer]);
 
   const handleAgree = () => {
     setShowInstructions(false);

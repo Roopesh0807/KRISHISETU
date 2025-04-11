@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import "./ProductDetails.css";
@@ -29,22 +30,7 @@ const ProductDetails = () => {
   const [subscriptionConfirmed, setSubscriptionConfirmed] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
-  // useEffect(() => {
-  //   fetch(`http://localhost:5000/api/products/${product_id}`)
-  //     .then((res) => res.json())
-  //     .then((data) => {
-  //       if (data.error) {
-  //         setError("Product not found");
-  //       } else {
-  //         setProduct(data);
-  //         setSelectedQuantity(1);
-  //       }
-  //     })
-  //     .catch(() => setError("Error fetching product"));
-  // }, [product_id]);
   useEffect(() => {
-    // const token = localStorage.getItem("token"); // or wherever you store the token
-  
     fetch(`http://localhost:5000/api/products/${product_id}`, {
       method: "GET",
       headers: {
@@ -62,8 +48,12 @@ const ProductDetails = () => {
         }
       })
       .catch(() => setError("Error fetching product"));
-  }, [product_id]);
-  
+  }, [product_id, consumer?.token]);
+
+  // Calculate discounted price (5% off)
+  const calculateDiscountedPrice = (price) => {
+    return price * 0.95;
+  };
 
   const handleAddToCommunityCart = async () => {
     if (!consumer) {
@@ -80,7 +70,6 @@ const ProductDetails = () => {
     try {
       const response = await fetch(`http://localhost:5000/api/consumer-communities/${consumer.consumer_id}`,{
         headers: { 
-         
           "Authorization": `Bearer ${localStorage.getItem('token')}`
         },
       });
@@ -198,20 +187,6 @@ const ProductDetails = () => {
     setSubscriptionConfirmed(true);
   };
 
-  // const saveSubscription = () => {
-  //   // Here you would typically send the subscription data to your backend
-  //   setShowSuccessMessage(true);
-  //   setShowSubscriptionPopup(false);
-  //   setSubscriptionConfirmed(false);
-  //   setSelectedFrequency("");
-    
-  //   // Show message for 1.5 seconds
-  //   setTimeout(() => {
-  //     setShowSuccessMessage(false);
-  //   }, 700);
-  // };
-
-
   const saveSubscription = async () => {
     try {
       const consumer = JSON.parse(localStorage.getItem('consumer'));
@@ -221,7 +196,6 @@ const ProductDetails = () => {
         return;
       }
   
-      // Convert frequency to backend format
       const getBackendSubscriptionType = (frequency) => {
         switch(frequency) {
           case 'daily': return 'Daily';
@@ -233,6 +207,7 @@ const ProductDetails = () => {
       };
   
       const subscriptionType = getBackendSubscriptionType(selectedFrequency);
+      const discountedPrice = calculateDiscountedPrice(product.price_1kg * selectedQuantity);
       
       const subscriptionData = {
         consumer_id: consumer.consumer_id,
@@ -240,17 +215,16 @@ const ProductDetails = () => {
         product_id: product.product_id,
         product_name: product.product_name,
         quantity: selectedQuantity,
-        price: totalPrice,
-        start_date: selectedDate.toISOString().split('T')[0]
+        original_price: product.price_1kg * selectedQuantity,
+        price: discountedPrice,
+        start_date: selectedDate.toISOString().split('T')[0],
+        discount_applied: 5 // 5% discount
       };
-  
-      console.log("Saving subscription:", subscriptionData);
   
       const response = await fetch("http://localhost:5000/api/subscriptions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          // "Authorization": `Bearer ${localStorage.getItem('token')}`
           "Authorization": `Bearer ${consumer?.token}`,
         },
         body: JSON.stringify(subscriptionData)
@@ -277,7 +251,6 @@ const ProductDetails = () => {
       alert(`Subscription failed: ${error.message}`);
     }
   };
-// ... (rest of the component remains the same)
 
   const handleAddToCart = () => {
     addToCart(product, selectedQuantity);
@@ -292,11 +265,6 @@ const ProductDetails = () => {
   const getImagePath = (productName) => {
     return `/images/${productName.toLowerCase().replace(/\s+/g, '-')}.jpg`;
   };
-  // const getImagePath = (productName) => {
-  //   if (!productName) return '/images/default.jpg'; // fallback image
-  //   return `/images/${productName.toLowerCase().replace(/\s+/g, '-')}.jpg`;
-  // };
-  
 
   const handleIncrease = () => {
     setSelectedQuantity((prev) => Math.max(1, prev + 1));
@@ -310,10 +278,10 @@ const ProductDetails = () => {
   if (!product) return <div className="ks-loading-container">Loading product details...</div>;
 
   const totalPrice = selectedQuantity * (product.price_1kg || 0);
+  const discountedPrice = calculateDiscountedPrice(totalPrice);
 
   return (
     <div className="ks-product-page">
-      {/* Success Message Overlay */}
       {showSuccessMessage && (
         <div className="ks-success-overlay">
           <div className="ks-success-message">
@@ -384,7 +352,7 @@ const ProductDetails = () => {
                 <FaUsers /> {addedToCommunityCart ? "Community Cart" : "Community Order"}
               </button>
               <button className="ks-btn ks-btn-subscribe" onClick={handleSubscribe}>
-                <FaCalendarAlt /> Subscribe
+                <FaCalendarAlt /> Subscribe (5% off - ₹{discountedPrice.toFixed(2)})
               </button>
             </div>
 
@@ -436,7 +404,6 @@ const ProductDetails = () => {
         </div>
       </div>
 
-      {/* Subscription Popup */}
       {showSubscriptionPopup && (
         <div className="ks-subscription-popup">
           <div className="ks-subscription-container">
@@ -500,6 +467,10 @@ const ProductDetails = () => {
             ) : (
               <div className="ks-subscription-confirmation">
                 <p>Subscribe to {product.product_name} ({selectedQuantity}kg) {selectedFrequency} starting from {selectedDate.toDateString()}</p>
+                <div className="ks-subscription-price">
+                  <span className="ks-original-price">Original Price: ₹{totalPrice.toFixed(2)}</span>
+                  <span className="ks-discounted-price">Discounted Price: ₹{discountedPrice.toFixed(2)} (5% off)</span>
+                </div>
                 <button 
                   className="ks-save-subscription-btn"
                   onClick={saveSubscription}
@@ -514,8 +485,5 @@ const ProductDetails = () => {
     </div>
   );
 };
-
-
-
 
 export default ProductDetails;
