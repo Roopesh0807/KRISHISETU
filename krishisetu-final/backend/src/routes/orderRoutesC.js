@@ -1,15 +1,19 @@
 const express = require("express");
 const orderController = require("../controllers/orderController");
+const communityController = require("../controllers/communityController");
 
+const { queryDatabase } = require('../config/db'); 
 const router = express.Router();
-
+const { checkFreezeStatus } = require('../controllers/communityController');
 router.get("/:communityId", orderController.getOrders);
 router.get("/:communityId/member/:consumerId", orderController.getMemberOrders); // Use consumerId
-router.post("/create", orderController.createOrder);
+router.post("/create", checkFreezeStatus, orderController.createOrder);
 // Add this to orderRoutes.js
 // router.delete("/:orderId", orderController.deleteOrder);
 // router.delete('/delete/:orderId', orderController.deleteOrder); // Changed path
 router.get("/:communityId/all-orders", orderController.getAllOrders); // New endpoint
+// Add new route for freeze status
+router.get("/:communityId/freeze-status", communityController.isCommunityFrozen);
 router.get('/:communityId', async (req, res) => {
   try {
     const { communityId } = req.params;
@@ -115,7 +119,10 @@ router.get("/order/:communityId/member/:memberId", async (req, res) => {
 // Add these routes to your orderRoutes.js
 
 // Update order quantity
-router.put('/:orderId', async (req, res) => {
+router.put('/:communityId/:orderId',(req, res, next) => {
+  console.log('PUT /order/:orderId route hit');
+  next();
+}, checkFreezeStatus, async (req, res) => {
   try {
     const { orderId } = req.params;
     const { quantity } = req.body;
@@ -140,7 +147,10 @@ router.put('/:orderId', async (req, res) => {
 });
 
 // Delete an order
-router.delete('/:orderId', async (req, res) => {
+router.delete('/:communityId/:orderId', (req, res, next) => {
+  console.log('DELETE /order/:orderId route hit');
+  next();
+},async (req, res) => {
   try {
     const { orderId } = req.params;
 

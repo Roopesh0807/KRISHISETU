@@ -1,7 +1,5 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-// import defaultProfilePhoto from '../path/to/local/default-profile.png'; // Add a local default image
 import axios from "axios";
 import { 
   FiEdit, 
@@ -31,7 +29,6 @@ const FarmerProfile = () => {
   const [loading, setLoading] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   
-  // Form data state
   const [formData, setFormData] = useState({
     personal: {
       dob: "",
@@ -67,12 +64,10 @@ const FarmerProfile = () => {
     }
   });
 
-  // Toggle sidebar
   const toggleSidebar = () => {
     setSidebarCollapsed(!sidebarCollapsed);
   };
 
-  // Fetch farmer data
   useEffect(() => {
     if (!farmer_id) return;
 
@@ -83,37 +78,31 @@ const FarmerProfile = () => {
         const response = await axios.get(
           `http://localhost:5000/api/farmerprofile/${farmer_id}`,
           {
-            withCredentials: true,
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('token')}`
             }
           }
         );
         
-        
         const farmerData = response.data;
+        
+        // Add cache busting to file URLs
+    const cacheBuster = `?t=${Date.now()}`;
 
-        // Set basic info
         const basicInfo = {
-          name: farmerData.full_name || `${farmerData.first_name} ${farmerData.last_name}`,
+          name: farmerData.full_name,
           email: farmerData.email,
           contact_no: farmerData.phone_number
         };
 
-        // Set personal details (with fallbacks)
         const personal = farmerData.personal ? {
-          dob: farmerData.personal.dob || "",
-          gender: farmerData.personal.gender || "",
-          contact_no: farmerData.personal.contact_no || farmerData.phone_number,
-          aadhaar_no: farmerData.personal.aadhaar_no || "",
-          residential_address: farmerData.personal.residential_address || "",
-          bank_account_no: farmerData.personal.bank_account_no || "",
-          ifsc_code: farmerData.personal.ifsc_code || "",
-          upi_id: farmerData.personal.upi_id || "",
-          bank_branch: farmerData.personal.bank_branch || "",
-          profile_photo: farmerData.personal.profile_photo || null,
-          aadhaar_proof: farmerData.personal.aadhaar_proof || null,
-          bank_proof: farmerData.personal.bank_proof || null
+          ...farmerData.personal,
+          profile_photo: farmerData.personal.profile_photo ? 
+          `http://localhost:5000${farmerData.personal.profile_photo}${cacheBuster}` : null,
+        aadhaar_proof: farmerData.personal.aadhaar_proof ? 
+          `http://localhost:5000${farmerData.personal.aadhaar_proof}${cacheBuster}` : null,
+        bank_proof: farmerData.personal.bank_proof ? 
+          `http://localhost:5000${farmerData.personal.bank_proof}${cacheBuster}` : null
         } : {
           dob: "",
           gender: "",
@@ -129,19 +118,8 @@ const FarmerProfile = () => {
           bank_proof: null
         };
 
-        // Set farm details (with fallbacks)
         const farm = farmerData.farm ? {
-          farm_address: farmerData.farm.farm_address || "",
-          farm_size: farmerData.farm.farm_size || "",
-          crops_grown: farmerData.farm.crops_grown || "",
-          farming_method: farmerData.farm.farming_method || "",
-          soil_type: farmerData.farm.soil_type || "",
-          water_sources: farmerData.farm.water_sources || "",
-          farm_equipment: farmerData.farm.farm_equipment || "",
-          land_ownership_proof: farmerData.farm.land_ownership_proof || null,
-          certification: farmerData.farm.certification || null,
-          land_lease_agreement: farmerData.farm.land_lease_agreement || null,
-          farm_photographs: farmerData.farm.farm_photographs || null
+          ...farmerData.farm
         } : {
           farm_address: "",
           farm_size: "",
@@ -150,24 +128,28 @@ const FarmerProfile = () => {
           soil_type: "",
           water_sources: "",
           farm_equipment: "",
-          land_ownership_proof: null,
-          certification: null,
-          land_lease_agreement: null,
-          farm_photographs: null
+          land_ownership_proof: farmerData.farm.land_ownership_proof ? 
+        `${farmerData.farm.land_ownership_proof}${cacheBuster}` : null,
+      certification: farmerData.farm.certification ? 
+        `${farmerData.farm.certification}${cacheBuster}` : null,
+      land_lease_agreement: farmerData.farm.land_lease_agreement ? 
+        `${farmerData.farm.land_lease_agreement}${cacheBuster}` : null,
+      farm_photographs: farmerData.farm.farm_photographs ? 
+        `${farmerData.farm.farm_photographs}${cacheBuster}` : null
         };
 
         setFormData({
           basicInfo,
           personal,
-          farm:farmerData.farm || {}
+          farm
         });
 
-        // Handle profile photo
         if (personal.profile_photo) {
-          setProfilePhoto(`http://localhost:5000${personal.profile_photo}?t=${Date.now()}`);
+          // setProfilePhoto(`http://localhost:5000${personal.profile_photo}?t=${Date.now()}`);
+          // setProfilePhoto(`http://localhost:5000${personal.profile_photo}`);
+          setProfilePhoto(personal.profile_photo);
         }
 
-        // Fetch bank branch details if IFSC is available
         if (personal.ifsc_code && personal.ifsc_code.length === 11 && !personal.bank_branch) {
           fetchBranchDetails(personal.ifsc_code);
         }
@@ -183,7 +165,6 @@ const FarmerProfile = () => {
     fetchData();
   }, [farmer_id]);
 
-  // Fetch bank branch details
   const fetchBranchDetails = async (ifsc) => {
     try {
       const { data } = await axios.get(`https://ifsc.razorpay.com/${ifsc}`);
@@ -200,7 +181,6 @@ const FarmerProfile = () => {
     }
   };
 
-  // Handle form field changes
   const handleChange = (section, e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -213,7 +193,6 @@ const FarmerProfile = () => {
     }
   };
 
-  // Handle file uploads
   const handleFileUpload = async (section, field, e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -234,20 +213,13 @@ const FarmerProfile = () => {
         }
       );
 
-      // Ensure the response contains the filename
-      const filename = res.data.filename || res.data.fileUrl;
-      if (!filename) {
-        throw new Error('No filename returned from server');
-      }
-
       setFormData(prev => ({
         ...prev,
-        [section]: { ...prev[section], [field]: filename }
+        [section]: { ...prev[section], [field]: res.data.filePath }
       }));
 
-      // If profile photo was uploaded, update the profile photo state
       if (field === 'profile_photo') {
-        setProfilePhoto(`http://localhost:5000/uploads/${filename}`);
+        setProfilePhoto(`http://localhost:5000${res.data.filePath}?t=${Date.now()}`);
       }
 
       alert('File uploaded successfully!');
@@ -257,124 +229,74 @@ const FarmerProfile = () => {
     }
   };
 
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-  // Show preview immediately
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    setProfilePhoto(e.target.result); // Set as base64 temporarily
-  };
-  // reader.readAsDataURL(file);
-  // Handle profile photo change
-  // const handlePhotoChange = async (e) => {
-  //   const file = e.target.files[0];
-  //   if (!file) return;
-  
-  //   try {
-  //     const formData = new FormData();
-  //     formData.append('file', file);
-  //     formData.append('field', 'profile_photo');
+    // Show immediate preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setProfilePhoto(e.target.result);
+    };
+    reader.readAsDataURL(file);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('field', 'profile_photo');
       
-  //     const res = await axios.post(
-  //       `http://localhost:5000/api/farmerprofile/${farmer_id}/upload-file`, 
-  //       formData,
-  //       {
-  //         headers: {
-  //           'Content-Type': 'multipart/form-data',
-  //           'Authorization': `Bearer ${localStorage.getItem('token')}`
-  //         }
-  //       }
-  //     );
-  //     console.log('Upload response:', res.data); // Add this line
-  //     const filename = res.data.filename || res.data.fileUrl;
-  //     if (!filename) {
-  //       throw new Error('No filename returned from server');
-  //     }
-  
-  //     setProfilePhoto(`http://localhost:5000/uploads/${filename}`);
-  //     setFormData(prev => ({
-  //       ...prev,
-  //       personal: { ...prev.personal, profile_photo: filename }
-  //     }));
-  
-  //     alert('Profile photo uploaded successfully!');
-  //   } catch (error) {
-  //     console.error('Error uploading file:', error);
-  //     alert('Error uploading profile photo. Please try again.');
-  //   }
-  // };
+      const res = await axios.post(
+        `http://localhost:5000/api/farmerprofile/${farmer_id}/upload-file`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
 
-  // Handle profile photo change - Fixed version
-// Update the handlePhotoChange function in FarmerProfile.js
-const handlePhotoChange = async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
+      // setProfilePhoto(`http://localhost:5000${res.data.filePath}?t=${Date.now()}`);
+      setProfilePhoto(res.data.accessibleUrl);
+      setFormData(prev => ({
+        ...prev,
+        personal: {
+          ...prev.personal,
+          profile_photo: res.data.filePath
+        }
+      }));
 
-  // Show immediate preview
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    setProfilePhoto(e.target.result);
+      alert('Profile photo uploaded successfully!');
+    } catch (error) {
+      console.error('Upload failed:', error);
+      alert('Error uploading profile photo. Please try again.');
+      setProfilePhoto(null);
+    }
   };
-  reader.readAsDataURL(file);
 
-  try {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('field', 'profile_photo');
-    
-    const res = await axios.post(
-      `http://localhost:5000/api/farmerprofile/${farmer_id}/upload-file`,
-      formData,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+  const handleRemovePhoto = async () => {
+    try {
+      await axios.delete(
+        `http://localhost:5000/api/farmerprofile/${farmer_id}/remove-file`, 
+        {
+          data: { field: 'profile_photo' },
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
         }
-      }
-    );
+      );
+      setProfilePhoto(null);
+      setFormData(prev => ({
+        ...prev,
+        personal: { ...prev.personal, profile_photo: null }
+      }));
+      alert('Profile photo removed successfully!');
+    } catch (error) {
+      console.error("Error removing photo", error);
+      alert('Error removing photo. Please try again.');
+    }
+  };
 
-    // Update with the server URL
-    setProfilePhoto(`http://localhost:5000${res.data.filePath}?t=${Date.now()}`);
-    setFormData(prev => ({
-      ...prev,
-      personal: {
-        ...prev.personal,
-        profile_photo: res.data.filePath
-      }
-    }));
-
-    alert('Profile photo uploaded successfully!');
-  } catch (error) {
-    console.error('Upload failed:', error);
-    alert('Error uploading profile photo. Please try again.');
-    setProfilePhoto(null);
-  }
-};
-
-// Update the remove photo function
-const handleRemovePhoto = async () => {
-  try {
-    await axios.delete(
-      `http://localhost:5000/api/farmerprofile/${farmer_id}/remove-file`, 
-      {
-        data: { field: 'profile_photo' },
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      }
-    );
-    setProfilePhoto(null);
-    setFormData(prev => ({
-      ...prev,
-      personal: { ...prev.personal, profile_photo: null }
-    }));
-    alert('Profile photo removed successfully!');
-  } catch (error) {
-    console.error("Error removing photo", error);
-    alert('Error removing photo. Please try again.');
-  }
-};
-
-  // Remove file
   const handleRemoveFile = async (section, field) => {
     try {
       await axios.delete(
@@ -399,40 +321,31 @@ const handleRemovePhoto = async () => {
     }
   };
 
-  // Handle form submission
-const handleSubmit = async (section, e) => {
-  e.preventDefault();
-  try {
-    const token = localStorage.getItem('token');
-    const dataToSend = formData[section];
-    
-    // Remove file fields if they're null (we handle files separately)
-    Object.keys(dataToSend).forEach(key => {
-      if (isFileField(key) && dataToSend[key] === null) {
-        delete dataToSend[key];
-      }
-    });
-
-    await axios.put(
-      `http://localhost:5000/api/farmerprofile/${farmer_id}/${section}`,
-      dataToSend,
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+  const handleSubmit = async (section, e) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('token');
+      const dataToSend = formData[section];
+      
+      await axios.put(
+        `http://localhost:5000/api/farmerprofile/${farmer_id}/${section}`,
+        dataToSend,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
         }
-      }
-    );
+      );
 
-    setEditMode(prev => ({ ...prev, [section]: false }));
-    alert(`${section === 'personal' ? 'Personal' : 'Farm'} details updated successfully!`);
-  } catch (error) {
-    console.error(`Error updating ${section} details:`, error);
-    alert(`Error updating ${section} details. Please try again.`);
-  }
-};
+      setEditMode(prev => ({ ...prev, [section]: false }));
+      alert(`${section === 'personal' ? 'Personal' : 'Farm'} details updated successfully!`);
+    } catch (error) {
+      console.error(`Error updating ${section} details:`, error);
+      alert(`Error updating ${section} details. Please try again.`);
+    }
+  };
 
-  // Loading state
   if (loading) {
     return (
       <div className="farmer-profile-loading-overlay">
@@ -529,16 +442,14 @@ const handleSubmit = async (section, e) => {
           </label>
           {value && (
             <span className="farmer-profile-file-name">
-              {typeof value === 'string' ? (
-                <a 
-                  href={`http://localhost:5000${value}`} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="farmer-profile-file-link"
-                >
-                  View {key.replace('_', ' ')}
-                </a>
-              ) : 'Uploaded file'}
+              <a 
+                href={`http://localhost:5000${value}`} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="farmer-profile-file-link"
+              >
+                View {formatLabel(key)}
+              </a>
               <button 
                 type="button" 
                 className="farmer-profile-file-remove-btn"
@@ -608,14 +519,14 @@ const handleSubmit = async (section, e) => {
             <div className="farmer-profile-photo-container">
               {profilePhoto ? (
                 <img 
-               src={`/uploads/farmer-documents/${profilePhoto}`}
-                alt="Profile"
-                className="farmer-profile-photo"
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = '/default-profile.png'; // Local fallback
-                }}
-              />              
+                  src={profilePhoto}
+                  alt="Profile"
+                  className="farmer-profile-photo"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = '/default-profile.png';
+                  }}
+                />              
               ) : (
                 <div className="farmer-profile-photo-placeholder">
                   <FiUser size={48} />
@@ -679,7 +590,7 @@ const handleSubmit = async (section, e) => {
                           {isFileField(key) ? (
                             value ? (
                               <a 
-                                href={`http://localhost:5000/uploads/${value}`} 
+                                href={`http://localhost:5000${value.split('?')[0]}`} 
                                 target="_blank" 
                                 rel="noopener noreferrer"
                                 className="farmer-profile-file-link"
@@ -747,7 +658,7 @@ const handleSubmit = async (section, e) => {
                         {isFileField(key) ? (
                           value ? (
                             <a 
-                              href={`http://localhost:5000/uploads/${value}`} 
+                              href={`http://localhost:5000${value}`} 
                               target="_blank" 
                               rel="noopener noreferrer"
                               className="farmer-profile-file-link"
@@ -796,7 +707,6 @@ const handleSubmit = async (section, e) => {
 };
 
 export default FarmerProfile;
-
 
 
 
