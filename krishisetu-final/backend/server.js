@@ -10,7 +10,7 @@ const cookieParser = require("cookie-parser");
 const { queryDatabase } = require('./src/config/db');
 const http = require("http");
 // const socketIo = require("socket.io");
-// const { Server } = require("socket.io");
+const { Server } = require("socket.io");
 const path = require("path");
 const multer = require("multer");
 app.use('/uploads/reviews', express.static(path.join(__dirname, 'uploads/reviews')));
@@ -115,13 +115,18 @@ const { verifyToken, authenticate, farmerOnly } = require('./src/middlewares/aut
 // const httpServer = http.createServer(app);
 const fs = require("fs");
 
-const { Server } = require("socket.io");
-const httpServer = http.createServer(app);
+// const { Server } = require("socket.io");
+// const httpServer = http.createServer(app);
+const httpServer = require("http").createServer(app);
 const io = new Server(httpServer, {
   cors: {
     origin: "http://localhost:3000",
     methods: ["GET", "POST"],
     credentials: true
+  },
+  connectionStateRecovery: {
+    maxDisconnectionDuration: 2 * 60 * 1000,
+    skipMiddlewares: true
   }
 });
 const router = express.Router();
@@ -843,23 +848,27 @@ io.on("connection", (socket) => {
 
   // 🔁 Listen and emit within room
   socket.on("bargainMessage", (data) => {
-    console.log(`💬 [${userType}] Bargain Message Received from ${user.id}:`, data);
-
+    const bargainId = data.bargain_id; // ✅ Correct way to fetch bargainId from message
+    const user = socket.user;
+  
+    console.log(`💬 [${user.userType}] Bargain Message Received from ${user.id}:`, data);
+  
     if (bargainId) {
       socket.to(bargainId).emit("bargainMessage", {
         ...data,
         senderId: user.id,
-        senderType: userType,
+        senderType: user.userType,
       });
     } else {
-      console.warn("⚠️ bargainId missing. Broadcasting to all instead.");
+      console.warn("⚠️ bargainId missing in message. Broadcasting to all instead.");
       socket.broadcast.emit("bargainMessage", {
         ...data,
         senderId: user.id,
-        senderType: userType,
+        senderType: user.userType,
       });
     }
   });
+  
 
   socket.on("disconnect", () => {
     console.log(`❌ ${userType} disconnected: ${socket.id}`);
@@ -3973,42 +3982,84 @@ function pick(obj, keys) {
 //   }
 // });
 
-app.post('/api/create-bargain', async (req, res) => {
+// app.post('/api/create-bargain', async (req, res) => {
+//   try {
+//     const authHeader = req.headers.authorization;
+//     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+//       return res.status(401).json({ error: 'Missing or invalid authorization header' });
+//     }
+
+//     const token = authHeader.split(' ')[1];
+//     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+//     const { initiator, farmer_id } = req.body;
+
+//     if (!initiator || !farmer_id) {
+//       return res.status(400).json({ error: 'Missing initiator or farmer_id' });
+//     }
+
+//     const result = await queryDatabase(
+//       `INSERT INTO bargain_sessions (consumer_id, farmer_id, status, initiator, created_at, updated_at)
+//        VALUES (?, ?, ?, ?, NOW(), NOW())`,
+//       [decoded.consumer_id, farmer_id, 'pending', initiator]
+//     );
+
+//     const newId = result?.insertId;
+
+//     if (!newId) {
+//       return res.status(500).json({ error: 'Failed to retrieve bargain session ID' });
+//     }
+
+//     // ✅ Full response with required data
+//     res.status(200).json({
+//       success: true,
+//       message: 'Bargain session created',
+//       bargainId: newId,
+//       consumer_id: decoded.consumer_id,
+//       farmer_id
+//     });
+
+//   } catch (err) {
+//     console.error("🔥 Error in create-bargain:", err);
+//     res.status(500).json({ error: 'Failed to create bargain session' });
+//   }
+// });
+// Enhanced create-bargain endpoint
+app.post('/api/create-bargain', verifyToken, async (req, res) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'Missing or invalid authorization header' });
+    // Get consumer_id from the verified token
+    const consumer_id = req.user.consumer_id; 
+    const { farmer_id } = req.body;
+
+    if (!farmer_id) {
+      return res.status(400).json({ 
+        success: false,
+        error: "Farmer ID is required" 
+      });
     }
 
-    const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    const { initiator, farmer_id } = req.body;
-
-    if (!initiator || !farmer_id) {
-      return res.status(400).json({ error: 'Missing initiator or farmer_id' });
-    }
-
+    // Create bargain session (always initiated by consumer)
     const result = await queryDatabase(
-      `INSERT INTO bargain_sessions (consumer_id, farmer_id, status, initiator) VALUES (?, ?, ?, ?)`,
-      [decoded.consumer_id, farmer_id, 'pending', initiator]
+      `INSERT INTO bargain_sessions 
+       (consumer_id, farmer_id, status, initiator, created_at, updated_at)
+       VALUES (?, ?, 'pending', 'consumer', NOW(), NOW())`,
+      [consumer_id, farmer_id]
     );
 
-    const newId = result?.insertId;
+    res.status(201).json({
+      success: true,
+      bargainId: result.insertId,
+      message: 'Bargain session created successfully'
+    });
 
-    if (!newId) {
-      return res.status(500).json({ error: 'Failed to retrieve bargain session ID' });
-    }
-
-    res.status(200).json({ message: 'Bargain session created', bargainId: newId });
-
-
-  } catch (err) {
-    console.error("🔥 Error in create-bargain:", err);
-    res.status(500).json({ error: 'Failed to create bargain session' });
+  } catch (error) {
+    console.error("Error creating bargain:", error);
+    res.status(500).json({
+      success: false,
+      error: "Internal server error"
+    });
   }
 });
-
 
 
 // GET route to check if the server is responding
@@ -4299,35 +4350,175 @@ app.get('/api/bargain/:bargainId', async (req, res) => {
 
 // routes/bargain.js or wherever you define your routes
 
+// app.post('/api/add-bargain-product', verifyToken, async (req, res) => {
+//   const { bargain_id, product_id, quantity } = req.body;
+
+//   if (!bargain_id || !product_id || !quantity) {
+//     return res.status(400).json({ error: "Missing required fields" });
+//   }
+
+//   try {
+//     const [product] = await queryDatabase('SELECT price_per_kg FROM add_produce WHERE product_id = ?', [product_id]);
+
+//     if (!product) {
+//       return res.status(400).json({ error: "Invalid product_id. Product not found." });
+//     }
+
+//     const original_price = product.price_per_kg;
+//     const current_offer = quantity * original_price;
+
+//     await queryDatabase(
+//       `INSERT INTO bargain_session_products (bargain_id, product_id, original_price, quantity, current_offer) 
+//        VALUES (?, ?, ?, ?, ?)`,
+//       [bargain_id, product_id, original_price, quantity, current_offer]
+//     );
+
+//     res.json({ message: "Product added to bargain session." });
+//   } catch (error) {
+//     console.error("Error inserting into bargain_session_products:", error);
+//     res.status(500).json({ error: "Server error" });
+//   }
+// });
+// app.post('/api/add-bargain-product', verifyToken, async (req, res) => {
+//   const { bargain_id, product_id, quantity } = req.body;
+
+//   if (!bargain_id || !product_id || !quantity) {
+//     return res.status(400).json({ 
+//       success: false,
+//       error: "Missing required fields" 
+//     });
+//   }
+
+//   try {
+//     // 1. Check if bargain session exists
+//     const [bargain] = await queryDatabase(
+//       'SELECT * FROM bargain_sessions WHERE bargain_id = ?', 
+//       [bargain_id]
+//     );
+
+//     if (!bargain) {
+//       return res.status(404).json({
+//         success: false,
+//         error: "Bargain session not found"
+//       });
+//     }
+
+//     // 2. Get product details
+//     const [product] = await queryDatabase(
+//       'SELECT price_per_kg, produce_name FROM add_produce WHERE product_id = ?', 
+//       [product_id]
+//     );
+
+//     if (!product) {
+//       return res.status(404).json({
+//         success: false,
+//         error: "Product not found"
+//       });
+//     }
+
+//     const price = product.price_per_kg;
+
+//     // 3. Insert into bargain_session_products
+//     await queryDatabase(`
+//       INSERT INTO bargain_session_products (bargain_id, product_id, original_price, current_offer, quantity)
+//       VALUES (?, ?, ?, ?, ?)
+//       ON DUPLICATE KEY UPDATE 
+//         original_price = VALUES(original_price),
+//         current_offer = VALUES(current_offer),
+//         quantity = VALUES(quantity)
+//     `, [bargain_id, product_id, price, price, quantity]);
+
+//     // 4. Return success
+//     res.json({ 
+//       success: true,
+//       message: "Product added to bargain session",
+//       product_name: product.produce_name,
+//       price_per_kg: price,
+//       quantity: quantity
+//     });
+
+//   } catch (error) {
+//     console.error("Error in /api/add-bargain-product:", error);
+//     res.status(500).json({
+//       success: false,
+//       error: "Internal server error"
+//     });
+//   }
+// });
 app.post('/api/add-bargain-product', verifyToken, async (req, res) => {
-  const { bargain_id, product_id, quantity } = req.body;
-
-  if (!bargain_id || !product_id || !quantity) {
-    return res.status(400).json({ error: "Missing required fields" });
-  }
-
   try {
-    const [product] = await queryDatabase('SELECT price_per_kg FROM add_produce WHERE product_id = ?', [product_id]);
+    console.log('Received product addition request:', req.body);
+    
+    const { bargain_id, product_id, quantity } = req.body;
 
-    if (!product) {
-      return res.status(400).json({ error: "Invalid product_id. Product not found." });
+    // Validate input types
+    if (isNaN(quantity)) {
+      return res.status(400).json({ 
+        success: false,
+        error: "Quantity must be a number" 
+      });
     }
 
-    const original_price = product.price_per_kg;
-    const current_offer = quantity * original_price;
-
-    await queryDatabase(
-      `INSERT INTO bargain_session_products (bargain_id, product_id, original_price, quantity, current_offer) 
-       VALUES (?, ?, ?, ?, ?)`,
-      [bargain_id, product_id, original_price, quantity, current_offer]
+    // Verify bargain exists
+    const [bargain] = await queryDatabase(
+      'SELECT 1 FROM bargain_sessions WHERE bargain_id = ? LIMIT 1',
+      [bargain_id]
     );
 
-    res.json({ message: "Product added to bargain session." });
+    if (!bargain) {
+      return res.status(404).json({
+        success: false,
+        error: "Bargain session not found"
+      });
+    }
+
+    // Get product details with availability check
+    const [product] = await queryDatabase(
+      `SELECT price_per_kg, produce_name 
+       FROM add_produce 
+       WHERE product_id = ? AND availability >= ?`,
+      [product_id, quantity]
+    );
+
+    if (!product) {
+      return res.status(400).json({
+        success: false,
+        error: "Product not found or insufficient quantity available"
+      });
+    }
+
+    // Insert product
+    await queryDatabase(
+      `INSERT INTO bargain_session_products
+       (bargain_id, product_id, original_price, quantity, current_offer)
+       VALUES (?, ?, ?, ?, ?)`,
+      [bargain_id, product_id, product.price_per_kg, quantity, product.price_per_kg]
+    );
+
+    // Return complete response
+    return res.status(200).json({
+      success: true,
+      data: {
+        bargain_id,
+        product_id,
+        product_name: product.produce_name,
+        price_per_kg: product.price_per_kg,
+        quantity: Number(quantity),
+        total_price: (product.price_per_kg * quantity).toFixed(2)
+      },
+      message: "Product successfully added to bargain"
+    });
+
   } catch (error) {
-    console.error("Error inserting into bargain_session_products:", error);
-    res.status(500).json({ error: "Server error" });
+    console.error('Database error:', error);
+    return res.status(500).json({
+      success: false,
+      error: "Internal server error",
+      system_error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
+
 app.get('/api/bargain/fetch-session-data', async (req, res) => {
   const bargainId = req.query.id;
   try {
@@ -5638,7 +5829,6 @@ module.exports = router;
 //     res.status(500).json({ error: "Database operation failed" });
 //   }
 // });
-
 app.get('/api/bargain/farmers/:farmerId/sessions', authenticate, farmerOnly, async (req, res) => {
   try {
     const farmerId = req.params.farmerId;
@@ -5649,29 +5839,76 @@ app.get('/api/bargain/farmers/:farmerId/sessions', authenticate, farmerOnly, asy
 
     const sessions = await queryDatabase(
       `
-      SELECT 
-        MAX(bs.bargain_id) AS latest_bargain_id,
-        bs.consumer_id,
-        cr.first_name,
-        cr.last_name,
-        MAX(bs.updated_at) AS last_updated
-      FROM bargain_sessions bs
-      JOIN consumerregistration cr ON bs.consumer_id = cr.consumer_id
-      WHERE bs.farmer_id = ?
-      GROUP BY bs.consumer_id, cr.first_name, cr.last_name
-      ORDER BY last_updated DESC
+     SELECT 
+  bs.bargain_id,
+  bs.consumer_id,
+  cr.first_name,
+  cr.last_name,
+  p.product_name,
+  bsp.quantity,
+  bsp.current_offer AS current_price,
+  bsp.original_price AS initial_price,
+  bs.status,
+  bs.updated_at,
+  (
+    SELECT 
+      CASE 
+        WHEN bm.message_type = 'suggestion' THEN CONCAT('Suggested ₹', FORMAT(bm.price_suggestion, 2))
+        WHEN bm.message_type = 'accept' THEN 'Accepted the offer'
+        WHEN bm.message_type = 'reject' THEN 'Rejected the offer'
+        WHEN bm.message_type = 'finalize' THEN 'Finalized the deal'
+        ELSE 'Unknown'
+      END
+    FROM bargain_messages bm
+    WHERE bm.bargain_id = bs.bargain_id
+    ORDER BY bm.created_at DESC
+    LIMIT 1
+  ) as last_message_content,
+  (
+    SELECT bm.created_at
+    FROM bargain_messages bm
+    WHERE bm.bargain_id = bs.bargain_id
+    ORDER BY bm.created_at DESC
+    LIMIT 1
+  ) as last_message_timestamp
+FROM bargain_sessions bs
+JOIN consumerregistration cr ON bs.consumer_id = cr.consumer_id
+JOIN bargain_session_products bsp ON bs.bargain_id = bsp.bargain_id
+JOIN products p ON bsp.product_id = p.product_id
+WHERE bs.farmer_id = ?
+  AND bsp.product_id IS NOT NULL
+ORDER BY bs.updated_at DESC
+
       `,
       [farmerId]
     );
 
-    console.log("🔥 Sessions Result:", sessions);
-    res.status(200).json(sessions); // ✅ Fix is here
+    const transformedSessions = sessions.map(session => ({
+      bargain_id: session.bargain_id,
+      consumer_id: session.consumer_id,
+      consumer_name: `${session.first_name} ${session.last_name}`,
+      product_name: session.product_name,
+      quantity: session.quantity,
+      current_price: session.current_price,
+      initial_price: session.initial_price,
+      status: session.status,
+      updated_at: session.updated_at,
+      last_message: session.last_message_content ? {
+        content: session.last_message_content,
+        timestamp: session.last_message_timestamp
+      } : null
+    }));
+
+    console.log("🔥 Sessions Result:", transformedSessions);
+    res.status(200).json(transformedSessions);
 
   } catch (err) {
     console.error("💥 DB Error:", err);
     res.status(500).json({ error: "Database operation failed" });
   }
 });
+
+
 
 
 
