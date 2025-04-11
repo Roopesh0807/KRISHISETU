@@ -2183,6 +2183,230 @@ app.get("/api/orders/:consumer_id", async (req, res) => {
   }
 });
 
+
+
+
+
+
+
+
+
+// Authentication Middleware
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  
+  if (!token) {
+    return res.status(401).json({ 
+      success: false,
+      message: 'Authorization token is required' 
+    });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET || 'your_fallback_secret_key', (err, user) => {
+    if (err) {
+      return res.status(403).json({ 
+        success: false,
+        message: 'Invalid or expired token' 
+      });
+    }
+    
+    req.user = {
+      consumer_id: user.consumer_id,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      email: user.email
+    };
+    
+    next();
+  });
+};
+
+
+
+// 10/04, wallet
+// Wallet Routes
+app.get('/api/wallet/balance/:consumer_id', authenticateToken, async (req, res) => {
+  try {
+    const { consumer_id } = req.params;
+    
+    // Verify the requested consumer_id matches the authenticated user
+    if (consumer_id !== req.user.consumer_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized access to wallet'
+      });
+    }
+
+    // Get the latest balance
+    const balanceQuery = `
+      SELECT balance 
+      FROM wallet_transactions 
+      WHERE consumer_id = ? 
+      ORDER BY transaction_date DESC 
+      LIMIT 1`;
+    const balanceResult = await queryDatabase(balanceQuery, [consumer_id]);
+
+    const balance = balanceResult[0]?.balance || 0;
+    
+    res.json({ 
+      success: true,
+      balance,
+      consumer_id,
+      consumer_name: `${req.user.first_name} ${req.user.last_name}`
+    });
+  } catch (error) {
+    console.error('Wallet balance error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to fetch wallet balance' 
+    });
+  }
+});
+
+app.get('/api/wallet/transactions/:consumer_id', authenticateToken, async (req, res) => {
+  try {
+    const { consumer_id } = req.params;
+    
+    // Verify the requested consumer_id matches the authenticated user
+    if (consumer_id !== req.user.consumer_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized access to transaction history'
+      });
+    }
+
+    const transactionsQuery = `
+      SELECT 
+        transaction_id,
+        transaction_type,
+        amount,
+        balance,
+        description,
+        payment_method,
+        DATE_FORMAT(transaction_date, '%Y-%m-%d %H:%i:%s') as transaction_date
+      FROM wallet_transactions 
+      WHERE consumer_id = ? 
+      ORDER BY transaction_date DESC
+      LIMIT 50`;
+    const transactions = await queryDatabase(transactionsQuery, [consumer_id]);
+    
+    res.json({ 
+      success: true,
+      transactions,
+      consumer_id,
+      consumer_name: `${req.user.first_name} ${req.user.last_name}`
+    });
+  } catch (error) {
+    console.error('Wallet transactions error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to fetch transactions' 
+    });
+  }
+});
+
+app.post('/api/wallet/add', authenticateToken, async (req, res) => {
+  try {
+    const { amount, payment_method } = req.body;
+    const { consumer_id } = req.user;
+    
+    // Validate input
+    if (!amount || isNaN(amount) || amount <= 0) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Amount must be a positive number' 
+      });
+    }
+
+    // Insert new transaction
+    const insertQuery = `
+      INSERT INTO wallet_transactions 
+      (consumer_id, transaction_type, amount, description, payment_method) 
+      VALUES (?, 'Credit', ?, 'Wallet top up', ?)`;
+    const result = await queryDatabase(insertQuery, [
+      consumer_id, 
+      amount, 
+      payment_method || 'Online Payment'
+    ]);
+
+    // Get the complete transaction details
+    const transactionQuery = `
+      SELECT 
+        transaction_id,
+        transaction_type,
+        amount,
+        balance,
+        description,
+        payment_method,
+        DATE_FORMAT(transaction_date, '%Y-%m-%d %H:%i:%s') as transaction_date
+      FROM wallet_transactions 
+      WHERE transaction_id = ?`;
+    const transactionResult = await queryDatabase(transactionQuery, [result.insertId]);
+
+    res.json({
+      success: true,
+      message: 'Money added successfully',
+      newBalance: transactionResult[0].balance,
+      transaction: transactionResult[0],
+      consumer_id,
+      consumer_name: `${req.user.first_name} ${req.user.last_name}`
+    });
+    
+  } catch (error) {
+    console.error('Add money error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to add money to wallet' 
+    });
+  }
+});
+
+app.get('/api/wallet/transactions/:consumer_id', authenticateToken, async (req, res) => {
+  try {
+    const { consumer_id } = req.params;
+    
+    if (consumer_id !== req.user.consumer_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized access to transaction history'
+      });
+    }
+
+    const transactionsQuery = `
+      SELECT 
+        transaction_id,
+        transaction_type,
+        CAST(amount AS DECIMAL(10,2)) as amount,
+        CAST(balance AS DECIMAL(10,2)) as balance,
+        description,
+        payment_method,
+        DATE_FORMAT(transaction_date, '%Y-%m-%d %H:%i:%s') as transaction_date
+      FROM wallet_transactions 
+      WHERE consumer_id = ? 
+      ORDER BY transaction_date DESC
+      LIMIT 50`;
+    const transactions = await queryDatabase(transactionsQuery, [consumer_id]);
+    
+    res.json({ 
+      success: true,
+      transactions,
+      consumer_id,
+      consumer_name: `${req.user.first_name} ${req.user.last_name}`
+    });
+  } catch (error) {
+    console.error('Wallet transactions error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to fetch transactions' 
+    });
+  }
+});
+
+
+
+
+
 // // ✅ Middleware: Verify JWT Token
 // const verifyToken = (req, res, next) => {
 //   const token = req.cookies.token;
@@ -4205,6 +4429,14 @@ app.delete("/api/subscriptions/:subscription_id", verifyToken, async (req, res) 
     res.status(500).json({ error: "Failed to delete subscription" });
   }
 });
+
+
+
+
+
+
+
+
 
 
 
