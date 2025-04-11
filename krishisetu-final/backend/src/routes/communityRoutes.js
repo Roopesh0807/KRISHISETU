@@ -28,6 +28,9 @@ router.delete("/:communityId/remove-member/:memberId", communityController.remov
 router.put("/:communityId/update-details", communityController.updateCommunityDetails);
 router.post("/join", communityController.joinCommunity);
 router.post('/verify-access', communityController.verifyCommunityAccess);
+// Add these new routes
+router.get("/:communityId/status", communityController.checkCommunityStatus);
+router.get("/:communityId/member/:memberId/discount", communityController.calculateDiscount);
 // Add this route in communityRoutes.js
 // router.get("/:communityId/member/:memberId", communityController.getMemberOrders);
 // Update this in communityRoutes.js
@@ -35,6 +38,8 @@ router.post('/verify-access', communityController.verifyCommunityAccess);
 // router.get("address-suggestions", communityController.getAddressSuggestions);
 router.get("/:communityId/member/:memberId/orders", communityController.getMembersOrders);
 router.get('/consumer/:consumerId/communities', communityController.getConsumerCommunities);
+router.get("/:communityId/member/:memberId/submit-frozen-order", communityController.getFrozenOrderDetails);
+
 router.get("/community/create", async (req, res) => {
     try {
       const query = "SELECT * FROM communities";

@@ -13,6 +13,11 @@ const http = require("http");
 // const { Server } = require("socket.io");
 const path = require("path");
 const multer = require("multer");
+const fs = require("fs");
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
 app.use('/uploads/reviews', express.static(path.join(__dirname, 'uploads/reviews')));
 app.use('/uploads/farmer-documents', express.static(path.join(__dirname, 'uploads/farmer-documents')));
 // Add this near your other middleware
@@ -59,44 +64,64 @@ const reviewStorage = multer.diskStorage({
 });
 
 const uploadReviewImages = multer({ storage: reviewStorage });
+app.use('/uploads', express.static(uploadsDir));
+// Add this near the top of server.js (after the imports)
 
 
+
+
+// const farmerDocumentStorage = multer.diskStorage({
+//   destination: (req, file, cb) => {
+//     const uploadDir = '/uploads/farmer-documents';
+//     if (!fs.existsSync(uploadDir)) {
+//       fs.mkdirSync(uploadDir, { recursive: true });
+//     }
+//     cb(null, uploadDir);
+//   },
+//   filename: (req, file, cb) => {
+//     const farmerId = req.params.farmer_id;
+//     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+//     const ext = path.extname(file.originalname);
+//     cb(null, `farmer-${farmerId}-${uniqueSuffix}${ext}`);
+//   }
+// });
+// Update the farmerDocumentStorage configuration (around line 50)
 const farmerDocumentStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadDir = '/uploads/farmer-documents';
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
+    const subfolder = path.join(uploadsDir, 'farmer-documents');
+    fs.mkdirSync(subfolder, { recursive: true });
+    cb(null, subfolder);
   },
   filename: (req, file, cb) => {
-    const farmerId = req.params.farmer_id;
+    const farmerId = req.params.farmer_id || 'unknown';
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const ext = path.extname(file.originalname);
     cb(null, `farmer-${farmerId}-${uniqueSuffix}${ext}`);
   }
 });
+const farmerDocumentUpload = multer({ storage: farmerDocumentStorage });
 
-const farmerDocumentUpload = multer({ 
-  storage: farmerDocumentStorage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype === 'application/pdf' || 
-        file.mimetype.startsWith('image/') ||
-        file.mimetype === 'application/msword' ||
-        file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-      cb(null, true);
-    } else {
-      cb(new Error('Only PDF, Word, and image files are allowed!'), false);
-    }
-  }
-});
+
+// const farmerDocumentUpload = multer({ 
+//   storage: farmerDocumentStorage,
+//   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+//   fileFilter: (req, file, cb) => {
+//     if (file.mimetype === 'application/pdf' || 
+//         file.mimetype.startsWith('image/') ||
+//         file.mimetype === 'application/msword' ||
+//         file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+//       cb(null, true);
+//     } else {
+//       cb(new Error('Only PDF, Word, and image files are allowed!'), false);
+//     }
+//   }
+// });
 
 const { verifyToken, authenticate, farmerOnly } = require('./src/middlewares/authMiddleware');
 // const { initiateBargain } = require("./src/controllers/bargainController"); // Correct file
 
 // const httpServer = http.createServer(app);
-const fs = require("fs");
+
 
 const { Server } = require("socket.io");
 const httpServer = http.createServer(app);
@@ -131,9 +156,27 @@ const corsOptions = {
 
 const Razorpay = require('razorpay');
 
+// const razorpay = new Razorpay({
+//   key_id: 'rzp_test_VLCfnymiyd6HGf',
+//   key_secret: 'dwcSRSRah7Y4eBZUzL8M'
+// });
+
+
+console.log('Loading Razorpay with key:', process.env.RAZORPAY_KEY_ID);
 const razorpay = new Razorpay({
-  key_id: 'rzp_test_VLCfnymiyd6HGf',
-  key_secret: 'dwcSRSRah7Y4eBZUzL8M'
+  key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_VLCfnymiyd6HGf', // Fallback for testing
+  key_secret: process.env.RAZORPAY_KEY_SECRET || 'JXgWqR4bQ9mN2kL7pS8hT3wZ'
+});
+
+// Add this error handling to verify credentials on startup
+razorpay.orders.create({
+  amount: 100, // 1 INR
+  currency: 'INR',
+  receipt: 'test_receipt'
+}).then(() => {
+  console.log('✅ Razorpay credentials verified successfully');
+}).catch(err => {
+  console.error('❌ Razorpay credential verification failed:');
 });
 
 // ✅ Then these
@@ -487,6 +530,70 @@ app.delete("/api/farmerprofile/:farmer_id/photo", verifyToken, async (req, res) 
 
 // In server.js, update the farmer profile photo upload endpoint
 
+// app.delete("/api/farmerprofile/:farmer_id/remove-file", 
+//   auth.authenticate,
+//   auth.farmerOnly,
+//   async (req, res) => {
+//     try {
+//       const { farmer_id } = req.params;
+//       const { field } = req.body;
+
+//       if (!field) {
+//         return res.status(400).json({ success: false, message: "Field name is required" });
+//       }
+
+//       // Determine table and ID field
+//       let table = field.includes('profile_photo') || field.includes('aadhaar_proof') || field.includes('bank_proof')
+//         ? 'personaldetails'
+//         : 'farmdetails';
+
+//       const idField = 'farmer_id';
+
+//       // Get the file path from DB
+//       const [result] = await queryDatabase(
+//         `SELECT ${field} FROM ${table} WHERE ${idField} = ?`,
+//         [farmer_id]
+//       );
+
+//       if (result && result[field]) {
+//         let filePath = result[field];
+
+//         // Ensure it's a string (in case it's Buffer or anything else)
+//         if (Buffer.isBuffer(filePath)) {
+//           filePath = filePath.toString();
+//         }
+
+//         const fullPath = path.join(__dirname, filePath);
+
+//         if (fs.existsSync(fullPath)) {
+//           fs.unlinkSync(fullPath);
+//         }
+//       }
+
+//       // Remove the reference from DB
+//       await queryDatabase(
+//         `UPDATE ${table} SET ${field} = NULL WHERE ${idField} = ?`,
+//         [farmer_id]
+//       );
+
+//       res.json({ 
+//         success: true, 
+//         message: "File removed successfully" 
+//       });
+
+//     } catch (error) {
+//       console.error("Error removing file:", error);
+//       res.status(500).json({ 
+//         success: false, 
+//         message: "Error removing file",
+//         error: error.message 
+//       });
+//     }
+//   }
+// );
+
+
+// Update the file removal endpoint (around line 250)
 app.delete("/api/farmerprofile/:farmer_id/remove-file", 
   auth.authenticate,
   auth.farmerOnly,
@@ -499,37 +606,43 @@ app.delete("/api/farmerprofile/:farmer_id/remove-file",
         return res.status(400).json({ success: false, message: "Field name is required" });
       }
 
-      // Determine table and ID field
-      let table = field.includes('profile_photo') || field.includes('aadhaar_proof') || field.includes('bank_proof')
-        ? 'personaldetails'
-        : 'farmdetails';
+      // Determine which table to update based on field
+      let table;
+      if (field.includes('profile_photo') || field.includes('aadhaar_proof') || field.includes('bank_proof')) {
+        table = 'personaldetails';
+      } else {
+        table = 'farmdetails';
+      }
 
-      const idField = 'farmer_id';
-
-      // Get the file path from DB
+      // First get the file path from DB
       const [result] = await queryDatabase(
-        `SELECT ${field} FROM ${table} WHERE ${idField} = ?`,
+        `SELECT ${field} FROM ${table} WHERE farmer_id = ?`,
         [farmer_id]
       );
 
       if (result && result[field]) {
+        // Convert Buffer to string if needed
         let filePath = result[field];
-
-        // Ensure it's a string (in case it's Buffer or anything else)
         if (Buffer.isBuffer(filePath)) {
-          filePath = filePath.toString();
+          filePath = filePath.toString('utf-8');
         }
-
-        const fullPath = path.join(__dirname, filePath);
+        
+        // Remove any backslashes and ensure proper path formatting
+        filePath = filePath.replace(/\\/g, '/');
+        
+        // Construct full path - ensure it points to the correct uploads directory
+        const fullPath = path.join(__dirname, filePath.startsWith('/') ? filePath.substring(1) : filePath);
 
         if (fs.existsSync(fullPath)) {
           fs.unlinkSync(fullPath);
+        } else {
+          console.warn(`File not found at path: ${fullPath}`);
         }
       }
 
       // Remove the reference from DB
       await queryDatabase(
-        `UPDATE ${table} SET ${field} = NULL WHERE ${idField} = ?`,
+        `UPDATE ${table} SET ${field} = NULL WHERE farmer_id = ?`,
         [farmer_id]
       );
 
@@ -550,8 +663,58 @@ app.delete("/api/farmerprofile/:farmer_id/remove-file",
 );
 
 
+// app.post("/api/farmerprofile/:farmer_id/upload-file", 
+//   auth.authenticate,
+//   auth.farmerOnly,
+//   farmerDocumentUpload.single('file'),
+//   async (req, res) => {
+//     try {
+//       if (!req.file) {
+//         return res.status(400).json({ success: false, message: "No file uploaded" });
+//       }
 
+//       const { farmer_id } = req.params;
+//       const { field } = req.body;
 
+//       if (!field) {
+//         return res.status(400).json({ success: false, message: "Field name is required" });
+//       }
+
+//       const filePath = `/uploads/farmer-documents/${req.file.filename}`;
+
+//       // Update the database with the file path
+//       let table, idField;
+//       if (field === 'profile_photo' || field === 'aadhaar_proof' || field === 'bank_proof') {
+//         table = 'personaldetails';
+//         idField = 'farmer_id';
+//       } else {
+//         table = 'farmdetails';
+//         idField = 'farmer_id';
+//       }
+
+//       await queryDatabase(
+//         `UPDATE ${table} SET ${field} = ? WHERE ${idField} = ?`,
+//         [filePath, farmer_id]
+//       );
+
+//       res.json({ 
+//         success: true, 
+//         message: "File uploaded successfully",
+//         filePath: filePath,
+//         filename: req.file.filename
+//       });
+
+//     } catch (error) {
+//       console.error("Error uploading file:", error);
+//       res.status(500).json({ 
+//         success: false, 
+//         message: "Error uploading file",
+//         error: error.message 
+//       });
+//     }
+//   }
+// );
+// Update the file upload endpoint (around line 300)
 app.post("/api/farmerprofile/:farmer_id/upload-file", 
   auth.authenticate,
   auth.farmerOnly,
@@ -569,20 +732,20 @@ app.post("/api/farmerprofile/:farmer_id/upload-file",
         return res.status(400).json({ success: false, message: "Field name is required" });
       }
 
+      // Use consistent forward slashes for the path
       const filePath = `/uploads/farmer-documents/${req.file.filename}`;
 
-      // Update the database with the file path
-      let table, idField;
-      if (field === 'profile_photo' || field === 'aadhaar_proof' || field === 'bank_proof') {
+      // Determine which table to update based on field
+      let table;
+      if (field.includes('profile_photo') || field.includes('aadhaar_proof') || field.includes('bank_proof')) {
         table = 'personaldetails';
-        idField = 'farmer_id';
       } else {
         table = 'farmdetails';
-        idField = 'farmer_id';
       }
 
+      // Update the database with the consistent file path
       await queryDatabase(
-        `UPDATE ${table} SET ${field} = ? WHERE ${idField} = ?`,
+        `UPDATE ${table} SET ${field} = ? WHERE farmer_id = ?`,
         [filePath, farmer_id]
       );
 
@@ -590,7 +753,7 @@ app.post("/api/farmerprofile/:farmer_id/upload-file",
         success: true, 
         message: "File uploaded successfully",
         filePath: filePath,
-        filename: req.file.filename
+         accessibleUrl: `http://localhost:5000/uploads/farmer-documents/${req.file.filename}`
       });
 
     } catch (error) {
@@ -603,6 +766,8 @@ app.post("/api/farmerprofile/:farmer_id/upload-file",
     }
   }
 );
+
+
 
 
 app.use((req, res, next) => {
@@ -4027,6 +4192,7 @@ app.post('/api/subscriptions', async (req, res) => {
           return res.status(400).json({ success: false, message: "Failed to create subscription" });
       }
 
+
       res.status(201).json({ 
           success: true, 
           message: "Subscription created successfully",
@@ -5134,13 +5300,18 @@ app.post('/api/create-razorpay-order', async (req, res) => {
       receipt: `order_${Date.now()}`,
       payment_capture: 1 // Auto-capture payment
     };
-
+    
     const order = await razorpay.orders.create(options);
+    
+    console.log("Order created successfully:", order.id);
+    
     res.json({
-      id: order.id,
-      currency: order.currency,
+      success: true,
+      order: {
+        id: order.id,
+        currency: order.currency,
       amount: order.amount
-    });
+  }});
     
   } catch (error) {
     console.error('Razorpay order error:', error);

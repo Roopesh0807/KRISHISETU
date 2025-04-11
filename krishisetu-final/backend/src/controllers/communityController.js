@@ -210,6 +210,23 @@ exports.addMember = async (req, res) => {
   }
 
   try {
+
+
+        // First check if community is frozen
+        const statusQuery = `
+        SELECT 
+          TIMESTAMPDIFF(HOUR, NOW(), CONCAT(delivery_date, ' ', delivery_time)) AS hours_until_delivery
+        FROM Communities 
+        WHERE community_id = ?
+      `;
+      
+      const [communityStatus] = await queryDatabase(statusQuery, [communityId]);
+  
+      if (communityStatus.hours_until_delivery <= 24) {
+        return res.status(400).json({ 
+          error: "Community is frozen - no new members can be added within 24 hours of delivery" 
+        });
+      }
     // Check if the member exists in the consumerregistration table by email and phone
     const consumerResult = await queryDatabase(
       "SELECT * FROM consumerregistration WHERE email = ? AND phone_number = ?",
@@ -389,6 +406,29 @@ exports.joinCommunity = async (req, res) => {
   }
 
   try {
+       // First check if community is frozen
+    const statusQuery = `
+    SELECT 
+      c.community_id,
+      TIMESTAMPDIFF(HOUR, NOW(), CONCAT(c.delivery_date, ' ', c.delivery_time)) AS hours_until_delivery
+    FROM communities c
+    WHERE c.community_name = ?
+  `;
+  
+  const [communityStatus] = await queryDatabase(statusQuery, [communityName]);
+
+  if (!communityStatus) {
+    return res.status(404).json({ error: "Community not found" });
+  }
+
+  if (communityStatus.hours_until_delivery <= 24) {
+    return res.status(400).json({ 
+      error: "Community is frozen - no new members can join within 24 hours of delivery" 
+    });
+  }
+
+
+
     // Get consumer details from consumer_id
     const userResult = await queryDatabase(
       "SELECT first_name, last_name, email, phone_number FROM consumerregistration WHERE consumer_id = ?",
@@ -711,5 +751,436 @@ exports.getMembersOrders = async (req, res) => {
       error: "Internal server error",
       details: error.message
     });
+  }
+};
+
+
+// Add this new function to check if community is frozen
+exports.checkCommunityStatus = async (req, res) => {
+  const { communityId } = req.params;
+
+  try {
+    const query = `
+      SELECT 
+        community_id,
+        community_name,
+        delivery_date,
+        delivery_time,
+        TIMESTAMPDIFF(HOUR, NOW(), CONCAT(delivery_date, ' ', delivery_time)) AS hours_until_delivery
+      FROM Communities 
+      WHERE community_id = ?
+    `;
+    
+    const [community] = await queryDatabase(query, [communityId]);
+
+    if (!community) {
+      return res.status(404).json({ error: "Community not found" });
+    }
+
+    const isFrozen = community.hours_until_delivery <= 24;
+    
+    res.status(200).json({
+      isFrozen,
+      hoursUntilFreeze: Math.max(0, 24 - community.hours_until_delivery),
+      deliveryDate: community.delivery_date,
+      deliveryTime: community.delivery_time
+    });
+  } catch (error) {
+    console.error("Error checking community status:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+
+// Add this new route to calculate discount
+// exports.calculateDiscount = async (req, res) => {
+//   const { communityId, memberId } = req.params;
+
+//   try {
+//     // Get total members in community
+//     const membersQuery = `
+//       SELECT COUNT(*) AS member_count 
+//       FROM members 
+//       WHERE community_id = ?
+//     `;
+//     const [membersResult] = await queryDatabase(membersQuery, [communityId]);
+//     const memberCount = membersResult.member_count;
+
+//     // Get total items ordered by this member
+//     const itemsQuery = `
+//       SELECT SUM(quantity) AS item_count
+//       FROM orders
+//       WHERE community_id = ? AND member_id = ?
+//     `;
+//     const [itemsResult] = await queryDatabase(itemsQuery, [communityId, memberId]);
+//     const itemCount = itemsResult.item_count || 0;
+
+//     // Calculate discount (example: 1% per 5 members + 0.5% per item)
+//     const memberDiscount = Math.min(20, Math.floor(memberCount / 5)); // Max 20%
+//     const itemDiscount = Math.min(10, Math.floor(itemCount * 0.5)); // Max 10%
+//     const totalDiscount = memberDiscount + itemDiscount;
+
+//     res.status(200).json({
+//       memberCount,
+//       itemCount,
+//       memberDiscount,
+//       itemDiscount,
+//       totalDiscount
+//     });
+//   } catch (error) {
+//     console.error("Error calculating discount:", error);
+//     res.status(500).json({ error: "Internal server error" });
+//   }
+// };
+// Update the calculateDiscount function
+
+exports.calculateDiscount = async (req, res) => {
+  const { communityId, memberId } = req.params;
+
+  try {
+       // Initialize default values
+       const defaultResponse = {
+        memberCount: 0,
+        itemCount: 0,
+        memberDiscount: 0,
+        itemDiscount: 0,
+        totalDiscount: 0,
+        memberDiscountAmount: 0,
+        itemDiscountAmount: 0,
+        totalDiscountAmount: 0,
+        subtotal: 0
+      };
+    // Check if community is frozen
+    const statusQuery = `
+      SELECT 
+        TIMESTAMPDIFF(SECOND, NOW(), CONCAT(delivery_date, ' ', delivery_time)) AS seconds_until_delivery
+      FROM Communities 
+      WHERE community_id = ?
+    `;
+    const [community] = await queryDatabase(statusQuery, [communityId]);
+
+    if (!community || community.seconds_until_delivery > 86400) { // Not frozen yet
+      return res.status(200).json(defaultResponse);
+    }
+
+    // Get member's subtotal
+    const subtotalQuery = `
+      SELECT COALESCE(SUM(price * quantity), 0) AS subtotal
+      FROM orders
+      WHERE community_id = ? AND member_id = ?
+    `;
+    const [subtotalResult] = await queryDatabase(subtotalQuery, [communityId, memberId]);
+    const subtotal = parseFloat(subtotalResult.subtotal) || 0;
+
+    // Get all active members (who have placed orders)
+    const activeMembersQuery = `
+       SELECT COALESCE(COUNT(DISTINCT m.member_id), 0) AS active_member_count
+      FROM members m
+      JOIN orders o ON m.member_id = o.member_id
+      WHERE m.community_id = ?
+    `;
+    const [activeMembers] = await queryDatabase(activeMembersQuery, [communityId]);
+    const activeMemberCount = parseInt(activeMembers.active_member_count) || 0;
+
+    // Get total items ordered by this member
+    const itemsQuery = `
+      SELECT COALESCE(SUM(quantity), 0) AS item_count
+      FROM orders
+      WHERE community_id = ? AND member_id = ?
+    `;
+    const [itemsResult] = await queryDatabase(itemsQuery, [communityId, memberId]);
+    const itemCount = parseInt(itemsResult.item_count) || 0;
+
+    // Calculate discounts only if minimum 5 members have placed orders
+    let memberDiscount = 0;
+    let itemDiscount = 0;
+    
+    if (activeMemberCount >= 5) {
+      // Member discount: 2% per 5 members, capped at 20%
+      memberDiscount = Math.min(20, Math.floor(activeMemberCount / 5) * 2);
+      
+      // Item discount: 0.5% per item, capped at 10%
+      itemDiscount = Math.min(10, Math.floor(itemCount * 0.1));
+    }
+
+    const totalDiscount = memberDiscount + itemDiscount;
+
+     // Calculate discount amounts
+     const memberDiscountAmount = (subtotal * memberDiscount / 100);
+     const itemDiscountAmount = (subtotal * itemDiscount / 100);
+     const totalDiscountAmount = memberDiscountAmount + itemDiscountAmount;
+
+    res.status(200).json({
+      memberCount: activeMemberCount,
+      itemCount,
+      memberDiscount,
+      itemDiscount,
+      totalDiscount,
+      memberDiscountAmount,
+      itemDiscountAmount,
+      totalDiscountAmount,
+      subtotal
+    });
+  } catch (error) {
+    console.error("Error calculating discount:", error);
+    res.status(500).json({ 
+      ...defaultResponse,
+      error: "Internal server error" 
+    });
+  }
+};
+
+// Add this function to check if community is frozen
+exports.isCommunityFrozen = async (req, res) => {
+  const { communityId } = req.params;
+
+  try {
+    const query = `
+      SELECT 
+        TIMESTAMPDIFF(SECOND, NOW(), CONCAT(delivery_date, ' ', delivery_time)) AS seconds_until_delivery
+      FROM Communities 
+      WHERE community_id = ?
+    `;
+    
+    const [result] = await queryDatabase(query, [communityId]);
+
+    if (!result) {
+      return res.status(404).json({ error: "Community not found" });
+    }
+
+    const isFrozen = result.seconds_until_delivery <= 86400; // 24 hours in seconds
+    const timeUntilFreeze = Math.max(0, result.seconds_until_delivery - 86400);
+    
+    res.status(200).json({
+      isFrozen,
+      timeUntilFreeze,
+      secondsUntilDelivery: result.seconds_until_delivery
+    });
+  } catch (error) {
+    console.error("Error checking community status:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// Add this middleware to check freeze status before order operations
+exports.checkFreezeStatus = async (req, res, next) => {
+  const { communityId } = req.params;
+
+  try {
+    
+    const query = `
+      SELECT 
+        TIMESTAMPDIFF(SECOND, NOW(), CONCAT(delivery_date, ' ', delivery_time)) AS seconds_until_delivery
+      FROM Communities 
+      WHERE community_id = ?
+    `;
+    
+    const [result] = await queryDatabase(query, [communityId]);
+
+    if (!result) {
+      return res.status(404).json({ error: "Community not found" });
+    }
+
+    // Allow order modifications only if more than 24 hours until delivery
+    if (result.seconds_until_delivery <= 86400) {
+      return res.status(403).json({ 
+        error: "Community is frozen - no order modifications allowed within 24 hours of delivery" 
+      });
+    }
+
+    next();
+  } catch (error) {
+    console.error("Error checking community status:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// ✅ Submit Frozen Order
+exports.submitFrozenOrder = async (req, res) => {
+  const { communityId, memberId } = req.params;
+  const { orders } = req.body;
+
+  try {
+    // Verify community is frozen
+    const statusQuery = `
+      SELECT 
+        TIMESTAMPDIFF(SECOND, NOW(), CONCAT(delivery_date, ' ', delivery_time)) AS seconds_until_delivery
+      FROM Communities 
+      WHERE community_id = ?
+    `;
+    const [community] = await queryDatabase(statusQuery, [communityId]);
+
+    if (!community || community.seconds_until_delivery > 86400) {
+      return res.status(400).json({ 
+        error: "Community is not frozen yet" 
+      });
+    }
+
+    // Verify member belongs to community
+    const memberQuery = `
+      SELECT member_id FROM members 
+      WHERE member_id = ? AND community_id = ?
+    `;
+    const [member] = await queryDatabase(memberQuery, [memberId, communityId]);
+
+    if (!member) {
+      return res.status(404).json({ error: "Member not found in this community" });
+    }
+
+    // Calculate discount
+    const discount = await calculateDiscountForMember(communityId, memberId);
+
+    // Store the frozen order
+    const insertQuery = `
+      INSERT INTO frozen_orders 
+      (community_id, member_id, order_data, discount_data, total_amount, created_at)
+      VALUES (?, ?, ?, ?, ?, NOW())
+    `;
+    
+    const orderData = JSON.stringify(orders);
+    const discountData = JSON.stringify(discount);
+    const totalAmount = orders.reduce((sum, order) => sum + (order.price * order.quantity), 0);
+
+    await queryDatabase(insertQuery, [
+      communityId,
+      memberId,
+      orderData,
+      discountData,
+      totalAmount
+    ]);
+
+    res.status(201).json({ 
+      message: "Frozen order submitted successfully",
+      orderId: result.insertId
+    });
+
+  } catch (error) {
+    console.error("Error submitting frozen order:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// Helper function to calculate discount
+async function calculateDiscountForMember(communityId, memberId) {
+  try {
+    const query = `
+      SELECT 
+        COUNT(DISTINCT m.member_id) AS member_count,
+        COALESCE(SUM(o.quantity), 0) AS item_count,
+        COALESCE(SUM(o.price * o.quantity), 0) AS subtotal
+      FROM members m
+      LEFT JOIN orders o ON m.member_id = o.member_id AND o.community_id = ?
+      WHERE m.community_id = ?
+    `;
+    
+    const [result] = await queryDatabase(query, [communityId, communityId]);
+
+    let memberDiscount = 0;
+    let itemDiscount = 0;
+
+    if (result.member_count >= 5) {
+      memberDiscount = Math.min(20, Math.floor(result.member_count / 5) * 2);
+      itemDiscount = Math.min(10, Math.floor(result.item_count * 0.1));
+    }
+
+    return {
+      memberCount: result.member_count,
+      itemCount: result.item_count,
+      memberDiscount,
+      itemDiscount,
+      totalDiscount: memberDiscount + itemDiscount,
+      subtotal: result.subtotal
+    };
+  } catch (error) {
+    console.error("Error calculating discount:", error);
+    return {
+      memberCount: 0,
+      itemCount: 0,
+      memberDiscount: 0,
+      itemDiscount: 0,
+      totalDiscount: 0,
+      subtotal: 0
+    };
+  }
+}
+
+
+// ✅ Get Frozen Order Details
+exports.getFrozenOrderDetails = async (req, res) => {
+  const { communityId, orderId } = req.params;
+
+  try {
+    const orderQuery = `
+      SELECT 
+        fo.*,
+        c.community_name, c.address, c.delivery_date, c.delivery_time,
+        m.member_name, m.phone_number
+      FROM frozen_orders fo
+      JOIN communities c ON fo.community_id = c.community_id
+      JOIN members m ON fo.member_id = m.member_id
+      WHERE fo.community_id = ? AND fo.order_id = ?
+    `;
+    
+    const [order] = await queryDatabase(orderQuery, [communityId, orderId]);
+
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    res.status(200).json({
+      order,
+      community: {
+        name: order.community_name,
+        address: order.address,
+        delivery_date: order.delivery_date,
+        delivery_time: order.delivery_time
+      },
+      member: {
+        member_name: order.member_name,
+        phone_number: order.phone_number
+      }
+    });
+
+  } catch (error) {
+    console.error("Error fetching frozen order:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// ✅ Complete Frozen Order
+exports.completeFrozenOrder = async (req, res) => {
+  const { communityId, orderId } = req.params;
+  const { paymentMethod } = req.body;
+
+  try {
+    // Verify order exists and is not already completed
+    const orderQuery = `
+      SELECT * FROM frozen_orders 
+      WHERE community_id = ? AND order_id = ? AND status = 'pending'
+    `;
+    const [order] = await queryDatabase(orderQuery, [communityId, orderId]);
+
+    if (!order) {
+      return res.status(404).json({ error: "Order not found or already completed" });
+    }
+
+    // Update order status
+    const updateQuery = `
+      UPDATE frozen_orders 
+      SET status = 'completed', 
+          payment_method = ?,
+          completed_at = NOW()
+      WHERE order_id = ?
+    `;
+    await queryDatabase(updateQuery, [paymentMethod, orderId]);
+
+    res.status(200).json({ 
+      message: "Order completed successfully",
+      orderId
+    });
+
+  } catch (error) {
+    console.error("Error completing frozen order:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 };

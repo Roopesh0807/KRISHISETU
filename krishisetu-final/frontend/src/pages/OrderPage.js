@@ -448,7 +448,7 @@
 
 
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState,useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Navbar3 from "../components/Navbar3.js";
 import { useAuth } from '../context/AuthContext';
@@ -465,7 +465,52 @@ function OrderPage() {
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const { consumer } = useAuth();
+  // Add these states
+const [freezeStatus, setFreezeStatus] = useState({
+  isFrozen: false,
+  timeUntilFreeze: 0,
+  secondsUntilDelivery: 0
+});
+const [countdown, setCountdown] = useState('');
+const countdownIntervalRef = useRef(null); // Using useRef for the interval
+// Add this function inside the component
+const startCountdown = (seconds) => {
+  // Clear any existing interval
+  if (countdownIntervalRef.current) {
+    clearInterval(countdownIntervalRef.current);
+  }
 
+  // Update immediately
+  updateCountdownDisplay(seconds);
+
+  // Set up new interval
+  countdownIntervalRef.current = setInterval(() => {
+    seconds--;
+    updateCountdownDisplay(seconds);
+
+    if (seconds <= 0) {
+      clearInterval(countdownIntervalRef.current);
+      setFreezeStatus(prev => ({ ...prev, isFrozen: true }));
+    }
+  }, 1000);
+};
+
+const updateCountdownDisplay = (seconds) => {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+  setCountdown(`${hours}h ${minutes}m ${secs}s`);
+};
+
+
+// Add this state
+const [adminDiscount, setAdminDiscount] = useState({
+  memberCount: 0,
+  itemCount: 0,
+  memberDiscount: 0,
+  itemDiscount: 0,
+  totalDiscount: 0
+});
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -558,6 +603,118 @@ function OrderPage() {
     fetchData();
   }, [communityId]);
 
+  // Add this useEffect for admin discount
+useEffect(() => {
+  const fetchAdminDiscount = async () => {
+    try {
+      // Find admin's member ID
+      const adminMember = members.find(m => m.consumer_id === communityDetails.admin_id);
+      if (!adminMember) return;
+
+      const response = await fetch(
+        `http://localhost:5000/api/community/${communityId}/member/${adminMember.id}/discount`, {
+          headers: { 
+            'Authorization': `Bearer ${consumer.token}`
+          }
+        }
+      );
+      const data = await response.json();
+      if (response.ok) {
+        setAdminDiscount(data);
+      }
+    } catch (error) {
+      console.error("Error fetching admin discount:", error);
+    }
+  };
+
+  if (freezeStatus.isFrozen && communityDetails && members.length > 0) {
+    fetchAdminDiscount();
+  } else {
+    setAdminDiscount({
+      memberCount: 0,
+      itemCount: 0,
+      memberDiscount: 0,
+      itemDiscount: 0,
+      totalDiscount: 0
+    });
+  }
+}, [freezeStatus.isFrozen, communityDetails, members]);
+
+  
+// Add this useEffect for freeze status and countdown
+// Update the useEffect cleanup
+useEffect(() => {
+  const fetchFreezeStatus = async () => {
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/order/${communityId}/freeze-status`, {
+          headers: { 
+            'Authorization': `Bearer ${consumer.token}`
+          }
+        }
+      );
+      const data = await response.json();
+      if (response.ok) {
+        setFreezeStatus(data);
+        
+        if (!data.isFrozen && data.timeUntilFreeze > 0) {
+          startCountdown(data.timeUntilFreeze);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching freeze status:", error);
+    }
+  };
+
+  fetchFreezeStatus();
+
+  return () => {
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+    }
+  };
+}, [communityId]);
+let countdownInterval;
+
+// const startCountdown = (seconds) => {
+//   clearInterval(countdownInterval);
+  
+//   countdownInterval = setInterval(() => {
+//     const hours = Math.floor(seconds / 3600);
+//     const minutes = Math.floor((seconds % 3600) / 60);
+//     const secs = seconds % 60;
+    
+//     setCountdown(`${hours}h ${minutes}m ${secs}s`);
+    
+//     if (seconds <= 0) {
+//       clearInterval(countdownInterval);
+//       setFreezeStatus(prev => ({ ...prev, isFrozen: true }));
+//     } else {
+//       seconds--;
+//     }
+//   }, 1000);
+// };
+
+// Add this component to display freeze status
+const FreezeStatusBanner = () => {
+  if (freezeStatus.isFrozen) {
+    return (
+      <div className="freeze-banner frozen">
+        <strong>COMMUNITY FROZEN:</strong> No order modifications allowed. 
+        Delivery coming soon!
+      </div>
+    );
+  } else if (freezeStatus.timeUntilFreeze > 0) {
+    return (
+      <div className="freeze-banner warning">
+        <strong>Community will freeze in:</strong> {countdown}
+      </div>
+    );
+  }
+  return null;
+};
+
+
   const handlePlaceOrder = () => {
     navigate(`/orderpage`);
   };
@@ -569,7 +726,7 @@ function OrderPage() {
   const handleRemoveOrder = async (orderId) => {
     try {
       const response = await fetch(
-        `http://localhost:5000/api/order/${orderId}`,
+        `http://localhost:5000/api/order/${communityId}/${orderId}`,
         { method: 'DELETE' ,
           
             headers: { 
@@ -606,7 +763,7 @@ function OrderPage() {
     
     try {
       const response = await fetch(
-        `http://localhost:5000/api/order/${orderId}`,
+        `http://localhost:5000/api/order/${communityId}/${orderId}`,
         {
           method: 'PUT',
           headers: {
@@ -697,7 +854,7 @@ function OrderPage() {
   return (
     <div className="order-page">
       <Navbar3 />
-      
+      <FreezeStatusBanner />
       <div className="order-header">
         <h1>Order Details - {communityDetails.name || 'Unnamed Community'}</h1>
         <div className="member-counts">
@@ -724,12 +881,30 @@ function OrderPage() {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
-        <button 
+
+
+        {/* <button 
           className="place-order-btn"
           onClick={handlePlaceOrder}
         >
-          + Place New Order
-        </button>
+          Proceed to Payment
+        </button> */}
+
+{!freezeStatus.isFrozen ? (
+    <button 
+    className="place-order-btn disabled"
+    disabled
+  >
+    Orders Locked - Delivery Pending
+    </button>
+  ) : (
+    <button 
+    className="place-order-btn"
+    onClick={handlePlaceOrder}
+  >
+    Proceed to Payment
+    </button>
+  )}
       </div>
 
       <div className="all-orders-section">
@@ -807,18 +982,56 @@ function OrderPage() {
                         </div>
                       ))}
                       <div className="order-summary">
-                        <div className="summary-row">
+                        {/* <div className="summary-row">
                           <span>Items:</span>
                           <span>{member.order_count}</span>
-                        </div>
-                        <div className="summary-row">
+                        </div> */}
+                              <div className="summary-row">
+        <span>Items:</span>
+        <span>{member.order_count}</span>
+      </div>
+      
+      {freezeStatus.isFrozen && adminDiscount.totalDiscount > 0 && (
+        <>
+          <div className="summary-row">
+            <span>Community Discount:</span>
+            <span>{adminDiscount.memberDiscount}%</span>
+          </div>
+          <div className="summary-row">
+            <span>Volume Discount:</span>
+            <span>{adminDiscount.itemDiscount}%</span>
+          </div>
+          <div className="summary-row discount-total">
+            <span>Total Discount:</span>
+            <span>{adminDiscount.totalDiscount}%</span>
+          </div>
+        </>
+      )}
+                        {/* <div className="summary-row">
                           <span>Payment Method:</span>
                           <span>{member.payment_method}</span>
                         </div>
                         <div className="summary-row total">
                           <span>Member Total:</span>
                           <span>₹{member.total.toFixed(2)}</span>
-                        </div>
+                        </div> */}
+
+<div className="summary-row">
+        <span>Payment Method:</span>
+        <span>{member.payment_method}</span>
+      </div>
+      <div className="summary-row total">
+        <span>Subtotal:</span>
+        <span>₹{member.total.toFixed(2)}</span>
+      </div>
+      
+      {freezeStatus.isFrozen && adminDiscount.totalDiscount > 0 && (
+        <div className="summary-row final-total">
+          <span>Final Total:</span>
+          <span>₹{(member.total * (1 - adminDiscount.totalDiscount/100)).toFixed(2)}</span>
+        </div>
+      )}
+      
                       </div>
                     </div>
                   ) : (

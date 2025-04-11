@@ -31,6 +31,13 @@ function AdminCommunityPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const { consumer } = useAuth();
+// Add this state
+const [communityStatus, setCommunityStatus] = useState({
+  isFrozen: false,
+  hoursUntilFreeze: 0,
+  deliveryDate: '',
+  deliveryTime: ''
+});
 
   useEffect(() => {
     const fetchCommunityData = async () => {
@@ -78,6 +85,54 @@ function AdminCommunityPage() {
     fetchCommunityData();
   }, [communityId]);
 
+  // Add this useEffect to check community status
+useEffect(() => {
+  const fetchCommunityStatus = async () => {
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/community/${communityId}/status`, {
+          headers: { 
+            'Authorization': `Bearer ${consumer.token}`
+          }
+        }
+      );
+      const data = await response.json();
+      if (response.ok) {
+        setCommunityStatus({
+          isFrozen: data.isFrozen,
+          hoursUntilFreeze: data.hoursUntilFreeze,
+          deliveryDate: data.deliveryDate,
+          deliveryTime: data.deliveryTime
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching community status:", error);
+    }
+  };
+
+  fetchCommunityStatus();
+}, [communityId]);
+
+// Add this component to display freeze status
+const FreezeStatusBanner = () => {
+  if (communityStatus.isFrozen) {
+    return (
+      <div className="krishi-freeze-banner frozen">
+        <strong>Community Frozen:</strong> No new members can be added. 
+        Delivery scheduled for {communityStatus.deliveryDate} at {communityStatus.deliveryTime}
+      </div>
+    );
+  } else if (communityStatus.hoursUntilFreeze > 0) {
+    return (
+      <div className="krishi-freeze-banner warning">
+        <strong>Community will freeze in {communityStatus.hoursUntilFreeze} hours.</strong> 
+        After that, no new members can be added until after delivery.
+      </div>
+    );
+  }
+  return null;
+};
+
   const handleSearch = (e) => setSearchQuery(e.target.value);
 
   const filteredMembers = members.filter(member =>
@@ -110,6 +165,12 @@ function AdminCommunityPage() {
       if (response.ok) {
         alert("Member added successfully!");
 
+        // Store the member ID in localStorage if the added member is the current user
+        if (newMember.email === consumer.email) {
+          localStorage.setItem("memberId", data.memberId);
+          localStorage.setItem("currentCommunityId", communityId);
+        }
+
         // Fetch updated members list
         const updatedMembersResponse = await fetch(
          ` http://localhost:5000/api/community/${communityId}/members`,{
@@ -126,10 +187,13 @@ function AdminCommunityPage() {
         );
 
         // Update the state with the filtered members list
-        setMembers(filteredMembers.map((member, index) => ({
+         // Update the state with the filtered members list
+         setMembers(filteredMembers.map((member, index) => ({
           id: member.id || member.member_id || index,
           name: member.name,
           phone: member.phone,
+          email: member.member_email || member.email,
+          consumer_id: member.consumer_id
         })));
 
         // Reset the form
@@ -141,8 +205,8 @@ function AdminCommunityPage() {
     } catch (error) {
       console.error("Error adding member:", error);
       alert("An error occurred while adding the member.");
-    }
-  };
+    }
+  };
 
   const handleRemoveMember = async (memberId) => {
     if (!window.confirm("Are you sure you want to remove this member?")) return;
@@ -245,6 +309,8 @@ function AdminCommunityPage() {
                 <FaCrown /> Admin
               </span>
             </div>
+            
+            <FreezeStatusBanner />
             
             <div className="krishi-adcom-meta-grid">
               <div className="krishi-adcom-meta-item">

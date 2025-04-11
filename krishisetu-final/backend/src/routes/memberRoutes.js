@@ -1,5 +1,7 @@
 const express = require("express");
 const memberController = require("../controllers/memberController");
+const { queryDatabase } = require('../config/db'); 
+const { checkFreezeStatus } = require('../controllers/communityController');
 
 const router = express.Router();
 const app = express();
@@ -228,7 +230,9 @@ router.get('/:communityId/member/:memberId/orders', async (req, res) => {
 });
 
 // Update order quantity
-router.put('/order/:orderId/quantity', async (req, res) => {
+//router.put('/order/:orderId/quantity',checkFreezeStatus , async (req, res) => {
+
+router.put('/:communityId/order/:orderId',checkFreezeStatus , async (req, res) => {
   try {
     const { orderId } = req.params;
     const { quantity } = req.body;
@@ -238,8 +242,12 @@ router.put('/order/:orderId/quantity', async (req, res) => {
       return res.status(400).json({ error: 'Invalid quantity' });
     }
 
-    const updateQuery = 'UPDATE orders SET quantity = ? WHERE order_id = ? RETURNING *';
-    const [result] = await queryDatabase(updateQuery, [quantity, orderId]);
+    const updateQuery = 'UPDATE orders SET quantity = ? WHERE order_id = ?';
+    // const [result] = await queryDatabase(updateQuery, [quantity, orderId]);
+
+    // Then fetch the updated order
+    const selectQuery = 'SELECT * FROM orders WHERE order_id = ?';
+    const [result] = await queryDatabase(selectQuery, [orderId]);
 
     if (!result) {
       return res.status(404).json({ error: 'Order not found' });
@@ -253,22 +261,31 @@ router.put('/order/:orderId/quantity', async (req, res) => {
 });
 
 // Remove order item
-router.delete('/order/:orderId', async (req, res) => {
+//router.delete('/order/:orderId',checkFreezeStatus , async (req, res) => {
+
+router.delete('/:communityId/:orderId',checkFreezeStatus , async (req, res) => {
   console.log('DELETE order route hit!', req.params); // Add this line
   try {
     const { orderId } = req.params;
     console.log('Deleting order:', orderId); // And this one
     
-    const deleteQuery = 'DELETE FROM orders WHERE order_id = ? RETURNING *';
-    const [result] = await queryDatabase(deleteQuery, [orderId]);
-    
-    if (!result) {
+    // const deleteQuery = 'DELETE FROM orders WHERE order_id = ? RETURNING *';
+    // const [result] = await queryDatabase(deleteQuery, [orderId]);
+     // First fetch the order before deleting (if you need to return it)
+     const selectQuery = 'SELECT * FROM orders WHERE order_id = ?';
+     const [order] = await queryDatabase(selectQuery, [orderId]);
+    if (!order) {
       console.log('Order not found in DB');
       return res.status(404).json({ error: 'Order not found' });
     }
+
+     // Then delete the order
+     const deleteQuery = 'DELETE FROM orders WHERE order_id = ?';
+     await queryDatabase(deleteQuery, [orderId]);
     
     console.log('Delete successful');
-    res.json({ message: 'Order item removed successfully' });
+    res.json({message: 'Order item removed successfully',
+      deletedOrder: order });
   } catch (err) {
     console.error('Delete error:', err);
     res.status(500).json({ error: 'Failed to remove order item' });
