@@ -184,27 +184,27 @@ const Razorpay = require('razorpay');
 // });
 
 
-console.log('Loading Razorpay with key:', process.env.RAZORPAY_KEY_ID);
-const razorpay = new Razorpay({
-<<<<<<< HEAD
-  key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_VLCfnymiyd6HGf', // Fallback for testing
-  key_secret: process.env.RAZORPAY_KEY_SECRET || 'JXgWqR4bQ9mN2kL7pS8hT3wZ'
-});
+// console.log('Loading Razorpay with key:', process.env.RAZORPAY_KEY_ID);
+// const razorpay = new Razorpay({
 
-// Add this error handling to verify credentials on startup
-razorpay.orders.create({
-  amount: 100, // 1 INR
-  currency: 'INR',
-  receipt: 'test_receipt'
-}).then(() => {
-  console.log('✅ Razorpay credentials verified successfully');
-}).catch(err => {
-  console.error('❌ Razorpay credential verification failed:');
-=======
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET
->>>>>>> 9da2dfeb87fcd1e215bdb559167260f227106f0a
-});
+//   key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_VLCfnymiyd6HGf', // Fallback for testing
+//   key_secret: process.env.RAZORPAY_KEY_SECRET || 'JXgWqR4bQ9mN2kL7pS8hT3wZ'
+// });
+
+// // Add this error handling to verify credentials on startup
+// razorpay.orders.create({
+//   amount: 100, // 1 INR
+//   currency: 'INR',
+//   receipt: 'test_receipt'
+// }).then(() => {
+//   console.log('✅ Razorpay credentials verified successfully');
+// }).catch(err => {
+//   console.error('❌ Razorpay credential verification failed:');
+
+//   key_id: process.env.RAZORPAY_KEY_ID,
+//   key_secret: process.env.RAZORPAY_KEY_SECRET
+
+// });
 
 // ✅ Then these
 app.use(express.json());
@@ -5587,7 +5587,7 @@ app.post('/api/razorpay/create-order', authenticateToken, async (req, res) => {
     
     const order = await razorpay.orders.create(options);
     
-<<<<<<< HEAD
+
     console.log("Order created successfully:", order.id);
     
     res.json({
@@ -5598,14 +5598,14 @@ app.post('/api/razorpay/create-order', authenticateToken, async (req, res) => {
       amount: order.amount
   }});
     
-=======
+
     res.json({
       id: order.id,
       currency: order.currency,
       amount: order.amount,
       display_amount: (order.amount / 100).toFixed(2) // For frontend display
     });
->>>>>>> 9da2dfeb87fcd1e215bdb559167260f227106f0a
+
   } catch (error) {
     console.error("Order creation error:", error);
     res.status(500).json({ 
