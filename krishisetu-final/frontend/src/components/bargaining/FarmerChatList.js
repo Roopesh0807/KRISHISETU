@@ -530,8 +530,37 @@ const fetchSessions = useCallback(async () => {
   };
 
   const handleSessionSelect = (session) => {
-    setSelectedSession(session);
-    navigate(`/farmer/bargain/${session.bargain_id}`);
+    if (!validateSession(session)) {
+      console.error("Invalid session data:", session);
+      return;
+    }
+  
+    // Prepare consumer and product data for the chat window
+    const consumerData = {
+      first_name: session.consumer_name.split(' ')[0],
+      last_name: session.consumer_name.split(' ').slice(1).join(' ') || '',
+      phone_number: session.consumer_phone || 'Not available',
+      location: session.consumer_location || 'Not specified'
+    };
+  
+    const productData = {
+      produce_name: session.product_name,
+      quantity: session.quantity,
+      price_per_kg: session.initial_price,
+      current_offer: session.current_price,
+      product_id: session.product_id || `temp-${session.bargain_id}`
+    };
+  
+    // Navigate to chat window with state
+    navigate(`/farmer/bargain/${session.bargain_id}`, {
+      state: {
+        consumer: consumerData,
+        product: productData,
+        initialPrice: session.current_price
+      }
+    });
+  
+    // Clear any new messages for this session
     setNewMessages(prev => {
       const updated = { ...prev };
       delete updated[session.bargain_id];

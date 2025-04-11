@@ -1710,6 +1710,101 @@ app.delete("/remove-photo/:consumer_id", async (req, res) => {
 //     res.status(500).json({ error: "Internal Server Error" });
 //   }
 // });
+// app.get("/api/bargain/:bargain_id", verifyToken, async (req, res) => {
+//   try {
+//     const { bargain_id } = req.params;
+
+//     if (!bargain_id) {
+//       return res.status(400).json({
+//         success: false,
+//         error: "Bargain ID is required"
+//       });
+//     }
+
+//     // Get bargain session
+//     console.log("🔍 Fetching bargain session for ID:", bargain_id);
+
+//     const sessionResult = await queryDatabase(
+//       `SELECT 
+//         bargain_id,
+//         consumer_id,
+//         farmer_id,
+//         product_id,
+//         original_price,
+//         quantity,
+//         current_offer,
+//         status,
+//         initiator,
+//         created_at,
+//         updated_at,
+//         expires_at
+//       FROM bargain_sessions 
+//       WHERE bargain_id = ?`,
+//       [bargain_id]
+//     );
+
+//     console.log("🧪 Session result:", sessionResult);
+
+//     if (!sessionResult || sessionResult.length === 0) {
+//       return res.status(404).json({
+//         success: false,
+//         error: "Bargain session not found"
+//       });
+//     }
+
+//     const session = sessionResult[0];
+
+//     // Get messages
+//     const messages = await queryDatabase(
+//       `SELECT 
+//         message_id,
+//         bargain_id,
+//         price,
+//         sender_type,
+//         message_type,
+//         content,
+//         timestamp
+//        FROM bargain_messages
+//        WHERE bargain_id = ?
+//        ORDER BY timestamp ASC`,
+//       [bargain_id]
+//     );
+//     if (!Array.isArray(messages)) {
+//       console.warn("⚠️ messages query returned non-array:", messages);
+//     }
+//     // Construct response
+//     const responseData = {
+//       success: true,
+//       session: {
+//         bargain_id: session.bargain_id,
+//         consumer_id: session.consumer_id,
+//         farmer_id: session.farmer_id,
+//         product_id: session.product_id,
+//         initial_price: session.original_price,        // ← 💡 You’ll use this as base price per 1kg
+//         quantity: session.quantity,
+//         current_price: session.current_offer || null, // ← 💡 Updated based on selected suggestion
+//         status: session.status,
+//         initiator: session.initiator,
+//         created_at: session.created_at,
+//         updated_at: session.updated_at,
+//         expires_at: session.expires_at,
+//         messages: messages || []
+//       }
+//     };
+
+//     res.status(200).json(responseData); // ✅ Let Express handle serialization
+
+//   } catch (error) {
+//     console.error("🔥 Error fetching bargain:", error);
+  
+//     return res.status(500).json({ // ← ✅ Add `return`
+//       success: false,
+//       error: "Internal server error",
+//       ...(process.env.NODE_ENV === "development" && { details: error.message })
+//     });
+//   }
+  
+// });
 app.get("/api/bargain/:bargain_id", verifyToken, async (req, res) => {
   try {
     const { bargain_id } = req.params;
@@ -1721,18 +1816,14 @@ app.get("/api/bargain/:bargain_id", verifyToken, async (req, res) => {
       });
     }
 
-    // Get bargain session
     console.log("🔍 Fetching bargain session for ID:", bargain_id);
 
+    // 1. Fetch session from bargain_sessions
     const sessionResult = await queryDatabase(
       `SELECT 
         bargain_id,
         consumer_id,
         farmer_id,
-        product_id,
-        original_price,
-        quantity,
-        current_offer,
         status,
         initiator,
         created_at,
@@ -1743,8 +1834,6 @@ app.get("/api/bargain/:bargain_id", verifyToken, async (req, res) => {
       [bargain_id]
     );
 
-    console.log("🧪 Session result:", sessionResult);
-
     if (!sessionResult || sessionResult.length === 0) {
       return res.status(404).json({
         success: false,
@@ -1754,7 +1843,13 @@ app.get("/api/bargain/:bargain_id", verifyToken, async (req, res) => {
 
     const session = sessionResult[0];
 
-    // Get messages
+    // 2. Fetch products from bargain_session_products
+    const productDetails = await queryDatabase(
+      `SELECT product_id, original_price, quantity FROM bargain_session_products WHERE bargain_id = ?`,
+      [bargain_id]
+    );
+
+    // 3. Fetch messages
     const messages = await queryDatabase(
       `SELECT 
         message_id,
@@ -1769,41 +1864,34 @@ app.get("/api/bargain/:bargain_id", verifyToken, async (req, res) => {
        ORDER BY timestamp ASC`,
       [bargain_id]
     );
-    if (!Array.isArray(messages)) {
-      console.warn("⚠️ messages query returned non-array:", messages);
-    }
-    // Construct response
+
+    // 4. Construct and send response
     const responseData = {
       success: true,
       session: {
         bargain_id: session.bargain_id,
         consumer_id: session.consumer_id,
         farmer_id: session.farmer_id,
-        product_id: session.product_id,
-        initial_price: session.original_price,        // ← 💡 You’ll use this as base price per 1kg
-        quantity: session.quantity,
-        current_price: session.current_offer || null, // ← 💡 Updated based on selected suggestion
         status: session.status,
         initiator: session.initiator,
         created_at: session.created_at,
         updated_at: session.updated_at,
         expires_at: session.expires_at,
+        products: productDetails || [],
         messages: messages || []
       }
     };
 
-    res.status(200).json(responseData); // ✅ Let Express handle serialization
+    res.status(200).json(responseData);
 
   } catch (error) {
     console.error("🔥 Error fetching bargain:", error);
-  
-    return res.status(500).json({ // ← ✅ Add `return`
+    return res.status(500).json({
       success: false,
       error: "Internal server error",
       ...(process.env.NODE_ENV === "development" && { details: error.message })
     });
   }
-  
 });
 
 
@@ -5695,6 +5783,85 @@ module.exports = router;
 //     res.status(500).json({ error: "Database operation failed" });
 //   }
 // });
+// app.get('/api/bargain/farmers/:farmerId/sessions', authenticate, farmerOnly, async (req, res) => {
+//   try {
+//     const farmerId = req.params.farmerId;
+
+//     if (!/^[A-Z0-9]{8,12}$/.test(farmerId)) {
+//       return res.status(400).json({ error: "Invalid farmer ID format" });
+//     }
+
+//     const sessions = await queryDatabase(
+//       `
+//      SELECT 
+//   bs.bargain_id,
+//   bs.consumer_id,
+//   cr.first_name,
+//   cr.last_name,
+//   p.product_name,
+//   bsp.quantity,
+//   bsp.current_offer AS current_price,
+//   bsp.original_price AS initial_price,
+//   bs.status,
+//   bs.updated_at,
+//   (
+//     SELECT 
+//       CASE 
+//         WHEN bm.message_type = 'suggestion' THEN CONCAT('Suggested ₹', FORMAT(bm.price_suggestion, 2))
+//         WHEN bm.message_type = 'accept' THEN 'Accepted the offer'
+//         WHEN bm.message_type = 'reject' THEN 'Rejected the offer'
+//         WHEN bm.message_type = 'finalize' THEN 'Finalized the deal'
+//         ELSE 'Unknown'
+//       END
+//     FROM bargain_messages bm
+//     WHERE bm.bargain_id = bs.bargain_id
+//     ORDER BY bm.created_at DESC
+//     LIMIT 1
+//   ) as last_message_content,
+//   (
+//     SELECT bm.created_at
+//     FROM bargain_messages bm
+//     WHERE bm.bargain_id = bs.bargain_id
+//     ORDER BY bm.created_at DESC
+//     LIMIT 1
+//   ) as last_message_timestamp
+// FROM bargain_sessions bs
+// JOIN consumerregistration cr ON bs.consumer_id = cr.consumer_id
+// JOIN bargain_session_products bsp ON bs.bargain_id = bsp.bargain_id
+// JOIN products p ON bsp.product_id = p.product_id
+// WHERE bs.farmer_id = ?
+//   AND bsp.product_id IS NOT NULL
+// ORDER BY bs.updated_at DESC
+
+//       `,
+//       [farmerId]
+//     );
+
+//     const transformedSessions = sessions.map(session => ({
+//       bargain_id: session.bargain_id,
+//       consumer_id: session.consumer_id,
+//       consumer_name: `${session.first_name} ${session.last_name}`,
+//       product_name: session.product_name,
+//       quantity: session.quantity,
+//       current_price: session.current_price,
+//       initial_price: session.initial_price,
+//       status: session.status,
+//       updated_at: session.updated_at,
+//       last_message: session.last_message_content ? {
+//         content: session.last_message_content,
+//         timestamp: session.last_message_timestamp
+//       } : null
+//     }));
+
+//     console.log("🔥 Sessions Result:", transformedSessions);
+//     res.status(200).json(transformedSessions);
+
+//   } catch (err) {
+//     console.error("💥 DB Error:", err);
+//     res.status(500).json({ error: "Database operation failed" });
+//   }
+// });
+
 app.get('/api/bargain/farmers/:farmerId/sessions', authenticate, farmerOnly, async (req, res) => {
   try {
     const farmerId = req.params.farmerId;
@@ -5705,76 +5872,97 @@ app.get('/api/bargain/farmers/:farmerId/sessions', authenticate, farmerOnly, asy
 
     const sessions = await queryDatabase(
       `
-     SELECT 
-  bs.bargain_id,
-  bs.consumer_id,
-  cr.first_name,
-  cr.last_name,
-  p.product_name,
-  bsp.quantity,
-  bsp.current_offer AS current_price,
-  bsp.original_price AS initial_price,
-  bs.status,
-  bs.updated_at,
-  (
-    SELECT 
-      CASE 
-        WHEN bm.message_type = 'suggestion' THEN CONCAT('Suggested ₹', FORMAT(bm.price_suggestion, 2))
-        WHEN bm.message_type = 'accept' THEN 'Accepted the offer'
-        WHEN bm.message_type = 'reject' THEN 'Rejected the offer'
-        WHEN bm.message_type = 'finalize' THEN 'Finalized the deal'
-        ELSE 'Unknown'
-      END
-    FROM bargain_messages bm
-    WHERE bm.bargain_id = bs.bargain_id
-    ORDER BY bm.created_at DESC
-    LIMIT 1
-  ) as last_message_content,
-  (
-    SELECT bm.created_at
-    FROM bargain_messages bm
-    WHERE bm.bargain_id = bs.bargain_id
-    ORDER BY bm.created_at DESC
-    LIMIT 1
-  ) as last_message_timestamp
-FROM bargain_sessions bs
-JOIN consumerregistration cr ON bs.consumer_id = cr.consumer_id
-JOIN bargain_session_products bsp ON bs.bargain_id = bsp.bargain_id
-JOIN products p ON bsp.product_id = p.product_id
-WHERE bs.farmer_id = ?
-  AND bsp.product_id IS NOT NULL
-ORDER BY bs.updated_at DESC
-
+      SELECT 
+        bs.bargain_id,
+        bs.consumer_id,
+        cr.first_name,
+        cr.last_name,
+        cr.phone_number as consumer_phone,
+        ap.produce_name,
+        ap.produce_type,
+        ap.price_per_kg,
+        ap.availability,
+        ap.market_type,
+        bsp.product_id,
+        bsp.quantity,
+        bsp.current_offer AS current_price,
+        bsp.original_price AS initial_price,
+        bs.status,
+        bs.updated_at,
+        (
+          SELECT 
+            CASE 
+              WHEN bm.message_type = 'suggestion' THEN CONCAT('Suggested ₹', FORMAT(bm.price_suggestion, 2))
+              WHEN bm.message_type = 'accept' THEN 'Accepted the offer'
+              WHEN bm.message_type = 'reject' THEN 'Rejected the offer'
+              WHEN bm.message_type = 'finalize' THEN 'Finalized the deal'
+              ELSE NULL
+            END
+          FROM bargain_messages bm
+          WHERE bm.bargain_id = bs.bargain_id
+          ORDER BY bm.created_at DESC
+          LIMIT 1
+        ) as last_message_content,
+        (
+          SELECT bm.created_at
+          FROM bargain_messages bm
+          WHERE bm.bargain_id = bs.bargain_id
+          ORDER BY bm.created_at DESC
+          LIMIT 1
+        ) as last_message_timestamp
+      FROM bargain_sessions bs
+      JOIN consumerregistration cr ON bs.consumer_id = cr.consumer_id
+      JOIN bargain_session_products bsp ON bs.bargain_id = bsp.bargain_id
+      JOIN add_produce ap ON bsp.product_id = ap.product_id
+      WHERE bs.farmer_id = ?
+        AND bsp.product_id IS NOT NULL
+      ORDER BY bs.updated_at DESC
       `,
       [farmerId]
     );
 
-    const transformedSessions = sessions.map(session => ({
-      bargain_id: session.bargain_id,
-      consumer_id: session.consumer_id,
-      consumer_name: `${session.first_name} ${session.last_name}`,
-      product_name: session.product_name,
-      quantity: session.quantity,
-      current_price: session.current_price,
-      initial_price: session.initial_price,
-      status: session.status,
-      updated_at: session.updated_at,
-      last_message: session.last_message_content ? {
-        content: session.last_message_content,
-        timestamp: session.last_message_timestamp
-      } : null
-    }));
+    const transformedSessions = sessions.map(session => {
+      const productDetails = {
+        product_id: session.product_id,
+        produce_name: session.produce_name,
+        produce_type: session.produce_type,
+        price_per_kg: session.price_per_kg,
+        availability: session.availability,
+        market_type: session.market_type
+      };
 
-    console.log("🔥 Sessions Result:", transformedSessions);
+      return {
+        bargain_id: session.bargain_id,
+        consumer_id: session.consumer_id,
+        consumer_name: `${session.first_name} ${session.last_name}`,
+        consumer_phone: session.consumer_phone,
+        product_name: session.produce_name,
+        product_id: session.product_id,
+        product_details: productDetails,
+        quantity: session.quantity,
+        current_price: session.current_price,
+        initial_price: session.initial_price,
+        status: session.status,
+        updated_at: session.updated_at,
+        last_message: session.last_message_content ? {
+          content: session.last_message_content,
+          timestamp: session.last_message_timestamp
+        } : null,
+        unread_count: 0 // You can calculate this based on your business logic
+      };
+    });
+
+    console.log("✅ Fetched Bargain Sessions:", transformedSessions);
     res.status(200).json(transformedSessions);
 
   } catch (err) {
-    console.error("💥 DB Error:", err);
-    res.status(500).json({ error: "Database operation failed" });
+    console.error("💥 Database Error:", err);
+    res.status(500).json({ 
+      error: "Failed to fetch bargain sessions",
+      details: err.message
+    });
   }
 });
-
-
 
 
 

@@ -26,8 +26,14 @@ const BargainChatWindow = () => {
   const reconnectAttempts = useRef(0);
 
   // Extract initial state from location
+  // const { 
+  //   farmer: initialFarmer, 
+  // } = location.state || {};
   const { 
     farmer: initialFarmer, 
+    product: initialProduct,
+    currentPrice: initialPrice,
+    originalPrice
   } = location.state || {};
 
   // State management
@@ -58,26 +64,29 @@ const BargainChatWindow = () => {
   //     { amount: -1, price: basePrice - 1, label: "Fair Increase" }
   //   ].filter(suggestion => suggestion.price > 0);
   // }, []);
-  const generatePriceSuggestions = useCallback((basePrice) => {
-    const suggestions = [];
-    
-    // Generate 6 suggestions, each ₹1 less than the previous
-    for (let i = 1; i <= 6; i++) {
-      const newPrice = basePrice - i;
-      if (newPrice > 0) { // Only include positive prices
-        suggestions.push({
-          amount: -i,
-          price: newPrice,
-          label: `₹${newPrice} (₹${i} less)`
-        });
-      } else {
-        break; // Stop if price would go below 0
-      }
-    }
+ // Generate price suggestions based on current price
+ const generatePriceSuggestions = useCallback((basePrice) => {
+  const suggestions = [];
   
-    return suggestions;
-  }, []);
+  // Generate 6 suggestions, each ₹1 less than the previous
+  for (let i = 1; i <= 6; i++) {
+    const newPrice = basePrice - i;
+    if (newPrice > 0) { // Only include positive prices
+      suggestions.push({
+        amount: -i,
+        price: newPrice,
+        label: `₹${newPrice} (₹${i} less)`
+      });
+    } else {
+      break; // Stop if price would go below 0
+    }
+  }
 
+  return suggestions;
+}, []);
+
+
+  // Fetch messages from database
   // Fetch messages from database
   const fetchMessages = async () => {
     try {
@@ -103,156 +112,156 @@ const BargainChatWindow = () => {
   };
 
   // WebSocket connection management
-  const initializeSocketConnection = useCallback(() => {
-    if (!bargainId || !token) {
-      console.error("Cannot initialize socket: missing bargainId or token");
-      setConnectionStatus("disconnected");
-      return;
+ // WebSocket connection management
+ const initializeSocketConnection = useCallback(() => {
+  if (!bargainId || !token) {
+    console.error("Cannot initialize socket: missing bargainId or token");
+    setConnectionStatus("disconnected");
+    return;
+  }
+
+  // Clear any existing socket connection
+  if (socket.current) {
+    socket.current.removeAllListeners();
+    socket.current.disconnect();
+    socket.current = null;
+  }
+
+  // Configure socket options
+  const socketOptions = {
+    auth: { token },
+    query: { bargainId },
+    transports: ['websocket', 'polling'],
+    reconnection: true,
+    reconnectionAttempts: 5,
+    reconnectionDelay: 1000,
+    reconnectionDelayMax: 10000,
+    timeout: 20000,
+    secure: process.env.NODE_ENV === 'production',
+    rejectUnauthorized: false,
+    extraHeaders: {
+      Authorization: `Bearer ${token}`
     }
-  
-    // Clear any existing socket connection
+  };
+
+  console.log("Initializing socket with options:", socketOptions);
+
+  // Create new socket connection
+  socket.current = io(
+    process.env.REACT_APP_API_BASE_URL || "http://localhost:5000",
+    socketOptions
+  );
+
+  // Connection established
+  socket.current.on('connect', () => {
+    console.log("Socket connected with ID:", socket.current?.id);
+    setConnectionStatus("connected");
+  });
+
+  // Connection error
+  socket.current.on('connect_error', (err) => {
+    console.error("Socket connection error:", {
+      message: err.message,
+      description: err.description,
+      context: err.context
+    });
+    setConnectionStatus("error");
+    
+    // Exponential backoff reconnection
+    const maxAttempts = 5;
+    if (reconnectAttempts.current < maxAttempts) {
+      const delay = Math.min(30000, Math.pow(2, reconnectAttempts.current) * 1000);
+      reconnectAttempts.current += 1;
+      console.log(`Reconnecting attempt ${reconnectAttempts.current} in ${delay}ms`);
+      setTimeout(() => initializeSocketConnection(), delay);
+    }
+  });
+
+  // Connection closed
+  socket.current.on('disconnect', (reason) => {
+    console.log("Socket disconnected:", reason);
+    setConnectionStatus("disconnected");
+    
+    // Immediate reconnect for certain disconnect reasons
+    if (reason === "io server disconnect") {
+      console.log("Attempting immediate reconnect");
+      setTimeout(() => initializeSocketConnection(), 1000);
+    }
+  });
+
+  // Price update from farmer
+  socket.current.on('priceUpdate', (data) => {
+    if (data?.newPrice) {
+      setCurrentPrice(data.newPrice);
+      addSystemMessage(`Farmer updated price to ₹${data.newPrice}/kg`);
+      setWaitingForResponse(false);
+    } else {
+      console.error("Invalid priceUpdate data:", data);
+    }
+  });
+
+  // Bargain status update
+  socket.current.on('bargainStatusUpdate', (status) => {
+    const validStatuses = ['pending', 'accepted', 'rejected'];
+    if (validStatuses.includes(status)) {
+      setBargainStatus(status);
+      if (status === 'accepted') {
+        addSystemMessage("🎉 Farmer accepted your offer!");
+      } else if (status === 'rejected') {
+        addSystemMessage("❌ Farmer declined your offer");
+      }
+      setWaitingForResponse(false);
+    } else {
+      console.error("Invalid bargain status:", status);
+    }
+  });
+
+  // New chat message
+  socket.current.on('newMessage', (message) => {
+    if (message?.content && message?.sender_type) {
+      setMessages(prev => [...prev, message]);
+      if (message.sender_type === 'farmer') {
+        setWaitingForResponse(false);
+      }
+    } else {
+      console.error("Invalid message format:", message);
+    }
+  });
+
+  // Typing indicator
+  socket.current.on('typing', (isTyping) => {
+    setIsTyping(Boolean(isTyping));
+  });
+
+  // Price suggestions
+  socket.current.on('priceSuggestions', (data) => {
+    if (Array.isArray(data?.suggestions)) {
+      setPriceSuggestions(data.suggestions);
+      setShowPriceSuggestions(true);
+    } else {
+      console.error("Invalid price suggestions:", data);
+    }
+  });
+
+  // Error handling
+  socket.current.on('error', (error) => {
+    console.error("Socket error:", error);
+    setError(error.message || "WebSocket communication error");
+  });
+
+  // Cleanup function for useEffect
+  return () => {
     if (socket.current) {
+      console.log("Cleaning up socket connection");
       socket.current.removeAllListeners();
       socket.current.disconnect();
-      socket.current = null;
     }
-  
-    // Configure socket options
-    const socketOptions = {
-      auth: { token },
-      query: { bargainId },
-      transports: ['websocket', 'polling'], // Fallback transport
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 10000,
-      timeout: 20000, // 20 second timeout
-      secure: process.env.NODE_ENV === 'production',
-      rejectUnauthorized: false,
-      extraHeaders: {
-        Authorization: `Bearer ${token}`
-      }
-    };
-  
-    console.log("Initializing socket with options:", socketOptions);
-  
-    // Create new socket connection
-    socket.current = io(
-      process.env.REACT_APP_API_BASE_URL || "http://localhost:5000",
-      socketOptions
-    );
-  
-    // Connection established
-    socket.current.on('connect', () => {
-      console.log("Socket connected with ID:", socket.current?.id);
-      setConnectionStatus("connected");
-    });
-  
-    // Connection error
-    socket.current.on('connect_error', (err) => {
-      console.error("Socket connection error:", {
-        message: err.message,
-        description: err.description,
-        context: err.context
-      });
-      setConnectionStatus("error");
-      
-      // Exponential backoff reconnection
-      const maxAttempts = 5;
-      if (reconnectAttempts.current < maxAttempts) {
-        const delay = Math.min(30000, Math.pow(2, reconnectAttempts.current) * 1000);
-        reconnectAttempts.current += 1;
-        console.log(`Reconnecting attempt ${reconnectAttempts.current} in ${delay}ms`);
-        setTimeout(() => initializeSocketConnection(), delay);
-      }
-    });
-  
-    // Connection closed
-    socket.current.on('disconnect', (reason) => {
-      console.log("Socket disconnected:", reason);
-      setConnectionStatus("disconnected");
-      
-      // Immediate reconnect for certain disconnect reasons
-      if (reason === "io server disconnect") {
-        console.log("Attempting immediate reconnect");
-        setTimeout(() => initializeSocketConnection(), 1000);
-      }
-    });
-  
-    // Price update from farmer
-    socket.current.on('priceUpdate', (data) => {
-      if (data?.newPrice) {
-        setCurrentPrice(data.newPrice);
-        addSystemMessage(`Farmer updated price to ₹${data.newPrice}/kg`);
-        setWaitingForResponse(false);
-      } else {
-        console.error("Invalid priceUpdate data:", data);
-      }
-    });
-  
-    // Bargain status update
-    socket.current.on('bargainStatusUpdate', (status) => {
-      const validStatuses = ['pending', 'accepted', 'rejected'];
-      if (validStatuses.includes(status)) {
-        setBargainStatus(status);
-        if (status === 'accepted') {
-          addSystemMessage("🎉 Farmer accepted your offer!");
-        } else if (status === 'rejected') {
-          addSystemMessage("❌ Farmer declined your offer");
-        }
-        setWaitingForResponse(false);
-      } else {
-        console.error("Invalid bargain status:", status);
-      }
-    });
-  
-    // New chat message
-    socket.current.on('newMessage', (message) => {
-      if (message?.content && message?.sender_type) {
-        setMessages(prev => [...prev, message]);
-        if (message.sender_type === 'farmer') {
-          setWaitingForResponse(false);
-        }
-      } else {
-        console.error("Invalid message format:", message);
-      }
-    });
-  
-    // Typing indicator
-    socket.current.on('typing', (isTyping) => {
-      setIsTyping(Boolean(isTyping));
-    });
-  
-    // Price suggestions
-    socket.current.on('priceSuggestions', (data) => {
-      if (Array.isArray(data?.suggestions)) {
-        setPriceSuggestions(data.suggestions);
-        setShowPriceSuggestions(true);
-      } else {
-        console.error("Invalid price suggestions:", data);
-      }
-    });
-  
-    // Error handling
-    socket.current.on('error', (error) => {
-      console.error("Socket error:", error);
-      setError(error.message || "WebSocket communication error");
-    });
-  
-    // Cleanup function for useEffect
-    return () => {
-      if (socket.current) {
-        console.log("Cleaning up socket connection");
-        socket.current.removeAllListeners();
-        socket.current.disconnect();
-      }
-    };
-  }, [bargainId, token]);
-
+  };
+}, [bargainId, token]);
 
 
   // Helper function to add system messages
-  const addSystemMessage = (content) => {
+  const addSystemMessage = useCallback((content) => {
     setMessages(prev => [
       ...prev,
       {
@@ -261,84 +270,101 @@ const BargainChatWindow = () => {
         timestamp: new Date().toISOString()
       }
     ]);
-  };
+  }, []);
 
   // Initialize socket connection and fetch messages on mount
-  useEffect(() => {
-    const initializeChat = async () => {
-      try {
-        setLoading(true);
-        await fetchMessages();
-        initializeSocketConnection();
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
+ // Initialize socket connection and fetch messages on mount
+ useEffect(() => {
+  const initializeChat = async () => {
+    try {
+      setLoading(true);
+      await fetchMessages();
+      initializeSocketConnection();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    initializeChat();
+  initializeChat();
 
-    return () => {
-      if (socket.current) {
-        socket.current.disconnect();
-      }
-    };
-  }, [initializeSocketConnection]);
+  return () => {
+    if (socket.current) {
+      socket.current.disconnect();
+    }
+  };
+}, [initializeSocketConnection]);
 
+
+
+// Show initial system message and price suggestions when product is selected
+useEffect(() => {
+  if (selectedProduct && !isBargainPopupOpen && messages.length === 0) {
+    const systemMessageContent = `🛒 You selected ${selectedProduct.produce_name} (${selectedQuantity}kg) at ₹${selectedProduct.price_per_kg}/kg`;
+    addSystemMessage(systemMessageContent);
+    
+    const suggestions = generatePriceSuggestions(selectedProduct.price_per_kg);
+    setPriceSuggestions(suggestions);
+    setShowPriceSuggestions(true);
+  }
+}, [selectedProduct, isBargainPopupOpen, messages.length, addSystemMessage, generatePriceSuggestions, selectedQuantity]);
   // Fetch bargain data
-  useEffect(() => {
-    const fetchBargainData = async () => {
-      try {
-        if (!bargainId || !token) {
-          throw new Error("Missing bargain ID or authentication token");
-        }
-  
-        const response = await fetch(
-          `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/bargain/${bargainId}`, 
-          {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`,
-            },
-          }
-        );
-  
-        const contentType = response.headers.get('content-type');
-        const rawText = await response.text();
-  
-        if (!response.ok) {
-          throw new Error(`Server error: ${response.status}`);
-        }
-  
-        if (!contentType || !contentType.includes('application/json')) {
-          throw new Error(`Expected JSON but got ${contentType}`);
-        }
-  
-        const data = JSON.parse(rawText);
-  
-        if (!data.success) {
-          throw new Error(data.error || "Failed to fetch bargain data");
-        }
-  
-        if (data.products && data.products.length > 0) {
-          const product = data.products[0];
-          setSelectedProduct(product);
-          setCurrentPrice(product.current_offer || product.price_per_kg);
-          setQuantity(product.quantity || 1);
-          setSelectedQuantity(product.quantity || '10');
-        }
-        
-        setBargainStatus(data.status || 'pending');
-        
-      } catch (error) {
-        setError(error.message || "Failed to load bargain data");
+ // Fetch bargain data
+ useEffect(() => {
+  const fetchBargainData = async () => {
+    try {
+      if (!bargainId || !token) {
+        throw new Error("Missing bargain ID or authentication token");
       }
-    };
-  
+
+      const response = await fetch(
+        `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/bargain/${bargainId}`, 
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+        }
+      );
+
+      const contentType = response.headers.get('content-type');
+      const rawText = await response.text();
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error(`Expected JSON but got ${contentType}`);
+      }
+
+      const data = JSON.parse(rawText);
+
+      if (!data.success) {
+        throw new Error(data.error || "Failed to fetch bargain data");
+      }
+
+      if (data.products && data.products.length > 0) {
+        const product = data.products[0];
+        setSelectedProduct(product);
+        setCurrentPrice(product.current_offer || product.price_per_kg);
+        setQuantity(product.quantity || 1);
+        setSelectedQuantity(product.quantity || '10');
+      }
+      
+      setBargainStatus(data.status || 'pending');
+      
+    } catch (error) {
+      setError(error.message || "Failed to load bargain data");
+    }
+  };
+
+  if (!initialProduct) {
     fetchBargainData();
-  }, [bargainId, token]);
+  }
+}, [bargainId, token, initialProduct]);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -435,14 +461,11 @@ const BargainChatWindow = () => {
         })
       });
   
-      // Handle HTTP errors
       if (!bargainResponse.ok) {
-        const errorText = await bargainResponse.text();
-        throw new Error(errorText || 'Failed to create bargain session');
+        throw new Error(await bargainResponse.text() || 'Failed to create bargain session');
       }
   
       const bargainData = await bargainResponse.json();
-      console.log('Bargain created:', bargainData);
   
       // 2. Add product to bargain
       const productResponse = await fetch(`${process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000'}/api/add-bargain-product`, {
@@ -458,26 +481,14 @@ const BargainChatWindow = () => {
         })
       });
   
-      // Handle HTTP errors
-      if (!productResponse.ok) throw new Error(await productResponse.text() || 'Product addition failed');
+      if (!productResponse.ok) {
+        throw new Error(await productResponse.text() || 'Product addition failed');
+      }
+  
       const productData = await productResponse.json();
   
-      // const productData = await productResponse.json();
-      console.log('Product added:', productData);
-  
-      // 3. Wait for WebSocket connection before navigation
-    await new Promise((resolve) => {
-      const checkConnection = () => {
-        if (socket.current?.connected) {
-          resolve();
-        } else {
-          setTimeout(checkConnection, 100);
-        }
-      };
-      initializeSocketConnection();
-      checkConnection();
-    });
-      // 4. Navigate to chat window with all required state
+      // 3. Close popup and navigate immediately
+      setIsBargainPopupOpen(false);
       navigate(`/bargain/${bargainData.bargainId}`, {
         state: {
           product: {
@@ -489,21 +500,51 @@ const BargainChatWindow = () => {
           currentPrice: productData.price_per_kg,
           bargainId: bargainData.bargainId,
           originalPrice: productData.price_per_kg
-        },
-        replace: true // Prevent going back to popup
+        }
       });
   
     } catch (err) {
       console.error('Bargain initiation error:', err);
-      setError(
-        err.message.includes('JSON') 
-          ? 'Server communication error' 
-          : err.message || "Failed to start bargaining"
-      );
+      setError(err.message || "Failed to start bargaining");
     } finally {
       setIsLoading(false);
     }
   };
+
+
+
+  // const handlePriceSelection = (price) => {
+  //   const messageContent = `💰 Offered ₹${price}/kg for ${selectedQuantity}kg`;
+    
+  //   addSystemMessage(messageContent);
+  //   setCurrentPrice(price);
+  //   setShowPriceSuggestions(false);
+  //   setWaitingForResponse(true);
+
+  //   if (socket.current && socket.current.connected) {
+  //     const systemMessageContent = `🛒 You selected ${selectedProduct.produce_name} (${selectedQuantity}kg) at ₹${selectedProduct.price_per_kg}/kg`;
+
+  //     socket.current.emit("bargainMessage", {
+  //       bargainId,
+  //       message: {
+  //         content: systemMessageContent,
+  //         sender_type: "consumer",
+  //         timestamp: new Date().toISOString()
+  //       },
+  //       recipientType: "farmer",
+  //       recipientId: selectedProduct.farmer_id,
+  //       consumer_id: consumer.consumer_id,
+  //       consumer_name: `${consumer.first_name} ${consumer.last_name}`
+  //     });
+      
+      
+  //     socket.current.emit('priceOffer', {
+  //       price,
+  //       productId: selectedProduct.product_id,
+  //       quantity: selectedQuantity
+  //     });
+  //   }
+  // };
   const handlePriceSelection = (price) => {
     const messageContent = `💰 Offered ₹${price}/kg for ${selectedQuantity}kg`;
     
@@ -513,22 +554,6 @@ const BargainChatWindow = () => {
     setWaitingForResponse(true);
 
     if (socket.current && socket.current.connected) {
-      const systemMessageContent = `🛒 You selected ${selectedProduct.produce_name} (${selectedQuantity}kg) at ₹${selectedProduct.price_per_kg}/kg`;
-
-      socket.current.emit("bargainMessage", {
-        bargainId,
-        message: {
-          content: systemMessageContent,
-          sender_type: "consumer",
-          timestamp: new Date().toISOString()
-        },
-        recipientType: "farmer",
-        recipientId: selectedProduct.farmer_id,
-        consumer_id: consumer.consumer_id,
-        consumer_name: `${consumer.first_name} ${consumer.last_name}`
-      });
-      
-      
       socket.current.emit('priceOffer', {
         price,
         productId: selectedProduct.product_id,
