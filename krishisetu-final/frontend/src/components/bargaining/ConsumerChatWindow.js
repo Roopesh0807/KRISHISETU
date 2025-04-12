@@ -24,11 +24,6 @@ const BargainChatWindow = () => {
   const socket = useRef(null);
   const messagesEndRef = useRef(null);
   const reconnectAttempts = useRef(0);
-
-  // Extract initial state from location
-  // const { 
-  //   farmer: initialFarmer, 
-  // } = location.state || {};
   const { 
     farmer: initialFarmer, 
     product: initialProduct,
@@ -53,17 +48,9 @@ const BargainChatWindow = () => {
   const [showPriceSuggestions, setShowPriceSuggestions] = useState(false);
   const [priceSuggestions, setPriceSuggestions] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
+  const [hasFarmerCounterOffer, setHasFarmerCounterOffer] = useState(false);
 
-  // Generate price suggestions based on current price
-  // const generatePriceSuggestions = useCallback((basePrice) => {
-  //   return [
-  //     { amount: -5, price: basePrice - 5, label: "Good Deal" },
-  //     { amount: -4, price: basePrice - 4, label: "Fair Offer" },
-  //     { amount: -3, price: basePrice - 3, label: "Small Discount" },
-  //     { amount: -2, price: basePrice - 2, label: "Small Increase" },
-  //     { amount: -1, price: basePrice - 1, label: "Fair Increase" }
-  //   ].filter(suggestion => suggestion.price > 0);
-  // }, []);
+
  // Generate price suggestions based on current price
  const generatePriceSuggestions = useCallback((basePrice) => {
   const suggestions = [];
@@ -85,8 +72,6 @@ const BargainChatWindow = () => {
   return suggestions;
 }, []);
 
-
-  // Fetch messages from database
   // Fetch messages from database
   const fetchMessages = async () => {
     try {
@@ -111,8 +96,39 @@ const BargainChatWindow = () => {
     }
   };
 
-  // WebSocket connection management
- // WebSocket connection management
+   // Modify the socket message handler to detect counter offers
+   useEffect(() => {
+    if (!socket.current) return;
+
+    const handleNewMessage = (message) => {
+      if (message?.message_id) {
+        setMessages(prev => [...prev, message]);
+        
+        // Check if this is a counter offer from farmer
+        if (message.sender_role === 'farmer' && message.message_type === 'counter_offer') {
+          setHasFarmerCounterOffer(true);
+          setWaitingForResponse(false);
+          
+          // Generate new suggestions based on farmer's counter offer
+          const suggestions = generatePriceSuggestions(message.price_suggestion);
+          setPriceSuggestions(suggestions);
+          setShowPriceSuggestions(true);
+          
+          // Update current price
+          setCurrentPrice(message.price_suggestion);
+        }
+      }
+    };
+    
+    socket.current.on('new_message', handleNewMessage);
+
+    return () => {
+      if (socket.current) {
+        socket.current.off('new_message', handleNewMessage);
+      }
+    };
+  }, [generatePriceSuggestions]);
+  
  const initializeSocketConnection = useCallback(() => {
   if (!bargainId || !token) {
     console.error("Cannot initialize socket: missing bargainId or token");
@@ -216,17 +232,21 @@ const BargainChatWindow = () => {
     }
   });
 
-  // New chat message
-  socket.current.on('newMessage', (message) => {
-    if (message?.content && message?.sender_type) {
-      setMessages(prev => [...prev, message]);
-      if (message.sender_type === 'farmer') {
-        setWaitingForResponse(false);
+socket.current.on('new_message', (message) => {
+  if (message?.message_id) {
+    setMessages(prev => [...prev, message]);
+    if (message.sender_role === 'farmer') {
+      setWaitingForResponse(false);
+      
+      // If it's a counter offer, show new suggestions
+      if (message.message_type === 'counter_offer' && message.price_suggestion) {
+        const suggestions = generatePriceSuggestions(message.price_suggestion);
+        setPriceSuggestions(suggestions);
+        setShowPriceSuggestions(true);
       }
-    } else {
-      console.error("Invalid message format:", message);
     }
-  });
+  }
+});
 
   // Typing indicator
   socket.current.on('typing', (isTyping) => {
@@ -272,8 +292,6 @@ const BargainChatWindow = () => {
     ]);
   }, []);
 
-  // Initialize socket connection and fetch messages on mount
- // Initialize socket connection and fetch messages on mount
  useEffect(() => {
   const initializeChat = async () => {
     try {
@@ -296,8 +314,6 @@ const BargainChatWindow = () => {
   };
 }, [initializeSocketConnection]);
 
-
-
 // Show initial system message and price suggestions when product is selected
 useEffect(() => {
   if (selectedProduct && !isBargainPopupOpen && messages.length === 0) {
@@ -309,7 +325,7 @@ useEffect(() => {
     setShowPriceSuggestions(true);
   }
 }, [selectedProduct, isBargainPopupOpen, messages.length, addSystemMessage, generatePriceSuggestions, selectedQuantity]);
-  // Fetch bargain data
+
  // Fetch bargain data
  useEffect(() => {
   const fetchBargainData = async () => {
@@ -371,74 +387,6 @@ useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // const handleBargainConfirm = async () => {
-  //   if (!selectedProduct) {
-  //     setError("Please select a product");
-  //     return;
-  //   }
-  
-  //   if (parseFloat(selectedQuantity) < 10) {
-  //     alert("⚠️ Minimum quantity should be 10kg");
-  //     return;
-  //   }
-  
-  //   try {
-  //     setIsLoading(true);
-  //     const response = await fetch(`${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/add-bargain-product`, {
-  //       method: 'POST',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //         'Authorization': `Bearer ${token}`,
-  //       },
-  //       body: JSON.stringify({
-  //         bargain_id: bargainId,
-  //         product_id: selectedProduct.product_id,
-  //         quantity: parseFloat(selectedQuantity),
-  //       }),
-  //     });
-  
-  //     const data = await response.json();
-  
-  //     if (!response.ok) {
-  //       throw new Error(data.error || 'Failed to add product');
-  //     }
-  
-  //     const systemMessageContent = `🛒 You selected ${selectedProduct.produce_name} (${parseFloat(selectedQuantity)}kg) at ₹${selectedProduct.price_per_kg}/kg`;
-      
-  //     addSystemMessage(systemMessageContent);
-
-  //     const suggestions = generatePriceSuggestions(selectedProduct.price_per_kg);
-  //     setPriceSuggestions(suggestions);
-  //     setShowPriceSuggestions(true);
-
-  //     if (socket.current && socket.current.connected) {
-  //       socket.current.emit("bargainMessage", {
-  //         bargain_id: bargainId,
-  //         message: {
-  //           content: systemMessageContent,
-  //           sender_type: "consumer",
-  //           timestamp: new Date().toISOString()
-  //         },
-  //         recipientType: "farmer",
-  //         recipientId: selectedProduct.farmer_id,
-  //       });
-
-  //       socket.current.emit('priceSuggestions', {
-  //         bargainId,
-  //         suggestions
-  //       });
-  //     }
-  
-  //     setQuantity(parseFloat(selectedQuantity));
-  //     setCurrentPrice(selectedProduct.price_per_kg);
-  //     setIsBargainPopupOpen(false);
-  
-  //   } catch (err) {
-  //     setError(err.message);
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
   const handleBargainConfirm = async () => {
     if (!selectedProduct) {
       setError("Please select a product first");
@@ -450,16 +398,19 @@ useEffect(() => {
       setError(null);
   
       // 1. Create bargain session
-      const bargainResponse = await fetch(`${process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000'}/api/create-bargain`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          farmer_id: selectedFarmer.farmer_id
-        })
-      });
+      const bargainResponse = await fetch(
+        `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000'}/api/create-bargain`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            farmer_id: selectedFarmer.farmer_id
+          })
+        }
+      );
   
       if (!bargainResponse.ok) {
         throw new Error(await bargainResponse.text() || 'Failed to create bargain session');
@@ -468,18 +419,21 @@ useEffect(() => {
       const bargainData = await bargainResponse.json();
   
       // 2. Add product to bargain
-      const productResponse = await fetch(`${process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000'}/api/add-bargain-product`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          bargain_id: bargainData.bargainId,
-          product_id: selectedProduct.product_id,
-          quantity: parseFloat(selectedQuantity) || 10
-        })
-      });
+      const productResponse = await fetch(
+        `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000'}/api/add-bargain-product`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            bargain_id: bargainData.bargainId,
+            product_id: selectedProduct.product_id,
+            quantity: parseFloat(selectedQuantity) || 10
+          })
+        }
+      );
   
       if (!productResponse.ok) {
         throw new Error(await productResponse.text() || 'Product addition failed');
@@ -487,7 +441,35 @@ useEffect(() => {
   
       const productData = await productResponse.json();
   
-      // 3. Close popup and navigate immediately
+      // 3. Save SYSTEM MESSAGE to database
+      const systemMessageContent = `🛒 You selected ${selectedProduct.produce_name} (${selectedQuantity}kg) at ₹${selectedProduct.price_per_kg}/kg`;
+      const systemMessageResponse = await fetch(
+        `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000'}/api/bargain/${bargainData.bargainId}/system-message`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            message_content: systemMessageContent,
+            message_type: 'system'
+          })
+        }
+      );
+  
+      if (!systemMessageResponse.ok) {
+        throw new Error('Failed to save system message');
+      }
+  
+      const systemMessage = await systemMessageResponse.json();
+  
+      // 4. Generate and show price suggestions
+      const suggestions = generatePriceSuggestions(selectedProduct.price_per_kg);
+      setPriceSuggestions(suggestions);
+      setShowPriceSuggestions(true);
+  
+      // 5. Close popup and navigate
       setIsBargainPopupOpen(false);
       navigate(`/bargain/${bargainData.bargainId}`, {
         state: {
@@ -510,55 +492,112 @@ useEffect(() => {
       setIsLoading(false);
     }
   };
+  const handlePriceSelection = async (price) => {
+    try {
+      // Immediately hide suggestions and update price
+      setShowPriceSuggestions(false);
+      setCurrentPrice(price);
+  
+      // Construct message content
+      const messageContent = `💰 Offered ₹${price}/kg for ${selectedQuantity}kg of ${selectedProduct.produce_name}`;
+  
+      // Send the price offer to server
+      const response = await fetch(
+        `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/bargain/${bargainId}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            sender_role: 'consumer',
+            sender_id: consumer.consumer_id,
+            message_content: messageContent,
+            price_suggestion: price,
+            message_type: 'price_offer'
+          })
+        }
+      );
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to save message");
+      }
+  
+      // Update UI with the new message
+      const newMessage = await response.json();
+      setMessages(prev => [...prev, newMessage]);
+  
+      // Notify farmer via WebSocket
+      if (socket.current?.connected) {
+        socket.current.emit('priceOffer', {
+          bargainId,
+          message: newMessage,
+          productId: selectedProduct.product_id,
+          quantity: selectedQuantity,
+          newPrice: price
+        });
+      }
+  
+    } catch (err) {
+      console.error('Error handling price selection:', err);
+      setError(err.message);
+      // Re-show suggestions if there was an error
+      setShowPriceSuggestions(true);
+    }
+  };
 
 
+  // Add this function to handle accepting the farmer's counter offer
+  const handleAcceptFarmerOffer = async () => {
+    try {
+      if (!socket.current?.connected) {
+        throw new Error("Connection not established");
+      }
 
-  // const handlePriceSelection = (price) => {
-  //   const messageContent = `💰 Offered ₹${price}/kg for ${selectedQuantity}kg`;
-    
-  //   addSystemMessage(messageContent);
-  //   setCurrentPrice(price);
-  //   setShowPriceSuggestions(false);
-  //   setWaitingForResponse(true);
-
-  //   if (socket.current && socket.current.connected) {
-  //     const systemMessageContent = `🛒 You selected ${selectedProduct.produce_name} (${selectedQuantity}kg) at ₹${selectedProduct.price_per_kg}/kg`;
-
-  //     socket.current.emit("bargainMessage", {
-  //       bargainId,
-  //       message: {
-  //         content: systemMessageContent,
-  //         sender_type: "consumer",
-  //         timestamp: new Date().toISOString()
-  //       },
-  //       recipientType: "farmer",
-  //       recipientId: selectedProduct.farmer_id,
-  //       consumer_id: consumer.consumer_id,
-  //       consumer_name: `${consumer.first_name} ${consumer.last_name}`
-  //     });
-      
-      
-  //     socket.current.emit('priceOffer', {
-  //       price,
-  //       productId: selectedProduct.product_id,
-  //       quantity: selectedQuantity
-  //     });
-  //   }
-  // };
-  const handlePriceSelection = (price) => {
-    const messageContent = `💰 Offered ₹${price}/kg for ${selectedQuantity}kg`;
-    
-    addSystemMessage(messageContent);
-    setCurrentPrice(price);
-    setShowPriceSuggestions(false);
-    setWaitingForResponse(true);
-
-    if (socket.current && socket.current.connected) {
-      socket.current.emit('priceOffer', {
-        price,
-        productId: selectedProduct.product_id,
-        quantity: selectedQuantity
+      // Emit acceptance to server
+      socket.current.emit('updateBargainStatus', {
+        bargainId,
+        status: 'accepted'
       });
+
+      // Update local state
+      setBargainStatus('accepted');
+      setShowPriceSuggestions(false);
+      setHasFarmerCounterOffer(false);
+      
+      // Add system message
+      addSystemMessage(`✅ You accepted the farmer's offer of ₹${currentPrice}/kg`);
+      
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  // Add this function to handle rejecting the farmer's counter offer
+  const handleRejectFarmerOffer = async () => {
+    try {
+      if (!socket.current?.connected) {
+        throw new Error("Connection not established");
+      }
+
+      // Emit rejection to server
+      socket.current.emit('updateBargainStatus', {
+        bargainId,
+        status: 'rejected'
+      });
+
+      // Update local state
+      setBargainStatus('rejected');
+      setShowPriceSuggestions(false);
+      setHasFarmerCounterOffer(false);
+      
+      // Add system message
+      addSystemMessage(`❌ You declined the farmer's offer`);
+      
+    } catch (err) {
+      setError(err.message);
     }
   };
 
@@ -694,23 +733,7 @@ useEffect(() => {
           >
             Cancel
           </button>
-          {/* <button
-            onClick={handleBargainConfirm}
-            disabled={!selectedProduct || isLoading}
-            className={`popup-confirm-btn ${isLoading ? 'loading' : ''}`}
-          >
-            {isLoading ? (
-              <>
-                <FontAwesomeIcon icon={faSpinner} spin />
-                <span>Processing...</span>
-              </>
-            ) : (
-              <>
-                <FontAwesomeIcon icon={faHandshake} />
-                <span>Start Bargaining</span>
-              </>
-            )}
-          </button> */}
+       
        <button
           onClick={handleBargainConfirm}
           disabled={!selectedProduct || isLoading}
@@ -883,3 +906,4 @@ useEffect(() => {
 };
 
 export default BargainChatWindow;
+

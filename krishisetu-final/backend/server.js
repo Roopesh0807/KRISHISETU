@@ -5027,38 +5027,166 @@ app.get('/api/bargain/fetch-session-data', async (req, res) => {
 });
 
 
+// // Get all messages for a bargain
+// app.get('/api/:bargain_id/messages', authenticate, async (req, res) => {
+//   try {
+//     const messages = await db.getBargainMessages(req.params.bargain_id);
+//     res.json(messages);
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// });
+
+// // Send new message
+// app.post('/api/:bargain_id/messages', authenticate, async (req, res) => {
+//   try {
+//     const messageId = await db.saveBargainMessage({
+//       ...req.body,
+//       bargain_id: req.params.bargain_id
+//     });
+//     const [newMessage] = await db.query(
+//       'SELECT * FROM bargain_chat_messages WHERE message_id = ?',
+//       [messageId]
+//     );
+    
+//     // Emit socket event
+//     req.io.to(`bargain_${req.params.bargain_id}`).emit('newMessage', newMessage[0]);
+    
+//     res.status(201).json(newMessage[0]);
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// });
+
+
 // Get all messages for a bargain
-app.get('/api/:bargain_id/messages', authenticate, async (req, res) => {
+// Add this to your backend routes (e.g., app.js or routes/bargain.js)
+app.post('/api/bargain/:bargainId/messages', authenticate, async (req, res) => {
   try {
-    const messages = await db.getBargainMessages(req.params.bargain_id);
-    res.json(messages);
+    const { bargainId } = req.params;
+    const { sender_role, sender_id, message_content, price_suggestion, message_type } = req.body;
+
+    // Validate required fields
+    if (!bargainId || isNaN(bargainId)) {
+      return res.status(400).json({ error: 'Invalid bargain ID' });
+    }
+    if (!sender_role || !sender_id || !message_content || !message_type) {
+      return res.status(400).json({ 
+        error: 'Missing required fields: sender_role, sender_id, message_content, message_type' 
+      });
+    }
+
+    // Insert into database
+    const result = await queryDatabase(`
+      INSERT INTO bargain_messages (
+        bargain_id,
+        sender_role,
+        sender_id,
+        message_content,
+        price_suggestion,
+        message_type
+      ) VALUES (?, ?, ?, ?, ?, ?)
+    `, [bargainId, sender_role, sender_id, message_content, price_suggestion || null, message_type]);
+
+    res.status(201).json({
+      message_id: result.insertId,
+      bargain_id: bargainId,
+      sender_role,
+      sender_id,
+      message_content,
+      price_suggestion: price_suggestion || null,
+      message_type,
+      created_at: new Date().toISOString()
+    });
+
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Error saving message:', err);
+    res.status(500).json({ error: 'Database error: ' + err.message });
   }
 });
 
 // Send new message
-app.post('/api/:bargain_id/messages', authenticate, async (req, res) => {
-  try {
-    const messageId = await db.saveBargainMessage({
-      ...req.body,
-      bargain_id: req.params.bargain_id
-    });
-    const [newMessage] = await db.query(
-      'SELECT * FROM bargain_chat_messages WHERE message_id = ?',
-      [messageId]
-    );
-    
-    // Emit socket event
-    req.io.to(`bargain_${req.params.bargain_id}`).emit('newMessage', newMessage[0]);
-    
-    res.status(201).json(newMessage[0]);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+// POST /api/bargain/:bargainId/messages
+// app.post('/api/bargain/:bargainId/messages', authenticate, async (req, res) => {
+//   try {
+//     const { bargainId } = req.params;
+//     const {
+//       sender_role,
+//       sender_id,
+//       message_content,
+//       price_suggestion,
+//       message_type
+//     } = req.body;
 
+//     // Validate required fields
+//     if (!sender_role || !message_type) {
+//       return res.status(400).json({ error: 'Missing required fields' });
+//     }
+
+//     // Insert into database
+//     const [result] = await db.query(`
+//       INSERT INTO bargain_messages SET ?`, {
+//         bargain_id: bargainId,
+//         sender_role,
+//         sender_id,
+//         message_content,
+//         price_suggestion,
+//         message_type
+//       });
+
+//     // Retrieve the full message
+//     const [message] = await db.query(`
+//       SELECT * FROM bargain_messages 
+//       WHERE message_id = ?`, [result.insertId]);
+
+//     // Emit socket event
+//     req.io.to(`bargain_${bargainId}`).emit('new_message', message[0]);
+
+//     res.status(201).json(message[0]);
+
+//   } catch (err) {
+//     console.error('Error saving message:', err);
+//     res.status(500).json({ error: 'Failed to save message' });
+//   }
+// });
 // Get bargain session details with last message
+
+// Add this to your backend routes
+app.post('/api/bargain/:bargainId/system-message', authenticate, async (req, res) => {
+  try {
+    const { bargainId } = req.params;
+    const { message_content, message_type, price_suggestion } = req.body;
+
+    if (!bargainId || !message_content || !message_type) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Insert into database
+    const result = await queryDatabase(`
+      INSERT INTO bargain_messages (
+        bargain_id,
+        sender_role,
+        sender_id,
+        message_content,
+        price_suggestion,
+        message_type
+      ) VALUES (?, 'system', NULL, ?, ?, ?)
+    `, [bargainId, message_content, price_suggestion || null, message_type]);
+
+    res.status(201).json({
+      message_id: result.insertId,
+      bargain_id: bargainId,
+      message_content,
+      message_type,
+      price_suggestion: price_suggestion || null,
+      created_at: new Date().toISOString()
+    });
+
+  } catch (err) {
+    console.error('Error saving system message:', err);
+    res.status(500).json({ error: 'Failed to save system message' });
+  }
+}); 
 app.get('/api/sessions', authenticate, async (req, res) => {
   try {
     const userType = req.user.type; // 'farmer' or 'consumer'
