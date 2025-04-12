@@ -77,18 +77,18 @@ const storage = multer.diskStorage({
 
 const uploads = multer({ storage });
 // Protected route middleware
-const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+// const authenticateToken = (req, res, next) => {
+//   const authHeader = req.headers['authorization'];
+//   const token = authHeader && authHeader.split(' ')[1];
   
-  if (!token) return res.status(401).json({ message: "Access denied. No token provided." });
+//   if (!token) return res.status(401).json({ message: "Access denied. No token provided." });
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) return res.status(403).json({ message: "Invalid token" });
-    req.user = user;
-    next();
-  });
-};
+//   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+//     if (err) return res.status(403).json({ message: "Invalid token" });
+//     req.user = user;
+//     next();
+//   });
+// };
 
 
 const upload = multer({ storage });
@@ -1618,6 +1618,152 @@ app.delete("/remove-photo/:consumer_id", async (req, res) => {
   }
 });
 
+<<<<<<< HEAD
+=======
+//     const authHeader = req.headers.authorization;
+//     if (!authHeader) {
+//       console.error("❌ No Authorization header!");
+//       return res.status(401).json({ error: "Authorization token required" });
+//     }
+
+//     const token = authHeader.split(" ")[1];
+//     console.log("🔍 Extracted Token:", token);
+
+//     if (!token) {
+//       console.error("❌ Token is missing in Authorization header!");
+//       return res.status(401).json({ error: "Authorization token required" });
+//     }
+
+//     let decoded;
+//     try {
+//       decoded = jwt.verify(token, process.env.JWT_SECRET);
+//       console.log("✅ Token Decoded:", decoded);
+//     } catch (err) {
+//       console.error("❌ Token verification failed:", err.message);
+//       return res.status(401).json({ error: "Invalid or expired token" });
+//     }
+
+//     const { bargain_id } = req.params;
+//     console.log("🔍 Checking bargain session for ID:", bargain_id);
+
+//     const session = await queryDatabase(
+//       "SELECT * FROM bargain_sessions WHERE bargain_id = ?",
+//       [bargain_id]
+//     );
+    
+//     console.log("🔎 DB Result:", session);
+    
+
+//     if (session.length === 0) {
+//       console.error("❌ Session not found in DB!");
+//       return res.status(404).json({ error: "Session not found" });
+//     }
+   
+//     console.log("📨 Sending response to frontend:", { success: true, session: session[0] });
+
+    
+
+//   } catch (error) {
+//     console.error("🔥 Auth Error:", error.stack);
+//     res.status(500).json({ error: "Internal Server Error" });
+//   }
+// });
+// app.get("/api/bargain/:bargain_id", verifyToken, async (req, res) => {
+//   try {
+//     const { bargain_id } = req.params;
+
+//     if (!bargain_id) {
+//       return res.status(400).json({
+//         success: false,
+//         error: "Bargain ID is required"
+//       });
+//     }
+
+//     // Get bargain session
+//     console.log("🔍 Fetching bargain session for ID:", bargain_id);
+
+//     const sessionResult = await queryDatabase(
+//       `SELECT 
+//         bargain_id,
+//         consumer_id,
+//         farmer_id,
+//         product_id,
+//         original_price,
+//         quantity,
+//         current_offer,
+//         status,
+//         initiator,
+//         created_at,
+//         updated_at,
+//         expires_at
+//       FROM bargain_sessions 
+//       WHERE bargain_id = ?`,
+//       [bargain_id]
+//     );
+
+//     console.log("🧪 Session result:", sessionResult);
+
+//     if (!sessionResult || sessionResult.length === 0) {
+//       return res.status(404).json({
+//         success: false,
+//         error: "Bargain session not found"
+//       });
+//     }
+
+//     const session = sessionResult[0];
+
+//     // Get messages
+//     const messages = await queryDatabase(
+//       `SELECT 
+//         message_id,
+//         bargain_id,
+//         price,
+//         sender_type,
+//         message_type,
+//         content,
+//         timestamp
+//        FROM bargain_messages
+//        WHERE bargain_id = ?
+//        ORDER BY timestamp ASC`,
+//       [bargain_id]
+//     );
+//     if (!Array.isArray(messages)) {
+//       console.warn("⚠️ messages query returned non-array:", messages);
+//     }
+//     // Construct response
+//     const responseData = {
+//       success: true,
+//       session: {
+//         bargain_id: session.bargain_id,
+//         consumer_id: session.consumer_id,
+//         farmer_id: session.farmer_id,
+//         product_id: session.product_id,
+//         initial_price: session.original_price,        // ← 💡 You’ll use this as base price per 1kg
+//         quantity: session.quantity,
+//         current_price: session.current_offer || null, // ← 💡 Updated based on selected suggestion
+//         status: session.status,
+//         initiator: session.initiator,
+//         created_at: session.created_at,
+//         updated_at: session.updated_at,
+//         expires_at: session.expires_at,
+//         messages: messages || []
+//       }
+//     };
+
+//     res.status(200).json(responseData); // ✅ Let Express handle serialization
+
+//   } catch (error) {
+//     console.error("🔥 Error fetching bargain:", error);
+  
+//     return res.status(500).json({ // ← ✅ Add `return`
+//       success: false,
+//       error: "Internal server error",
+//       ...(process.env.NODE_ENV === "development" && { details: error.message })
+//     });
+//   }
+  
+// });
+>>>>>>> f077ee6e9b6ad0dd2df02d81a98f3a5f42769772
 app.get("/api/bargain/:bargain_id", verifyToken, async (req, res) => {
   try {
     const { bargain_id } = req.params;
@@ -1629,18 +1775,14 @@ app.get("/api/bargain/:bargain_id", verifyToken, async (req, res) => {
       });
     }
 
-    // Get bargain session
     console.log("🔍 Fetching bargain session for ID:", bargain_id);
 
+    // 1. Fetch session from bargain_sessions
     const sessionResult = await queryDatabase(
       `SELECT 
         bargain_id,
         consumer_id,
         farmer_id,
-        product_id,
-        original_price,
-        quantity,
-        current_offer,
         status,
         initiator,
         created_at,
@@ -1651,8 +1793,6 @@ app.get("/api/bargain/:bargain_id", verifyToken, async (req, res) => {
       [bargain_id]
     );
 
-    console.log("🧪 Session result:", sessionResult);
-
     if (!sessionResult || sessionResult.length === 0) {
       return res.status(404).json({
         success: false,
@@ -1662,7 +1802,13 @@ app.get("/api/bargain/:bargain_id", verifyToken, async (req, res) => {
 
     const session = sessionResult[0];
 
-    // Get messages
+    // 2. Fetch products from bargain_session_products
+    const productDetails = await queryDatabase(
+      `SELECT product_id, original_price, quantity FROM bargain_session_products WHERE bargain_id = ?`,
+      [bargain_id]
+    );
+
+    // 3. Fetch messages
     const messages = await queryDatabase(
       `SELECT 
         message_id,
@@ -1677,41 +1823,34 @@ app.get("/api/bargain/:bargain_id", verifyToken, async (req, res) => {
        ORDER BY timestamp ASC`,
       [bargain_id]
     );
-    if (!Array.isArray(messages)) {
-      console.warn("⚠️ messages query returned non-array:", messages);
-    }
-    // Construct response
+
+    // 4. Construct and send response
     const responseData = {
       success: true,
       session: {
         bargain_id: session.bargain_id,
         consumer_id: session.consumer_id,
         farmer_id: session.farmer_id,
-        product_id: session.product_id,
-        initial_price: session.original_price,        // ← 💡 You’ll use this as base price per 1kg
-        quantity: session.quantity,
-        current_price: session.current_offer || null, // ← 💡 Updated based on selected suggestion
         status: session.status,
         initiator: session.initiator,
         created_at: session.created_at,
         updated_at: session.updated_at,
         expires_at: session.expires_at,
+        products: productDetails || [],
         messages: messages || []
       }
     };
 
-    res.status(200).json(responseData); // ✅ Let Express handle serialization
+    res.status(200).json(responseData);
 
   } catch (error) {
     console.error("🔥 Error fetching bargain:", error);
-  
-    return res.status(500).json({ // ← ✅ Add `return`
+    return res.status(500).json({
       success: false,
       error: "Internal server error",
       ...(process.env.NODE_ENV === "development" && { details: error.message })
     });
   }
-  
 });
 
 
@@ -2021,6 +2160,256 @@ app.get("/api/orders/:consumer_id", async (req, res) => {
   }
 });
 
+<<<<<<< HEAD
+=======
+
+
+
+
+
+
+
+
+// Authentication Middleware
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  
+  if (!token) {
+    return res.status(401).json({ 
+      success: false,
+      message: 'Authorization token is required' 
+    });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET || 'your_fallback_secret_key', (err, user) => {
+    if (err) {
+      return res.status(403).json({ 
+        success: false,
+        message: 'Invalid or expired token' 
+      });
+    }
+    
+    req.user = {
+      consumer_id: user.consumer_id,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      email: user.email
+    };
+    
+    next();
+  });
+};
+
+
+
+// 10/04, wallet
+// Wallet Routes
+app.get('/api/wallet/balance/:consumer_id', authenticateToken, async (req, res) => {
+  try {
+    const { consumer_id } = req.params;
+    
+    // Verify the requested consumer_id matches the authenticated user
+    if (consumer_id !== req.user.consumer_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized access to wallet'
+      });
+    }
+
+    // Get the latest balance
+    const balanceQuery = `
+      SELECT balance 
+      FROM wallet_transactions 
+      WHERE consumer_id = ? 
+      ORDER BY transaction_date DESC 
+      LIMIT 1`;
+    const balanceResult = await queryDatabase(balanceQuery, [consumer_id]);
+
+    const balance = balanceResult[0]?.balance || 0;
+    
+    res.json({ 
+      success: true,
+      balance,
+      consumer_id,
+      consumer_name: `${req.user.first_name} ${req.user.last_name}`
+    });
+  } catch (error) {
+    console.error('Wallet balance error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to fetch wallet balance' 
+    });
+  }
+});
+
+app.get('/api/wallet/transactions/:consumer_id', authenticateToken, async (req, res) => {
+  try {
+    const { consumer_id } = req.params;
+    
+    // Verify the requested consumer_id matches the authenticated user
+    if (consumer_id !== req.user.consumer_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized access to transaction history'
+      });
+    }
+
+    const transactionsQuery = `
+      SELECT 
+        transaction_id,
+        transaction_type,
+        amount,
+        balance,
+        description,
+        payment_method,
+        DATE_FORMAT(transaction_date, '%Y-%m-%d %H:%i:%s') as transaction_date
+      FROM wallet_transactions 
+      WHERE consumer_id = ? 
+      ORDER BY transaction_date DESC
+      LIMIT 50`;
+    const transactions = await queryDatabase(transactionsQuery, [consumer_id]);
+    
+    res.json({ 
+      success: true,
+      transactions,
+      consumer_id,
+      consumer_name: `${req.user.first_name} ${req.user.last_name}`
+    });
+  } catch (error) {
+    console.error('Wallet transactions error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to fetch transactions' 
+    });
+  }
+});
+
+app.post('/api/wallet/add', authenticateToken, async (req, res) => {
+  try {
+    const { amount, payment_method } = req.body;
+    const { consumer_id } = req.user;
+    
+    // Validate input
+    if (!amount || isNaN(amount) || amount <= 0) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Amount must be a positive number' 
+      });
+    }
+
+    // Insert new transaction
+    const insertQuery = `
+      INSERT INTO wallet_transactions 
+      (consumer_id, transaction_type, amount, description, payment_method) 
+      VALUES (?, 'Credit', ?, 'Wallet top up', ?)`;
+    const result = await queryDatabase(insertQuery, [
+      consumer_id, 
+      amount, 
+      payment_method || 'Online Payment'
+    ]);
+
+    // Get the complete transaction details
+    const transactionQuery = `
+      SELECT 
+        transaction_id,
+        transaction_type,
+        amount,
+        balance,
+        description,
+        payment_method,
+        DATE_FORMAT(transaction_date, '%Y-%m-%d %H:%i:%s') as transaction_date
+      FROM wallet_transactions 
+      WHERE transaction_id = ?`;
+    const transactionResult = await queryDatabase(transactionQuery, [result.insertId]);
+
+    res.json({
+      success: true,
+      message: 'Money added successfully',
+      newBalance: transactionResult[0].balance,
+      transaction: transactionResult[0],
+      consumer_id,
+      consumer_name: `${req.user.first_name} ${req.user.last_name}`
+    });
+    
+  } catch (error) {
+    console.error('Add money error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to add money to wallet' 
+    });
+  }
+});
+
+app.get('/api/wallet/transactions/:consumer_id', authenticateToken, async (req, res) => {
+  try {
+    const { consumer_id } = req.params;
+    
+    if (consumer_id !== req.user.consumer_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized access to transaction history'
+      });
+    }
+
+    const transactionsQuery = `
+      SELECT 
+        transaction_id,
+        transaction_type,
+        CAST(amount AS DECIMAL(10,2)) as amount,
+        CAST(balance AS DECIMAL(10,2)) as balance,
+        description,
+        payment_method,
+        DATE_FORMAT(transaction_date, '%Y-%m-%d %H:%i:%s') as transaction_date
+      FROM wallet_transactions 
+      WHERE consumer_id = ? 
+      ORDER BY transaction_date DESC
+      LIMIT 50`;
+    const transactions = await queryDatabase(transactionsQuery, [consumer_id]);
+    
+    res.json({ 
+      success: true,
+      transactions,
+      consumer_id,
+      consumer_name: `${req.user.first_name} ${req.user.last_name}`
+    });
+  } catch (error) {
+    console.error('Wallet transactions error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to fetch transactions' 
+    });
+  }
+});
+
+
+
+
+
+// // ✅ Middleware: Verify JWT Token
+// const verifyToken = (req, res, next) => {
+//   const token = req.cookies.token;
+//   if (!token) return res.status(401).json({ success: false, message: "Access denied. No token provided." });
+
+//   try {
+//     const decoded = jwt.verify(token, SECRET_KEY);
+//     req.user = decoded;
+//     next();
+//   } catch (err) {
+//     res.status(401).json({ success: false, message: "Invalid or expired token" });
+//   }
+// };
+
+// ✅ API to Fetch Products
+// app.get("/api/products", async (req, res) => {
+//   try {
+//     const products = await queryDatabase("SELECT * FROM products");
+//     res.json(products);
+//   } catch (err) {
+//     res.status(500).json({ success: false, message: "Error fetching products", error: err.message });
+//   }
+// });
+>>>>>>> f077ee6e9b6ad0dd2df02d81a98f3a5f42769772
 
 app.get("/api/products", async (req, res) => {
   try {
@@ -3715,6 +4104,22 @@ app.delete("/api/subscriptions/:subscription_id", verifyToken, async (req, res) 
 
 
 
+<<<<<<< HEAD
+=======
+
+
+
+
+
+
+
+
+
+
+
+
+
+>>>>>>> f077ee6e9b6ad0dd2df02d81a98f3a5f42769772
 app.get('/api/bargain/:bargainId', async (req, res) => {
   const { bargainId } = req.params;
 
@@ -3872,38 +4277,166 @@ app.get('/api/bargain/fetch-session-data', async (req, res) => {
 });
 
 
+// // Get all messages for a bargain
+// app.get('/api/:bargain_id/messages', authenticate, async (req, res) => {
+//   try {
+//     const messages = await db.getBargainMessages(req.params.bargain_id);
+//     res.json(messages);
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// });
+
+// // Send new message
+// app.post('/api/:bargain_id/messages', authenticate, async (req, res) => {
+//   try {
+//     const messageId = await db.saveBargainMessage({
+//       ...req.body,
+//       bargain_id: req.params.bargain_id
+//     });
+//     const [newMessage] = await db.query(
+//       'SELECT * FROM bargain_chat_messages WHERE message_id = ?',
+//       [messageId]
+//     );
+    
+//     // Emit socket event
+//     req.io.to(`bargain_${req.params.bargain_id}`).emit('newMessage', newMessage[0]);
+    
+//     res.status(201).json(newMessage[0]);
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// });
+
+
 // Get all messages for a bargain
-app.get('/api/:bargain_id/messages', authenticate, async (req, res) => {
+// Add this to your backend routes (e.g., app.js or routes/bargain.js)
+app.post('/api/bargain/:bargainId/messages', authenticate, async (req, res) => {
   try {
-    const messages = await db.getBargainMessages(req.params.bargain_id);
-    res.json(messages);
+    const { bargainId } = req.params;
+    const { sender_role, sender_id, message_content, price_suggestion, message_type } = req.body;
+
+    // Validate required fields
+    if (!bargainId || isNaN(bargainId)) {
+      return res.status(400).json({ error: 'Invalid bargain ID' });
+    }
+    if (!sender_role || !sender_id || !message_content || !message_type) {
+      return res.status(400).json({ 
+        error: 'Missing required fields: sender_role, sender_id, message_content, message_type' 
+      });
+    }
+
+    // Insert into database
+    const result = await queryDatabase(`
+      INSERT INTO bargain_messages (
+        bargain_id,
+        sender_role,
+        sender_id,
+        message_content,
+        price_suggestion,
+        message_type
+      ) VALUES (?, ?, ?, ?, ?, ?)
+    `, [bargainId, sender_role, sender_id, message_content, price_suggestion || null, message_type]);
+
+    res.status(201).json({
+      message_id: result.insertId,
+      bargain_id: bargainId,
+      sender_role,
+      sender_id,
+      message_content,
+      price_suggestion: price_suggestion || null,
+      message_type,
+      created_at: new Date().toISOString()
+    });
+
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Error saving message:', err);
+    res.status(500).json({ error: 'Database error: ' + err.message });
   }
 });
 
 // Send new message
-app.post('/api/:bargain_id/messages', authenticate, async (req, res) => {
-  try {
-    const messageId = await db.saveBargainMessage({
-      ...req.body,
-      bargain_id: req.params.bargain_id
-    });
-    const [newMessage] = await db.query(
-      'SELECT * FROM bargain_chat_messages WHERE message_id = ?',
-      [messageId]
-    );
-    
-    // Emit socket event
-    req.io.to(`bargain_${req.params.bargain_id}`).emit('newMessage', newMessage[0]);
-    
-    res.status(201).json(newMessage[0]);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+// POST /api/bargain/:bargainId/messages
+// app.post('/api/bargain/:bargainId/messages', authenticate, async (req, res) => {
+//   try {
+//     const { bargainId } = req.params;
+//     const {
+//       sender_role,
+//       sender_id,
+//       message_content,
+//       price_suggestion,
+//       message_type
+//     } = req.body;
 
+//     // Validate required fields
+//     if (!sender_role || !message_type) {
+//       return res.status(400).json({ error: 'Missing required fields' });
+//     }
+
+//     // Insert into database
+//     const [result] = await db.query(`
+//       INSERT INTO bargain_messages SET ?`, {
+//         bargain_id: bargainId,
+//         sender_role,
+//         sender_id,
+//         message_content,
+//         price_suggestion,
+//         message_type
+//       });
+
+//     // Retrieve the full message
+//     const [message] = await db.query(`
+//       SELECT * FROM bargain_messages 
+//       WHERE message_id = ?`, [result.insertId]);
+
+//     // Emit socket event
+//     req.io.to(`bargain_${bargainId}`).emit('new_message', message[0]);
+
+//     res.status(201).json(message[0]);
+
+//   } catch (err) {
+//     console.error('Error saving message:', err);
+//     res.status(500).json({ error: 'Failed to save message' });
+//   }
+// });
 // Get bargain session details with last message
+
+// Add this to your backend routes
+app.post('/api/bargain/:bargainId/system-message', authenticate, async (req, res) => {
+  try {
+    const { bargainId } = req.params;
+    const { message_content, message_type, price_suggestion } = req.body;
+
+    if (!bargainId || !message_content || !message_type) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Insert into database
+    const result = await queryDatabase(`
+      INSERT INTO bargain_messages (
+        bargain_id,
+        sender_role,
+        sender_id,
+        message_content,
+        price_suggestion,
+        message_type
+      ) VALUES (?, 'system', NULL, ?, ?, ?)
+    `, [bargainId, message_content, price_suggestion || null, message_type]);
+
+    res.status(201).json({
+      message_id: result.insertId,
+      bargain_id: bargainId,
+      message_content,
+      message_type,
+      price_suggestion: price_suggestion || null,
+      created_at: new Date().toISOString()
+    });
+
+  } catch (err) {
+    console.error('Error saving system message:', err);
+    res.status(500).json({ error: 'Failed to save system message' });
+  }
+}); 
 app.get('/api/sessions', authenticate, async (req, res) => {
   try {
     const userType = req.user.type; // 'farmer' or 'consumer'
@@ -4929,6 +5462,123 @@ module.exports = router;
 
 
 
+<<<<<<< HEAD
+=======
+
+
+
+
+
+
+
+// Example backend API for fetching bargain sessions
+// In your backend API route (server.js)
+// Updated backend route
+// Updated route handler
+// Middleware to force JSON responses
+// app.get('/api/bargain/farmers/:farmerId/sessions', authenticate, farmerOnly, async (req, res) => {
+//   try {
+//     const farmerId = req.params.farmerId;
+
+//     // ✅ Format validation (example: KRST01FR001)
+//     if (!/^[A-Z0-9]{8,12}$/.test(farmerId)) {
+//       return res.status(400).json({ error: "Invalid farmer ID format" });
+//     }
+
+//     const sessions = await queryDatabase(
+//       `SELECT * FROM bargain_sessions 
+//        WHERE farmer_id = ?
+//        ORDER BY created_at DESC`,
+//       [farmerId]
+//     );
+
+//     res.status(200).json(sessions.rows);
+
+//   } catch (err) {
+//     console.error("💥 DB Error:", err);
+//     res.status(500).json({ error: "Database operation failed" });
+//   }
+// });
+// app.get('/api/bargain/farmers/:farmerId/sessions', authenticate, farmerOnly, async (req, res) => {
+//   try {
+//     const farmerId = req.params.farmerId;
+
+//     if (!/^[A-Z0-9]{8,12}$/.test(farmerId)) {
+//       return res.status(400).json({ error: "Invalid farmer ID format" });
+//     }
+
+//     const sessions = await queryDatabase(
+//       `
+//      SELECT 
+//   bs.bargain_id,
+//   bs.consumer_id,
+//   cr.first_name,
+//   cr.last_name,
+//   p.product_name,
+//   bsp.quantity,
+//   bsp.current_offer AS current_price,
+//   bsp.original_price AS initial_price,
+//   bs.status,
+//   bs.updated_at,
+//   (
+//     SELECT 
+//       CASE 
+//         WHEN bm.message_type = 'suggestion' THEN CONCAT('Suggested ₹', FORMAT(bm.price_suggestion, 2))
+//         WHEN bm.message_type = 'accept' THEN 'Accepted the offer'
+//         WHEN bm.message_type = 'reject' THEN 'Rejected the offer'
+//         WHEN bm.message_type = 'finalize' THEN 'Finalized the deal'
+//         ELSE 'Unknown'
+//       END
+//     FROM bargain_messages bm
+//     WHERE bm.bargain_id = bs.bargain_id
+//     ORDER BY bm.created_at DESC
+//     LIMIT 1
+//   ) as last_message_content,
+//   (
+//     SELECT bm.created_at
+//     FROM bargain_messages bm
+//     WHERE bm.bargain_id = bs.bargain_id
+//     ORDER BY bm.created_at DESC
+//     LIMIT 1
+//   ) as last_message_timestamp
+// FROM bargain_sessions bs
+// JOIN consumerregistration cr ON bs.consumer_id = cr.consumer_id
+// JOIN bargain_session_products bsp ON bs.bargain_id = bsp.bargain_id
+// JOIN products p ON bsp.product_id = p.product_id
+// WHERE bs.farmer_id = ?
+//   AND bsp.product_id IS NOT NULL
+// ORDER BY bs.updated_at DESC
+
+//       `,
+//       [farmerId]
+//     );
+
+//     const transformedSessions = sessions.map(session => ({
+//       bargain_id: session.bargain_id,
+//       consumer_id: session.consumer_id,
+//       consumer_name: `${session.first_name} ${session.last_name}`,
+//       product_name: session.product_name,
+//       quantity: session.quantity,
+//       current_price: session.current_price,
+//       initial_price: session.initial_price,
+//       status: session.status,
+//       updated_at: session.updated_at,
+//       last_message: session.last_message_content ? {
+//         content: session.last_message_content,
+//         timestamp: session.last_message_timestamp
+//       } : null
+//     }));
+
+//     console.log("🔥 Sessions Result:", transformedSessions);
+//     res.status(200).json(transformedSessions);
+
+//   } catch (err) {
+//     console.error("💥 DB Error:", err);
+//     res.status(500).json({ error: "Database operation failed" });
+//   }
+// });
+
+>>>>>>> f077ee6e9b6ad0dd2df02d81a98f3a5f42769772
 app.get('/api/bargain/farmers/:farmerId/sessions', authenticate, farmerOnly, async (req, res) => {
   try {
     const farmerId = req.params.farmerId;
@@ -4939,76 +5589,97 @@ app.get('/api/bargain/farmers/:farmerId/sessions', authenticate, farmerOnly, asy
 
     const sessions = await queryDatabase(
       `
-     SELECT 
-  bs.bargain_id,
-  bs.consumer_id,
-  cr.first_name,
-  cr.last_name,
-  p.product_name,
-  bsp.quantity,
-  bsp.current_offer AS current_price,
-  bsp.original_price AS initial_price,
-  bs.status,
-  bs.updated_at,
-  (
-    SELECT 
-      CASE 
-        WHEN bm.message_type = 'suggestion' THEN CONCAT('Suggested ₹', FORMAT(bm.price_suggestion, 2))
-        WHEN bm.message_type = 'accept' THEN 'Accepted the offer'
-        WHEN bm.message_type = 'reject' THEN 'Rejected the offer'
-        WHEN bm.message_type = 'finalize' THEN 'Finalized the deal'
-        ELSE 'Unknown'
-      END
-    FROM bargain_messages bm
-    WHERE bm.bargain_id = bs.bargain_id
-    ORDER BY bm.created_at DESC
-    LIMIT 1
-  ) as last_message_content,
-  (
-    SELECT bm.created_at
-    FROM bargain_messages bm
-    WHERE bm.bargain_id = bs.bargain_id
-    ORDER BY bm.created_at DESC
-    LIMIT 1
-  ) as last_message_timestamp
-FROM bargain_sessions bs
-JOIN consumerregistration cr ON bs.consumer_id = cr.consumer_id
-JOIN bargain_session_products bsp ON bs.bargain_id = bsp.bargain_id
-JOIN products p ON bsp.product_id = p.product_id
-WHERE bs.farmer_id = ?
-  AND bsp.product_id IS NOT NULL
-ORDER BY bs.updated_at DESC
-
+      SELECT 
+        bs.bargain_id,
+        bs.consumer_id,
+        cr.first_name,
+        cr.last_name,
+        cr.phone_number as consumer_phone,
+        ap.produce_name,
+        ap.produce_type,
+        ap.price_per_kg,
+        ap.availability,
+        ap.market_type,
+        bsp.product_id,
+        bsp.quantity,
+        bsp.current_offer AS current_price,
+        bsp.original_price AS initial_price,
+        bs.status,
+        bs.updated_at,
+        (
+          SELECT 
+            CASE 
+              WHEN bm.message_type = 'suggestion' THEN CONCAT('Suggested ₹', FORMAT(bm.price_suggestion, 2))
+              WHEN bm.message_type = 'accept' THEN 'Accepted the offer'
+              WHEN bm.message_type = 'reject' THEN 'Rejected the offer'
+              WHEN bm.message_type = 'finalize' THEN 'Finalized the deal'
+              ELSE NULL
+            END
+          FROM bargain_messages bm
+          WHERE bm.bargain_id = bs.bargain_id
+          ORDER BY bm.created_at DESC
+          LIMIT 1
+        ) as last_message_content,
+        (
+          SELECT bm.created_at
+          FROM bargain_messages bm
+          WHERE bm.bargain_id = bs.bargain_id
+          ORDER BY bm.created_at DESC
+          LIMIT 1
+        ) as last_message_timestamp
+      FROM bargain_sessions bs
+      JOIN consumerregistration cr ON bs.consumer_id = cr.consumer_id
+      JOIN bargain_session_products bsp ON bs.bargain_id = bsp.bargain_id
+      JOIN add_produce ap ON bsp.product_id = ap.product_id
+      WHERE bs.farmer_id = ?
+        AND bsp.product_id IS NOT NULL
+      ORDER BY bs.updated_at DESC
       `,
       [farmerId]
     );
 
-    const transformedSessions = sessions.map(session => ({
-      bargain_id: session.bargain_id,
-      consumer_id: session.consumer_id,
-      consumer_name: `${session.first_name} ${session.last_name}`,
-      product_name: session.product_name,
-      quantity: session.quantity,
-      current_price: session.current_price,
-      initial_price: session.initial_price,
-      status: session.status,
-      updated_at: session.updated_at,
-      last_message: session.last_message_content ? {
-        content: session.last_message_content,
-        timestamp: session.last_message_timestamp
-      } : null
-    }));
+    const transformedSessions = sessions.map(session => {
+      const productDetails = {
+        product_id: session.product_id,
+        produce_name: session.produce_name,
+        produce_type: session.produce_type,
+        price_per_kg: session.price_per_kg,
+        availability: session.availability,
+        market_type: session.market_type
+      };
 
-    console.log("🔥 Sessions Result:", transformedSessions);
+      return {
+        bargain_id: session.bargain_id,
+        consumer_id: session.consumer_id,
+        consumer_name: `${session.first_name} ${session.last_name}`,
+        consumer_phone: session.consumer_phone,
+        product_name: session.produce_name,
+        product_id: session.product_id,
+        product_details: productDetails,
+        quantity: session.quantity,
+        current_price: session.current_price,
+        initial_price: session.initial_price,
+        status: session.status,
+        updated_at: session.updated_at,
+        last_message: session.last_message_content ? {
+          content: session.last_message_content,
+          timestamp: session.last_message_timestamp
+        } : null,
+        unread_count: 0 // You can calculate this based on your business logic
+      };
+    });
+
+    console.log("✅ Fetched Bargain Sessions:", transformedSessions);
     res.status(200).json(transformedSessions);
 
   } catch (err) {
-    console.error("💥 DB Error:", err);
-    res.status(500).json({ error: "Database operation failed" });
+    console.error("💥 Database Error:", err);
+    res.status(500).json({ 
+      error: "Failed to fetch bargain sessions",
+      details: err.message
+    });
   }
 });
-
-
 
 
 

@@ -1816,3 +1816,212 @@
     font-size: 1.2rem;
   }
 }
+
+/* 10/04 */
+
+/* Wallet Section Styles */
+.wallet-section {
+  margin: 20px 0;
+}
+
+.wallet-balance-card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.wallet-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.wallet-icon {
+  font-size: 28px;
+  color: #4CAF50;
+}
+
+.wallet-label {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.wallet-amount {
+  margin: 5px 0 0;
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+}
+
+.wallet-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.wallet-action {
+  background: #4CAF50;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: background 0.3s;
+}
+
+.wallet-action.history {
+  background: #2196F3;
+}
+
+.wallet-action:hover {
+  background: #45a049;
+}
+
+.wallet-action.history:hover {
+  background: #0b7dda;
+}
+
+/* Wallet Popup Styles */
+.wallet-popup, .history-popup {
+  width: 90%;
+  max-width: 500px;
+}
+
+.wallet-user-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.wallet-user-info {
+  background: #f5f5f5;
+  padding: 10px;
+  border-radius: 5px;
+}
+
+.wallet-user-info h4 {
+  margin: 0 0 5px;
+  font-size: 14px;
+  color: #666;
+}
+
+.wallet-user-info p {
+  margin: 0;
+  font-weight: bold;
+}
+
+.current-balance {
+  text-align: center;
+  margin: 20px 0;
+}
+
+.balance-amount {
+  font-size: 28px;
+  font-weight: bold;
+  color: #4CAF50;
+  margin: 5px 0 0;
+}
+
+.add-money-section {
+  margin-top: 20px;
+}
+
+.add-money-controls {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.add-money-controls input {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 16px;
+}
+
+.add-money-btn {
+  background: #4CAF50;
+  color: white;
+  border: none;
+  padding: 0 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background 0.3s;
+}
+
+.add-money-btn:hover {
+  background: #45a049;
+}
+
+.add-money-btn:disabled {
+  background: #cccccc;
+  cursor: not-allowed;
+}
+
+.minimum-amount {
+  font-size: 12px;
+  color: #666;
+  margin: 5px 0 0;
+  text-align: right;
+}
+
+/* Transactions History Styles */
+.transactions-table-container {
+  max-height: 400px;
+  overflow-y: auto;
+  margin-top: 15px;
+}
+
+.transactions-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.transactions-table th, 
+.transactions-table td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.transactions-table th {
+  background-color: #f5f5f5;
+  position: sticky;
+  top: 0;
+}
+
+.txn-type.credit {
+  color: #4CAF50;
+  font-weight: bold;
+}
+
+.txn-type.debit {
+  color: #f44336;
+  font-weight: bold;
+}
+
+.txn-amount.credit {
+  color: #4CAF50;
+}
+
+.txn-amount.debit {
+  color: #f44336;
+}
+
+.no-transactions {
+  text-align: center;
+  padding: 30px;
+  color: #666;
+}
+
