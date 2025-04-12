@@ -74,7 +74,6 @@ const FarmerChatList = () => {
       console.error("Attempted to normalize undefined session");
       return null;
     }
-  
     const defaultSession = {
       bargain_id: '',
       consumer_id: '',
@@ -675,16 +674,6 @@ const fetchSessions = useCallback(async () => {
                     </span>
                   </div>
                   
-                  {/* <div className="session-details">
-                    <p className="product-info">
-                      <strong>{session.product_name}</strong> ({session.quantity}kg)
-                    </p>
-                    <p className="price-info">
-                      <FontAwesomeIcon icon={faRupeeSign} />
-                      {session.current_price}/kg
-                    </p>
-                  </div>
-                   */}
                   <div className="session-preview">
                     
                   <p className="message-preview">

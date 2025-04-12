@@ -608,6 +608,7 @@ socket.current.on('priceUpdate', (data) => {
     </div>
   )}
 
+
           {waitingForResponse && (
             <div className="waiting-indicator animate__animated animate__pulse animate__infinite">
               <FontAwesomeIcon icon={faSpinner} spin /> Waiting for consumer's response...
