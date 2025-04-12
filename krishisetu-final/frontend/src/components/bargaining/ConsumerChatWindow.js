@@ -84,52 +84,95 @@ const BargainChatWindow = () => {
         }
       );
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch messages');
-      }
-
       const data = await response.json();
-      setMessages(data);
+    
+      // Transform data if needed to match your expected format
+      const formattedMessages = data.map(msg => ({
+        ...msg,
+        content: msg.message_content, // Map database field to your component's expected field
+        timestamp: msg.created_at
+      }));
+      
+      setMessages(formattedMessages);
     } catch (err) {
       console.error('Error fetching messages:', err);
-      setError(err.message);
     }
   };
 
    // Modify the socket message handler to detect counter offers
-   useEffect(() => {
-    if (!socket.current) return;
+// Update the socket message handler to properly handle farmer responses
+// useEffect(() => {
+//   if (!socket.current) return;
 
-    const handleNewMessage = (message) => {
-      if (message?.message_id) {
-        setMessages(prev => [...prev, message]);
+//   const handleNewMessage = (message) => {
+//     if (message?.message_id) {
+//       setMessages(prev => [...prev, message]);
+      
+//       if (message.sender_role === 'farmer') {
+//         setWaitingForResponse(false);
         
-        // Check if this is a counter offer from farmer
-        if (message.sender_role === 'farmer' && message.message_type === 'counter_offer') {
-          setHasFarmerCounterOffer(true);
-          setWaitingForResponse(false);
+//         if (message.message_type === 'counter_offer') {
+//           // Handle farmer's counter offer
+//           setHasFarmerCounterOffer(true);
+//           setCurrentPrice(message.price_suggestion);
           
-          // Generate new suggestions based on farmer's counter offer
+//           // Generate new suggestions based on farmer's counter price
+//           const suggestions = generatePriceSuggestions(message.price_suggestion);
+//           setPriceSuggestions(suggestions);
+//         }
+//       }
+//     }
+//   };
+  
+//   socket.current.on('new_message', handleNewMessage);
+
+//   return () => {
+//     if (socket.current) {
+//       socket.current.off('new_message', handleNewMessage);
+//     }
+//   };
+// }, [generatePriceSuggestions]);
+// Update the socket message handler to properly handle farmer responses
+useEffect(() => {
+  if (!socket.current) return;
+
+  const handleNewMessage = (message) => {
+    if (message?.message_id) {
+      setMessages(prev => [...prev, message]);
+      
+      // Handle farmer's messages
+      if (message.sender_role === 'farmer') {
+        setWaitingForResponse(false);
+        
+        // Handle counter offers specifically
+        if (message.message_type === 'counter_offer' && message.price_suggestion) {
+          setHasFarmerCounterOffer(true);
+          setCurrentPrice(message.price_suggestion);
+          
+          // Generate new price suggestions based on farmer's counter offer
           const suggestions = generatePriceSuggestions(message.price_suggestion);
           setPriceSuggestions(suggestions);
-          setShowPriceSuggestions(true);
           
-          // Update current price
-          setCurrentPrice(message.price_suggestion);
+          // Scroll to bottom to show new message
+          setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+          }, 100);
         }
       }
-    };
-    
-    socket.current.on('new_message', handleNewMessage);
-
-    return () => {
-      if (socket.current) {
-        socket.current.off('new_message', handleNewMessage);
-      }
-    };
-  }, [generatePriceSuggestions]);
+    }
+  };
   
- const initializeSocketConnection = useCallback(() => {
+  socket.current.on('new_message', handleNewMessage);
+
+  return () => {
+    if (socket.current) {
+      socket.current.off('new_message', handleNewMessage);
+    }
+  };
+}, [generatePriceSuggestions]);
+
+// Replace your socket initialization with this updated version
+const initializeSocketConnection = useCallback(() => {
   if (!bargainId || !token) {
     console.error("Cannot initialize socket: missing bargainId or token");
     setConnectionStatus("disconnected");
@@ -143,7 +186,6 @@ const BargainChatWindow = () => {
     socket.current = null;
   }
 
-  // Configure socket options
   const socketOptions = {
     auth: { token },
     query: { bargainId },
@@ -160,106 +202,60 @@ const BargainChatWindow = () => {
     }
   };
 
-  console.log("Initializing socket with options:", socketOptions);
-
-  // Create new socket connection
   socket.current = io(
     process.env.REACT_APP_API_BASE_URL || "http://localhost:5000",
     socketOptions
   );
 
-  // Connection established
+  // Connection handlers
   socket.current.on('connect', () => {
     console.log("Socket connected with ID:", socket.current?.id);
     setConnectionStatus("connected");
   });
 
-  // Connection error
   socket.current.on('connect_error', (err) => {
-    console.error("Socket connection error:", {
-      message: err.message,
-      description: err.description,
-      context: err.context
-    });
+    console.error("Socket connection error:", err);
     setConnectionStatus("error");
     
-    // Exponential backoff reconnection
     const maxAttempts = 5;
     if (reconnectAttempts.current < maxAttempts) {
       const delay = Math.min(30000, Math.pow(2, reconnectAttempts.current) * 1000);
       reconnectAttempts.current += 1;
-      console.log(`Reconnecting attempt ${reconnectAttempts.current} in ${delay}ms`);
       setTimeout(() => initializeSocketConnection(), delay);
     }
   });
 
-  // Connection closed
   socket.current.on('disconnect', (reason) => {
     console.log("Socket disconnected:", reason);
     setConnectionStatus("disconnected");
     
-    // Immediate reconnect for certain disconnect reasons
     if (reason === "io server disconnect") {
-      console.log("Attempting immediate reconnect");
       setTimeout(() => initializeSocketConnection(), 1000);
     }
   });
 
-  // Price update from farmer
-  socket.current.on('priceUpdate', (data) => {
-    if (data?.newPrice) {
-      setCurrentPrice(data.newPrice);
-      addSystemMessage(`Farmer updated price to ₹${data.newPrice}/kg`);
-      setWaitingForResponse(false);
-    } else {
-      console.error("Invalid priceUpdate data:", data);
-    }
-  });
-
-  // Bargain status update
-  socket.current.on('bargainStatusUpdate', (status) => {
-    const validStatuses = ['pending', 'accepted', 'rejected'];
-    if (validStatuses.includes(status)) {
-      setBargainStatus(status);
-      if (status === 'accepted') {
-        addSystemMessage("🎉 Farmer accepted your offer!");
-      } else if (status === 'rejected') {
-        addSystemMessage("❌ Farmer declined your offer");
-      }
-      setWaitingForResponse(false);
-    } else {
-      console.error("Invalid bargain status:", status);
-    }
-  });
-
-socket.current.on('new_message', (message) => {
-  if (message?.message_id) {
-    setMessages(prev => [...prev, message]);
-    if (message.sender_role === 'farmer') {
-      setWaitingForResponse(false);
+  // Single unified message handler
+  socket.current.on('new_message', (message) => {
+    console.log("Received new message:", message);
+    if (message?.message_id) {
+      setMessages(prev => [...prev, message]);
       
-      // If it's a counter offer, show new suggestions
-      if (message.message_type === 'counter_offer' && message.price_suggestion) {
-        const suggestions = generatePriceSuggestions(message.price_suggestion);
-        setPriceSuggestions(suggestions);
-        setShowPriceSuggestions(true);
+      if (message.sender_role === 'farmer') {
+        setWaitingForResponse(false);
+        
+        if (message.message_type === 'counter_offer') {
+          console.log("Processing farmer counter offer");
+          setHasFarmerCounterOffer(true);
+          setCurrentPrice(message.price_suggestion);
+          
+          const suggestions = generatePriceSuggestions(message.price_suggestion);
+          setPriceSuggestions(suggestions);
+          
+          setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+          }, 100);
+        }
       }
-    }
-  }
-});
-
-  // Typing indicator
-  socket.current.on('typing', (isTyping) => {
-    setIsTyping(Boolean(isTyping));
-  });
-
-  // Price suggestions
-  socket.current.on('priceSuggestions', (data) => {
-    if (Array.isArray(data?.suggestions)) {
-      setPriceSuggestions(data.suggestions);
-      setShowPriceSuggestions(true);
-    } else {
-      console.error("Invalid price suggestions:", data);
     }
   });
 
@@ -269,16 +265,25 @@ socket.current.on('new_message', (message) => {
     setError(error.message || "WebSocket communication error");
   });
 
-  // Cleanup function for useEffect
   return () => {
     if (socket.current) {
-      console.log("Cleaning up socket connection");
-      socket.current.removeAllListeners();
       socket.current.disconnect();
     }
   };
-}, [bargainId, token]);
+}, [bargainId, token, generatePriceSuggestions]);
 
+// Add this useEffect to debug state changes
+useEffect(() => {
+  console.log("Messages updated:", messages);
+}, [messages]);
+
+useEffect(() => {
+  console.log("Current price updated:", currentPrice);
+}, [currentPrice]);
+
+useEffect(() => {
+  console.log("Farmer counter offer status:", hasFarmerCounterOffer);
+}, [hasFarmerCounterOffer]);
 
   // Helper function to add system messages
   const addSystemMessage = useCallback((content) => {
@@ -492,61 +497,54 @@ useEffect(() => {
       setIsLoading(false);
     }
   };
-  const handlePriceSelection = async (price) => {
-    try {
-      // Immediately hide suggestions and update price
-      setShowPriceSuggestions(false);
-      setCurrentPrice(price);
-  
-      // Construct message content
-      const messageContent = `💰 Offered ₹${price}/kg for ${selectedQuantity}kg of ${selectedProduct.produce_name}`;
-  
-      // Send the price offer to server
-      const response = await fetch(
-        `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/bargain/${bargainId}/messages`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            sender_role: 'consumer',
-            sender_id: consumer.consumer_id,
-            message_content: messageContent,
-            price_suggestion: price,
-            message_type: 'price_offer'
-          })
-        }
-      );
-  
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to save message");
+ // Update handlePriceSelection to handle counter offers
+const handlePriceSelection = async (price) => {
+  try {
+    setShowPriceSuggestions(false);
+    setWaitingForResponse(true);
+    setCurrentPrice(price);
+    
+    const messageType = hasFarmerCounterOffer ? 'counter_offer' : 'price_offer';
+  // Update your handlePriceSelection function:
+const messageContent = `💰 ${hasFarmerCounterOffer ? 'Counter offer' : 'Offered'} ₹${price}/kg for ${selectedQuantity}kg of ${selectedProduct.produce_name}`;
+    const response = await fetch(
+      `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/bargain/${bargainId}/messages`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          sender_role: 'consumer',
+          sender_id: consumer.consumer_id,
+          message_content: messageContent,
+          price_suggestion: price,
+          message_type: messageType
+        })
       }
-  
-      // Update UI with the new message
-      const newMessage = await response.json();
-      setMessages(prev => [...prev, newMessage]);
-  
-      // Notify farmer via WebSocket
-      if (socket.current?.connected) {
-        socket.current.emit('priceOffer', {
-          bargainId,
-          message: newMessage,
-          productId: selectedProduct.product_id,
-          quantity: selectedQuantity,
-          newPrice: price
-        });
-      }
-  
-    } catch (err) {
-      console.error('Error handling price selection:', err);
-      setError(err.message);
-      // Re-show suggestions if there was an error
-      setShowPriceSuggestions(true);
+    );
+
+    if (!response.ok) throw new Error('Failed to save message');
+
+    const newMessage = await response.json();
+    setMessages(prev => [...prev, newMessage]);
+    setHasFarmerCounterOffer(false);
+
+    if (socket.current?.connected) {
+      socket.current.emit('priceOffer', {
+        bargainId,
+        message: newMessage,
+        newPrice: price
+      });
     }
-  };
+  } catch (err) {
+    console.error('Error handling price selection:', err);
+    setError(err.message);
+    setShowPriceSuggestions(true);
+  }
+};
+
 
 
   // Add this function to handle accepting the farmer's counter offer
@@ -814,26 +812,31 @@ useEffect(() => {
                 <p>No messages yet. Start the negotiation!</p>
               </div>
             ) : (
-              messages.map((msg, index) => (
-                <div 
-                  key={`msg-${index}`} 
-                  className={`message ${msg.sender_type} animate__animated animate__fadeIn`}
-                  style={{ animationDelay: `${index * 0.1}s` }}
-                >
-                  <div className="message-content">
-                    {msg.content}
-                  </div>
-                  <div className="message-meta">
-                    <span className="sender">
-                      {msg.sender_type === 'consumer' ? 'You' : 
-                       msg.sender_type === 'farmer' ? selectedFarmer?.farmer_name : 'System'}
-                    </span>
-                    <span className="timestamp">
-                      {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                </div>
-              ))
+            // Update your message rendering code to this:
+// In your message rendering component:
+messages.map((msg, index) => {
+  // Determine message alignment and styling
+  const messageType = msg.sender_role === 'consumer' ? 'consumer' :
+                     msg.sender_role === 'farmer' ? 'farmer' : 'system';
+
+  return (
+    <div key={`msg-${index}`} className={`message ${messageType}`}>
+      <div className="message-content">
+        {messageType === 'system' && <span className="system-label">System: </span>}
+        {msg.message_content}
+      </div>
+      <div className="message-meta">
+        <span className="sender">
+          {messageType === 'consumer' ? consumer.name : 
+           messageType === 'farmer' ? selectedFarmer.farmer_name : 'System'}
+        </span>
+        <span className="timestamp">
+          {new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
+        </span>
+      </div>
+    </div>
+  );
+})
             )}
             {isTyping && (
               <div className="typing-indicator">
@@ -850,7 +853,7 @@ useEffect(() => {
 
           {/* Chat Controls */}
           <div className="chat-controls">
-            {showPriceSuggestions && (
+            {/* {showPriceSuggestions && (
               <div className="price-suggestions animate__animated animate__fadeInUp">
                 <h4>Make an Offer:</h4>
                 <div className="suggestion-buttons">
@@ -874,13 +877,60 @@ useEffect(() => {
                   ))}
                 </div>
               </div>
-            )}
+            )} */}
+{showPriceSuggestions && !hasFarmerCounterOffer && (
+    <div className="price-suggestions">
+      <h4>Make an Offer:</h4>
+      <div className="suggestion-buttons">
+        {priceSuggestions.map((suggestion, index) => (
+          <button
+            key={`price-${index}`}
+            onClick={() => handlePriceSelection(suggestion.price)}
+            className={`suggestion-btn ${suggestion.amount < 0 ? 'decrease' : 'increase'}`}
+          >
+            <div className="price-change">
+              {suggestion.amount < 0 ? (
+                <FontAwesomeIcon icon={faArrowDown} />
+              ) : (
+                <FontAwesomeIcon icon={faArrowUp} />
+              )}
+              ₹{suggestion.price}
+            </div>
+            <div className="price-label">{suggestion.label}</div>
+          </button>
+        ))}
+      </div>
+    </div>
+  )}
 
-            {waitingForResponse && (
-              <div className="waiting-indicator animate__animated animate__pulse animate__infinite">
-                <FontAwesomeIcon icon={faSpinner} spin /> Waiting for farmer's response...
-              </div>
-            )}
+  {/* Farmer counter offer response options */}
+  {hasFarmerCounterOffer && (
+    <div className="farmer-counter-options">
+      <h4>Farmer's Counter Offer: ₹{currentPrice}/kg</h4>
+      <div className="response-buttons">
+        <button onClick={handleAcceptFarmerOffer} className="accept-btn">
+          <FontAwesomeIcon icon={faCheckCircle} /> Accept
+        </button>
+        <button onClick={handleRejectFarmerOffer} className="reject-btn">
+          <FontAwesomeIcon icon={faTimesCircle} /> Reject
+        </button>
+        <button 
+          onClick={() => {
+            setShowPriceSuggestions(true);
+            setHasFarmerCounterOffer(false);
+          }} 
+          className="counter-btn"
+        >
+          <FontAwesomeIcon icon={faHandshake} /> Counter Offer
+        </button>
+      </div>
+    </div>
+  )}
+           {waitingForResponse && (
+    <div className="waiting-indicator">
+      <FontAwesomeIcon icon={faSpinner} spin /> Waiting for response...
+    </div>
+  )}
 
             {bargainStatus === 'accepted' && (
               <div className="accepted-actions animate__animated animate__fadeIn">

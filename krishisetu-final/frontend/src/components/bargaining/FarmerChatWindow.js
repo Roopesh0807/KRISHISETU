@@ -47,7 +47,7 @@ const FarmerChatWindow = () => {
   const [priceSuggestions, setPriceSuggestions] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
   const [originalPrice, setOriginalPrice] = useState(initialProduct?.price_per_kg || 0);
-
+  const [waitingForConsumerResponse, setWaitingForConsumerResponse] = useState(false);
   // Generate price suggestions based on current price
   const generatePriceSuggestions = useCallback((basePrice) => {
     const numericPrice = parseFloat(basePrice);
@@ -181,23 +181,30 @@ socket.current.on('systemMessage', (message) => {
 
     // Message handling
   // In initializeSocketConnection, update the newMessage handler:
-  socket.current.on('newMessage', (message) => {
-    if (message?.content && message?.sender_type) {
-      setMessages(prev => [...prev, message]);
+ // Update the socket message handler:
+socket.current.on('newMessage', (message) => {
+  if (message?.message_content) {
+    const formattedMessage = {
+      ...message,
+      content: message.message_content,
+      timestamp: message.created_at,
+      sender_type: message.sender_role === 'system' ? 'system' : message.sender_role
+    };
+    
+    setMessages(prev => [...prev, formattedMessage]);
+    
+    if (message.sender_role === 'consumer') {
+      // Show price suggestions when consumer makes an offer
+      const priceMatch = message.message_content.match(/₹(\d+)/);
+      const price = priceMatch ? parseFloat(priceMatch[1]) : currentPrice;
       
-      // Show suggestions for any consumer message
-      if (message.sender_type === 'consumer') {
-        // Extract price from message content if available
-        const priceMatch = message.content.match(/₹(\d+)/);
-        const price = priceMatch ? parseFloat(priceMatch[1]) : currentPrice;
-        
-        const suggestions = generatePriceSuggestions(price);
-        setPriceSuggestions(suggestions);
-        setShowPriceSuggestions(true);
-        setCurrentPrice(price); // Update current price if found in message
-      }
+      const suggestions = generatePriceSuggestions(price);
+      setPriceSuggestions(suggestions);
+      setShowPriceSuggestions(true);
+      setCurrentPrice(price);
     }
-  });
+  }
+});
     // Price update handling
    // Update the priceUpdate handler to ensure it shows in messages
   // Update the priceUpdate handler in initializeSocketConnection
@@ -212,19 +219,29 @@ socket.current.on('priceUpdate', (data) => {
     setShowPriceSuggestions(true);
   }
 });
-    // Status update handling
-    socket.current.on('bargainStatusUpdate', (status) => {
-      const validStatuses = ['pending', 'accepted', 'rejected'];
-      if (validStatuses.includes(status)) {
-        setBargainStatus(status);
-        if (status === 'accepted') {
-          addSystemMessage("🎉 You accepted the consumer's offer!");
-        } else if (status === 'rejected') {
-          addSystemMessage("❌ You declined the consumer's offer");
-        }
-        setWaitingForResponse(false);
-      }
-    });
+   // In initializeSocketConnection, update the bargainStatusUpdate handler:
+socket.current.on('bargainStatusUpdate', (status) => {
+  const validStatuses = ['pending', 'accepted', 'rejected'];
+  if (validStatuses.includes(status)) {
+    setBargainStatus(status);
+    setWaitingForConsumerResponse(false); // Re-enable buttons
+    setWaitingForResponse(false);
+    
+    if (status === 'accepted') {
+      addSystemMessage("🎉 You accepted the consumer's offer!");
+    } else if (status === 'rejected') {
+      addSystemMessage("❌ You declined the consumer's offer");
+    }
+  }
+});
+
+// Also add handler for when consumer responds to counter offer
+socket.current.on('consumerResponse', (response) => {
+  setWaitingForConsumerResponse(false); // Re-enable buttons
+  if (response.message) {
+    addSystemMessage(response.message);
+  }
+});
 
     // Typing indicator
     socket.current.on('typing', (isTyping) => {
@@ -324,16 +341,67 @@ socket.current.on('priceUpdate', (data) => {
       currentPrice
     });
   }, [priceSuggestions, showPriceSuggestions, currentPrice]);
+  // const handlePriceSelection = async (price) => {
+  //   try {
+  //     // Immediately update UI
+  //     setCurrentPrice(price);
+  //     setShowPriceSuggestions(false);
+      
+  //     // Create message content
+  //     const messageContent = `💰 Counter offer: ₹${price}/kg`;
+      
+  //     // Save message to database
+  //     const response = await fetch(
+  //       `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/bargain/${bargainId}/messages`,
+  //       {
+  //         method: 'POST',
+  //         headers: {
+  //           'Content-Type': 'application/json',
+  //           'Authorization': `Bearer ${token}`,
+  //         },
+  //         body: JSON.stringify({
+  //           sender_role: 'farmer',
+  //           sender_id: farmer.farmer_id,
+  //           message_content: messageContent,
+  //           price_suggestion: price,
+  //           message_type: 'counter_offer'
+  //         })
+  //       }
+  //     );
+  
+  //     if (!response.ok) {
+  //       throw new Error('Failed to save message');
+  //     }
+  
+  //     const savedMessage = await response.json();
+  //     setMessages(prev => [...prev, savedMessage]);
+  
+  //     // Notify consumer via socket
+  //     if (socket.current?.connected) {
+  //       socket.current.emit('priceUpdate', {
+  //         bargainId,
+  //         newPrice: price,
+  //         productId: selectedProduct.product_id
+  //       });
+        
+  //       socket.current.emit('newMessage', savedMessage);
+  //     }
+  
+  //   } catch (err) {
+  //     console.error('Error handling price selection:', err);
+  //     setError(err.message);
+  //     // Re-show suggestions if there was an error
+  //     setShowPriceSuggestions(true);
+  //   }
+  // };
   const handlePriceSelection = async (price) => {
     try {
-      // Immediately update UI
+      setWaitingForConsumerResponse(true); // Disable buttons
       setCurrentPrice(price);
       setShowPriceSuggestions(false);
       
-      // Create message content
-      const messageContent = `💰 Counter offer: ₹${price}/kg`;
+      const messageContent = `💰 Counter offer: ₹${price}/kg for ${quantity}kg of ${selectedProduct.produce_name}`;
       
-      // Save message to database
       const response = await fetch(
         `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/bargain/${bargainId}/messages`,
         {
@@ -359,7 +427,6 @@ socket.current.on('priceUpdate', (data) => {
       const savedMessage = await response.json();
       setMessages(prev => [...prev, savedMessage]);
   
-      // Notify consumer via socket
       if (socket.current?.connected) {
         socket.current.emit('priceUpdate', {
           bargainId,
@@ -373,11 +440,12 @@ socket.current.on('priceUpdate', (data) => {
     } catch (err) {
       console.error('Error handling price selection:', err);
       setError(err.message);
-      // Re-show suggestions if there was an error
       setShowPriceSuggestions(true);
+      setWaitingForConsumerResponse(false); // Re-enable buttons on error
     }
   };
-
+  
+  
   // Handle bargain status change (accept/reject)
   const handleBargainStatus = (status) => {
     if (!socket.current || !socket.current.connected) {
@@ -496,26 +564,37 @@ socket.current.on('priceUpdate', (data) => {
               <p>No messages yet. Waiting for consumer...</p>
             </div>
           ) : (
-            messages.map((msg, index) => (
-              <div 
-                key={`msg-${index}`} 
-                className={`message ${msg.sender_type} animate__animated animate__fadeIn`}
-                style={{ animationDelay: `${index * 0.1}s` }}
-              >
-                <div className="message-content">
-                  {msg.content}
-                </div>
-                <div className="message-meta">
-                  <span className="sender">
-                    {msg.sender_type === 'farmer' ? 'You' : 
-                     msg.sender_type === 'consumer' ? `${selectedConsumer.first_name} ${selectedConsumer.last_name}` : 'System'}
-                  </span>
-                  <span className="timestamp">
-                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                </div>
-              </div>
-            ))
+           // In the message rendering section, replace with:
+messages.map((msg, index) => {
+  // Determine message alignment and styling
+  const messageType = msg.sender_role === 'farmer' ? 'farmer' :
+                     msg.sender_role === 'consumer' ? 'consumer' : 'system';
+
+  return (
+    <div 
+      key={`msg-${index}`} 
+      className={`message ${messageType} animate__animated animate__fadeIn`}
+      style={{ animationDelay: `${index * 0.1}s` }}
+    >
+      <div className="message-content">
+        {messageType === 'system' && <span className="system-label">System: </span>}
+        {msg.message_content || msg.content}
+      </div>
+      <div className="message-meta">
+        <span className="sender">
+          {messageType === 'farmer' ? 'You' : 
+           messageType === 'consumer' ? `${selectedConsumer.first_name} ${selectedConsumer.last_name}` : 'System'}
+        </span>
+        <span className="timestamp">
+          {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit'
+          }) : 'Just now'}
+        </span>
+      </div>
+    </div>
+  );
+})
           )}
           {isTyping && (
             <div className="typing-indicator">
@@ -549,13 +628,14 @@ socket.current.on('priceUpdate', (data) => {
         <div className="suggestion-buttons-grid">
           {priceSuggestions.map((suggestion, index) => (
             <button
-              key={`suggestion-${index}`}
-              onClick={() => handlePriceSelection(suggestion.price)}
-              className={`suggestion-btn ${
-                suggestion.amount > 0 ? 'increase' : 'decrease'
-              } animate__animated animate__fadeIn`}
-              style={{ animationDelay: `${index * 0.1}s` }}
-            >
+            key={`suggestion-${index}`}
+            onClick={() => handlePriceSelection(suggestion.price)}
+            className={`suggestion-btn ${
+              suggestion.amount > 0 ? 'increase' : 'decrease'
+            } animate__animated animate__fadeIn`}
+            style={{ animationDelay: `${index * 0.1}s` }}
+            disabled={waitingForConsumerResponse}
+          >
               <div className="suggestion-icon">
                 <FontAwesomeIcon icon={suggestion.amount > 0 ? faArrowUp : faArrowDown} />
               </div>
@@ -577,7 +657,7 @@ socket.current.on('priceUpdate', (data) => {
   )}
 
   {/* Action buttons when no suggestions are shown */}
-  {!showPriceSuggestions && bargainStatus === 'pending' && (
+  {/* {!showPriceSuggestions && bargainStatus === 'pending' && (
     <div className="bargain-actions">
       <button
         onClick={() => {
@@ -606,14 +686,49 @@ socket.current.on('priceUpdate', (data) => {
         </button>
       </div>
     </div>
-  )}
+  )} */}
+{!showPriceSuggestions && bargainStatus === 'pending' && (
+  <div className="bargain-actions">
+    <button
+      onClick={() => {
+        setPriceSuggestions(generatePriceSuggestions(currentPrice));
+        setShowPriceSuggestions(true);
+      }}
+      className="show-suggestions-btn"
+      disabled={waitingForConsumerResponse}
+    >
+      <FontAwesomeIcon icon={faHandshake} /> Make Counter Offer
+    </button>
+    
+    <div className="status-buttons">
+      <button
+        onClick={() => handleBargainStatus('accepted')}
+        className="accept-btn"
+        disabled={waitingForResponse || waitingForConsumerResponse}
+      >
+        <FontAwesomeIcon icon={faCheckCircle} /> Accept Offer
+      </button>
+      <button
+        onClick={() => handleBargainStatus('rejected')}
+        className="reject-btn"
+        disabled={waitingForResponse || waitingForConsumerResponse}
+      >
+        <FontAwesomeIcon icon={faTimesCircle} /> Decline
+      </button>
+    </div>
+  </div>
+)}
 
-
-          {waitingForResponse && (
+          {/* {waitingForResponse && (
             <div className="waiting-indicator animate__animated animate__pulse animate__infinite">
               <FontAwesomeIcon icon={faSpinner} spin /> Waiting for consumer's response...
             </div>
-          )}
+          )} */}
+          {waitingForConsumerResponse && (
+  <div className="waiting-indicator animate__animated animate__pulse animate__infinite">
+    <FontAwesomeIcon icon={faSpinner} spin /> Waiting for consumer to respond to your counter offer...
+  </div>
+)}
 
           {bargainStatus === 'accepted' && (
             <div className="accepted-actions animate__animated animate__fadeIn">
