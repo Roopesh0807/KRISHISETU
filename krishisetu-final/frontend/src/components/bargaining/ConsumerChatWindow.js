@@ -53,24 +53,34 @@ const BargainChatWindow = () => {
 
  // Generate price suggestions based on current price
  const generatePriceSuggestions = useCallback((basePrice) => {
+  const numericPrice = parseFloat(basePrice);
+  if (isNaN(numericPrice)) return [];
+
   const suggestions = [];
+  const step = 1; // ₹1 increments
   
-  // Generate 6 suggestions, each ₹1 less than the previous
-  for (let i = 1; i <= 6; i++) {
-    const newPrice = basePrice - i;
-    if (newPrice > 0) { // Only include positive prices
+  // Generate decreasing offers only (no higher offers)
+  for (let i = 1; i <= 3; i++) {
+    const newPrice = numericPrice - i;
+    if (newPrice > 0) { // Only positive prices
       suggestions.push({
         amount: -i,
         price: newPrice,
         label: `₹${newPrice} (₹${i} less)`
       });
-    } else {
-      break; // Stop if price would go below 0
     }
   }
 
-  return suggestions;
+  // Include current price as reference
+  suggestions.push({
+    amount: 0,
+    price: numericPrice,
+    label: `Current: ₹${numericPrice}`
+  });
+
+  return suggestions.sort((a, b) => a.price - b.price);
 }, []);
+
 
   // Fetch messages from database
   const fetchMessages = async () => {
@@ -98,78 +108,54 @@ const BargainChatWindow = () => {
       console.error('Error fetching messages:', err);
     }
   };
-
-   // Modify the socket message handler to detect counter offers
-// Update the socket message handler to properly handle farmer responses
-// useEffect(() => {
-//   if (!socket.current) return;
-
-//   const handleNewMessage = (message) => {
-//     if (message?.message_id) {
-//       setMessages(prev => [...prev, message]);
-      
-//       if (message.sender_role === 'farmer') {
-//         setWaitingForResponse(false);
-        
-//         if (message.message_type === 'counter_offer') {
-//           // Handle farmer's counter offer
-//           setHasFarmerCounterOffer(true);
-//           setCurrentPrice(message.price_suggestion);
-          
-//           // Generate new suggestions based on farmer's counter price
-//           const suggestions = generatePriceSuggestions(message.price_suggestion);
-//           setPriceSuggestions(suggestions);
-//         }
-//       }
-//     }
-//   };
-  
-//   socket.current.on('new_message', handleNewMessage);
-
-//   return () => {
-//     if (socket.current) {
-//       socket.current.off('new_message', handleNewMessage);
-//     }
-//   };
-// }, [generatePriceSuggestions]);
-// Update the socket message handler to properly handle farmer responses
+// In ConsumerChatWindow
+// Update the socket message handler in ConsumerChatWindow.js
+// Update the socket message handler in ConsumerChatWindow.js
 useEffect(() => {
   if (!socket.current) return;
 
-  const handleNewMessage = (message) => {
-    if (message?.message_id) {
-      setMessages(prev => [...prev, message]);
-      
-      // Handle farmer's messages
-      if (message.sender_role === 'farmer') {
-        setWaitingForResponse(false);
-        
-        // Handle counter offers specifically
-        if (message.message_type === 'counter_offer' && message.price_suggestion) {
-          setHasFarmerCounterOffer(true);
-          setCurrentPrice(message.price_suggestion);
-          
-          // Generate new price suggestions based on farmer's counter offer
-          const suggestions = generatePriceSuggestions(message.price_suggestion);
-          setPriceSuggestions(suggestions);
-          
-          // Scroll to bottom to show new message
-          setTimeout(() => {
-            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-          }, 100);
-        }
-      }
-    }
-  };
-  
-  socket.current.on('new_message', handleNewMessage);
+  const handleNewMessage = (data) => {
+    console.log('Farmer message received:', data);
+    
+    const message = {
+      ...data,
+      content: data.message_content || data.content,
+      sender_role: data.sender_role || 'farmer',
+      timestamp: data.created_at || new Date().toISOString()
+    };
 
-  return () => {
-    if (socket.current) {
-      socket.current.off('new_message', handleNewMessage);
+    setMessages(prev => [...prev, message]);
+    
+    // Handle farmer's counter offer
+    if (message.sender_role === 'farmer' && 
+        (message.message_type === 'counter_offer' || 
+         message.content.includes('Counter offer'))) {
+      
+      // Extract the price (priority: price_suggestion > content regex > currentPrice)
+      const price = message.price_suggestion || 
+                   parseFloat(message.content.match(/₹(\d+)/)?.[1]) || 
+                   currentPrice;
+      
+      console.log('Updating price to:', price);
+      
+      // Update states
+      setCurrentPrice(price);
+      setHasFarmerCounterOffer(true);
+      setWaitingForResponse(false);  // This hides the waiting indicator
+      
+      // Generate new suggestions (only lower than current price)
+      const suggestions = generatePriceSuggestions(price)
+        .filter(s => s.price < price); // Only show lower offers
+      setPriceSuggestions(suggestions);
     }
   };
-}, [generatePriceSuggestions]);
+
+  socket.current.on('bargainMessage', handleNewMessage);
+  return () => socket.current?.off('bargainMessage', handleNewMessage);
+}, [currentPrice, generatePriceSuggestions]);
+
+
+
 
 // Replace your socket initialization with this updated version
 const initializeSocketConnection = useCallback(() => {
@@ -599,6 +585,19 @@ const messageContent = `💰 ${hasFarmerCounterOffer ? 'Counter offer' : 'Offere
     }
   };
 
+  // Add these at the bottom of your component
+useEffect(() => {
+  console.log('Current price state:', currentPrice);
+}, [currentPrice]);
+
+useEffect(() => {
+  console.log('Price suggestions:', priceSuggestions);
+}, [priceSuggestions]);
+
+useEffect(() => {
+  console.log('Has farmer counter offer:', hasFarmerCounterOffer);
+}, [hasFarmerCounterOffer]);
+
   if (loading) {
     return (
       <div className="loading-container">
@@ -782,16 +781,16 @@ const messageContent = `💰 ${hasFarmerCounterOffer ? 'Counter offer' : 'Offere
               <p><strong>Product:</strong> {selectedProduct.produce_name}</p>
               <p><strong>Quantity:</strong> {selectedQuantity || quantity}kg</p>
               <div className="price-display">
-                <span className="current-price">
-                  <strong>Current:</strong> ₹{currentPrice}/kg
-                </span>
-                <span className="base-price">
-                  <strong>Base:</strong> ₹{selectedProduct.price_per_kg}/kg
-                </span>
-                <span className="total-price">
-                  <strong>Total:</strong> ₹{(parseFloat(selectedQuantity || quantity) * currentPrice)}
-                </span>
-              </div>
+  <span className="current-price">
+    <strong>Current:</strong> ₹{currentPrice}/kg
+  </span>
+  <span className="base-price">
+    <strong>Base:</strong> ₹{selectedProduct.price_per_kg}/kg
+  </span>
+  <span className="total-price">
+    <strong>Total:</strong> ₹{(selectedQuantity * currentPrice).toFixed(2)}
+  </span>
+</div>
               {bargainStatus === 'accepted' && (
                 <p className="status-accepted">
                   <FontAwesomeIcon icon={faCheckCircle} /> Offer Accepted!
@@ -815,7 +814,6 @@ const messageContent = `💰 ${hasFarmerCounterOffer ? 'Counter offer' : 'Offere
             // Update your message rendering code to this:
 // In your message rendering component:
 messages.map((msg, index) => {
-  // Determine message alignment and styling
   const messageType = msg.sender_role === 'consumer' ? 'consumer' :
                      msg.sender_role === 'farmer' ? 'farmer' : 'system';
 
@@ -823,15 +821,18 @@ messages.map((msg, index) => {
     <div key={`msg-${index}`} className={`message ${messageType}`}>
       <div className="message-content">
         {messageType === 'system' && <span className="system-label">System: </span>}
-        {msg.message_content}
+        {msg.content || msg.message_content}
       </div>
       <div className="message-meta">
         <span className="sender">
-          {messageType === 'consumer' ? consumer.name : 
-           messageType === 'farmer' ? selectedFarmer.farmer_name : 'System'}
+          {messageType === 'consumer' ? 'You' : 
+           messageType === 'farmer' ? selectedFarmer?.farmer_name : 'System'}
         </span>
         <span className="timestamp">
-          {new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
+          {new Date(msg.timestamp || msg.created_at).toLocaleTimeString([], {
+            hour: '2-digit', 
+            minute: '2-digit'
+          })}
         </span>
       </div>
     </div>
@@ -852,66 +853,23 @@ messages.map((msg, index) => {
           </div>
 
           {/* Chat Controls */}
-          <div className="chat-controls">
-            {/* {showPriceSuggestions && (
-              <div className="price-suggestions animate__animated animate__fadeInUp">
-                <h4>Make an Offer:</h4>
-                <div className="suggestion-buttons">
-                  {priceSuggestions.map((suggestion, index) => (
-                    <button
-                      key={`price-${index}`}
-                      onClick={() => handlePriceSelection(suggestion.price)}
-                      className={`suggestion-btn ${suggestion.amount < 0 ? 'decrease' : 'increase'}`}
-                      disabled={waitingForResponse}
-                    >
-                      <div className="price-change">
-                        {suggestion.amount < 0 ? (
-                          <FontAwesomeIcon icon={faArrowDown} />
-                        ) : (
-                          <FontAwesomeIcon icon={faArrowUp} />
-                        )}
-                        ₹{suggestion.price}
-                      </div>
-                      <div className="price-label">{suggestion.label}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )} */}
-{showPriceSuggestions && !hasFarmerCounterOffer && (
-    <div className="price-suggestions">
-      <h4>Make an Offer:</h4>
-      <div className="suggestion-buttons">
-        {priceSuggestions.map((suggestion, index) => (
-          <button
-            key={`price-${index}`}
-            onClick={() => handlePriceSelection(suggestion.price)}
-            className={`suggestion-btn ${suggestion.amount < 0 ? 'decrease' : 'increase'}`}
-          >
-            <div className="price-change">
-              {suggestion.amount < 0 ? (
-                <FontAwesomeIcon icon={faArrowDown} />
-              ) : (
-                <FontAwesomeIcon icon={faArrowUp} />
-              )}
-              ₹{suggestion.price}
-            </div>
-            <div className="price-label">{suggestion.label}</div>
-          </button>
-        ))}
-      </div>
-    </div>
-  )}
-
-  {/* Farmer counter offer response options */}
+          {/* Chat Controls */}
+<div className="chat-controls">
+  {/* Show farmer's counter offer UI when available */}
   {hasFarmerCounterOffer && (
-    <div className="farmer-counter-options">
-      <h4>Farmer's Counter Offer: ₹{currentPrice}/kg</h4>
+    <div className="farmer-counter-options animate__animated animate__fadeInUp">
+      <h4>Farmer's Offer: ₹{currentPrice}/kg</h4>
       <div className="response-buttons">
-        <button onClick={handleAcceptFarmerOffer} className="accept-btn">
+        <button 
+          onClick={handleAcceptFarmerOffer} 
+          className="accept-btn"
+        >
           <FontAwesomeIcon icon={faCheckCircle} /> Accept
         </button>
-        <button onClick={handleRejectFarmerOffer} className="reject-btn">
+        <button 
+          onClick={handleRejectFarmerOffer} 
+          className="reject-btn"
+        >
           <FontAwesomeIcon icon={faTimesCircle} /> Reject
         </button>
         <button 
@@ -926,31 +884,42 @@ messages.map((msg, index) => {
       </div>
     </div>
   )}
-           {waitingForResponse && (
-    <div className="waiting-indicator">
-      <FontAwesomeIcon icon={faSpinner} spin /> Waiting for response...
+
+  {/* Show price suggestions when no active counter offer */}
+  {showPriceSuggestions && !hasFarmerCounterOffer && (
+    <div className="price-suggestions">
+      <h4>Make a Counter Offer:</h4>
+      <div className="suggestion-buttons">
+        {priceSuggestions
+          .filter(suggestion => suggestion.price < currentPrice) // Only show lower offers
+          .map((suggestion, index) => (
+            <button
+              key={`price-${index}`}
+              onClick={() => handlePriceSelection(suggestion.price)}
+              className="suggestion-btn decrease"
+            >
+              <div className="price-change">
+                <FontAwesomeIcon icon={faArrowDown} />
+                ₹{suggestion.price}
+              </div>
+              <div className="price-label">{suggestion.label}</div>
+            </button>
+          ))}
+      </div>
     </div>
   )}
 
-            {bargainStatus === 'accepted' && (
-              <div className="accepted-actions animate__animated animate__fadeIn">
-                <button 
-                  className="primary-action animate__animated animate__pulse"
-                  onClick={() => navigate('/checkout')}
-                >
-                  Proceed to Checkout
-                </button>
-                <button 
-                  className="secondary-action"
-                  onClick={() => navigate('/')}
-                >
-                  Continue Shopping
-                </button>
-              </div>
-            )}
-          </div>
+  {/* Waiting indicator */}
+  {waitingForResponse && (
+    <div className="waiting-indicator">
+      <FontAwesomeIcon icon={faSpinner} spin /> Waiting for farmer...
+    </div>
+  )}
+</div>
+
         </div>
       )}
+      
     </div>
   );
 };

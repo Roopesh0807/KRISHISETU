@@ -341,111 +341,78 @@ socket.current.on('consumerResponse', (response) => {
       currentPrice
     });
   }, [priceSuggestions, showPriceSuggestions, currentPrice]);
-  // const handlePriceSelection = async (price) => {
-  //   try {
-  //     // Immediately update UI
-  //     setCurrentPrice(price);
-  //     setShowPriceSuggestions(false);
-      
-  //     // Create message content
-  //     const messageContent = `💰 Counter offer: ₹${price}/kg`;
-      
-  //     // Save message to database
-  //     const response = await fetch(
-  //       `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/bargain/${bargainId}/messages`,
-  //       {
-  //         method: 'POST',
-  //         headers: {
-  //           'Content-Type': 'application/json',
-  //           'Authorization': `Bearer ${token}`,
-  //         },
-  //         body: JSON.stringify({
-  //           sender_role: 'farmer',
-  //           sender_id: farmer.farmer_id,
-  //           message_content: messageContent,
-  //           price_suggestion: price,
-  //           message_type: 'counter_offer'
-  //         })
-  //       }
-  //     );
-  
-  //     if (!response.ok) {
-  //       throw new Error('Failed to save message');
-  //     }
-  
-  //     const savedMessage = await response.json();
-  //     setMessages(prev => [...prev, savedMessage]);
-  
-  //     // Notify consumer via socket
-  //     if (socket.current?.connected) {
-  //       socket.current.emit('priceUpdate', {
-  //         bargainId,
-  //         newPrice: price,
-  //         productId: selectedProduct.product_id
-  //       });
-        
-  //       socket.current.emit('newMessage', savedMessage);
-  //     }
-  
-  //   } catch (err) {
-  //     console.error('Error handling price selection:', err);
-  //     setError(err.message);
-  //     // Re-show suggestions if there was an error
-  //     setShowPriceSuggestions(true);
-  //   }
-  // };
+ 
   const handlePriceSelection = async (price) => {
     try {
-      setWaitingForConsumerResponse(true); // Disable buttons
+      setWaitingForConsumerResponse(true);
       setCurrentPrice(price);
       setShowPriceSuggestions(false);
       
       const messageContent = `💰 Counter offer: ₹${price}/kg for ${quantity}kg of ${selectedProduct.produce_name}`;
       
-      const response = await fetch(
-        `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/bargain/${bargainId}/messages`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            sender_role: 'farmer',
-            sender_id: farmer.farmer_id,
-            message_content: messageContent,
-            price_suggestion: price,
-            message_type: 'counter_offer'
-          })
-        }
-      );
+      // Define the API URL
+      const apiUrl = `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/bargain/${bargainId}/messages`;
+      
+      // Create the message payload
+      const messagePayload = {
+        sender_role: 'farmer',
+        sender_id: farmer.farmer_id,
+        message_content: messageContent,
+        price_suggestion: price,  // Explicit price
+        message_type: 'counter_offer',
+        created_at: new Date().toISOString()
+      };
+
+      console.log('Sending message payload:', messagePayload); // Debug log
+      
+      // Save to database
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(messagePayload)
+      });
   
       if (!response.ok) {
-        throw new Error('Failed to save message');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to send message');
       }
   
       const savedMessage = await response.json();
       setMessages(prev => [...prev, savedMessage]);
   
+      // Enhanced socket emission
       if (socket.current?.connected) {
-        socket.current.emit('priceUpdate', {
-          bargainId,
-          newPrice: price,
-          productId: selectedProduct.product_id
+        console.log('Emitting socket message:', {  // Debug log
+          ...savedMessage,
+          price_suggestion: price, // Ensure price is included
+          bargain_id: bargainId
         });
         
-        socket.current.emit('newMessage', savedMessage);
+        socket.current.emit('bargainMessage', {
+          ...savedMessage,
+          bargain_id: bargainId,
+          price_suggestion: price, // Double ensure price is sent
+          created_at: new Date().toISOString() // Fresh timestamp
+        });
+      } else {
+        console.warn('Socket not connected when trying to emit');
       }
-  
     } catch (err) {
-      console.error('Error handling price selection:', err);
-      setError(err.message);
+      console.error('Failed to send counter offer:', err);
+      setError(`Failed to send offer: ${err.message}`);
       setShowPriceSuggestions(true);
-      setWaitingForConsumerResponse(false); // Re-enable buttons on error
+      setWaitingForConsumerResponse(false);
+      
+      // Attempt socket reconnection if needed
+      if (!socket.current?.connected) {
+        console.log('Attempting socket reconnection...');
+        initializeSocketConnection();
+      }
     }
   };
-  
-  
   // Handle bargain status change (accept/reject)
   const handleBargainStatus = (status) => {
     if (!socket.current || !socket.current.connected) {
