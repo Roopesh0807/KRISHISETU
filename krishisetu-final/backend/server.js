@@ -824,56 +824,153 @@ io.use((socket, next) => {
   }
 });
 
+// io.on("connection", (socket) => {
+//   const user = socket.user;
+//   const userType = user?.userType;
+//   const bargainId = socket.handshake.query?.bargainId;
+
+//   console.log("🎯 Reached io.on(connection) with socket.user:", user);
+//   console.log("🔗 bargainId received in query:", bargainId);
+
+//   if (!user || (userType !== "farmer" && userType !== "consumer")) {
+//     console.warn(`❌ Unauthorized socket connection attempt: ${socket.id}`);
+//     socket.disconnect(true);
+//     return;
+//   }
+
+//   console.log(`📡 ${userType} connected via socket: ${socket.id} (User ID: ${user.id})`);
+
+//   // 💬 Handle bargain messages within the same room
+//   if (bargainId) {
+//     socket.join(bargainId); // ✅ Join a room for the bargain session
+//     console.log(`🏠 Joined room for bargainId: ${bargainId}`);
+//   }
+
+//   // 🔁 Listen and emit within room
+//   socket.on("bargainMessage", (data) => {
+//     const bargainId = data.bargain_id; // ✅ Correct way to fetch bargainId from message
+//     const user = socket.user;
+  
+//     console.log(`💬 [${user.userType}] Bargain Message Received from ${user.id}:`, data);
+  
+//     if (bargainId) {
+//       socket.to(bargainId).emit("bargainMessage", {
+//         ...data,
+//         senderId: user.id,
+//         senderType: user.userType,
+//       });
+//     } else {
+//       console.warn("⚠️ bargainId missing in message. Broadcasting to all instead.");
+//       socket.broadcast.emit("bargainMessage", {
+//         ...data,
+//         senderId: user.id,
+//         senderType: user.userType,
+//       });
+//     }
+//   });
+  
+
+//   socket.on("disconnect", () => {
+//     console.log(`❌ ${userType} disconnected: ${socket.id}`);
+//   });
+// });
+
+
+
 io.on("connection", (socket) => {
   const user = socket.user;
   const userType = user?.userType;
   const bargainId = socket.handshake.query?.bargainId;
 
-  console.log("🎯 Reached io.on(connection) with socket.user:", user);
-  console.log("🔗 bargainId received in query:", bargainId);
+  console.log("🎯 New connection from:", userType, socket.id);
 
+  // 🔒 Authentication check
   if (!user || (userType !== "farmer" && userType !== "consumer")) {
-    console.warn(`❌ Unauthorized socket connection attempt: ${socket.id}`);
+    console.warn(`❌ Unauthorized connection: ${socket.id}`);
     socket.disconnect(true);
     return;
   }
 
-  console.log(`📡 ${userType} connected via socket: ${socket.id} (User ID: ${user.id})`);
-
-  // 💬 Handle bargain messages within the same room
+  // 🏠 Join bargain room if ID exists (removed isValidBargainId check)
   if (bargainId) {
-    socket.join(bargainId); // ✅ Join a room for the bargain session
-    console.log(`🏠 Joined room for bargainId: ${bargainId}`);
+    socket.join(bargainId);
+    console.log(`🏠 ${userType} joined room: ${bargainId}`);
+  } else {
+    console.warn("⚠️ No bargainId provided in connection query");
   }
 
-  // 🔁 Listen and emit within room
+  // 💬 Handle chat messages
   socket.on("bargainMessage", (data) => {
-    const bargainId = data.bargain_id; // ✅ Correct way to fetch bargainId from message
-    const user = socket.user;
-  
-    console.log(`💬 [${user.userType}] Bargain Message Received from ${user.id}:`, data);
-  
-    if (bargainId) {
-      socket.to(bargainId).emit("bargainMessage", {
+    try {
+      if (!data?.bargain_id) {
+        console.warn("⚠️ Missing bargain_id in message");
+        return;
+      }
+
+      console.log(`💬 Message from ${userType} in bargain ${data.bargain_id}`);
+      
+      socket.to(data.bargain_id).emit("bargainMessage", {
         ...data,
         senderId: user.id,
         senderType: user.userType,
       });
-    } else {
-      console.warn("⚠️ bargainId missing in message. Broadcasting to all instead.");
-      socket.broadcast.emit("bargainMessage", {
-        ...data,
-        senderId: user.id,
-        senderType: user.userType,
-      });
+    } catch (error) {
+      console.error("❌ Error handling bargainMessage:", error);
     }
   });
-  
 
+  // socket.on("updateBargainStatus", (data) => {
+  //   const { bargainId, status, currentPrice, userId } = data;
+    
+  //   // Add this critical line:
+  //   const initiatedBy = socket.user.userType; // 'farmer' or 'consumer'
+  
+  //   io.to(bargainId).emit("bargainStatusUpdate", {
+  //     status,
+  //     currentPrice,
+  //     initiatedBy, // Crucial for correct message display
+  //     timestamp: new Date().toISOString()
+  //   });
+  // });
+
+  // ⚡ Handle price updates
+  socket.on("updateBargainStatus", (data) => {
+    const { bargainId, status, currentPrice } = data;
+    
+    // Get the actor from the connected socket (THIS WAS MISSING)
+    const initiatedBy = socket.user.userType; // 'farmer' or 'consumer'
+  
+    // Broadcast with PROPER actor context
+    io.to(bargainId).emit("bargainStatusUpdate", {
+      status,
+      currentPrice,
+      initiatedBy, // Now guaranteed correct
+      timestamp: new Date().toISOString()
+    });
+  });
+ 
+ 
+  socket.on("priceUpdate", (data) => {
+    if (!data?.bargainId) {
+      console.warn("⚠️ Missing bargainId in price update");
+      return;
+    }
+    
+    console.log(`💰 Price update in ${data.bargainId}: ₹${data.newPrice}`);
+    
+    io.to(data.bargainId).emit("priceUpdate", {
+      newPrice: data.newPrice,
+      from: userType,
+    });
+  });
+
+  // 🚪 Disconnect handler
   socket.on("disconnect", () => {
     console.log(`❌ ${userType} disconnected: ${socket.id}`);
   });
 });
+
+
 
 const mysql = require("mysql");
 
