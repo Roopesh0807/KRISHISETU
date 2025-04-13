@@ -5072,11 +5072,11 @@ app.post('/api/bargain/:bargainId/messages', authenticate, async (req, res) => {
     }
     if (!sender_role || !sender_id || !message_content || !message_type) {
       return res.status(400).json({ 
-        error: 'Missing required fields: sender_role, sender_id, message_content, message_type' 
+        error: 'Missing required fields' 
       });
     }
 
-    // Insert into database
+    // Insert message (without product_id)
     const result = await queryDatabase(`
       INSERT INTO bargain_messages (
         bargain_id,
@@ -5101,10 +5101,12 @@ app.post('/api/bargain/:bargainId/messages', authenticate, async (req, res) => {
 
   } catch (err) {
     console.error('Error saving message:', err);
-    res.status(500).json({ error: 'Database error: ' + err.message });
+    res.status(500).json({ 
+      error: 'Failed to save message',
+      details: err.sqlMessage || err.message 
+    });
   }
 });
-
 // Send new message
 // POST /api/bargain/:bargainId/messages
 // app.post('/api/bargain/:bargainId/messages', authenticate, async (req, res) => {
@@ -5187,6 +5189,9 @@ app.post('/api/bargain/:bargainId/system-message', authenticate, async (req, res
     res.status(500).json({ error: 'Failed to save system message' });
   }
 }); 
+
+
+
 app.get('/api/sessions', authenticate, async (req, res) => {
   try {
     const userType = req.user.type; // 'farmer' or 'consumer'
