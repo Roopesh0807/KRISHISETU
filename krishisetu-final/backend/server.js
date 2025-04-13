@@ -1166,9 +1166,10 @@ app.get("/api/consumer/:consumer_id", async (req, res) => {
 
 
 
-app.get("/api/consumerprofile/:consumer_id", async (req, res) => {
+app.get("/api/consumerprofile/:consumer_id", verifyToken, async (req, res) => {
   try {
     const { consumer_id } = req.params;
+    
     const query = `
       SELECT 
         consumer_id, 
@@ -1279,36 +1280,36 @@ app.put("/api/consumerprofile/:consumer_id", async (req, res) => {
 });
 
 // Add this endpoint to fetch consumer profile
-app.get("/api/consumerprofile/:consumer_id", async (req, res) => {
-  try {
-    const { consumer_id } = req.params;
-    const query = `
-      SELECT 
-        consumer_id, 
-        name, 
-        mobile_number, 
-        email, 
-        address, 
-        pincode, 
-        location, 
-        photo, 
-        preferred_payment_method, 
-        subscription_method 
-      FROM consumerprofile 
-      WHERE consumer_id = ?`;
+// app.get("/api/consumerprofile/:consumer_id", async (req, res) => {
+//   try {
+//     const { consumer_id } = req.params;
+//     const query = `
+//       SELECT 
+//         consumer_id, 
+//         name, 
+//         mobile_number, 
+//         email, 
+//         address, 
+//         pincode, 
+//         location, 
+//         photo, 
+//         preferred_payment_method, 
+//         subscription_method 
+//       FROM consumerprofile 
+//       WHERE consumer_id = ?`;
     
-    const results = await queryDatabase(query, [consumer_id]);
+//     const results = await queryDatabase(query, [consumer_id]);
     
-    if (results.length > 0) {
-      res.json(results[0]);
-    } else {
-      res.status(404).json({ message: 'Consumer profile not found' });
-    }
-  } catch (error) {
-    console.error('Error fetching consumer profile:', error);
-    res.status(500).json({ message: 'Internal Server Error' });
-  }
-});
+//     if (results.length > 0) {
+//       res.json(results[0]);
+//     } else {
+//       res.status(404).json({ message: 'Consumer profile not found' });
+//     }
+//   } catch (error) {
+//     console.error('Error fetching consumer profile:', error);
+//     res.status(500).json({ message: 'Internal Server Error' });
+//   }
+// });
 // Update the place-order endpoint
 
 // Add this to your backend routes
@@ -2019,35 +2020,35 @@ app.get('/api/products/price', async (req, res) => {
       res.status(500).json({ error: "Database error" });
   }
 });
-app.get('/api/consumerprofile/:consumer_id', async (req, res) => {
-  const { consumer_id } = req.params;
-  try {
-      const query = `
-      SELECT consumer_id, 
-             name, 
-             mobile_number, 
-             email, 
-             address, 
-             pincode, 
-             location, 
-             photo, 
-             preferred_payment_method, 
-             subscription_method 
-      FROM consumerprofile 
-      WHERE consumer_id = ?`;
+// app.get('/api/consumerprofile/:consumer_id', async (req, res) => {
+//   const { consumer_id } = req.params;
+//   try {
+//       const query = `
+//       SELECT consumer_id, 
+//              name, 
+//              mobile_number, 
+//              email, 
+//              address, 
+//              pincode, 
+//              location, 
+//              photo, 
+//              preferred_payment_method, 
+//              subscription_method 
+//       FROM consumerprofile 
+//       WHERE consumer_id = ?`;
 
-      const results = await queryDatabase(query, [consumer_id]);
+//       const results = await queryDatabase(query, [consumer_id]);
 
-      if (results.length > 0) {
-          res.json(results[0]);
-      } else {
-          res.status(404).json({ message: 'Consumer profile not found' });
-      }
-  } catch (error) {
-      console.error('Error fetching consumer profile:', error);
-      res.status(500).json({ message: 'Internal Server Error' });
-  }
-});
+//       if (results.length > 0) {
+//           res.json(results[0]);
+//       } else {
+//           res.status(404).json({ message: 'Consumer profile not found' });
+//       }
+//   } catch (error) {
+//       console.error('Error fetching consumer profile:', error);
+//       res.status(500).json({ message: 'Internal Server Error' });
+//   }
+// });
 app.get("/api/consumerdetails/:id", async (req, res) => {
   try {
     const consumer_id = req.params.id;
@@ -2383,7 +2384,7 @@ app.get('/api/wallet/transactions/:consumer_id', authenticateToken, async (req, 
 // Add these endpoints to your server.js
 
 // Generate bill for a subscription plan
-<<<<<<< HEAD
+ 
 app.get('/api/bills/:consumer_id/:plan', authenticateToken, async (req, res) => {
   console.log('BACKEND 1: Request received', req.params); // Backend Debug 1
   try {
@@ -2853,7 +2854,7 @@ app.get('/api/bills/pdf/:consumer_id/:plan', authenticateToken, async (req, res)
     });
   }
 });
-=======
+
 // app.get('/api/bills/:consumer_id/:plan', authenticateToken, async (req, res) => {
 //   console.log('BACKEND 1: Request received', req.params); // Backend Debug 1
 //   try {
@@ -3323,7 +3324,7 @@ app.get('/api/bills/pdf/:consumer_id/:plan', authenticateToken, async (req, res)
 //     });
 //   }
 // });
->>>>>>> 37be1020993e0911987d0df0450e0a3bbdc56817
+
 
 
 
@@ -6433,7 +6434,7 @@ app.post('/api/razorpay/verify', authenticateToken, async (req, res) => {
     });
   }
 });
-app.post("/api/place-order", authenticateToken, async (req, res) => {
+app.post("/api/place-order", verifyToken, async (req, res) => {
   try {
     const { consumer_id, name, mobile_number, email, produce_name, quantity, amount, 
             is_self_delivery, payment_method, address, pincode, recipient_name, recipient_phone } = req.body;

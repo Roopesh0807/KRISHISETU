@@ -2027,7 +2027,7 @@ color: #666;
 
 /* Timer animations */
 .plan-timer {
-<<<<<<< HEAD
+
   background-color: #4CAF50;
   color: white;
   padding: 5px 10px;
@@ -2041,18 +2041,18 @@ color: #666;
   background-color: #f44336;
 }
 
-@keyframes blink {
+/* @keyframes blink {
   0% { opacity: 1; }
   50% { opacity: 0.5; }
   100% { opacity: 1; }
-=======
+
 background-color: #4CAF50;
 color: white;
 padding: 5px 10px;
 border-radius: 4px;
 font-weight: bold;
 transition: all 0.3s ease;
-}
+} */
 
 .plan-timer.blinking {
 animation: blink 1s infinite;
@@ -2063,35 +2063,23 @@ background-color: #f44336;
 0% { opacity: 1; }
 50% { opacity: 0.5; }
 100% { opacity: 1; }
->>>>>>> 37be1020993e0911987d0df0450e0a3bbdc56817
 }
 
 /* Blinking row for urgent modifications */
 .blinking-row {
-<<<<<<< HEAD
+
   animation: rowBlink 2s infinite;
   background-color: rgba(255, 235, 59, 0.3);
 }
 
-@keyframes rowBlink {
-  0% { background-color: rgba(255, 235, 59, 0.3); }
-  50% { background-color: rgba(255, 235, 59, 0.7); }
-  100% { background-color: rgba(255, 235, 59, 0.3); }
-=======
-animation: rowBlink 2s infinite;
-background-color: rgba(255, 235, 59, 0.3);
-}
 
-@keyframes rowBlink {
-0% { background-color: rgba(255, 235, 59, 0.3); }
-50% { background-color: rgba(255, 235, 59, 0.7); }
-100% { background-color: rgba(255, 235, 59, 0.3); }
->>>>>>> 37be1020993e0911987d0df0450e0a3bbdc56817
-}
+
+
+
 
 /* Plan header styles */
 .plan-header {
-<<<<<<< HEAD
+
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -2130,7 +2118,7 @@ background-color: rgba(255, 235, 59, 0.3);
   font-size: 0.8rem;
   color: #666;
   margin-right: 5px;
-=======
+
 display: flex;
 justify-content: space-between;
 align-items: center;
@@ -2169,14 +2157,14 @@ gap: 15px;
 font-size: 0.8rem;
 color: #666;
 margin-right: 5px;
->>>>>>> 37be1020993e0911987d0df0450e0a3bbdc56817
+
 }
 
 
 
 /* Blinking animation for urgent items */
 @keyframes blink {
-<<<<<<< HEAD
+
   0% { opacity: 1; }
   50% { opacity: 0.5; }
   100% { opacity: 1; }
@@ -2192,15 +2180,15 @@ margin-right: 5px;
   pointer-events: none;
 }
 
-.delivery-date {
+/* .delivery-date {
   display: flex;
   align-items: center;
   gap: 5px;
-=======
+
 0% { opacity: 1; }
 50% { opacity: 0.5; }
 100% { opacity: 1; }
-}
+} */
 
 .blinking-row {
 animation: blink 1s linear infinite;
@@ -2216,30 +2204,30 @@ pointer-events: none;
 display: flex;
 align-items: center;
 gap: 5px;
->>>>>>> 37be1020993e0911987d0df0450e0a3bbdc56817
+
 }
 
 /* Timer styles */
 .plan-timer.frozen {
-<<<<<<< HEAD
+
   color: #ff6b6b;
 }
 
 .plan-timer.blinking {
   animation: blink 1s linear infinite;
-=======
+
 color: #ff6b6b;
 }
 
 .plan-timer.blinking {
 animation: blink 1s linear infinite;
->>>>>>> 37be1020993e0911987d0df0450e0a3bbdc56817
+
 }
 
 
 /* Bill Popup Styles */
 .bill-popup {
-<<<<<<< HEAD
+
   max-width: 800px;
   width: 90%;
 }
@@ -2261,7 +2249,7 @@ animation: blink 1s linear infinite;
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 20px;
-=======
+
 max-width: 800px;
 width: 90%;
 }
@@ -2283,12 +2271,12 @@ color: #555;
 width: 100%;
 border-collapse: collapse;
 margin-bottom: 20px;
->>>>>>> 37be1020993e0911987d0df0450e0a3bbdc56817
+
 }
 
 .bill-table th, 
 .bill-table td {
-<<<<<<< HEAD
+
   padding: 12px 15px;
   text-align: left;
   border-bottom: 1px solid #ddd;
@@ -2331,7 +2319,7 @@ margin-bottom: 20px;
 
 .pay-now-btn:hover {
   background-color: #218838;
-=======
+
 padding: 12px 15px;
 text-align: left;
 border-bottom: 1px solid #ddd;
@@ -2374,25 +2362,25 @@ transition: background-color 0.3s;
 
 .pay-now-btn:hover {
 background-color: #218838;
->>>>>>> 37be1020993e0911987d0df0450e0a3bbdc56817
+
 }
 
 /* Transaction History Styles */
 .transactions-table {
-<<<<<<< HEAD
+
   width: 100%;
   border-collapse: collapse;
   margin-top: 15px;
-=======
+
 width: 100%;
 border-collapse: collapse;
 margin-top: 15px;
->>>>>>> 37be1020993e0911987d0df0450e0a3bbdc56817
+
 }
 
 .transactions-table th, 
 .transactions-table td {
-<<<<<<< HEAD
+
   padding: 12px 15px;
   text-align: left;
   border-bottom: 1px solid #ddd;
@@ -2419,7 +2407,7 @@ margin-top: 15px;
 .txn-amount.debit {
   color: #dc3545;
   font-weight: 600;
-=======
+
 padding: 12px 15px;
 text-align: left;
 border-bottom: 1px solid #ddd;
@@ -2446,12 +2434,12 @@ font-weight: 600;
 .txn-amount.debit {
 color: #dc3545;
 font-weight: 600;
->>>>>>> 37be1020993e0911987d0df0450e0a3bbdc56817
+
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-<<<<<<< HEAD
+
   .bill-popup {
     width: 95%;
   }
@@ -2472,7 +2460,7 @@ font-weight: 600;
   .close-bill {
     width: 100%;
   }
-=======
+
 .bill-popup {
   width: 95%;
 }
@@ -2493,5 +2481,5 @@ font-weight: 600;
 .close-bill {
   width: 100%;
 }
->>>>>>> 37be1020993e0911987d0df0450e0a3bbdc56817
+
 }
