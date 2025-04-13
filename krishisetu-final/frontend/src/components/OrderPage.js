@@ -1523,7 +1523,11 @@ const options = {
   order_id: razorpayData.order.id,
   name: 'KrishiSetu',
   description: 'Farm Fresh Products',
-  image: '',
+  image: {
+    svg: '', // Empty SVG to prevent errors
+    width: '0', // Explicit dimensions
+    height: '0'
+  },
   handler: async (response) => {
     try {
       // 4. Verify payment
@@ -1567,11 +1571,11 @@ const options = {
     color: '#3399cc',
     hide_topbar: true // Helps prevent SVG issues
   },
-  modal: {
-    ondismiss: function() {
-      console.log('Payment modal closed by user');
-    }
-  }
+  // modal: {
+  //   ondismiss: function() {
+  //     console.log('Payment modal closed by user');
+  //   }
+  // }
 };
 
 const rzp = new window.Razorpay(options);

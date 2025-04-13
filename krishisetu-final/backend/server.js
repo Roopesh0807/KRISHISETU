@@ -5206,19 +5206,25 @@ app.post("/api/razorpay/verify", authenticateToken, async (req, res) => {
       razorpay_payment_id, 
       razorpay_order_id, 
       razorpay_signature,
-      order_id,
-      amount
+     
     } = req.body;
 
     // Verify signature
-    const hmac = crypto.createHmac('sha256', 'your_test_key_secret');
+    const hmac = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET ||'dwcSRSRah7Y4eBZUzL8MmcYD');
     hmac.update(`${razorpay_order_id}|${razorpay_payment_id}`);
     const generatedSignature = hmac.digest('hex');
 
-    if (generatedSignature !== razorpay_signature) {
+     // Verify signature matches
+     if (generatedSignature !== razorpay_signature) {
+      console.error('Signature mismatch', {
+        generated: generatedSignature,
+        received: razorpay_signature,
+        order_id: req.body.order_id
+      });
       return res.status(400).json({
         success: false,
-        error: "Invalid signature - possible tampering"
+        error: "Invalid signature - possible tampering",
+       
       });
     }
 
