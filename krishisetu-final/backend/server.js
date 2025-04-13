@@ -4848,11 +4848,11 @@ app.post('/api/bargain/:bargainId/messages', authenticate, async (req, res) => {
     }
     if (!sender_role || !sender_id || !message_content || !message_type) {
       return res.status(400).json({ 
-        error: 'Missing required fields: sender_role, sender_id, message_content, message_type' 
+        error: 'Missing required fields' 
       });
     }
 
-    // Insert into database
+    // Insert message (without product_id)
     const result = await queryDatabase(`
       INSERT INTO bargain_messages (
         bargain_id,
@@ -4877,10 +4877,12 @@ app.post('/api/bargain/:bargainId/messages', authenticate, async (req, res) => {
 
   } catch (err) {
     console.error('Error saving message:', err);
-    res.status(500).json({ error: 'Database error: ' + err.message });
+    res.status(500).json({ 
+      error: 'Failed to save message',
+      details: err.sqlMessage || err.message 
+    });
   }
 });
-
 // Send new message
 // POST /api/bargain/:bargainId/messages
 // app.post('/api/bargain/:bargainId/messages', authenticate, async (req, res) => {
@@ -4963,6 +4965,9 @@ app.post('/api/bargain/:bargainId/system-message', authenticate, async (req, res
     res.status(500).json({ error: 'Failed to save system message' });
   }
 }); 
+
+
+
 app.get('/api/sessions', authenticate, async (req, res) => {
   try {
     const userType = req.user.type; // 'farmer' or 'consumer'
@@ -5764,14 +5769,120 @@ app.post("/api/verify-payment", authenticateToken, async (req, res) => {
 // });
 
 // Create order endpoint
-app.post("/api/razorpay/create-order", authenticateToken, async (req, res) => {
-  try {
-    const { amount } = req.body;
+// app.post("/api/razorpay/create-order", authenticateToken, async (req, res) => {
+//   try {
+//     const { amount } = req.body;
     
+//     const options = {
+//       amount: Math.round(amount * 100), // Razorpay expects paise
+//       currency: 'INR',
+//       receipt: `order_${Date.now()}`,
+//       payment_capture: 1 // Auto-capture payment
+//     };
+
+//     const order = await razorpay.orders.create(options);
+    
+//     res.json({
+//       success: true,
+//       order: {
+//         id: order.id,
+//         amount: order.amount,
+//         currency: order.currency
+//       }
+//     });
+//   } catch (error) {
+//     console.error("Order creation error:", error);
+//     res.status(500).json({ 
+//       error: "Failed to create Razorpay order",
+//       details: error.error?.description || error.message 
+//     });
+//   }
+// });
+
+// // Verify payment endpoint
+// app.post("/api/razorpay/verify", authenticateToken, async (req, res) => {
+//   try {
+//     const { 
+//       razorpay_payment_id, 
+//       razorpay_order_id, 
+//       razorpay_signature,
+     
+//     } = req.body;
+
+//     // Verify signature
+//     const hmac = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET ||'dwcSRSRah7Y4eBZUzL8MmcYD');
+//     hmac.update(`${razorpay_order_id}|${razorpay_payment_id}`);
+//     const generatedSignature = hmac.digest('hex');
+
+//      // Verify signature matches
+//      if (generatedSignature !== razorpay_signature) {
+//       console.error('Signature mismatch', {
+//         generated: generatedSignature,
+//         received: razorpay_signature,
+//         order_id: req.body.order_id
+//       });
+//       return res.status(400).json({
+//         success: false,
+//         error: "Invalid signature - possible tampering",
+       
+//       });
+//     }
+
+//     // Update order status
+//     await queryDatabase(
+//       `UPDATE placeorder 
+//        SET payment_status = 'Paid',
+//            payment_method = 'razorpay'
+//        WHERE order_id = ?`,
+//       [order_id]
+//     );
+
+//     // Record payment
+//     await queryDatabase(
+//       `INSERT INTO payments (
+//         payment_id, order_id, razorpay_order_id,
+//         razorpay_payment_id, razorpay_signature,
+//         amount, status
+//       ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+//       [
+//         `pay_${Date.now()}`,
+//         order_id,
+//         razorpay_order_id,
+//         razorpay_payment_id,
+//         razorpay_signature,
+//         amount,
+//         'captured'
+//       ]
+//     );
+
+//     res.json({ 
+//       success: true,
+//       message: "Payment verified successfully"
+//     });
+//   } catch (error) {
+//     console.error("Verification error:", error);
+//     res.status(500).json({
+//       success: false,
+//       error: "Verification failed",
+//       details: error.message
+//     });
+//   }
+// });
+// Razorpay Order Creation Endpoint
+
+// Razorpay Order Creation Endpoint
+app.post('/api/razorpay/create-order', authenticateToken, async (req, res) => {
+  try {
+    const { amount, order_id } = req.body;
+    
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ error: "Invalid amount" });
+    }
+
     const options = {
-      amount: Math.round(amount * 100), // Razorpay expects paise
-      currency: 'INR',
-      receipt: `order_${Date.now()}`,
+      amount: Math.round(amount * 100), // Razorpay expects amount in paise
+      currency: "INR",
+      receipt: `order_${order_id}`,
       payment_capture: 1 // Auto-capture payment
     };
 
@@ -5782,83 +5893,74 @@ app.post("/api/razorpay/create-order", authenticateToken, async (req, res) => {
       order: {
         id: order.id,
         amount: order.amount,
-        currency: order.currency
+        currency: order.currency,
+        receipt: order.receipt
       }
     });
   } catch (error) {
-    console.error("Order creation error:", error);
+    console.error("Razorpay order creation error:", error);
     res.status(500).json({ 
       error: "Failed to create Razorpay order",
-      details: error.error?.description || error.message 
+      details: error.message || error.error.description
     });
   }
 });
 
-// Verify payment endpoint
-app.post("/api/razorpay/verify", authenticateToken, async (req, res) => {
+// Razorpay Payment Verification Endpoint
+// In server.js
+app.post('/api/razorpay/verify', authenticateToken, async (req, res) => {
   try {
-    const { 
-      razorpay_payment_id, 
-      razorpay_order_id, 
-      razorpay_signature,
-      order_id,
-      amount
-    } = req.body;
+    const { razorpay_payment_id, razorpay_order_id, razorpay_signature, order_id } = req.body;
 
-    // Verify signature
-    const hmac = crypto.createHmac('sha256', 'your_test_key_secret');
-    hmac.update(`${razorpay_order_id}|${razorpay_payment_id}`);
-    const generatedSignature = hmac.digest('hex');
+    // 1. Verify the signature first
+    const generatedSignature = crypto
+      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+      .digest('hex');
 
     if (generatedSignature !== razorpay_signature) {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid signature - possible tampering"
+      return res.status(400).json({ 
+        error: "Invalid payment signature",
+        details: {
+          received: razorpay_signature,
+          generated: generatedSignature
+        }
       });
     }
 
-    // Update order status
-    await queryDatabase(
+    // 2. Update the order in your database
+    const updateResult = await queryDatabase(
       `UPDATE placeorder 
        SET payment_status = 'Paid',
-           payment_method = 'razorpay'
+           razorpay_payment_id = ?,
+           razorpay_order_id = ?,
+           razorpay_signature = ?,
+           status = 'Processing'
        WHERE order_id = ?`,
-      [order_id]
+      [razorpay_payment_id, razorpay_order_id, razorpay_signature, order_id]
     );
 
-    // Record payment
-    await queryDatabase(
-      `INSERT INTO payments (
-        payment_id, order_id, razorpay_order_id,
-        razorpay_payment_id, razorpay_signature,
-        amount, status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [
-        `pay_${Date.now()}`,
-        order_id,
-        razorpay_order_id,
-        razorpay_payment_id,
-        razorpay_signature,
-        amount,
-        'captured'
-      ]
-    );
+    if (updateResult.affectedRows === 0) {
+      throw new Error("No order found to update");
+    }
 
+    // 3. Return success response
     res.json({ 
       success: true,
-      message: "Payment verified successfully"
+      message: "Payment verified and order updated",
+      payment_id: razorpay_payment_id,
+      order_id: order_id
     });
+
   } catch (error) {
     console.error("Verification error:", error);
-    res.status(500).json({
-      success: false,
-      error: "Verification failed",
-      details: error.message
+    res.status(500).json({ 
+      error: "Payment verification failed",
+      details: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });
-
-
 app.post("/api/place-order", authenticateToken, async (req, res) => {
   try {
     const { consumer_id, name, mobile_number, email, produce_name, quantity, amount, 
