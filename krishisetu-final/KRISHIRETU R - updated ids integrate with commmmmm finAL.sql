@@ -1226,3 +1226,6 @@ CREATE TABLE frozen_orders (
   FOREIGN KEY (community_id) REFERENCES communities(community_id),
   FOREIGN KEY (member_id) REFERENCES members(member_id)
 );
+
+
+ALTER TABLE placeorder ADD COLUMN is_community ENUM('yes', 'no') DEFAULT 'no';

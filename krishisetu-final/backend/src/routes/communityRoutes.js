@@ -17,7 +17,8 @@
 
 const express = require("express");
 const communityController = require("../controllers/communityController");
-
+const { queryDatabase } = require('../config/db'); 
+// const auth = require('../middleware/auth'); // Add this line to import auth middleware
 const router = express.Router();
 
 router.post("/create", communityController.createCommunity);
@@ -38,8 +39,15 @@ router.get("/:communityId/member/:memberId/discount", communityController.calcul
 // router.get("address-suggestions", communityController.getAddressSuggestions);
 router.get("/:communityId/member/:memberId/orders", communityController.getMembersOrders);
 router.get('/consumer/:consumerId/communities', communityController.getConsumerCommunities);
-router.get("/:communityId/member/:memberId/submit-frozen-order", communityController.getFrozenOrderDetails);
-
+router.get("/:communityId/members-summary", communityController.getCommunityMembersSummary); // Add this line
+// Add this to communityRoutes.js
+router.post('/:communityId/member/:memberId/submit-frozen-order', communityController.submitFrozenOrder);
+// Add these routes to communityRoutes.js
+router.get("/:communityId/order/:orderId", communityController.getFrozenOrderDetails);
+// Update this line in communityRoutes.js
+router.post("/:communityId/orders/:orderId/complete", communityController.completeFrozenOrder);
+// Add this new route with your existing routes
+router.get('/:communityId/members/:consumerId/orders',communityController.getMemberOrderss);
 router.get("/community/create", async (req, res) => {
     try {
       const query = "SELECT * FROM communities";
@@ -321,9 +329,103 @@ router.delete('/member/:orderId', async (req, res) => {
 });
 
 
+// In communityRoutes.js
+router.get("/:communityId/member-by-consumer/:consumerId", async (req, res) => {
+  const { communityId, consumerId } = req.params;
+
+  try {
+    const query = `
+      SELECT member_id 
+      FROM members 
+      WHERE community_id = ? AND consumer_id = ?
+    `;
+    const [result] = await queryDatabase(query, [communityId, consumerId]);
+
+    if (!result) {
+      return res.status(404).json({ 
+        success: false,
+        message: "Member not found in this community"
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      memberId: result.member_id
+    });
+  } catch (error) {
+    console.error("Error fetching member ID:", error);
+    res.status(500).json({ 
+      success: false,
+      error: "Internal server error" 
+    });
+  }
+});
 
 
+router.post('/:communityId/member/:memberId/submit-frozen-order',  async (req, res) => {
+  try {
+    const { communityId, memberId } = req.params;
+    const { orders, discount } = req.body;
+    
+    // Validate input
+    if (!orders || !Array.isArray(orders)) {
+      return res.status(400).json({ error: 'Invalid order data' });
+    }
 
+    // Calculate total amount
+    const subtotal = orders.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const totalAmount = subtotal - (discount?.totalDiscountAmount || 0);
+
+    // Create order in database
+    const order = await Order.create({
+      community_id: communityId,
+      member_id: memberId,
+      order_data: JSON.stringify(orders),
+      discount_data: JSON.stringify(discount),
+      total_amount: totalAmount,
+      status: 'pending'
+    });
+
+    res.status(201).json({ 
+      orderId: order.id,
+      message: 'Order submitted successfully' 
+    });
+  } catch (error) {
+    console.error('Error submitting frozen order:', error);
+    res.status(500).json({ error: 'Failed to submit order' });
+  }
+});
+
+router.get('/:communityId/member-by-consumer/:consumerId',  async (req, res) => {
+  try {
+    const { communityId, consumerId } = req.params;
+    
+    const member = await CommunityMember.findOne({
+      where: {
+        community_id: communityId,
+        consumer_id: consumerId
+      }
+    });
+
+    if (!member) {
+      return res.status(404).json({ 
+        success: false,
+        error: 'Member not found in this community'
+      });
+    }
+
+    res.json({
+      success: true,
+      memberId: member.id
+    });
+  } catch (error) {
+    console.error('Error fetching member ID:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to fetch member ID' 
+    });
+  }
+});
 
 
 

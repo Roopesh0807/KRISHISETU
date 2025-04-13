@@ -197,4 +197,113 @@ router.delete('/:communityId/:orderId', (req, res, next) => {
   //     });
   //   }
   // });
+
+
+  // Add this new route to orderRoutesC.js
+router.post('/place-community-order', async (req, res) => {
+  try {
+    const {
+      communityId,
+      memberId,
+      consumer_id,
+      name,
+      mobile_number,
+      email,
+      address,
+      pincode,
+      produce_name,
+      quantity,
+      amount,
+      payment_method,
+      order_items // Array of order items
+    } = req.body;
+
+    // Start transaction
+    await queryDatabase('START TRANSACTION');
+
+    // 1. Insert into placeorder table
+    const placeOrderQuery = `
+      INSERT INTO placeorder (
+        consumer_id,
+        name,
+        mobile_number,
+        email,
+        address,
+        pincode,
+        produce_name,
+        quantity,
+        amount,
+        payment_method,
+        is_community,
+        community_id,
+        status,
+        payment_status,
+        order_date
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'yes', ?, 'Pending', ?, CURDATE())
+    `;
+    
+    const paymentStatus = payment_method === 'cash-on-delivery' ? 'Pending' : 'Paid';
+    
+    const placeOrderResult = await queryDatabase(placeOrderQuery, [
+      consumer_id,
+      name,
+      mobile_number,
+      email,
+      address,
+      pincode,
+      produce_name,
+      quantity,
+      amount,
+      payment_method,
+      communityId,
+      paymentStatus
+    ]);
+
+    // 2. Optionally insert order items into another table if needed
+    if (order_items && order_items.length > 0) {
+      const itemsQuery = `
+        INSERT INTO order_items (
+          order_id,
+          product_id,
+          product_name,
+          quantity,
+          price,
+          community_id,
+          member_id
+        ) VALUES ?
+      `;
+      
+      const itemsValues = order_items.map(item => [
+        placeOrderResult.insertId,
+        item.product_id,
+        item.product_name,
+        item.quantity,
+        item.price,
+        communityId,
+        memberId
+      ]);
+      
+      await queryDatabase(itemsQuery, [itemsValues]);
+    }
+
+    // Commit transaction
+    await queryDatabase('COMMIT');
+
+    res.status(201).json({
+      success: true,
+      orderId: placeOrderResult.insertId,
+      message: 'Community order placed successfully'
+    });
+
+  } catch (error) {
+    // Rollback on error
+    await queryDatabase('ROLLBACK');
+    console.error('Error placing community order:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to place community order',
+      details: error.message
+    });
+  }
+});
 module.exports = router;

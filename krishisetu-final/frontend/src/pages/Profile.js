@@ -97,6 +97,7 @@ const FarmerProfile = () => {
 
         const personal = farmerData.personal ? {
           ...farmerData.personal,
+          dob: farmerData.personal.dob ? new Date(farmerData.personal.dob).toISOString().split('T')[0] : "",
           profile_photo: farmerData.personal.profile_photo ? 
           `http://localhost:5000${farmerData.personal.profile_photo}${cacheBuster}` : null,
         aadhaar_proof: farmerData.personal.aadhaar_proof ? 
@@ -192,11 +193,10 @@ const FarmerProfile = () => {
       fetchBranchDetails(value);
     }
   };
-
   const handleFileUpload = async (section, field, e) => {
     const file = e.target.files[0];
     if (!file) return;
-
+  
     try {
       const formData = new FormData();
       formData.append('file', file);
@@ -212,16 +212,21 @@ const FarmerProfile = () => {
           }
         }
       );
-
+  
+      // Update the state with the new file URL
       setFormData(prev => ({
         ...prev,
-        [section]: { ...prev[section], [field]: res.data.filePath }
+        [section]: { 
+          ...prev[section], 
+          [field]: res.data.accessibleUrl 
+        }
       }));
-
+  
+      // If it's a profile photo, update the profile photo state
       if (field === 'profile_photo') {
-        setProfilePhoto(`http://localhost:5000${res.data.filePath}?t=${Date.now()}`);
+        setProfilePhoto(res.data.accessibleUrl);
       }
-
+  
       alert('File uploaded successfully!');
     } catch (error) {
       console.error("Error uploading file", error);
@@ -309,10 +314,16 @@ const FarmerProfile = () => {
         }
       );
       
+      // Update the state to remove the file
       setFormData(prev => ({
         ...prev,
         [section]: { ...prev[section], [field]: null }
       }));
+      
+      // If it's a profile photo, clear the profile photo state
+      if (field === 'profile_photo') {
+        setProfilePhoto(null);
+      }
       
       alert('File removed successfully!');
     } catch (error) {
@@ -326,9 +337,10 @@ const FarmerProfile = () => {
     try {
       const token = localStorage.getItem('token');
       const dataToSend = formData[section];
-      
+      // Determine the endpoint based on section
+    const endpoint = section === 'personal' ? 'personal' : 'farm';
       await axios.put(
-        `http://localhost:5000/api/farmerprofile/${farmer_id}/${section}`,
+        `http://localhost:5000/api/farmerprofile/${farmer_id}/${endpoint}`,
         dataToSend,
         {
           headers: {
@@ -340,6 +352,23 @@ const FarmerProfile = () => {
 
       setEditMode(prev => ({ ...prev, [section]: false }));
       alert(`${section === 'personal' ? 'Personal' : 'Farm'} details updated successfully!`);
+        
+    // Refresh the data after update
+    const refreshResponse = await axios.get(
+      `http://localhost:5000/api/farmerprofile/${farmer_id}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }
+    );
+    
+    // Update formData with fresh data
+    const updatedData = refreshResponse.data;
+    setFormData(prev => ({
+      ...prev,
+      [section]: updatedData[section]
+    }));
     } catch (error) {
       console.error(`Error updating ${section} details:`, error);
       alert(`Error updating ${section} details. Please try again.`);
@@ -365,6 +394,22 @@ const FarmerProfile = () => {
            key === 'certification' || key === 'farm_photographs' || 
            key === 'profile_photo' || key === 'aadhaar_proof' || 
            key === 'bank_proof';
+  };
+
+
+  const isProfileComplete = () => {
+    const requiredPersonalFields = ['dob', 'gender', 'contact_no', 'aadhaar_no', 'residential_address'];
+    const requiredFarmFields = ['farm_address', 'farm_size', 'crops_grown'];
+    
+    const personalComplete = requiredPersonalFields.every(
+      field => formData.personal[field] && formData.personal[field].trim() !== ''
+    );
+    
+    const farmComplete = requiredFarmFields.every(
+      field => formData.farm[field] && formData.farm[field].trim() !== ''
+    );
+    
+    return personalComplete && farmComplete;
   };
 
   const getFieldIcon = (key) => {
@@ -427,7 +472,7 @@ const FarmerProfile = () => {
           className="farmer-profile-form-input"
         />
       );
-    } else if (isFileField(key)) {
+    }else if (isFileField(key)) {
       return (
         <div className="farmer-profile-file-upload-group">
           <input
@@ -443,7 +488,7 @@ const FarmerProfile = () => {
           {value && (
             <span className="farmer-profile-file-name">
               <a 
-                href={`http://localhost:5000${value}`} 
+                href={value} 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="farmer-profile-file-link"
@@ -461,7 +506,7 @@ const FarmerProfile = () => {
           )}
         </div>
       );
-    } else {
+    }else {
       return (
         <input
           type="text"
@@ -586,7 +631,7 @@ const FarmerProfile = () => {
                           {getFieldIcon(key)}
                           {formatLabel(key)}
                         </label>
-                        <div className={`farmer-profile-detail-value ${isFileField(key) ? (value ? 'farmer-profile-uploaded' : 'farmer-profile-not-uploaded') : ''} ${value ? '' : 'farmer-profile-empty'}`}>
+                        {/* <div className={`farmer-profile-detail-value ${isFileField(key) ? (value ? 'farmer-profile-uploaded' : 'farmer-profile-not-uploaded') : ''} ${value ? '' : 'farmer-profile-empty'}`}>
                           {isFileField(key) ? (
                             value ? (
                               <a 
@@ -599,7 +644,22 @@ const FarmerProfile = () => {
                               </a>
                             ) : 'Not uploaded'
                           ) : (value || 'Not provided')}
-                        </div>
+                        </div> */}
+                        
+<div className={`farmer-profile-detail-value ${isFileField(key) ? (value ? 'farmer-profile-uploaded' : 'farmer-profile-not-uploaded') : ''} ${value ? '' : 'farmer-profile-empty'}`}>
+  {isFileField(key) ? (
+    value ? (
+      <a 
+        href={value.includes('http') ? value : `http://localhost:5000${value}`} 
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="farmer-profile-file-link"
+      >
+        View File
+      </a>
+    ) : 'Not uploaded'
+  ) : (value || 'Not provided')}
+</div>
                       </div>
                     )
                   ))}
@@ -654,7 +714,7 @@ const FarmerProfile = () => {
                         {getFieldIcon(key)}
                         {formatLabel(key)}
                       </label>
-                      <div className={`farmer-profile-detail-value ${isFileField(key) ? (value ? 'farmer-profile-uploaded' : 'farmer-profile-not-uploaded') : ''} ${value ? '' : 'farmer-profile-empty'}`}>
+                      {/* <div className={`farmer-profile-detail-value ${isFileField(key) ? (value ? 'farmer-profile-uploaded' : 'farmer-profile-not-uploaded') : ''} ${value ? '' : 'farmer-profile-empty'}`}>
                         {isFileField(key) ? (
                           value ? (
                             <a 
@@ -667,7 +727,22 @@ const FarmerProfile = () => {
                             </a>
                           ) : 'Not uploaded'
                         ) : (value || 'Not provided')}
-                      </div>
+                      </div> */}
+                      
+<div className={`farmer-profile-detail-value ${isFileField(key) ? (value ? 'farmer-profile-uploaded' : 'farmer-profile-not-uploaded') : ''} ${value ? '' : 'farmer-profile-empty'}`}>
+  {isFileField(key) ? (
+    value ? (
+      <a 
+        href={value.includes('http') ? value : `http://localhost:5000${value}`} 
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="farmer-profile-file-link"
+      >
+        View File
+      </a>
+    ) : 'Not uploaded'
+  ) : (value || 'Not provided')}
+</div>
                     </div>
                   ))}
                 </div>
