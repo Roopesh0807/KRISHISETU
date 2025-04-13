@@ -2027,6 +2027,25 @@ color: #666;
 
 /* Timer animations */
 .plan-timer {
+<<<<<<< HEAD
+  background-color: #4CAF50;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+.plan-timer.blinking {
+  animation: blink 1s infinite;
+  background-color: #f44336;
+}
+
+@keyframes blink {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+=======
 background-color: #4CAF50;
 color: white;
 padding: 5px 10px;
@@ -2044,10 +2063,21 @@ background-color: #f44336;
 0% { opacity: 1; }
 50% { opacity: 0.5; }
 100% { opacity: 1; }
+>>>>>>> 37be1020993e0911987d0df0450e0a3bbdc56817
 }
 
 /* Blinking row for urgent modifications */
 .blinking-row {
+<<<<<<< HEAD
+  animation: rowBlink 2s infinite;
+  background-color: rgba(255, 235, 59, 0.3);
+}
+
+@keyframes rowBlink {
+  0% { background-color: rgba(255, 235, 59, 0.3); }
+  50% { background-color: rgba(255, 235, 59, 0.7); }
+  100% { background-color: rgba(255, 235, 59, 0.3); }
+=======
 animation: rowBlink 2s infinite;
 background-color: rgba(255, 235, 59, 0.3);
 }
@@ -2056,10 +2086,51 @@ background-color: rgba(255, 235, 59, 0.3);
 0% { background-color: rgba(255, 235, 59, 0.3); }
 50% { background-color: rgba(255, 235, 59, 0.7); }
 100% { background-color: rgba(255, 235, 59, 0.3); }
+>>>>>>> 37be1020993e0911987d0df0450e0a3bbdc56817
 }
 
 /* Plan header styles */
 .plan-header {
+<<<<<<< HEAD
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.plan-header:hover {
+  background-color: #e0e0e0;
+}
+
+.plan-title-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.item-count {
+  background-color: #2196F3;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+}
+
+.plan-controls {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.modify-before-text {
+  font-size: 0.8rem;
+  color: #666;
+  margin-right: 5px;
+=======
 display: flex;
 justify-content: space-between;
 align-items: center;
@@ -2098,12 +2169,34 @@ gap: 15px;
 font-size: 0.8rem;
 color: #666;
 margin-right: 5px;
+>>>>>>> 37be1020993e0911987d0df0450e0a3bbdc56817
 }
 
 
 
 /* Blinking animation for urgent items */
 @keyframes blink {
+<<<<<<< HEAD
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+.blinking-row {
+  animation: blink 1s linear infinite;
+  background-color: rgba(255, 165, 0, 0.1);
+}
+
+.frozen-row {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.delivery-date {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+=======
 0% { opacity: 1; }
 50% { opacity: 0.5; }
 100% { opacity: 1; }
@@ -2123,20 +2216,52 @@ pointer-events: none;
 display: flex;
 align-items: center;
 gap: 5px;
+>>>>>>> 37be1020993e0911987d0df0450e0a3bbdc56817
 }
 
 /* Timer styles */
 .plan-timer.frozen {
+<<<<<<< HEAD
+  color: #ff6b6b;
+}
+
+.plan-timer.blinking {
+  animation: blink 1s linear infinite;
+=======
 color: #ff6b6b;
 }
 
 .plan-timer.blinking {
 animation: blink 1s linear infinite;
+>>>>>>> 37be1020993e0911987d0df0450e0a3bbdc56817
 }
 
 
 /* Bill Popup Styles */
 .bill-popup {
+<<<<<<< HEAD
+  max-width: 800px;
+  width: 90%;
+}
+
+.bill-period {
+  background-color: #f8f9fa;
+  padding: 15px;
+  border-radius: 5px;
+  margin-bottom: 20px;
+}
+
+.bill-period p {
+  margin: 5px 0;
+  font-size: 14px;
+  color: #555;
+}
+
+.bill-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+=======
 max-width: 800px;
 width: 90%;
 }
@@ -2158,10 +2283,55 @@ color: #555;
 width: 100%;
 border-collapse: collapse;
 margin-bottom: 20px;
+>>>>>>> 37be1020993e0911987d0df0450e0a3bbdc56817
 }
 
 .bill-table th, 
 .bill-table td {
+<<<<<<< HEAD
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.bill-table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+}
+
+.bill-table tfoot tr {
+  font-weight: 600;
+}
+
+.bill-table .subtotal-row td {
+  border-top: 2px solid #ddd;
+}
+
+.bill-table .total-row td {
+  border-top: 2px solid #333;
+  font-size: 16px;
+}
+
+.bill-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.pay-now-btn {
+  background-color: #28a745;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s;
+}
+
+.pay-now-btn:hover {
+  background-color: #218838;
+=======
 padding: 12px 15px;
 text-align: left;
 border-bottom: 1px solid #ddd;
@@ -2204,17 +2374,52 @@ transition: background-color 0.3s;
 
 .pay-now-btn:hover {
 background-color: #218838;
+>>>>>>> 37be1020993e0911987d0df0450e0a3bbdc56817
 }
 
 /* Transaction History Styles */
 .transactions-table {
+<<<<<<< HEAD
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+=======
 width: 100%;
 border-collapse: collapse;
 margin-top: 15px;
+>>>>>>> 37be1020993e0911987d0df0450e0a3bbdc56817
 }
 
 .transactions-table th, 
 .transactions-table td {
+<<<<<<< HEAD
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.transactions-table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+}
+
+.txn-type.credit {
+  color: #28a745;
+}
+
+.txn-type.debit {
+  color: #dc3545;
+}
+
+.txn-amount.credit {
+  color: #28a745;
+  font-weight: 600;
+}
+
+.txn-amount.debit {
+  color: #dc3545;
+  font-weight: 600;
+=======
 padding: 12px 15px;
 text-align: left;
 border-bottom: 1px solid #ddd;
@@ -2241,10 +2446,33 @@ font-weight: 600;
 .txn-amount.debit {
 color: #dc3545;
 font-weight: 600;
+>>>>>>> 37be1020993e0911987d0df0450e0a3bbdc56817
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
+<<<<<<< HEAD
+  .bill-popup {
+    width: 95%;
+  }
+  
+  .bill-table th, 
+  .bill-table td {
+    padding: 8px 10px;
+    font-size: 14px;
+  }
+  
+  .bill-actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .pay-now-btn,
+  .download-pdf,
+  .close-bill {
+    width: 100%;
+  }
+=======
 .bill-popup {
   width: 95%;
 }
@@ -2265,4 +2493,5 @@ font-weight: 600;
 .close-bill {
   width: 100%;
 }
+>>>>>>> 37be1020993e0911987d0df0450e0a3bbdc56817
 }
