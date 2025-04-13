@@ -26,32 +26,56 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use("/uploads", express.static("uploads"));
 app.use('/uploads', express.static('uploads'));
 
-const crypto = require('crypto');
 
+
+// const storage = multer.diskStorage({
+//   destination: (req, file, cb) => {
+//     // let folder = 'uploads/others/'; // default
+
+//     if (req.url.includes('/upload/review')) {
+//       folder = 'uploads/reviews/';
+//     } else if (req.url.includes('/upload/profile')) {
+//       folder = 'uploads/farmer-documents/';
+//     } else if (req.url.includes('/upload/product')) {
+//       folder = 'uploads/products/';
+//     }
+
+//     // Ensure folder exists before saving (optional but recommended)
+//     fs.mkdirSync(folder, { recursive: true });
+//     cb(null, folder);
+//   },
+//   filename: (req, file, cb) => {
+//     const uniqueName = Date.now() + path.extname(file.originalname);
+//     cb(null, uniqueName);
+//   }
+// });
+const auth = require('./src/middlewares/authMiddleware'); // Adjust path as needed
+
+// Replace the existing storage configuration with this:
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    // let folder = 'uploads/others/'; // default
-
+    let uploadFolder = 'uploads/'; // Default folder
+    
+    // Determine folder based on route
     if (req.url.includes('/upload/review')) {
-      folder = 'uploads/reviews/';
+      uploadFolder = 'uploads/reviews/';
     } else if (req.url.includes('/upload/profile')) {
-      folder = 'uploads/farmer-documents/';
+      uploadFolder = 'uploads/farmer-documents/';
     } else if (req.url.includes('/upload/product')) {
-      folder = 'uploads/products/';
+      uploadFolder = 'uploads/products/';
     }
 
-    // Ensure folder exists before saving (optional but recommended)
-    fs.mkdirSync(folder, { recursive: true });
-    cb(null, folder);
+    // Ensure folder exists
+    fs.mkdirSync(uploadFolder, { recursive: true });
+    cb(null, uploadFolder);
   },
   filename: (req, file, cb) => {
     const uniqueName = Date.now() + path.extname(file.originalname);
     cb(null, uniqueName);
   }
 });
-const auth = require('./src/middlewares/authMiddleware'); // Adjust path as needed
 
-
+const uploads = multer({ storage });
 // Protected route middleware
 // const authenticateToken = (req, res, next) => {
 //   const authHeader = req.headers['authorization'];
@@ -103,20 +127,37 @@ app.use('/uploads', express.static(uploadsDir));
 //   }
 // });
 // Update the farmerDocumentStorage configuration (around line 50)
+// Update the farmerDocumentStorage configuration
 const farmerDocumentStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const subfolder = path.join(uploadsDir, 'farmer-documents');
-    fs.mkdirSync(subfolder, { recursive: true });
-    cb(null, subfolder);
+    let folder = path.join(uploadsDir, 'farmer-documents');
+    
+    // Create subfolders based on document type
+    if (file.fieldname.includes('profile_photo')) {
+      folder = path.join(uploadsDir, 'profile-photos');
+    } else if (file.fieldname.includes('aadhaar')) {
+      folder = path.join(uploadsDir, 'aadhaar-proofs');
+    } else if (file.fieldname.includes('bank')) {
+      folder = path.join(uploadsDir, 'bank-proofs');
+    } else if (file.fieldname.includes('land')) {
+      folder = path.join(uploadsDir, 'land-documents');
+    }
+    
+    fs.mkdirSync(folder, { recursive: true });
+    cb(null, folder);
   },
   filename: (req, file, cb) => {
     const farmerId = req.params.farmer_id || 'unknown';
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const ext = path.extname(file.originalname);
-    cb(null, `farmer-${farmerId}-${uniqueSuffix}${ext}`);
+    cb(null, `${farmerId}-${file.fieldname}-${uniqueSuffix}${ext}`);
   }
 });
-const farmerDocumentUpload = multer({ storage: farmerDocumentStorage });
+
+const farmerDocumentUpload = multer({ 
+  storage: farmerDocumentStorage,
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+});
 
 
 // const farmerDocumentUpload = multer({ 
@@ -173,11 +214,15 @@ const corsOptions = {
   credentials: true, // allow cookies and sessions
   optionsSuccessStatus: 200
 };
-
+const crypto = require('crypto');
 
 
 const Razorpay = require('razorpay');
-
+// Initialize Razorpay
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_VLCfnymiyd6HGf',
+  key_secret: process.env.RAZORPAY_KEY_SECRET
+});
 // const razorpay = new Razorpay({
 //   key_id: 'rzp_test_VLCfnymiyd6HGf',
 //   key_secret: 'dwcSRSRah7Y4eBZUzL8M'
@@ -483,143 +528,6 @@ app.delete("/api/farmerprofile/:farmer_id/photo", verifyToken, async (req, res) 
   }
 });
 
-// app.delete("/api/farmerprofile/:farmer_id/remove-file", 
-//   auth.authenticate,
-//   auth.farmerOnly,
-//   async (req, res) => {
-//     try {
-//       const { farmer_id } = req.params;
-//       const { field } = req.body;
-
-//       if (!field) {
-//         return res.status(400).json({ success: false, message: "Field name is required" });
-//       }
-
-//       // Determine which table to update based on field
-//       let table, idField;
-//       if (field.includes('profile_photo') || field.includes('aadhaar_proof') || field.includes('bank_proof')) {
-//         table = 'personaldetails';
-//         idField = 'farmer_id';
-//       } else {
-//         table = 'farmdetails';
-//         idField = 'farmer_id';
-//       }
-
-//       // First get the file path to delete it from the filesystem
-//       const [result] = await queryDatabase(
-//         `SELECT ${field} FROM ${table} WHERE ${idField} = ?`,
-//         [farmer_id]
-//       );
-
-//       if (result && result[field]) {
-//         const filePath = path.join('F:/Project/KRISHISETU/krishisetu-final/backend', result[field]);
-//         if (fs.existsSync(filePath)) {
-//           fs.unlinkSync(filePath);
-//         }
-//       }
-
-//       // Update the database to remove the file reference
-//       await queryDatabase(
-//         `UPDATE ${table} SET ${field} = NULL WHERE ${idField} = ?`,
-//         [farmer_id]
-//       );
-
-//       res.json({ 
-//         success: true, 
-//         message: "File removed successfully" 
-//       });
-
-//     } catch (error) {
-//       console.error("Error removing file:", error);
-//       res.status(500).json({ 
-//         success: false, 
-//         message: "Error removing file",
-//         error: error.message 
-//       });
-//     }
-//   }
-// );
-
-
-
-// ✅ Upload File
-// app.post("/api/farmerprofile/:farmer_id/file", verifyToken, upload.single('file'), async (req, res) => {
-//   try {
-//     if (!req.file) {
-//       return res.status(400).json({ success: false, message: "No file uploaded" });
-//     }
-
-//     res.json({ success: true, message: "File uploaded", fileUrl: req.file.filename });
-//   } catch (err) {
-//     res.status(500).json({ success: false, message: "Error uploading file", error: err.message });
-//   }
-// });
-
-// In server.js, update the farmer profile photo upload endpoint
-
-// app.delete("/api/farmerprofile/:farmer_id/remove-file", 
-//   auth.authenticate,
-//   auth.farmerOnly,
-//   async (req, res) => {
-//     try {
-//       const { farmer_id } = req.params;
-//       const { field } = req.body;
-
-//       if (!field) {
-//         return res.status(400).json({ success: false, message: "Field name is required" });
-//       }
-
-//       // Determine table and ID field
-//       let table = field.includes('profile_photo') || field.includes('aadhaar_proof') || field.includes('bank_proof')
-//         ? 'personaldetails'
-//         : 'farmdetails';
-
-//       const idField = 'farmer_id';
-
-//       // Get the file path from DB
-//       const [result] = await queryDatabase(
-//         `SELECT ${field} FROM ${table} WHERE ${idField} = ?`,
-//         [farmer_id]
-//       );
-
-//       if (result && result[field]) {
-//         let filePath = result[field];
-
-//         // Ensure it's a string (in case it's Buffer or anything else)
-//         if (Buffer.isBuffer(filePath)) {
-//           filePath = filePath.toString();
-//         }
-
-//         const fullPath = path.join(__dirname, filePath);
-
-//         if (fs.existsSync(fullPath)) {
-//           fs.unlinkSync(fullPath);
-//         }
-//       }
-
-//       // Remove the reference from DB
-//       await queryDatabase(
-//         `UPDATE ${table} SET ${field} = NULL WHERE ${idField} = ?`,
-//         [farmer_id]
-//       );
-
-//       res.json({ 
-//         success: true, 
-//         message: "File removed successfully" 
-//       });
-
-//     } catch (error) {
-//       console.error("Error removing file:", error);
-//       res.status(500).json({ 
-//         success: false, 
-//         message: "Error removing file",
-//         error: error.message 
-//       });
-//     }
-//   }
-// );
-
-
 // Update the file removal endpoint (around line 250)
 app.delete("/api/farmerprofile/:farmer_id/remove-file", 
   auth.authenticate,
@@ -648,22 +556,12 @@ app.delete("/api/farmerprofile/:farmer_id/remove-file",
       );
 
       if (result && result[field]) {
-        // Convert Buffer to string if needed
-        let filePath = result[field];
-        if (Buffer.isBuffer(filePath)) {
-          filePath = filePath.toString('utf-8');
-        }
+        // Construct full path to the file
+        const filePath = path.join(__dirname, '..', result[field].substring(1));
         
-        // Remove any backslashes and ensure proper path formatting
-        filePath = filePath.replace(/\\/g, '/');
-        
-        // Construct full path - ensure it points to the correct uploads directory
-        const fullPath = path.join(__dirname, filePath.startsWith('/') ? filePath.substring(1) : filePath);
-
-        if (fs.existsSync(fullPath)) {
-          fs.unlinkSync(fullPath);
-        } else {
-          console.warn(`File not found at path: ${fullPath}`);
+        // Delete the file if it exists
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
         }
       }
 
@@ -689,58 +587,6 @@ app.delete("/api/farmerprofile/:farmer_id/remove-file",
   }
 );
 
-
-// app.post("/api/farmerprofile/:farmer_id/upload-file", 
-//   auth.authenticate,
-//   auth.farmerOnly,
-//   farmerDocumentUpload.single('file'),
-//   async (req, res) => {
-//     try {
-//       if (!req.file) {
-//         return res.status(400).json({ success: false, message: "No file uploaded" });
-//       }
-
-//       const { farmer_id } = req.params;
-//       const { field } = req.body;
-
-//       if (!field) {
-//         return res.status(400).json({ success: false, message: "Field name is required" });
-//       }
-
-//       const filePath = `/uploads/farmer-documents/${req.file.filename}`;
-
-//       // Update the database with the file path
-//       let table, idField;
-//       if (field === 'profile_photo' || field === 'aadhaar_proof' || field === 'bank_proof') {
-//         table = 'personaldetails';
-//         idField = 'farmer_id';
-//       } else {
-//         table = 'farmdetails';
-//         idField = 'farmer_id';
-//       }
-
-//       await queryDatabase(
-//         `UPDATE ${table} SET ${field} = ? WHERE ${idField} = ?`,
-//         [filePath, farmer_id]
-//       );
-
-//       res.json({ 
-//         success: true, 
-//         message: "File uploaded successfully",
-//         filePath: filePath,
-//         filename: req.file.filename
-//       });
-
-//     } catch (error) {
-//       console.error("Error uploading file:", error);
-//       res.status(500).json({ 
-//         success: false, 
-//         message: "Error uploading file",
-//         error: error.message 
-//       });
-//     }
-//   }
-// );
 // Update the file upload endpoint (around line 300)
 app.post("/api/farmerprofile/:farmer_id/upload-file", 
   auth.authenticate,
@@ -759,9 +605,6 @@ app.post("/api/farmerprofile/:farmer_id/upload-file",
         return res.status(400).json({ success: false, message: "Field name is required" });
       }
 
-      // Use consistent forward slashes for the path
-      const filePath = `/uploads/farmer-documents/${req.file.filename}`;
-
       // Determine which table to update based on field
       let table;
       if (field.includes('profile_photo') || field.includes('aadhaar_proof') || field.includes('bank_proof')) {
@@ -770,7 +613,11 @@ app.post("/api/farmerprofile/:farmer_id/upload-file",
         table = 'farmdetails';
       }
 
-      // Update the database with the consistent file path
+      // Construct relative path for database storage
+      const relativePath = path.relative(uploadsDir, req.file.path).replace(/\\/g, '/');
+      const filePath = `/uploads/${relativePath}`;
+
+      // Update the database
       await queryDatabase(
         `UPDATE ${table} SET ${field} = ? WHERE farmer_id = ?`,
         [filePath, farmer_id]
@@ -780,7 +627,7 @@ app.post("/api/farmerprofile/:farmer_id/upload-file",
         success: true, 
         message: "File uploaded successfully",
         filePath: filePath,
-         accessibleUrl: `http://localhost:5000/uploads/farmer-documents/${req.file.filename}`
+        accessibleUrl: `http://localhost:5000${filePath}`
       });
 
     } catch (error) {
@@ -793,7 +640,6 @@ app.post("/api/farmerprofile/:farmer_id/upload-file",
     }
   }
 );
-
 
 
 
@@ -823,23 +669,11 @@ app.use((req, res, next) => {
   return authMiddleware(req, res, next);
 });
 
-
-
 // ⬇️ Must go before routes
 app.use(authMiddleware);
 
-
-// (Optional but helpful) Handle OPTIONS preflight for all routes
-// const cors = require('cors'); // Make sure this is at the top!
-
-
 const orderRoutes = require("./src/routes/orderRoutes");
 const farmerRoutes = require("./src/routes/farmerRoutes");
-// const http = require('http');
-
-// const setupSockets = require('./socket');
-//const db = require(".src/config/db");
-
 const setupSockets = require('./socket');
 // const db = require(".src/config/db");
 const communityRoutes = require("./src/routes/communityRoutes");
@@ -852,10 +686,6 @@ const reviewsRoutes = require('./src/routes/reviews');
 
 
 const secretKey = process.env.JWT_SECRET;
-
-
-// At the top of server.js with your other requires
-
 
 
 
@@ -1047,10 +877,6 @@ io.on("connection", (socket) => {
 
 const mysql = require("mysql");
 
-// const INSTAMOJO_API_KEY = process.env.INSTAMOJO_API_KEY;
-// const INSTAMOJO_AUTH_TOKEN = process.env.INSTAMOJO_AUTH_TOKEN;
-// const REDIRECT_URL = "http://localhost:3000/payment-success";
-
 
 const querydatabase = mysql.createConnection({
   host: "localhost",
@@ -1073,36 +899,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// const MySQLStore = require('express-mysql-session')(session);
-
-// // MySQL session store configuration
-// const sessionStoreOptions = {
-//   host: process.env.DB_HOST || 'localhost',
-//   port: process.env.DB_PORT || 3306,
-//   user: process.env.DB_USER || 'root',
-//   password: process.env.DB_PASSWORD || '',
-//   database: process.env.DB_NAME || 'krishisetur',
-//   createDatabaseTable: true,
-//   schema: {
-//     tableName: 'bargain_sessions',
-//     columnNames: {
-//       session_id: 'bargain_id',
-//       expires: 'expires',
-//       data: 'data'
-//     }
-//   }
-// };
-// const sessionStore = new MySQLStore(sessionStoreOptions);
 
 
 app.use('/api/reviews', reviewsRoutes);
-// app.use((req, res, next) => {
-//   console.log("Session Data:", req.session);
-//   next();
-// });
-// 🔓 Only protect routes that are not public
-
-
 app.get("/test-session", (req, res) => {
   console.log("Session Data:", req.session); // 🔍 Debugging
 
@@ -1167,109 +966,17 @@ app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ error: 'Something went wrong!' });
 });
-// app.use((req, res, next) => {
-//   console.log("Session Middleware - Current Session:", req.session);
-//   next();
-// });
+
 app.use((req, res, next) => {
   if (req.path.startsWith("/socket.io")) {
     return next(); // Bypass auth for WebSocket connections
   }
   return verifyToken(req, res, next); // Use the existing verifyToken middleware
 });
-// // app.use(cors({
-// //   origin: "http://localhost:3000",  // Allow requests from React frontend
-// //  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allow these HTTP methods
-// //   allowedHeaders: ["Content-Type", "Authorization"],  // Allow these headers
-// //   credentials: true  // ✅ Important if you're using cookies or authentication
-// // }));
-// // app.use(cors({
-// //   origin: "http://localhost:3000", // React app
-// //   credentials: true,               // Important for sessions
-// //   methods: ["GET", "POST", "OPTIONS"], // Allow preflight
-// //   allowedHeaders: ["Content-Type", "Authorization"], // Adjust as needed
-// // }));
-// // Configure CORS properly
-// // const corsOptions = {
-// //   origin: 'http://localhost:3000', // Your frontend URL
-// //   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-// //   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-// //   credentials: true, // Important for cookies and auth headers
-// //   optionsSuccessStatus: 200 // Some legacy browsers choke on 204
-// // };
-// const corsOptions = {
-//   origin: 'http://localhost:3000',
-//   credentials: true, // REQUIRED for cookies/sessions
-//   methods: ['GET', 'POST', 'OPTIONS', 'PUT', 'DELETE'],
-//   allowedHeaders: [
-//     'Content-Type',
-//     'Authorization',
-//     'X-Requested-With',
-//     'Accept',
-//     'Origin'
-//   ],
-//   optionsSuccessStatus: 200
-// };
-
-// // Apply CORS middleware
-// app.use(cors(corsOptions));
-
-
-// // Explicitly handle OPTIONS requests
-// // app.options('*', cors(corsOptions)); 
-// // // Enable preflight for all routes
-// app.options('*', (req, res) => {
-//   // Don't initialize session for OPTIONS
-//   res.header('Access-Control-Allow-Credentials', 'true');
-//   res.sendStatus(200);
-// });
-// // ✅ Middleware setup
-// app.use(bodyParser.json());
-// app.use(express.urlencoded({ extended: true }));
-
-
-// app.use(cors(corsOptions));          // CORS middleware
-// app.options("*", cors(corsOptions)); // Handle preflight
-
-// // ✅ Middleware
-// // app.use(express.json());
-// app.use(express.urlencoded({ extended: true }));
-
-// // ✅ Session setup (important if you're using req.session)
-// // ✅ Middleware
-// app.use(cookieParser());
-// const session = require("express-session"); 
-// app.use(
-//   session({
-//     secret: "your-secret-key",
-//     resave: false,
-//     saveUninitialized: true,
-//     cookie: {
-//       secure: false,
-//       httpOnly: true,
-//       sameSite: "lax",
-//     },
-//   })
-// );
-
-// app.use(
-//   cors({
-//     origin: "http://localhost:3000",
-//     methods: ["GET", "POST", "OPTIONS", "PUT", "DELETE"],
-//     credentials: true,
-//   })
-// );
-
-// app.use(express.json());
 
 
 app.use('/api/bargain', require('./src/routes/bargainRoutes'));
-// Debugging Middleware for Logging Headers
-// app.use((req, res, next) => {
-//   console.log('Request Headers:', req.headers);
-//   next();
-// });
-// Add headers before routes
+
 app.use((req, res, next) => {
   if (req.method !== "OPTIONS") {
     console.log("Session Data:", req.session);
@@ -1292,18 +999,39 @@ if (!fs.existsSync(uploadDir)) {
 }
 
 
-// 🔹 Storage settings for uploaded images
-// const storage = multer.diskStorage({
-//   destination: (req, file, cb) => {
-//       cb(null, "uploads/"); // Save images in uploads folder
-//   },
-//   filename: (req, file, cb) => {
-//       const uniqueName = Date.now() + path.extname(file.originalname);
-//       cb(null, uniqueName); // Unique filename
-//   }
-// });
+// Update the photo upload endpoint
+// Photo Upload Endpoint
+app.post("/api/upload/:consumer_id", upload.single('photo'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "No file uploaded" });
+    }
 
-// const upload = multer({ storage });
+    const consumerId = req.params.consumer_id;
+    const relativePath = `/uploads/${req.file.filename}`;
+    const absoluteUrl = `${req.protocol}://${req.get('host')}${relativePath}`;
+
+    // Update database with relative path
+    await queryDatabase(
+      "UPDATE consumerprofile SET photo = ? WHERE consumer_id = ?",
+      [relativePath, consumerId]
+    );
+
+    res.json({
+      success: true,
+      filePath: relativePath,
+      photoUrl: absoluteUrl,  // Send back the full accessible URL
+      message: "Photo uploaded successfully"
+    });
+  } catch (err) {
+    console.error("Upload error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Error uploading photo",
+      error: err.message
+    });
+  }
+});
 
 
 app.post("/api/upload/:id", upload.single("file"), (req, res) => {
@@ -1331,24 +1059,113 @@ app.post("/api/upload/:id", upload.single("file"), (req, res) => {
   });
 });
 
+app.delete("/api/remove-photo/:consumer_id", async (req, res) => {
+  const { consumer_id } = req.params;
+  
+  if (!consumer_id) {
+    return res.status(400).json({ error: "Consumer ID is required" });
+  }
 
-///this is before place order
-// app.post("/api/place-order", async (req, res) => {
-//   const { consumer_id, name, mobile_number, email, address, pincode, produce_name, quantity, amount } = req.body;
-//   try {
-//     const query = `
-//       INSERT INTO orders (consumer_id, name, mobile_number, email, address, pincode, produce_name, quantity, amount, status, payment_status)
-//       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', 'Pending')
-//     `;
-//     await queryDatabase(query, [consumer_id, name, mobile_number, email, address, pincode, produce_name, quantity, amount]);
-//     res.json({ success: true, message: "Order placed successfully" });
-//   } catch (error) {
-//     console.error("Error placing order:", error);
-//     res.status(500).json({ error: "Failed to place order" });
-//   }
-// });
-// Add this endpoint to fetch consumer profile
-// Add this endpoint to fetch consumer profile
+  try {
+    // First get the current photo path
+    const [profile] = await queryDatabase(
+      "SELECT photo FROM consumerprofile WHERE consumer_id = ?",
+      [consumer_id]
+    );
+
+    if (!profile) {
+      return res.status(404).json({ error: "Consumer profile not found" });
+    }
+
+    if (profile.photo) {
+      // Delete the file from filesystem
+      const filePath = path.join(__dirname, profile.photo);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    }
+
+    // Update the database
+    await queryDatabase(
+      "UPDATE consumerprofile SET photo = NULL WHERE consumer_id = ?",
+      [consumer_id]
+    );
+
+    res.json({ 
+      success: true,
+      message: "Photo removed successfully" 
+    });
+  } catch (error) {
+    console.error("Error removing photo:", error);
+    res.status(500).json({ 
+      success: false,
+      error: "Internal server error" 
+    });
+  }
+});
+
+app.get("/api/consumer/:consumer_id", async (req, res) => {
+  try {
+    const { consumer_id } = req.params;
+    
+    if (!consumer_id) {
+      return res.status(400).json({ message: "Consumer ID is required" });
+    }
+
+    const query = `
+      SELECT 
+        c.consumer_id,
+        cr.first_name,
+        cr.last_name,
+        cr.email,
+        cr.phone_number,
+        c.name,
+        c.mobile_number,
+        c.address,
+        c.pincode,
+        c.location,
+        c.photo,
+        c.preferred_payment_method,
+        c.subscription_method
+      FROM consumerprofile c
+      JOIN consumerregistration cr ON c.consumer_id = cr.consumer_id
+      WHERE c.consumer_id = ?;
+    `;
+    
+    const [result] = await queryDatabase(query, [consumer_id]);
+
+    if (!result) {
+      return res.status(404).json({ message: "Profile not found" });
+    }
+
+    // Format the response
+    const profileData = {
+      consumer_id: result.consumer_id,
+      first_name: result.first_name,
+      last_name: result.last_name,
+      full_name: `${result.first_name} ${result.last_name}`.trim(),
+      email: result.email,
+      phone_number: result.phone_number,
+      address: result.address,
+      pincode: result.pincode,
+      location: result.location,
+      photo: result.photo ? `http://localhost:5000${result.photo}` : null,
+      preferred_payment_method: result.preferred_payment_method,
+      subscription_method: result.subscription_method
+    };
+
+    res.json(profileData);
+  } catch (err) {
+    console.error("Error in API:", err);
+    res.status(500).json({ 
+      message: "Server error", 
+      error: err.message 
+    });
+  }
+});
+
+
+
 app.get("/api/consumerprofile/:consumer_id", async (req, res) => {
   try {
     const { consumer_id } = req.params;
@@ -1384,19 +1201,80 @@ app.get("/api/consumerprofile/:consumer_id", async (req, res) => {
 app.put("/api/consumerprofile/:consumer_id", async (req, res) => {
   try {
     const { consumer_id } = req.params;
-    const { address, pincode, location } = req.body;
+    const { 
+      address, 
+      pincode, 
+      location, 
+      preferred_payment_method, 
+      subscription_method 
+    } = req.body;
 
-    const query = `
-      UPDATE consumerprofile 
-      SET address = ?, pincode = ?, location = ?
-      WHERE consumer_id = ?`;
-    
-    await queryDatabase(query, [address, pincode, location, consumer_id]);
-    
-    res.json({ success: true, message: "Address updated successfully" });
-  } catch (error) {
-    console.error('Error updating consumer profile:', error);
-    res.status(500).json({ message: 'Internal Server Error' });
+    if (!consumer_id) {
+      return res.status(400).json({ message: "Consumer ID is required" });
+    }
+
+    // Validate required fields
+    if (!address || !pincode) {
+      return res.status(400).json({ message: "Address and pincode are required" });
+    }
+
+    // Check if profile exists
+    const [existing] = await queryDatabase(
+      "SELECT 1 FROM consumerprofile WHERE consumer_id = ?",
+      [consumer_id]
+    );
+
+    if (existing) {
+      // Update existing profile
+      await queryDatabase(
+        `UPDATE consumerprofile 
+         SET address = ?, pincode = ?, location = ?,
+             preferred_payment_method = ?, subscription_method = ?
+         WHERE consumer_id = ?`,
+        [
+          address, 
+          pincode, 
+          location, 
+          preferred_payment_method, 
+          subscription_method, 
+          consumer_id
+        ]
+      );
+    } else {
+      // Create new profile
+      await queryDatabase(
+        `INSERT INTO consumerprofile 
+         (consumer_id, address, pincode, location, 
+          preferred_payment_method, subscription_method)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          consumer_id, 
+          address, 
+          pincode, 
+          location, 
+          preferred_payment_method, 
+          subscription_method
+        ]
+      );
+    }
+
+    // Get updated profile
+    const [updatedProfile] = await queryDatabase(
+      "SELECT * FROM consumerprofile WHERE consumer_id = ?",
+      [consumer_id]
+    );
+
+    res.json({
+      success: true,
+      message: "Profile updated successfully",
+      profile: updatedProfile
+    });
+  } catch (err) {
+    console.error("Error updating profile:", err);
+    res.status(500).json({ 
+      message: "Server error", 
+      error: err.message 
+    });
   }
 });
 
@@ -1432,85 +1310,72 @@ app.get("/api/consumerprofile/:consumer_id", async (req, res) => {
   }
 });
 // Update the place-order endpoint
-app.post("/api/place-order", async (req, res) => {
-  const { 
-    consumer_id,
-    name,
-    mobile_number,
-    email,
-    produce_name,
-    quantity,
-    amount,
-    is_self_delivery,
-    recipient_name,
-    recipient_phone,
-    address,
-    payment_method
-  } = req.body;
 
-  console.log("Received payment method:", payment_method); // Debug log
-
+// Add this to your backend routes
+router.post('/api/orders/place-order',  async (req, res) => {
   try {
-    const query = `
-      INSERT INTO placeorder (
-        consumer_id, 
-        name, 
-        mobile_number, 
-        email, 
-        produce_name, 
-        quantity, 
-        amount,
-        status,
-        payment_status,
-        payment_method,
-        is_self_delivery,
-        recipient_name,
-        recipient_phone,
-        address
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending', 'Pending', ?, ?, ?, ?, ?)
-    `;
-    
-    const values = [
+    const {
       consumer_id,
-      is_self_delivery ? name : recipient_name,
-      is_self_delivery ? mobile_number : recipient_phone,
+      name,
+      mobile_number,
       email,
+      address,
+      pincode,
       produce_name,
       quantity,
       amount,
-      payment_method, // This should be the 10th parameter
-      is_self_delivery,
-      recipient_name || null,
-      recipient_phone || null,
-      address
-    ];
-    const result = await queryDatabase(query, values);
+      payment_method,
+      is_community
+    } = req.body;
 
-    // Get the inserted order with its auto-generated ID
-    const [order] = await queryDatabase(
-      "SELECT * FROM placeorder WHERE order_id = ?",
-      [result.insertId]
+    // Insert into placeorder table
+    const [result] = await db.query(
+      `INSERT INTO placeorder (
+        consumer_id,
+        name,
+        mobile_number,
+        email,
+        address,
+        pincode,
+        produce_name,
+        quantity,
+        amount,
+        payment_method,
+        is_community,
+        status,
+        payment_status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', ?)`,
+      [
+        consumer_id,
+        name,
+        mobile_number,
+        email,
+        address,
+        pincode,
+        produce_name,
+        quantity,
+        amount,
+        payment_method,
+        is_community,
+        payment_method === 'cash-on-delivery' ? 'Pending' : 'Paid'
+      ]
     );
-    
 
-    res.json({ 
-      success: true, 
-      message: "Order placed successfully",
-      order_id: order.order_id 
+    res.status(201).json({
+      success: true,
+      orderId: result.insertId,
+      message: 'Order placed successfully'
     });
   } catch (error) {
-    console.error("Error placing order:", error);
-    res.status(500).json({ error: "Failed to place order" });
+    console.error('Error placing order:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to place order'
+    });
   }
 });
 
 
-// Save address to placeorder table (before order is placed)
-// Add this endpoint to save address
-// Add these endpoints to your server.js
-
-// Endpoint to save address
 app.post("/api/save-address", async (req, res) => {
   try {
     const { 
@@ -1584,58 +1449,7 @@ app.post("/api/save-address", async (req, res) => {
   }
 });
 
-// In your backend routes file (e.g., routes/bargain.js)
-// GET all pending bargain sessions for a consumer with a specific farmer
-// app.get('/api/bargain/sessions/consumer/:consumerId', authenticate, async (req, res) => {
-//   try {
-//     const { consumerId } = req.params;
-//     const { farmer_id } = req.query; // Optional: Filter by farmer_id
 
-//     // Base query conditions
-//     let query = `
-//       SELECT bs.*, 
-//              f.name AS farmer_name,
-//              p.name AS product_name,
-            
-//       FROM bargain_sessions bs
-//       LEFT JOIN farmerregistration f ON bs.farmer_id = f.farmer_id
-     
-//       WHERE bs.consumer_id = ? 
-     
-//     `;
-
-//     const queryParams = [consumerId];
-
-//     // Add farmer_id filter if provided
-//     if (farmer_id) {
-//       query += ' AND bs.farmer_id = ?';
-//       queryParams.push(farmer_id);
-//     }
-
-//     // Add sorting
-//     query += ' ORDER BY bs.updated_at DESC';
-
-//     // Execute the query
-//     const [sessions] = await db.query(query, queryParams);
-
-//     // Transform the data to match frontend expectations
-//     const formattedSessions = sessions.map(session => ({
-//       session_id: session.bargain_id,
-//       farmer_id: session.farmer_id,
-//       farmer_name: session.farmer_name,
-      
-//       updated_at: session.updated_at,
-//       created_at: session.created_at,
-//       initiator: session.initiator,
-//       unread_count: session.unread_count || 0
-//     }));
-
-//     res.json(formattedSessions);
-//   } catch (error) {
-//     console.error('Error fetching bargain sessions:', error);
-//     res.status(500).json({ error: 'Internal server error' });
-//   }
-// });
 app.get('/api/bargain/sessions/consumer/:consumerId', authenticate, async (req, res) => {
   try {
     const { consumerId } = req.params;
@@ -1695,9 +1509,7 @@ app.get('/api/bargain/sessions/consumer/:consumerId', authenticate, async (req, 
     });
   }
 });
-// Update existing address (won't create new records)
-// Update address endpoint
-// PUT endpoint for updating address - place this with your other API routes
+
 app.put("/api/update-address", async (req, res) => {
   console.log("PUT /api/update-address hit"); // Debug log
   try {
@@ -1732,15 +1544,6 @@ app.put("/api/update-address", async (req, res) => {
   }
 });
 
-
-// Add this temporary test route in your server.js
-// Add these test endpoints in your server.js file
-
-
-
-
-
-// Endpoint to get saved address
 app.get("/api/saved-address/:consumer_id", async (req, res) => {
   try {
     const { consumer_id } = req.params;
@@ -1758,37 +1561,6 @@ app.get("/api/saved-address/:consumer_id", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch address" });
   }
 });
-
-// Create an order in the database and generate payment URL
-// app.post("/create-order", async (req, res) => {
-//   const { amount, buyer_name, buyer_email, buyer_phone } = req.body;
-
-//   try {
-//     const response = await axios.post(
-//       "https://www.instamojo.com/api/1.1/payment-requests/",
-//       {
-//         purpose: "KrishiSetu Order Payment",
-//         amount,
-//         buyer_name,
-//         email: buyer_email,
-//         phone: buyer_phone,
-//         redirect_url: REDIRECT_URL,
-//       },
-//       {
-//         headers: {
-//           "X-Api-Key": INSTAMOJO_API_KEY,
-//           "X-Auth-Token": INSTAMOJO_AUTH_TOKEN,
-//         },
-//       }
-//     );
-
-//     // Send the payment URL to the frontend
-//     res.json({ success: true, payment_url: response.data.payment_request.longurl });
-//   } catch (error) {
-//     console.error("Error creating payment request:", error);
-//     res.status(500).json({ success: false, message: "Payment request failed" });
-//   }
-// });
 
 app.delete("/remove-photo/:consumer_id", async (req, res) => {
   const { consumer_id } = req.params;
@@ -1843,11 +1615,7 @@ app.delete("/remove-photo/:consumer_id", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
-//bargain sessions
-// Fetch bargain session and messages
-// app.get("/api/bargain/:bargain_id",verifyToken, async (req, res) => {
-//   try {
-//     console.log("🔍 Incoming Headers:", req.headers);
+
 
 //     const authHeader = req.headers.authorization;
 //     if (!authHeader) {
@@ -1897,6 +1665,102 @@ app.delete("/remove-photo/:consumer_id", async (req, res) => {
 //     res.status(500).json({ error: "Internal Server Error" });
 //   }
 // });
+// app.get("/api/bargain/:bargain_id", verifyToken, async (req, res) => {
+//   try {
+//     const { bargain_id } = req.params;
+
+//     if (!bargain_id) {
+//       return res.status(400).json({
+//         success: false,
+//         error: "Bargain ID is required"
+//       });
+//     }
+
+//     // Get bargain session
+//     console.log("🔍 Fetching bargain session for ID:", bargain_id);
+
+//     const sessionResult = await queryDatabase(
+//       `SELECT 
+//         bargain_id,
+//         consumer_id,
+//         farmer_id,
+//         product_id,
+//         original_price,
+//         quantity,
+//         current_offer,
+//         status,
+//         initiator,
+//         created_at,
+//         updated_at,
+//         expires_at
+//       FROM bargain_sessions 
+//       WHERE bargain_id = ?`,
+//       [bargain_id]
+//     );
+
+//     console.log("🧪 Session result:", sessionResult);
+
+//     if (!sessionResult || sessionResult.length === 0) {
+//       return res.status(404).json({
+//         success: false,
+//         error: "Bargain session not found"
+//       });
+//     }
+
+//     const session = sessionResult[0];
+
+//     // Get messages
+//     const messages = await queryDatabase(
+//       `SELECT 
+//         message_id,
+//         bargain_id,
+//         price,
+//         sender_type,
+//         message_type,
+//         content,
+//         timestamp
+//        FROM bargain_messages
+//        WHERE bargain_id = ?
+//        ORDER BY timestamp ASC`,
+//       [bargain_id]
+//     );
+//     if (!Array.isArray(messages)) {
+//       console.warn("⚠️ messages query returned non-array:", messages);
+//     }
+//     // Construct response
+//     const responseData = {
+//       success: true,
+//       session: {
+//         bargain_id: session.bargain_id,
+//         consumer_id: session.consumer_id,
+//         farmer_id: session.farmer_id,
+//         product_id: session.product_id,
+//         initial_price: session.original_price,        // ← 💡 You’ll use this as base price per 1kg
+//         quantity: session.quantity,
+//         current_price: session.current_offer || null, // ← 💡 Updated based on selected suggestion
+//         status: session.status,
+//         initiator: session.initiator,
+//         created_at: session.created_at,
+//         updated_at: session.updated_at,
+//         expires_at: session.expires_at,
+//         messages: messages || []
+//       }
+//     };
+
+//     res.status(200).json(responseData); // ✅ Let Express handle serialization
+
+//   } catch (error) {
+//     console.error("🔥 Error fetching bargain:", error);
+  
+//     return res.status(500).json({ // ← ✅ Add `return`
+//       success: false,
+//       error: "Internal server error",
+//       ...(process.env.NODE_ENV === "development" && { details: error.message })
+//     });
+//   }
+  
+// });
+
 app.get("/api/bargain/:bargain_id", verifyToken, async (req, res) => {
   try {
     const { bargain_id } = req.params;
@@ -1908,18 +1772,14 @@ app.get("/api/bargain/:bargain_id", verifyToken, async (req, res) => {
       });
     }
 
-    // Get bargain session
     console.log("🔍 Fetching bargain session for ID:", bargain_id);
 
+    // 1. Fetch session from bargain_sessions
     const sessionResult = await queryDatabase(
       `SELECT 
         bargain_id,
         consumer_id,
         farmer_id,
-        product_id,
-        original_price,
-        quantity,
-        current_offer,
         status,
         initiator,
         created_at,
@@ -1930,8 +1790,6 @@ app.get("/api/bargain/:bargain_id", verifyToken, async (req, res) => {
       [bargain_id]
     );
 
-    console.log("🧪 Session result:", sessionResult);
-
     if (!sessionResult || sessionResult.length === 0) {
       return res.status(404).json({
         success: false,
@@ -1941,7 +1799,13 @@ app.get("/api/bargain/:bargain_id", verifyToken, async (req, res) => {
 
     const session = sessionResult[0];
 
-    // Get messages
+    // 2. Fetch products from bargain_session_products
+    const productDetails = await queryDatabase(
+      `SELECT product_id, original_price, quantity FROM bargain_session_products WHERE bargain_id = ?`,
+      [bargain_id]
+    );
+
+    // 3. Fetch messages
     const messages = await queryDatabase(
       `SELECT 
         message_id,
@@ -1956,41 +1820,34 @@ app.get("/api/bargain/:bargain_id", verifyToken, async (req, res) => {
        ORDER BY timestamp ASC`,
       [bargain_id]
     );
-    if (!Array.isArray(messages)) {
-      console.warn("⚠️ messages query returned non-array:", messages);
-    }
-    // Construct response
+
+    // 4. Construct and send response
     const responseData = {
       success: true,
       session: {
         bargain_id: session.bargain_id,
         consumer_id: session.consumer_id,
         farmer_id: session.farmer_id,
-        product_id: session.product_id,
-        initial_price: session.original_price,        // ← 💡 You’ll use this as base price per 1kg
-        quantity: session.quantity,
-        current_price: session.current_offer || null, // ← 💡 Updated based on selected suggestion
         status: session.status,
         initiator: session.initiator,
         created_at: session.created_at,
         updated_at: session.updated_at,
         expires_at: session.expires_at,
+        products: productDetails || [],
         messages: messages || []
       }
     };
 
-    res.status(200).json(responseData); // ✅ Let Express handle serialization
+    res.status(200).json(responseData);
 
   } catch (error) {
     console.error("🔥 Error fetching bargain:", error);
-  
-    return res.status(500).json({ // ← ✅ Add `return`
+    return res.status(500).json({
       success: false,
       error: "Internal server error",
       ...(process.env.NODE_ENV === "development" && { details: error.message })
     });
   }
-  
 });
 
 
@@ -2043,85 +1900,6 @@ app.get('/api/upload/:id', (req, res) => {
       if (err) res.status(404).json({ error: "File not found" });
   });
 });
-
-// 
-// app.post('/bargain/initiate', async (req, res) => {
-//   try {
-//     console.log("🔹 Received Bargain Request:", req.body);
-//     const { consumer_id, farmer_id, product_id, quantity, original_price } = req.body;
-
-//     // Validate input
-//     if (!consumer_id || !farmer_id || !product_id || !quantity || !original_price) {
-//       return res.status(400).json({ error: 'Missing required fields' });
-//     }
-
-//     // Create new bargain session
-//     const newSession = new BargainSession({
-//       consumer_id,  // No longer checking authentication
-//       farmer_id,
-//       product_id,
-//       quantity,
-//       original_price,
-//       status: 'requested'
-//     });
-
-//     await newSession.save();
-
-//     res.status(201).json({
-//       message: 'Bargain session initiated',
-//       session_id: newSession._id,
-//       farmer_id,
-//       product_id
-//     });
-//   } catch (error) {
-//     console.error('Error creating bargain session:', error);
-//     res.status(500).json({ error: 'Internal server error' });
-//   }
-// });
-// In your bargain route file
-// app.post('/api/bargain/initiate', authenticateToken, async (req, res) => {
-//   try {
-//     console.log("🔹 Authenticated User:", req.user); // Debug log
-    
-//     const { farmer_id, product_id, quantity, original_price } = req.body;
-//     const { consumer_id } = req.user; // From middleware
-
-//     if (!farmer_id || !product_id || !quantity || !original_price) {
-//       return res.status(400).json({ error: "Missing required fields" });
-//     }
-
-//     await pool.query(
-//       `INSERT INTO bargain_requests 
-//        (consumer_id, farmer_id, product_id, quantity, original_price, status) 
-//        VALUES (?, ?, ?, ?, ?, 'pending')`,
-//       [consumer_id, farmer_id, product_id, quantity, original_price]
-//     );
-
-//     res.json({ success: true });
-    
-//   } catch (err) {
-//     console.error("❌ Bargain Error:", err);
-//     res.status(500).json({ error: "Server error" });
-//   }
-// });
-
-// app.get('/api/bargain/sessions/:consumer_id', async (req, res) => {
-//   try {
-//     const { consumer_id } = req.params;
-//     console.log("🔹 Fetching Bargain Sessions for Consumer:", consumer_id);
-
-//     if (!consumer_id) {
-//       return res.status(400).json({ error: "Consumer ID is required" });
-//     }
-
-//     const sessions = await BargainSession.find({ consumer_id });
-
-//     res.status(200).json({ sessions });
-//   } catch (error) {
-//     console.error("❌ Error fetching bargain sessions:", error);
-//     res.status(500).json({ error: "Internal server error" });
-//   }
-// });
 
 // **Get Consumer Profile API**
 app.get("/api/profile/:id", (req, res) => {
@@ -2387,6 +2165,7 @@ app.get("/api/orders/:consumer_id", async (req, res) => {
 
 
 
+
 // Authentication Middleware
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -2600,6 +2379,480 @@ app.get('/api/wallet/transactions/:consumer_id', authenticateToken, async (req, 
 });
 
 
+//bill generation
+// Add these endpoints to your server.js
+
+// Generate bill for a subscription plan
+app.get('/api/bills/:consumer_id/:plan', authenticateToken, async (req, res) => {
+  console.log('BACKEND 1: Request received', req.params); // Backend Debug 1
+  try {
+    const { consumer_id, plan } = req.params;
+    console.log('BACKEND 2: Authenticated user:', req.user); // Backend Debug 2
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Normalize to midnight
+    
+    // Verify the requested consumer_id matches the authenticated user
+    if (consumer_id !== req.user.consumer_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized access to billing information'
+      });
+    }
+
+    // Validate plan type
+    const validPlans = ['Daily', 'Alternate Days', 'Weekly', 'Monthly'];
+    if (!validPlans.includes(plan)) {
+      return res.status(400).json({ 
+        success: false,
+        error: "Invalid subscription plan" 
+      });
+    }
+
+    // Get all active subscriptions for this plan
+    const subscriptions = await queryDatabase(
+      `SELECT * FROM subscriptions 
+       WHERE consumer_id = ? AND subscription_type = ? AND status = 'Active'`,
+      [consumer_id, plan]
+    );
+
+    if (subscriptions.length === 0) {
+      return res.status(404).json({ 
+        success: false,
+        error: "No active subscriptions found for this plan" 
+      });
+    }
+
+    // Calculate billing period based on plan type
+    let billingPeriod = {
+      start: '',
+      end: '',
+      nextBillingDate: ''
+    };
+    
+    const startDate = new Date(subscriptions[0].start_date);
+    startDate.setHours(0, 0, 0, 0);
+    
+    if (plan === 'Daily') {
+      billingPeriod = {
+        start: today.toISOString().split('T')[0],
+        end: today.toISOString().split('T')[0],
+        nextBillingDate: new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      };
+    } 
+    else if (plan === 'Alternate Days') {
+      const daysDiff = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
+      
+      if (daysDiff % 2 === 0) {
+        billingPeriod = {
+          start: today.toISOString().split('T')[0],
+          end: today.toISOString().split('T')[0],
+          nextBillingDate: new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        };
+      } else {
+        return res.status(400).json({ 
+          success: false,
+          error: "Today is not a billing day for Alternate Days plan" 
+        });
+      }
+    } 
+    else if (plan === 'Weekly') {
+      const startDayOfWeek = startDate.getDay(); // 0 (Sunday) to 6 (Saturday)
+      const todayDayOfWeek = today.getDay();
+      
+      if (startDayOfWeek === todayDayOfWeek) {
+        const weekStart = new Date(today);
+        weekStart.setDate(today.getDate() - today.getDay()); // Start of week (Sunday)
+        
+        billingPeriod = {
+          start: weekStart.toISOString().split('T')[0],
+          end: today.toISOString().split('T')[0],
+          nextBillingDate: new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        };
+      } else {
+        return res.status(400).json({ 
+          success: false,
+          error: "Today is not the billing day for Weekly plan" 
+        });
+      }
+    } 
+    else if (plan === 'Monthly') {
+      const startDateDay = startDate.getDate();
+      const todayDate = today.getDate();
+      const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+      
+      // Check if today is the billing day or the last day of month (for short months)
+      if (todayDate === startDateDay || 
+          (todayDate === lastDayOfMonth && startDateDay > lastDayOfMonth)) {
+        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+        
+        billingPeriod = {
+          start: monthStart.toISOString().split('T')[0],
+          end: today.toISOString().split('T')[0],
+          nextBillingDate: new Date(today.getFullYear(), today.getMonth() + 1, 
+                                   Math.min(startDateDay, lastDayOfMonth)).toISOString().split('T')[0]
+        };
+      } else {
+        return res.status(400).json({ 
+          success: false,
+          error: "Today is not the billing day for Monthly plan" 
+        });
+      }
+    }
+
+    // Calculate bill amounts
+    const subtotal = subscriptions.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const subscriptionFee = subscriptions.reduce((sum, item) => sum + (5 * item.quantity), 0); // ₹5 per item fee
+    const total = subtotal + subscriptionFee;
+
+    // Get billing history for this plan
+    const billingHistory = await queryDatabase(
+      `SELECT 
+        bh.billing_id,
+        bh.amount,
+        DATE_FORMAT(bh.billing_date, '%Y-%m-%d') as billing_date,
+        wt.transaction_id,
+        DATE_FORMAT(wt.transaction_date, '%Y-%m-%d %H:%i:%s') as payment_date,
+        bh.description
+       FROM billing_history bh
+       JOIN wallet_transactions wt ON bh.transaction_id = wt.transaction_id
+       WHERE bh.consumer_id = ? AND bh.subscription_type = ?
+       ORDER BY bh.billing_date DESC
+       LIMIT 10`,
+      [consumer_id, plan]
+    );
+
+    // Create bill object
+    const bill = {
+      plan,
+      billingPeriod,
+      items: subscriptions.map(item => ({
+        subscription_id: item.subscription_id,
+        product_name: item.product_name,
+        quantity: item.quantity,
+        price: item.price,
+        total: item.price * item.quantity
+      })),
+      subtotal,
+      subscriptionFee,
+      total,
+      generatedAt: new Date().toISOString(),
+      billingHistory
+    };
+
+    res.json({ 
+      success: true, 
+      bill 
+    });
+  } catch (error) {
+    console.error("Error generating bill:", error);
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to generate bill" 
+    });
+  }
+});
+
+// Process payment for a subscription plan
+app.post('/api/bills/pay/:consumer_id/:plan', authenticateToken, async (req, res) => {
+  try {
+    const { consumer_id, plan } = req.params;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Verify authorization
+    if (consumer_id !== req.user.consumer_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized payment attempt'
+      });
+    }
+
+    // First generate the bill to get the amount
+    const billResponse = await queryDatabase(
+      `SELECT 
+        s.subscription_id,
+        s.product_name,
+        s.quantity,
+        s.price,
+        (s.price * s.quantity) as item_total,
+        (5 * s.quantity) as fee
+       FROM subscriptions s
+       WHERE s.consumer_id = ? AND s.subscription_type = ? AND s.status = 'Active'`,
+      [consumer_id, plan]
+    );
+
+    if (billResponse.length === 0) {
+      return res.status(404).json({ 
+        success: false,
+        error: "No active subscriptions found for this plan" 
+      });
+    }
+
+    // Calculate totals
+    const subtotal = billResponse.reduce((sum, item) => sum + item.item_total, 0);
+    const subscriptionFee = billResponse.reduce((sum, item) => sum + item.fee, 0);
+    const total = subtotal + subscriptionFee;
+
+    // Get current wallet balance
+    const walletBalance = await queryDatabase(
+      `SELECT balance FROM wallet_transactions 
+       WHERE consumer_id = ? 
+       ORDER BY transaction_date DESC LIMIT 1`,
+      [consumer_id]
+    );
+    const currentBalance = walletBalance[0]?.balance || 0;
+
+    if (currentBalance < total) {
+      return res.status(400).json({ 
+        success: false,
+        error: "Insufficient wallet balance",
+        required: total,
+        current: currentBalance
+      });
+    }
+
+    // Deduct from wallet
+    const paymentDescription = `Subscription payment for ${plan} plan`;
+    const paymentResult = await queryDatabase(
+      `INSERT INTO wallet_transactions 
+       (consumer_id, transaction_type, amount, description, payment_method) 
+       VALUES (?, 'Debit', ?, ?, 'Subscription Payment')`,
+      [consumer_id, total, paymentDescription]
+    );
+
+    // Record the payment in billing history
+    await queryDatabase(
+      `INSERT INTO billing_history 
+       (consumer_id, subscription_type, amount, billing_date, transaction_id, description) 
+       VALUES (?, ?, ?, ?, NULL, ?)`,
+      [consumer_id, plan, total, today, paymentResult.insertId, paymentDescription]
+    );
+
+    // Log the delivery
+    await queryDatabase(
+      `INSERT INTO delivery_logs 
+       (consumer_id, delivery_date, amount, transaction_id, status) 
+       VALUES (?, ?, ?, NULL, 'Completed')`,
+      [consumer_id, today, total, paymentResult.insertId]
+    );
+
+    // Get the updated balance
+    const updatedBalance = await queryDatabase(
+      `SELECT balance FROM wallet_transactions 
+       WHERE transaction_id = ?`,
+      [paymentResult.insertId]
+    );
+
+    res.json({ 
+      success: true,
+      message: "Payment processed successfully",
+      amount: total,
+      newBalance: updatedBalance[0].balance,
+      transactionId: paymentResult.insertId
+    });
+    
+  } catch (error) {
+    console.error("Error processing payment:", error);
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to process payment" 
+    });
+  }
+});
+
+
+// Get billing history
+app.get('/api/bills/history/:consumer_id', verifyToken, async (req, res) => {
+  try {
+    const { consumer_id } = req.params;
+    
+    const history = await queryDatabase(
+      `SELECT 
+        bh.billing_id,
+        bh.subscription_type as plan,
+        bh.amount,
+        DATE_FORMAT(bh.billing_date, '%Y-%m-%d') as billing_date,
+        wt.transaction_id,
+        DATE_FORMAT(wt.transaction_date, '%Y-%m-%d %H:%i:%s') as payment_date,
+        bh.description
+       FROM billing_history bh
+       JOIN wallet_transactions wt ON bh.transaction_id = wt.transaction_id
+       WHERE bh.consumer_id = ?
+       ORDER BY bh.billing_date DESC`,
+      [consumer_id]
+    );
+
+    res.json({ success: true, history });
+  } catch (error) {
+    console.error("Error fetching billing history:", error);
+    res.status(500).json({ error: "Failed to fetch billing history" });
+  }
+});
+
+// Generate PDF bill
+app.get('/api/bills/pdf/:consumer_id/:plan', authenticateToken, async (req, res) => {
+  try {
+    const { consumer_id, plan } = req.params;
+    const today = new Date();
+    
+    // Verify the requested consumer_id matches the authenticated user
+    if (consumer_id !== req.user.consumer_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized access to billing information'
+      });
+    }
+
+    // Get current bill
+    const currentBill = await queryDatabase(
+      `SELECT 
+        s.subscription_id,
+        s.product_name,
+        s.quantity,
+        s.price,
+        (s.price * s.quantity) as item_total,
+        (5 * s.quantity) as fee
+       FROM subscriptions s
+       WHERE s.consumer_id = ? AND s.subscription_type = ? AND s.status = 'Active'`,
+      [consumer_id, plan]
+    );
+
+    if (currentBill.length === 0) {
+      return res.status(404).json({ 
+        success: false,
+        error: "No active subscriptions found for this plan" 
+      });
+    }
+
+    // Get billing history
+    const billingHistory = await queryDatabase(
+      `SELECT 
+        bh.billing_id,
+        bh.amount,
+        DATE_FORMAT(bh.billing_date, '%Y-%m-%d') as billing_date,
+        wt.transaction_id,
+        DATE_FORMAT(wt.transaction_date, '%Y-%m-%d %H:%i:%s') as payment_date,
+        bh.description
+       FROM billing_history bh
+       JOIN wallet_transactions wt ON bh.transaction_id = wt.transaction_id
+       WHERE bh.consumer_id = ? AND bh.subscription_type = ?
+       ORDER BY bh.billing_date DESC
+       LIMIT 10`,
+      [consumer_id, plan]
+    );
+
+    // Calculate totals for current bill
+    const subtotal = currentBill.reduce((sum, item) => sum + item.item_total, 0);
+    const subscriptionFee = currentBill.reduce((sum, item) => sum + item.fee, 0);
+    const total = subtotal + subscriptionFee;
+
+    // Generate PDF
+    const PDFDocument = require('pdfkit');
+    const fs = require('fs');
+    const path = require('path');
+    
+    const doc = new PDFDocument();
+    const fileName = `subscription_bill_${plan}_${today.toISOString().split('T')[0]}.pdf`;
+    const filePath = path.join(__dirname, 'temp', fileName);
+    
+    // Ensure temp directory exists
+    if (!fs.existsSync(path.join(__dirname, 'temp'))) {
+      fs.mkdirSync(path.join(__dirname, 'temp'));
+    }
+    
+    const writeStream = fs.createWriteStream(filePath);
+    doc.pipe(writeStream);
+    
+    // PDF Content
+    doc.fontSize(20).text(`${plan} Subscription Bill`, { align: 'center' });
+    doc.moveDown();
+    
+    // Consumer info
+    const consumer = await queryDatabase(
+      "SELECT first_name, last_name, address FROM consumerregistration WHERE consumer_id = ?",
+      [consumer_id]
+    );
+    
+    if (consumer.length > 0) {
+      doc.fontSize(12)
+         .text(`Consumer: ${consumer[0].first_name} ${consumer[0].last_name}`)
+         .text(`Address: ${consumer[0].address}`)
+         .text(`Date: ${today.toLocaleDateString()}`)
+         .moveDown();
+    }
+    
+    // Current Bill Section
+    doc.fontSize(14).text('Current Bill Details', { underline: true });
+    doc.moveDown(0.5);
+    
+    // Table header
+    doc.font('Helvetica-Bold')
+       .text('Product', 50, doc.y)
+       .text('Qty', 200, doc.y)
+       .text('Unit Price', 250, doc.y)
+       .text('Total', 350, doc.y)
+       .moveDown(0.5);
+    
+    doc.font('Helvetica');
+    // Table rows
+    currentBill.forEach(item => {
+      doc.text(item.product_name, 50, doc.y)
+         .text(item.quantity.toString(), 200, doc.y)
+         .text(`₹${item.price.toFixed(2)}`, 250, doc.y)
+         .text(`₹${item.item_total.toFixed(2)}`, 350, doc.y)
+         .moveDown(0.5);
+    });
+    
+    // Totals
+    doc.moveDown(0.5)
+       .text(`Subtotal: ₹${subtotal.toFixed(2)}`, { align: 'right' })
+       .text(`Subscription Fee: ₹${subscriptionFee.toFixed(2)}`, { align: 'right' })
+       .font('Helvetica-Bold')
+       .text(`Total: ₹${total.toFixed(2)}`, { align: 'right' })
+       .font('Helvetica')
+       .moveDown(2);
+    
+    // Billing History Section
+    if (billingHistory.length > 0) {
+      doc.fontSize(14).text('Payment History', { underline: true });
+      doc.moveDown(0.5);
+      
+      // History table header
+      doc.font('Helvetica-Bold')
+         .text('Date', 50, doc.y)
+         .text('Amount', 200, doc.y)
+         .text('Status', 350, doc.y)
+         .moveDown(0.5);
+      
+      doc.font('Helvetica');
+      // History rows
+      billingHistory.forEach(item => {
+        doc.text(item.billing_date, 50, doc.y)
+           .text(`₹${item.amount.toFixed(2)}`, 200, doc.y)
+           .text('Paid', 350, doc.y)
+           .moveDown(0.5);
+      });
+    }
+    
+    doc.end();
+    
+    writeStream.on('finish', () => {
+      res.download(filePath, fileName, (err) => {
+        if (err) console.error("Error sending PDF:", err);
+        // Delete the file after download
+        fs.unlinkSync(filePath);
+      });
+    });
+    
+  } catch (error) {
+    console.error("Error generating PDF:", error);
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to generate PDF bill" 
+    });
+  }
+});
+
 
 
 
@@ -2626,6 +2879,7 @@ app.get('/api/wallet/transactions/:consumer_id', authenticateToken, async (req, 
 //     res.status(500).json({ success: false, message: "Error fetching products", error: err.message });
 //   }
 // });
+
 
 app.get("/api/products", async (req, res) => {
   try {
@@ -2809,59 +3063,6 @@ app.get("/api/getFarmerDetails", async (req, res) => {
 });
 
 
-
-// ✅ Consumer Registration API (With Hashing)
-
-
-// app.post("/api/consumerregister", async (req, res) => {
-//     console.log("Consumer Registration API Called ✅");  // Debugging
-
-//     const { first_name, last_name, email, phone_number, password, confirm_password } = req.body;
-
-//     // ✅ Check for missing fields
-//     if (!first_name || !last_name || !email || !phone_number || !password || !confirm_password) {
-//         return res.status(400).json({ success: false, message: "All fields are required" });
-//     }
-
-//     // ✅ Check if passwords match
-//     if (password !== confirm_password) {
-//         return res.status(400).json({ success: false, message: "Passwords do not match" });
-//     }
-
-//     try {
-//         // ✅ Hash the password before storing
-//         const hashedPassword = await bcrypt.hash(password, 10);
-
-//         // ✅ Insert into database (store only hashed password)
-//         const result = await queryDatabase(
-//             `INSERT INTO consumerregistration (first_name, last_name, email, phone_number, password) 
-//              VALUES (?, ?, ?, ?, ?);`,
-//             [first_name, last_name, email, phone_number, hashedPassword]
-//         );
-
-//         if (result.affectedRows === 0) {
-//             return res.status(500).json({ success: false, message: "Registration failed" });
-//         }
-
-//         // ✅ Fetch the correct consumer_id
-//         const consumerData = await queryDatabase(
-//             `SELECT consumer_id FROM consumerregistration WHERE email = ?`, 
-//             [email]
-//         );
-
-//         if (consumerData.length === 0) {
-//             return res.status(500).json({ success: false, message: "Consumer ID retrieval failed" });
-//         }
-
-//         const consumer_id = consumerData[0].consumer_id;
-
-//         res.json({ success: true, message: "Consumer registered successfully", consumer_id });
-
-//     } catch (err) {
-//         console.error("❌ Registration Error:", err);
-//         res.status(500).json({ success: false, message: "Database error", error: err.message });
-//     }
-// });
 app.post("/api/consumerregister", async (req, res) => {
   const { first_name, last_name, email, phone_number, password, confirm_password } = req.body;
 
@@ -3247,40 +3448,67 @@ app.get("/api/produces", async (req, res) => {
 
 // Add new produce
 app.post("/api/produces", async (req, res) => {
-  const { farmer_id, farmer_name, produce_name, availability, price_per_kg, produce_type, market_type, email } = req.body;
+  const { farmer_id, farmer_name, produce_name, availability, price_per_kg, produce_type, market_type, email, minimum_quantity } = req.body;
   
   try {
+    // For Bargaining Market, ensure minimum_quantity is provided
+    if (market_type === 'Bargaining Market' && (minimum_quantity === undefined || minimum_quantity === null)) {
+      return res.status(400).json({ error: "Minimum quantity is required for Bargaining Market" });
+    }
+
     const query = `
       INSERT INTO add_produce 
-      (farmer_id, farmer_name, produce_name, availability, price_per_kg, produce_type, market_type, email)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      (farmer_id, farmer_name, produce_name, availability, price_per_kg, produce_type, market_type, email, minimum_quantity)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     await queryDatabase(query, [
-      farmer_id, farmer_name, produce_name, availability, price_per_kg, produce_type, market_type, email
+      farmer_id, 
+      farmer_name, 
+      produce_name, 
+      availability, 
+      price_per_kg, 
+      produce_type, 
+      market_type, 
+      email,
+      market_type === 'Bargaining Market' ? minimum_quantity : null
     ]);
     res.json({ success: true });
   } catch (error) {
     console.error("Error adding produce:", error);
-    res.status(500).json({ error: "Failed to add produce" });
+    res.status(500).json({ 
+      error: "Failed to add produce",
+      details: error.message 
+    });
   }
 });
 
 // Update produce
+// Update produce
 app.put("/api/produces/:product_id", async (req, res) => {
   const { product_id } = req.params;
-  const { produce_name, availability, price_per_kg, produce_type } = req.body;
+  const { produce_name, availability, price_per_kg, produce_type, minimum_quantity } = req.body;
   
   try {
     const query = `
       UPDATE add_produce 
-      SET produce_name = ?, availability = ?, price_per_kg = ?, produce_type = ?
+      SET produce_name = ?, availability = ?, price_per_kg = ?, produce_type = ?, minimum_quantity = ?
       WHERE product_id = ?
     `;
-    await queryDatabase(query, [produce_name, availability, price_per_kg, produce_type, product_id]);
+    await queryDatabase(query, [
+      produce_name, 
+      availability, 
+      price_per_kg, 
+      produce_type, 
+      minimum_quantity || null, // Handle case where minimum_quantity might be undefined
+      product_id
+    ]);
     res.json({ success: true });
   } catch (error) {
     console.error("Error updating produce:", error);
-    res.status(500).json({ error: "Failed to update produce" });
+    res.status(500).json({ 
+      error: "Failed to update produce",
+      details: error.message 
+    });
   }
 });
 
@@ -3621,44 +3849,7 @@ app.get('/api/farmers-ratings', async (req, res) => {
       res.status(500).json({ error: "Internal Server Error", details: error.message });
   }
 });
-// Get farmer orders from orderall table
-// app.get("/api/farmer/orders/:farmer_id", async (req, res) => {
-//   const { farmer_id } = req.params;
-  
-//   try {
-//     // First check if the farmer exists
-//     const farmerCheck = await queryDatabase(
-//       "SELECT farmer_id FROM farmerregistration WHERE farmer_id = ?",
-//       [farmer_id]
-//     );
-    
-//     if (farmerCheck.length === 0) {
-//       return res.status(404).json({ error: "Farmer not found" });
-//     }
 
-//     // Get orders from orderall table
-//     const orders = await queryDatabase(
-//       `SELECT 
-//         orderid,
-//         order_date,
-//         produce_name,
-//         quantity,
-//         amount,
-//         status,
-//         payment_status,
-//         farmer_name
-//        FROM orderall 
-//        WHERE farmer_id = ?
-//        ORDER BY order_date DESC`,
-//       [farmer_id]
-//     );
-
-//     res.json(orders);
-//   } catch (error) {
-//     console.error("Error fetching farmer orders:", error);
-//     res.status(500).json({ error: "Failed to fetch orders" });
-//   }
-// });
 
 // In your server.js
 app.get("/api/farmer/orders/:farmer_id", async (req, res) => {
@@ -3692,35 +3883,8 @@ app.get("/api/farmer/orders/:farmer_id", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
-// Get logged-in farmer details
-// app.get('/api/farmer', async (req, res) => {
-//   try {
-//     // Get farmer ID from session or JWT token
-//     const token = req.headers.authorization?.split(' ')[1];
-//     if (!token) {
-//       return res.status(401).json({ error: 'Unauthorized' });
-//     }
 
-//     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-//     const farmerId = decoded.farmer_id;
 
-//     const query = `
-//       SELECT farmer_id, CONCAT(first_name, ' ', last_name) AS farmer_name, email 
-//       FROM farmerregistration 
-//       WHERE farmer_id = ?
-//     `;
-//     const result = await queryDatabase(query, [farmerId]);
-    
-//     if (result.length === 0) {
-//       return res.status(404).json({ error: 'Farmer not found' });
-//     }
-
-//     res.json(result[0]);
-//   } catch (error) {
-//     console.error('Error fetching farmer details:', error);
-//     res.status(500).json({ error: 'Internal server error' });
-//   }
-// });
 
 // CRUD endpoints for produces
 app.get('/api/produces', async (req, res) => {
@@ -3740,23 +3904,31 @@ app.get('/api/produces', async (req, res) => {
   }
 });
 
-app.post('/api/produces', async (req, res) => {
-  const { farmer_id, farmer_name, produce_name, availability, price_per_kg, produce_type, market_type } = req.body;
-  
-  try {
-    // First get the farmer's email
-    const farmerQuery = 'SELECT email FROM farmerregistration WHERE farmer_id = ?';
-    const [farmer] = await queryDatabase(farmerQuery, [farmer_id]);
-    
-    if (!farmer) {
-      return res.status(404).json({ error: 'Farmer not found' });
-    }
+app.post("/api/produces", async (req, res) => {
+  const { farmer_id, farmer_name, produce_name, availability, price_per_kg, produce_type, market_type, email, minimum_quantity } = req.body;
 
+  // Validate required fields
+  if (!farmer_id || !farmer_name || !produce_name || !availability || !price_per_kg || !produce_type || !market_type || !email) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  // Validate market type
+  if (!["KrishiSetu Market", "Bargaining Market"].includes(market_type)) {
+    return res.status(400).json({ error: "Invalid market type" });
+  }
+
+  // Validate minimum quantity for Bargaining Market
+  if (market_type === "Bargaining Market" && (!minimum_quantity || minimum_quantity <= 0)) {
+    return res.status(400).json({ error: "Minimum quantity must be positive for Bargaining Market" });
+  }
+
+  try {
     const query = `
       INSERT INTO add_produce 
-      (farmer_id, farmer_name, produce_name, availability, price_per_kg, produce_type, market_type, email)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      (farmer_id, farmer_name, produce_name, availability, price_per_kg, produce_type, market_type, email, minimum_quantity)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
+    
     await queryDatabase(query, [
       farmer_id, 
       farmer_name, 
@@ -3765,13 +3937,17 @@ app.post('/api/produces', async (req, res) => {
       price_per_kg, 
       produce_type, 
       market_type, 
-      farmer.email  // Use actual email from database
+      email,
+      market_type === "Bargaining Market" ? minimum_quantity : null
     ]);
     
     res.json({ success: true });
   } catch (error) {
-    console.error('Error adding produce:', error);
-    res.status(500).json({ error: 'Failed to add produce' });
+    console.error("Error adding produce:", error);
+    res.status(500).json({ 
+      error: "Failed to add produce",
+      details: error.message 
+    });
   }
 });
 
@@ -3779,13 +3955,16 @@ app.post('/api/produces', async (req, res) => {
 app.get("/api/product/:product_id", async (req, res) => {
   try {
     const { product_id } = req.params;
-    const [product] = await db.query("SELECT product_name, price_1kg, image FROM products WHERE product_id = ?", [product_id]);
+    const [product] = await db.query("SELECT product_name, price_1kg,minimum_quantity, image FROM products WHERE product_id = ?", [product_id]);
 
     if (!product) {
       return res.status(404).json({ error: "Product not found" });
     }
 
-    res.json(product);
+    res.json({
+      ...product,
+      minimum_quantity: product.minimum_quantity || 10 // Ensure a default if null
+    });
   } catch (error) {
     console.error("Error fetching product details:", error);
     res.status(500).json({ error: "Server error" });
@@ -3806,9 +3985,7 @@ app.get('/api/farmer-profile', async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
-// ✅ **Get Consumer Profile by consumer_id**
-// ✅ Get Consumer Profile by consumer_id using queryDatabase
-// ✅ Get Consumer Profile by consumer_id using queryDatabase
+
 // GET Consumer Profile
 app.get("/api/consumer/:id", async (req, res) => {
   try {
@@ -3847,57 +4024,6 @@ result[0].photo = result[0].photo && !result[0].photo.startsWith("http")
     res.status(500).json({ message: "Server error", error: err.message });
   }
 });
-
-
-// ✅ PUT Consumer Profile (Update Consumer Details)
-// app.put("/api/consumer/:id", async (req, res) => {
-//   try {
-//     const consumer_id = req.params.id;
-//     const { address, pincode, location, photo, preferred_payment_method, subscription_method } = req.body;
-
-//     // Check if the consumer exists in consumerprofile table
-//     const checkQuery = "SELECT * FROM consumerprofile WHERE consumer_id = ?";
-//     const checkResult = await queryDatabase(checkQuery, [consumer_id]);
-
-//     if (checkResult.length === 0) {
-//       // If the profile doesn't exist, insert a new row
-//       const insertQuery = `
-//         INSERT INTO consumerprofile (consumer_id, address, pincode, location, photo, preferred_payment_method, subscription_method)
-//         VALUES (?, ?, ?, ?, ?, ?, ?)`;
-      
-//       await queryDatabase(insertQuery, [consumer_id, address, pincode, location, photo, preferred_payment_method, subscription_method]);
-//       return res.json({ message: "Profile created successfully!" });
-//     }
-
-//     // If the profile exists, update it
-//     const updateQuery = `
-//       UPDATE consumerprofile
-//       SET address = ?, pincode = ?, location = ?, photo = ?, preferred_payment_method = ?, subscription_method = ?
-//       WHERE consumer_id = ?`;
-
-//     await queryDatabase(updateQuery, [address, pincode, location, photo, preferred_payment_method, subscription_method, consumer_id]);
-
-//     res.json({ message: "Profile updated successfully!" });
-//   } catch (err) {
-//     console.error("Error updating profile:", err);
-//     res.status(500).json({ message: "Server error", error: err.message });
-//   }
-// });
-
-
-// app.post("/api/addFarmer", async (req, res) => {
-//   const { farmer_name, produce_name, availability, price_per_kg, produce_type, email } = req.body;
-//   try {
-//     const sql = "INSERT INTO farmers (farmer_name, produce_name, availability, price_per_kg, produce_type, email) VALUES (?, ?, ?, ?, ?, ?)";
-//     const values = [farmer_name, produce_name, availability, price_per_kg, produce_type, email];
-//     await db.query(sql, values);
-//     res.status(201).json({ message: "Farmer added successfully!" });
-//   } catch (error) {
-//     res.status(500).json({ error: "Failed to insert farmer data" });
-//   }
-// });
-
-// Serve static files in production (for React app)
 
 // Get communities for a consumer
 // Updated community check endpoint
@@ -3965,14 +4091,29 @@ app.post("/api/community-cart", async (req, res) => {
       });
     }
 
-    // Then verify the community exists
+    // Then verify the community exists and check freeze status
     const [community] = await queryDatabase(
-      "SELECT community_id, community_name FROM communities WHERE community_id = ?",
+      `SELECT 
+        community_id, 
+        community_name,
+        TIMESTAMPDIFF(SECOND, NOW(), CONCAT(delivery_date, ' ', delivery_time)) AS seconds_until_delivery
+       FROM communities 
+       WHERE community_id = ?`,
       [community_id]
     );
     
     if (!community) {
       return res.status(404).json({ error: "Community not found" });
+    }
+
+    // Check if community is frozen (within 24 hours of delivery)
+    if (community.seconds_until_delivery <= 86400) {
+      return res.status(403).json({ 
+        error: "Community is frozen",
+        message: "No new orders can be placed within 24 hours of delivery",
+        delivery_time: community.delivery_time,
+        delivery_date: community.delivery_date
+      });
     }
 
     // Get member info (including verification that consumer belongs to community)
@@ -4053,40 +4194,7 @@ app.get('/api/farmer-details/:farmer_id', async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
-// app.get("/reviews", async (req, res) => {
-//   const farmerId = req.query.farmer_id;
 
-//   if (!farmerId) {
-//     return res.status(400).json({ error: "farmer_id is required" });
-//   }
-
-//   try {
-//     const reviews = await queryDatabase(
-//       `SELECT r.review_id, r.consumer_name, r.rating, r.comment, r.created_at,
-//               JSON_ARRAYAGG(ri.image_url) AS image_urls
-//        FROM reviews r
-//        LEFT JOIN review_images ri ON r.review_id = ri.review_id
-//        WHERE r.farmer_id = ?
-//        GROUP BY r.review_id`,
-//       [farmerId]
-//     );
-
-//     if (reviews.length === 0) {
-//       return res.status(404).json({ error: "No reviews found" });
-//     }
-
-//     // Convert `null` to an empty array in case of no images
-//     const formattedReviews = reviews.map(review => ({
-//       ...review,
-//       image_urls: review.image_urls[0] ? JSON.parse(review.image_urls) : []
-//     }));
-
-//     res.json(formattedReviews);
-//   } catch (err) {
-//     console.error("Error fetching reviews:", err);
-//     res.status(500).json({ error: "Error fetching reviews" });
-//   }
-// });
 // In your backend code (Node.js/Express)
 app.get("/reviews/:farmer_id", async (req, res) => {
   const { farmer_id } = req.params;
@@ -4134,55 +4242,6 @@ app.get("/reviews/:farmer_id", async (req, res) => {
     });
   }
 });  
-// API to add a review with an image
-// app.post("/reviews", upload.array("images", 5), async (req, res) => {
-//   console.log("🛠️ Received review data:", req.body);
-//   const { farmer_id, consumer_name, rating, comment } = req.body;
-
-//   console.log("📌 Extracted Data:");
-//   console.log("Farmer ID:", farmer_id);
-//   console.log("Consumer Name:", consumer_name);
-//   console.log("Rating:", rating);
-//   console.log("Comment:", comment);
-
-//   if (!farmer_id || farmer_id === "0") {
-//     return res.status(400).json({ error: "Farmer ID is required" });
-//   }
-//   try {
-//     // Start transaction
-//     await queryDatabase("START TRANSACTION");
-
-//     // Insert review
-//     // Insert review
-//     const reviewSql = `
-//       INSERT INTO reviews (farmer_id, consumer_name, rating, comment)
-//       VALUES (?, ?, ?, ?)
-//     `;
-//     const reviewResult = await queryDatabase(reviewSql, [farmer_id, consumer_name, rating, comment]);
-
-//     console.log("✅ Inserted Review with farmer_id:", farmer_id);
-
-//     // Insert images
-//     if (req.files?.length > 0) {
-//       for (const file of req.files) {
-//         await queryDatabase(
-//           `INSERT INTO review_images (review_id, image_url) VALUES (?, ?)`,
-//           [reviewResult.insertId, `/uploads/reviews/${file.filename}`]
-//         );
-//       }
-//     }
-
-//     await queryDatabase("COMMIT");
-//     res.json({ success: true, reviewId: reviewResult.insertId });
-
-//   } catch (error) {
-//     await queryDatabase("ROLLBACK");
-//     console.error("Database error:", error);
-//     res.status(500).json({ error: "Failed to save review" });
-//   }
-// });
-
-
 
 app.post("/reviews", uploadReviewImages.array("images", 5), async (req, res) => {
   console.log("🛠️ Received review data:", req.body);
@@ -4323,101 +4382,6 @@ function pick(obj, keys) {
   }, {});
 }
 
-
-// POST route for creating the bargain
-// app.post('/api/create-bargain', async (req, res) => {
-//   try {
-//     const authHeader = req.headers.authorization;
-//     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-//       return res.status(401).json({ error: 'Missing or invalid authorization header' });
-//     }
-
-//     const token = authHeader.split(' ')[1];
-//     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-//     // Only require initiator (not product_id or quantity here)
-//     const { initiator } = req.body;
-//     if (!initiator) {
-//       return res.status(400).json({ error: 'Missing initiator' });
-//     }
-
-//     // You should pass farmer_id in body from frontend
-//     const { farmer_id } = req.body;
-
-//     if (!farmer_id) {
-//       return res.status(400).json({ error: 'Missing farmer_id' });
-//     }
-
-//     // Step: Insert only into bargain_sessions
-//     const bargainResult = await queryDatabase(
-//       `INSERT INTO bargain_sessions 
-//        (consumer_id, farmer_id, status, initiator)
-//        VALUES (?, ?, ?, ?)`,
-//       [
-//         decoded.consumer_id,
-//         farmer_id,
-//         'pending',
-//         initiator
-//       ]
-//     );
-
-//     const bargain_id = bargainResult.insertId;
-
-//     // Return just the bargain_id
-//     res.status(201).json({
-//       success: true,
-//       bargainId: bargain_id,
-//       message: "Bargain session created. Now submit product selection separately."
-//     });
-
-//   } catch (error) {
-//     console.error('Bargain session creation error:', error);
-//     res.status(500).json({ error: 'Internal server error' });
-//   }
-// });
-
-// app.post('/api/create-bargain', async (req, res) => {
-//   try {
-//     const authHeader = req.headers.authorization;
-//     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-//       return res.status(401).json({ error: 'Missing or invalid authorization header' });
-//     }
-
-//     const token = authHeader.split(' ')[1];
-//     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-//     const { initiator, farmer_id } = req.body;
-
-//     if (!initiator || !farmer_id) {
-//       return res.status(400).json({ error: 'Missing initiator or farmer_id' });
-//     }
-
-//     const result = await queryDatabase(
-//       `INSERT INTO bargain_sessions (consumer_id, farmer_id, status, initiator, created_at, updated_at)
-//        VALUES (?, ?, ?, ?, NOW(), NOW())`,
-//       [decoded.consumer_id, farmer_id, 'pending', initiator]
-//     );
-
-//     const newId = result?.insertId;
-
-//     if (!newId) {
-//       return res.status(500).json({ error: 'Failed to retrieve bargain session ID' });
-//     }
-
-//     // ✅ Full response with required data
-//     res.status(200).json({
-//       success: true,
-//       message: 'Bargain session created',
-//       bargainId: newId,
-//       consumer_id: decoded.consumer_id,
-//       farmer_id
-//     });
-
-//   } catch (err) {
-//     console.error("🔥 Error in create-bargain:", err);
-//     res.status(500).json({ error: 'Failed to create bargain session' });
-//   }
-// });
 // Enhanced create-bargain endpoint
 app.post('/api/create-bargain', verifyToken, async (req, res) => {
   try {
@@ -4624,12 +4588,6 @@ app.post("/api/subscriptions", verifyToken, async (req, res) => {
 
 
 
-
-
-
-
-
-
 // Update subscription
 app.put("/api/subscriptions/:subscription_id", verifyToken, async (req, res) => {
   try {
@@ -4668,6 +4626,8 @@ app.delete("/api/subscriptions/:subscription_id", verifyToken, async (req, res) 
     res.status(500).json({ error: "Failed to delete subscription" });
   }
 });
+
+
 
 
 
@@ -4751,103 +4711,7 @@ app.get('/api/bargain/:bargainId', async (req, res) => {
 });
 
 
-// routes/bargain.js or wherever you define your routes
 
-// app.post('/api/add-bargain-product', verifyToken, async (req, res) => {
-//   const { bargain_id, product_id, quantity } = req.body;
-
-//   if (!bargain_id || !product_id || !quantity) {
-//     return res.status(400).json({ error: "Missing required fields" });
-//   }
-
-//   try {
-//     const [product] = await queryDatabase('SELECT price_per_kg FROM add_produce WHERE product_id = ?', [product_id]);
-
-//     if (!product) {
-//       return res.status(400).json({ error: "Invalid product_id. Product not found." });
-//     }
-
-//     const original_price = product.price_per_kg;
-//     const current_offer = quantity * original_price;
-
-//     await queryDatabase(
-//       `INSERT INTO bargain_session_products (bargain_id, product_id, original_price, quantity, current_offer) 
-//        VALUES (?, ?, ?, ?, ?)`,
-//       [bargain_id, product_id, original_price, quantity, current_offer]
-//     );
-
-//     res.json({ message: "Product added to bargain session." });
-//   } catch (error) {
-//     console.error("Error inserting into bargain_session_products:", error);
-//     res.status(500).json({ error: "Server error" });
-//   }
-// });
-// app.post('/api/add-bargain-product', verifyToken, async (req, res) => {
-//   const { bargain_id, product_id, quantity } = req.body;
-
-//   if (!bargain_id || !product_id || !quantity) {
-//     return res.status(400).json({ 
-//       success: false,
-//       error: "Missing required fields" 
-//     });
-//   }
-
-//   try {
-//     // 1. Check if bargain session exists
-//     const [bargain] = await queryDatabase(
-//       'SELECT * FROM bargain_sessions WHERE bargain_id = ?', 
-//       [bargain_id]
-//     );
-
-//     if (!bargain) {
-//       return res.status(404).json({
-//         success: false,
-//         error: "Bargain session not found"
-//       });
-//     }
-
-//     // 2. Get product details
-//     const [product] = await queryDatabase(
-//       'SELECT price_per_kg, produce_name FROM add_produce WHERE product_id = ?', 
-//       [product_id]
-//     );
-
-//     if (!product) {
-//       return res.status(404).json({
-//         success: false,
-//         error: "Product not found"
-//       });
-//     }
-
-//     const price = product.price_per_kg;
-
-//     // 3. Insert into bargain_session_products
-//     await queryDatabase(`
-//       INSERT INTO bargain_session_products (bargain_id, product_id, original_price, current_offer, quantity)
-//       VALUES (?, ?, ?, ?, ?)
-//       ON DUPLICATE KEY UPDATE 
-//         original_price = VALUES(original_price),
-//         current_offer = VALUES(current_offer),
-//         quantity = VALUES(quantity)
-//     `, [bargain_id, product_id, price, price, quantity]);
-
-//     // 4. Return success
-//     res.json({ 
-//       success: true,
-//       message: "Product added to bargain session",
-//       product_name: product.produce_name,
-//       price_per_kg: price,
-//       quantity: quantity
-//     });
-
-//   } catch (error) {
-//     console.error("Error in /api/add-bargain-product:", error);
-//     res.status(500).json({
-//       success: false,
-//       error: "Internal server error"
-//     });
-//   }
-// });
 app.post('/api/add-bargain-product', verifyToken, async (req, res) => {
   try {
     console.log('Received product addition request:', req.body);
@@ -4939,38 +4803,171 @@ app.get('/api/bargain/fetch-session-data', async (req, res) => {
 });
 
 
+// // Get all messages for a bargain
+// app.get('/api/:bargain_id/messages', authenticate, async (req, res) => {
+//   try {
+//     const messages = await db.getBargainMessages(req.params.bargain_id);
+//     res.json(messages);
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// });
+
+// // Send new message
+// app.post('/api/:bargain_id/messages', authenticate, async (req, res) => {
+//   try {
+//     const messageId = await db.saveBargainMessage({
+//       ...req.body,
+//       bargain_id: req.params.bargain_id
+//     });
+//     const [newMessage] = await db.query(
+//       'SELECT * FROM bargain_chat_messages WHERE message_id = ?',
+//       [messageId]
+//     );
+    
+//     // Emit socket event
+//     req.io.to(`bargain_${req.params.bargain_id}`).emit('newMessage', newMessage[0]);
+    
+//     res.status(201).json(newMessage[0]);
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// });
+
+
 // Get all messages for a bargain
-app.get('/api/:bargain_id/messages', authenticate, async (req, res) => {
+// Add this to your backend routes (e.g., app.js or routes/bargain.js)
+app.post('/api/bargain/:bargainId/messages', authenticate, async (req, res) => {
   try {
-    const messages = await db.getBargainMessages(req.params.bargain_id);
-    res.json(messages);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+    const { bargainId } = req.params;
+    const { sender_role, sender_id, message_content, price_suggestion, message_type } = req.body;
 
-// Send new message
-app.post('/api/:bargain_id/messages', authenticate, async (req, res) => {
-  try {
-    const messageId = await db.saveBargainMessage({
-      ...req.body,
-      bargain_id: req.params.bargain_id
+    // Validate required fields
+    if (!bargainId || isNaN(bargainId)) {
+      return res.status(400).json({ error: 'Invalid bargain ID' });
+    }
+    if (!sender_role || !sender_id || !message_content || !message_type) {
+      return res.status(400).json({ 
+        error: 'Missing required fields' 
+      });
+    }
+
+    // Insert message (without product_id)
+    const result = await queryDatabase(`
+      INSERT INTO bargain_messages (
+        bargain_id,
+        sender_role,
+        sender_id,
+        message_content,
+        price_suggestion,
+        message_type
+      ) VALUES (?, ?, ?, ?, ?, ?)
+    `, [bargainId, sender_role, sender_id, message_content, price_suggestion || null, message_type]);
+
+    res.status(201).json({
+      message_id: result.insertId,
+      bargain_id: bargainId,
+      sender_role,
+      sender_id,
+      message_content,
+      price_suggestion: price_suggestion || null,
+      message_type,
+      created_at: new Date().toISOString()
     });
-    const [newMessage] = await db.query(
-      'SELECT * FROM bargain_chat_messages WHERE message_id = ?',
-      [messageId]
-    );
-    
-    // Emit socket event
-    req.io.to(`bargain_${req.params.bargain_id}`).emit('newMessage', newMessage[0]);
-    
-    res.status(201).json(newMessage[0]);
+
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Error saving message:', err);
+    res.status(500).json({ 
+      error: 'Failed to save message',
+      details: err.sqlMessage || err.message 
+    });
   }
 });
+// Send new message
+// POST /api/bargain/:bargainId/messages
+// app.post('/api/bargain/:bargainId/messages', authenticate, async (req, res) => {
+//   try {
+//     const { bargainId } = req.params;
+//     const {
+//       sender_role,
+//       sender_id,
+//       message_content,
+//       price_suggestion,
+//       message_type
+//     } = req.body;
 
+//     // Validate required fields
+//     if (!sender_role || !message_type) {
+//       return res.status(400).json({ error: 'Missing required fields' });
+//     }
+
+//     // Insert into database
+//     const [result] = await db.query(`
+//       INSERT INTO bargain_messages SET ?`, {
+//         bargain_id: bargainId,
+//         sender_role,
+//         sender_id,
+//         message_content,
+//         price_suggestion,
+//         message_type
+//       });
+
+//     // Retrieve the full message
+//     const [message] = await db.query(`
+//       SELECT * FROM bargain_messages 
+//       WHERE message_id = ?`, [result.insertId]);
+
+//     // Emit socket event
+//     req.io.to(`bargain_${bargainId}`).emit('new_message', message[0]);
+
+//     res.status(201).json(message[0]);
+
+//   } catch (err) {
+//     console.error('Error saving message:', err);
+//     res.status(500).json({ error: 'Failed to save message' });
+//   }
+// });
 // Get bargain session details with last message
+
+// Add this to your backend routes
+app.post('/api/bargain/:bargainId/system-message', authenticate, async (req, res) => {
+  try {
+    const { bargainId } = req.params;
+    const { message_content, message_type, price_suggestion } = req.body;
+
+    if (!bargainId || !message_content || !message_type) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Insert into database
+    const result = await queryDatabase(`
+      INSERT INTO bargain_messages (
+        bargain_id,
+        sender_role,
+        sender_id,
+        message_content,
+        price_suggestion,
+        message_type
+      ) VALUES (?, 'system', NULL, ?, ?, ?)
+    `, [bargainId, message_content, price_suggestion || null, message_type]);
+
+    res.status(201).json({
+      message_id: result.insertId,
+      bargain_id: bargainId,
+      message_content,
+      message_type,
+      price_suggestion: price_suggestion || null,
+      created_at: new Date().toISOString()
+    });
+
+  } catch (err) {
+    console.error('Error saving system message:', err);
+    res.status(500).json({ error: 'Failed to save system message' });
+  }
+}); 
+
+
+
 app.get('/api/sessions', authenticate, async (req, res) => {
   try {
     const userType = req.user.type; // 'farmer' or 'consumer'
@@ -5105,75 +5102,7 @@ app.post("/api/updatepersonaldetails", async (req, res) => {
 
   }
 });
-// ✅ Get Farmer Profile
-// ✅ Get Farmer Profile with combined personal and farm details
-// app.get("/api/farmerprofile/:farmer_id", 
-//   auth.authenticate, 
-//   auth.farmerOnly,
-//   async (req, res) => {
-//     try {
-//       const { farmer_id } = req.params;
-      
-//       // Verify requested profile matches authenticated farmer
-//       if (farmer_id !== req.user.farmer_id) {
-//         return res.status(403).json({ error: "Unauthorized profile access" });
-//       }
 
-//       // Fetch combined farmer data
-//       const farmerData = await queryDatabase(`
-//         SELECT 
-//           fr.farmer_id, fr.first_name, fr.last_name, fr.email, fr.phone_number,
-//           pd.dob, pd.gender, pd.contact_no, pd.aadhaar_no, pd.residential_address,
-//           pd.bank_account_no, pd.ifsc_code, pd.upi_id, pd.profile_photo,
-//           fd.farm_address, fd.farm_size, fd.crops_grown, fd.farming_method,
-//           fd.soil_type, fd.water_sources, fd.farm_equipment
-//         FROM farmerregistration fr
-//         LEFT JOIN personaldetails pd ON fr.farmer_id = pd.farmer_id
-//         LEFT JOIN farmdetails fd ON fr.farmer_id = fd.farmer_id
-//         WHERE fr.farmer_id = ?
-//       `, [farmer_id]);
-
-//       if (farmerData.length === 0) {
-//         return res.status(404).json({ error: "Farmer not found" });
-//       }
-
-//       // Format response
-//       const response = {
-//         farmer_id: farmerData[0].farmer_id,
-//         full_name: `${farmerData[0].first_name} ${farmerData[0].last_name}`,
-//         email: farmerData[0].email,
-//         phone_number: farmerData[0].phone_number,
-//         personal: {
-//           dob: farmerData[0].dob,
-//           gender: farmerData[0].gender,
-//           contact_no: farmerData[0].contact_no,
-//           aadhaar_no: farmerData[0].aadhaar_no,
-//           residential_address: farmerData[0].residential_address,
-//           bank_account_no: farmerData[0].bank_account_no,
-//           ifsc_code: farmerData[0].ifsc_code,
-//           upi_id: farmerData[0].upi_id,
-//           profile_photo: farmerData[0].profile_photo 
-//             ? `/uploads/${farmerData[0].profile_photo}`
-//             : null
-//         },
-//         farm: {
-//           farm_address: farmerData[0].farm_address,
-//           farm_size: farmerData[0].farm_size,
-//           crops_grown: farmerData[0].crops_grown,
-//           farming_method: farmerData[0].farming_method,
-//           soil_type: farmerData[0].soil_type,
-//           water_sources: farmerData[0].water_sources,
-//           farm_equipment: farmerData[0].farm_equipment
-//         }
-//       };
-
-//       res.json(response);
-//     } catch (error) {
-//       console.error("Error fetching farmer profile:", error);
-//       res.status(500).json({ error: "Failed to fetch farmer profile" });
-//     }
-//   }
-// );
 
 app.get("/api/farmerprofile/:farmer_id", 
   auth.authenticate,
@@ -5466,133 +5395,138 @@ app.put("/api/farmerprofile/:farmer_id/:section",
 );
     
 
+// app.put("/api/farmerprofile/:farmer_id/personal", 
+//   auth.authenticate,
+//   auth.farmerOnly,
+//   async (req, res) => {
+//     try {
+//       const { farmer_id } = req.params;
+      
+//       // Verify authorization - ensure the farmer is updating their own profile
+//       if (farmer_id !== req.user.farmer_id) {
+//         return res.status(403).json({ 
+//           success: false,
+//           error: "Unauthorized update attempt" 
+//         });
+//       }
 
-// ✅ Configure storage for farmer documents
-// const farmerDocumentStorage = multer.diskStorage({
-//   destination: (req, file, cb) => {
-//     const uploadDir = path.join(__dirname, '../uploads/farmer-documents');
-//     if (!fs.existsSync(uploadDir)) {
-//       fs.mkdirSync(uploadDir, { recursive: true });
+//       const { dob, gender, contact_no, aadhaar_no, residential_address, 
+//               bank_account_no, ifsc_code, upi_id } = req.body;
+
+//       // First check if personal details exist for this farmer
+//       const [existing] = await queryDatabase(
+//         "SELECT 1 FROM personaldetails WHERE farmer_id = ?",
+//         [farmer_id]
+//       );
+
+//       if (existing) {
+//         // Update existing record
+//         await queryDatabase(
+//           `UPDATE personaldetails SET
+//             dob = ?, gender = ?, contact_no = ?, aadhaar_no = ?,
+//             residential_address = ?, bank_account_no = ?, ifsc_code = ?, upi_id = ?
+//           WHERE farmer_id = ?`,
+//           [dob, gender, contact_no, aadhaar_no, residential_address,
+//            bank_account_no, ifsc_code, upi_id, farmer_id]
+//         );
+//       } else {
+//         // Insert new record
+//         await queryDatabase(
+//           `INSERT INTO personaldetails 
+//           (farmer_id, dob, gender, contact_no, aadhaar_no, 
+//            residential_address, bank_account_no, ifsc_code, upi_id)
+//           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+//           [farmer_id, dob, gender, contact_no, aadhaar_no,
+//            residential_address, bank_account_no, ifsc_code, upi_id]
+//         );
+//       }
+
+//       res.json({ success: true, message: "Personal details updated" });
+//     } catch (error) {
+//       console.error("Error updating personal details:", error);
+//       res.status(500).json({ 
+//         success: false, 
+//         error: "Failed to update personal details",
+//         details: error.message 
+//       });
 //     }
-//     cb(null, uploadDir);
-//   },
-//   filename: (req, file, cb) => {
-//     const farmerId = req.params.farmer_id;
-//     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-//     const ext = path.extname(file.originalname);
-//     cb(null, `farmer-${farmerId}-${uniqueSuffix}${ext}`);
 //   }
-// });
-
-// const farmerDocumentUpload = multer({ 
-//   storage: farmerDocumentStorage,
-//   fileFilter: (req, file, cb) => {
-//     if (file.mimetype === 'application/pdf' || 
-//         file.mimetype.startsWith('image/') ||
-//         file.mimetype === 'application/msword' ||
-//         file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-//       cb(null, true);
-//     } else {
-//       cb(new Error('Only PDF, Word, and image files are allowed!'), false);
-//     }
-//   }
-// });
-
-
-
-
-// ✅ Update Personal Details
-// app.put("/api/farmerprofile/:farmer_id/personal", verifyToken, async (req, res) => {
-//   try {
-//     const farmerId = req.params.farmer_id;
-//     const personalDetails = req.body;
-
-//     await queryDatabase(`
-//       UPDATE personaldetails 
-//       SET 
-//         dob = ?,
-//         gender = ?,
-//         contact_no = ?,
-//         aadhaar_no = ?,
-//         residential_address = ?,
-//         bank_account_no = ?,
-//         ifsc_code = ?,
-//         upi_id = ?
-//       WHERE farmer_id = ?
-//     `, [
-//       personalDetails.dob,
-//       personalDetails.gender,
-//       personalDetails.contact_no,
-//       personalDetails.aadhaar_no,
-//       personalDetails.residential_address,
-//       personalDetails.bank_account_no,
-//       personalDetails.ifsc_code,
-//       personalDetails.upi_id,
-//       farmerId
-//     ]);
-
-//     res.json({ success: true, message: "Personal details updated successfully" });
-//   } catch (err) {
-//     res.status(500).json({ success: false, message: "Error updating personal details", error: err.message });
-//   }
-// });
+// );
+// Update the personal details update endpoint
 app.put("/api/farmerprofile/:farmer_id/personal", 
   auth.authenticate,
   auth.farmerOnly,
   async (req, res) => {
     try {
       const { farmer_id } = req.params;
-      
-      // Verify authorization - ensure the farmer is updating their own profile
-      if (farmer_id !== req.user.farmer_id) {
-        return res.status(403).json({ 
-          success: false,
-          error: "Unauthorized update attempt" 
-        });
-      }
+      const personalData = req.body;
 
-      const { dob, gender, contact_no, aadhaar_no, residential_address, 
-              bank_account_no, ifsc_code, upi_id } = req.body;
-
-      // First check if personal details exist for this farmer
+      // First check if record exists
       const [existing] = await queryDatabase(
-        "SELECT 1 FROM personaldetails WHERE farmer_id = ?",
+        "SELECT * FROM personaldetails WHERE farmer_id = ?",
         [farmer_id]
       );
 
       if (existing) {
         // Update existing record
         await queryDatabase(
-          `UPDATE personaldetails SET
-            dob = ?, gender = ?, contact_no = ?, aadhaar_no = ?,
+          `UPDATE personaldetails SET 
+            dob = ?, gender = ?, contact_no = ?, aadhaar_no = ?, 
             residential_address = ?, bank_account_no = ?, ifsc_code = ?, upi_id = ?
           WHERE farmer_id = ?`,
-          [dob, gender, contact_no, aadhaar_no, residential_address,
-           bank_account_no, ifsc_code, upi_id, farmer_id]
+          [
+            personalData.dob,
+            personalData.gender,
+            personalData.contact_no,
+            personalData.aadhaar_no,
+            personalData.residential_address,
+            personalData.bank_account_no,
+            personalData.ifsc_code,
+            personalData.upi_id,
+            farmer_id
+          ]
         );
       } else {
-        // Insert new record
+        // Create new record
+        const [farmer] = await queryDatabase(
+          "SELECT email FROM farmerregistration WHERE farmer_id = ?",
+          [farmer_id]
+        );
+
+        if (!farmer) {
+          return res.status(404).json({ message: "Farmer not found" });
+        }
+
         await queryDatabase(
-          `INSERT INTO personaldetails 
-          (farmer_id, dob, gender, contact_no, aadhaar_no, 
-           residential_address, bank_account_no, ifsc_code, upi_id)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [farmer_id, dob, gender, contact_no, aadhaar_no,
-           residential_address, bank_account_no, ifsc_code, upi_id]
+          `INSERT INTO personaldetails (
+            farmer_id, email, dob, gender, contact_no, 
+            aadhaar_no, residential_address, bank_account_no, 
+            ifsc_code, upi_id
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            farmer_id,
+            farmer.email,
+            personalData.dob,
+            personalData.gender,
+            personalData.contact_no,
+            personalData.aadhaar_no,
+            personalData.residential_address,
+            personalData.bank_account_no,
+            personalData.ifsc_code,
+            personalData.upi_id
+          ]
         );
       }
 
-      res.json({ success: true, message: "Personal details updated" });
+      res.json({ success: true, message: "Personal details updated successfully" });
     } catch (error) {
-      console.error("Error updating personal details:", error);
-      res.status(500).json({ 
-        success: false, 
-        error: "Failed to update personal details",
-        details: error.message 
-      });
+      console.error("Update Error:", error);
+      res.status(500).json({ message: "Database update failed", error });
     }
   }
 );
+
+
 // Update farm details
 app.post("/api/updatefarmdetails", async (req, res) => {
   try {
@@ -5688,9 +5622,6 @@ app.put("/api/farmerprofile/:farmer_id/farm",
 );
 
 
-
-
-
 // Add this endpoint for payment verification
 app.post("/api/verify-payment", authenticateToken, async (req, res) => {
   try {
@@ -5732,169 +5663,374 @@ app.post("/api/verify-payment", authenticateToken, async (req, res) => {
 
 
 
-
-// Add this endpoint for creating Razorpay orders
-// Razorpay Order Creation
-// Initialize Razorpay with your actual keys
-
-
-
-
-
 // Create Order Endpoint
-// app.post("/api/create-razorpay-order", authenticateToken, async (req, res) => {
+// Create Razorpay order
+// Create Razorpay order
+// app.post("/api/razorpay/create-order", authenticateToken, async (req, res) => {
 //   try {
-//     const { amount } = req.body;
+//     const { amount, order_id } = req.body;
     
 //     if (!amount || isNaN(amount)) {
-//       return res.status(400).json({ error: "Invalid amount" });
+//       return res.status(400).json({ 
+//         error: "Invalid amount",
+//         receivedAmount: amount 
+//       });
 //     }
 
 //     const options = {
-//       amount: Math.round(amount * 100), // Convert to paise
+//       amount: Math.round(amount * 100), // Razorpay expects paise
 //       currency: 'INR',
-//       receipt: `order_${Date.now()}`
+//       receipt: order_id || `receipt_${Date.now()}`,
+//       payment_capture: 1 // Auto-capture payment
 //     };
 
 //     console.log("Creating Razorpay order with options:", options);
     
+//     const razorpayOrder = await razorpay.orders.create(options);
+    
+//     res.json({
+//       success: true,
+//       order: {
+//         id: razorpayOrder.id,
+//         amount: razorpayOrder.amount,
+//         currency: razorpayOrder.currency,
+//         status: razorpayOrder.status
+//       }
+//     });
+
+//   } catch (error) {
+//     console.error("Razorpay order creation error:", error);
+//     res.status(500).json({
+//       error: "Failed to create Razorpay order",
+//       details: error.error?.description || error.message,
+//       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+//     });
+//   }
+// });
+
+// // Verify Payment and Save to Database
+// // Then in your verification endpoint:
+// app.post("/api/razorpay/verify", authenticateToken, async (req, res) => {
+//   try {
+//     const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = req.body;
+
+//     // Create HMAC SHA256 hash
+//     const hmac = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET);
+//     hmac.update(`${razorpay_order_id}|${razorpay_payment_id}`);
+//     const generatedSignature = hmac.digest('hex');
+
+//     if (generatedSignature !== razorpay_signature) {
+//       return res.status(400).json({
+//         success: false,
+//         error: "Invalid signature"
+//       });
+//     }
+
+//       // Update order status
+//       await queryDatabase(
+//         `UPDATE placeorder 
+//          SET payment_status = 'Paid',
+//              payment_method = 'razorpay'
+//          WHERE order_id = ?`,
+//         [order_id]
+//       );
+  
+//       // Record payment
+//       await queryDatabase(
+//         `INSERT INTO payments (
+//           payment_id, order_id, razorpay_order_id,
+//           razorpay_payment_id, razorpay_signature,
+//           amount, status
+//         ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+//         [
+//           `pay_${Date.now()}`,
+//           order_id,
+//           razorpay_order_id,
+//           razorpay_payment_id,
+//           razorpay_signature,
+//           amount,
+//           'captured'
+//         ]
+//       );
+  
+//       res.json({ 
+//         success: true,
+//         message: "Payment verified successfully"
+//       });
+//     } 
+//    catch (error) {
+//     console.error("Verification error:", error);
+//     res.status(500).json({
+//       success: false,
+//       error: "Verification failed",
+//       details: error.message
+//     });
+//   }
+// });
+
+// Create order endpoint
+// app.post("/api/razorpay/create-order", authenticateToken, async (req, res) => {
+//   try {
+//     const { amount } = req.body;
+    
+//     const options = {
+//       amount: Math.round(amount * 100), // Razorpay expects paise
+//       currency: 'INR',
+//       receipt: `order_${Date.now()}`,
+//       payment_capture: 1 // Auto-capture payment
+//     };
+
 //     const order = await razorpay.orders.create(options);
     
 //     res.json({
-//       id: order.id,
-//       currency: order.currency,
-//       amount: order.amount
+//       success: true,
+//       order: {
+//         id: order.id,
+//         amount: order.amount,
+//         currency: order.currency
+//       }
 //     });
 //   } catch (error) {
-//     console.error("Razorpay order creation error:", error);
-    
-//     // More detailed error response
+//     console.error("Order creation error:", error);
 //     res.status(500).json({ 
-//       error: "Payment gateway error",
-//       razorpayError: error.error ? error.error.description : error.message,
-//       details: "Check your Razorpay API keys and account status"
+//       error: "Failed to create Razorpay order",
+//       details: error.error?.description || error.message 
 //     });
 //   }
 // });
 
-// // Verify Payment
-// app.post("/api/verify-payment", (req, res) => {
+// // Verify payment endpoint
+// app.post("/api/razorpay/verify", authenticateToken, async (req, res) => {
 //   try {
-//     const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = req.body;
-    
-//     const generated_signature = crypto
-//       .createHmac('sha256', 'dwcSRSRah7Y4eBZUzL8M') // Same as above
-//       .update(razorpay_order_id + "|" + razorpay_payment_id)
-//       .digest('hex');
+//     const { 
+//       razorpay_payment_id, 
+//       razorpay_order_id, 
+//       razorpay_signature,
+     
+//     } = req.body;
 
-//     if (generated_signature === razorpay_signature) {
-//       res.json({ success: true });
-//     } else {
-//       res.status(400).json({ success: false, error: "Invalid signature" });
+//     // Verify signature
+//     const hmac = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET ||'dwcSRSRah7Y4eBZUzL8MmcYD');
+//     hmac.update(`${razorpay_order_id}|${razorpay_payment_id}`);
+//     const generatedSignature = hmac.digest('hex');
+
+//      // Verify signature matches
+//      if (generatedSignature !== razorpay_signature) {
+//       console.error('Signature mismatch', {
+//         generated: generatedSignature,
+//         received: razorpay_signature,
+//         order_id: req.body.order_id
+//       });
+//       return res.status(400).json({
+//         success: false,
+//         error: "Invalid signature - possible tampering",
+       
+//       });
 //     }
+
+//     // Update order status
+//     await queryDatabase(
+//       `UPDATE placeorder 
+//        SET payment_status = 'Paid',
+//            payment_method = 'razorpay'
+//        WHERE order_id = ?`,
+//       [order_id]
+//     );
+
+//     // Record payment
+//     await queryDatabase(
+//       `INSERT INTO payments (
+//         payment_id, order_id, razorpay_order_id,
+//         razorpay_payment_id, razorpay_signature,
+//         amount, status
+//       ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+//       [
+//         `pay_${Date.now()}`,
+//         order_id,
+//         razorpay_order_id,
+//         razorpay_payment_id,
+//         razorpay_signature,
+//         amount,
+//         'captured'
+//       ]
+//     );
+
+//     res.json({ 
+//       success: true,
+//       message: "Payment verified successfully"
+//     });
 //   } catch (error) {
-//     console.error("Payment verification error:", error);
-//     res.status(500).json({ success: false, error: "Payment verification failed" });
+//     console.error("Verification error:", error);
+//     res.status(500).json({
+//       success: false,
+//       error: "Verification failed",
+//       details: error.message
+//     });
 //   }
 // });
+// Razorpay Order Creation Endpoint
 
-
-
-
-
-// Create Order Endpoint
+// Razorpay Order Creation Endpoint
 app.post('/api/razorpay/create-order', authenticateToken, async (req, res) => {
   try {
-    const { amount } = req.body;
+    const { amount, order_id } = req.body;
     
-    if (!amount || isNaN(amount)) {
+    if (!amount || amount <= 0) {
       return res.status(400).json({ error: "Invalid amount" });
     }
 
     const options = {
-      amount: Math.round(amount), // Ensure it's an integer
-      currency: 'INR',
-      receipt: `order_${Date.now()}`
+      amount: Math.round(amount * 100), // Razorpay expects amount in paise
+      currency: "INR",
+      receipt: `order_${order_id}`,
+      payment_capture: 1 // Auto-capture payment
     };
-    
-    const order = await razorpay.orders.create(options);
-    
 
-    console.log("Order created successfully:", order.id);
+    const order = await razorpay.orders.create(options);
     
     res.json({
       success: true,
       order: {
         id: order.id,
+        amount: order.amount,
         currency: order.currency,
-      amount: order.amount
-  }});
-    
-
-    res.json({
-      id: order.id,
-      currency: order.currency,
-      amount: order.amount,
-      display_amount: (order.amount / 100).toFixed(2) // For frontend display
+        receipt: order.receipt
+      }
     });
-
   } catch (error) {
-    console.error("Order creation error:", error);
+    console.error("Razorpay order creation error:", error);
     res.status(500).json({ 
-      error: "Failed to create order",
-      details: error.error?.description || error.message 
+      error: "Failed to create Razorpay order",
+      details: error.message || error.error.description
     });
   }
 });
 
-// server.js
+// Razorpay Payment Verification Endpoint
+// In server.js
 app.post('/api/razorpay/verify', authenticateToken, async (req, res) => {
   try {
-    const { razorpay_payment_id, razorpay_order_id, razorpay_signature,amount } = req.body;
-    const amountInPaise = Math.round(amount * 100);
-    // 1. Verify the signature
-    const hmac = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET);
-    hmac.update(`${razorpay_order_id}|${razorpay_payment_id}`);
-    const generatedSignature = hmac.digest('hex');
+    const { razorpay_payment_id, razorpay_order_id, razorpay_signature, order_id } = req.body;
+
+    // 1. Verify the signature first
+    const generatedSignature = crypto
+      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+      .digest('hex');
 
     if (generatedSignature !== razorpay_signature) {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid signature - Possible tampering detected"
+      return res.status(400).json({ 
+        error: "Invalid payment signature",
+        details: {
+          received: razorpay_signature,
+          generated: generatedSignature
+        }
       });
     }
 
-    // 2. Update your database
-    // Replace saveSuccessfulPayment with your actual DB logic
-    await YourOrderModel.updateOne(
-      { razorpay_order_id },
-      {
-        $set: {
-          payment_status: 'completed',
-          razorpay_payment_id,
-          updated_at: new Date()
-        }
-      }
+    // 2. Update the order in your database
+    const updateResult = await queryDatabase(
+      `UPDATE placeorder 
+       SET payment_status = 'Paid',
+           razorpay_payment_id = ?,
+           razorpay_order_id = ?,
+           razorpay_signature = ?,
+           status = 'Processing'
+       WHERE order_id = ?`,
+      [razorpay_payment_id, razorpay_order_id, razorpay_signature, order_id]
     );
 
-    return res.json({
+    if (updateResult.affectedRows === 0) {
+      throw new Error("No order found to update");
+    }
+
+    // 3. Return success response
+    res.json({ 
       success: true,
-      message: "Payment verified and recorded successfully"
+      message: "Payment verified and order updated",
+      payment_id: razorpay_payment_id,
+      order_id: order_id
     });
 
   } catch (error) {
     console.error("Verification error:", error);
-    return res.status(500).json({
-      success: false,
+    res.status(500).json({ 
       error: "Payment verification failed",
-      details: error.message
+      details: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });
+app.post("/api/place-order", authenticateToken, async (req, res) => {
+  try {
+    const { consumer_id, name, mobile_number, email, produce_name, quantity, amount, 
+            is_self_delivery, payment_method, address, pincode, recipient_name, recipient_phone } = req.body;
 
+    // Validate required fields
+    if (!address || !pincode) {
+      return res.status(400).json({ 
+        success: false,
+        error: "Address and pincode are required" 
+      });
+    }
+
+    // Insert order - trigger will handle order_id generation
+    const result = await queryDatabase(
+      `INSERT INTO placeorder (
+        consumer_id, name, mobile_number, email,
+        produce_name, quantity, amount,
+        is_self_delivery, payment_method,
+        address, pincode, recipient_name, recipient_phone
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        consumer_id, name, mobile_number, email,
+        produce_name, quantity, amount,
+        is_self_delivery || false, 
+        payment_method || 'cash-on-delivery',
+        address, pincode, 
+        recipient_name || null, 
+        recipient_phone || null
+      ]
+    );
+
+    // Get the complete order with generated order_id
+    const [order] = await queryDatabase(
+      `SELECT * FROM placeorder WHERE id = ?`,
+      [result.insertId]
+    );
+
+    if (!order || !order.order_id) {
+      console.error("Order creation failed - no order_id generated:", order);
+      // Fallback: Generate order_id manually if trigger failed
+      const fallbackOrderId = `ORD${Date.now().toString().slice(-6)}`;
+      await queryDatabase(
+        `UPDATE placeorder SET order_id = ? WHERE id = ?`,
+        [fallbackOrderId, result.insertId]
+      );
+      order.order_id = fallbackOrderId;
+    }
+
+    res.json({
+      success: true,
+      order_id: order.order_id,
+      message: "Order placed successfully",
+      order_data: order // Return complete order data for debugging
+    });
+
+  } catch (error) {
+    console.error("Order placement error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to place order",
+      details: error.message,
+      sqlError: error.code,
+      receivedData: req.body
+    });
+  }
+});
 app.post('/api/razorpay-webhook', express.json(), (req, res) => {
   // Verify the payment signature
-  const crypto = require('crypto');
+  
   const secret = 'YOUR_WEBHOOK_SECRET'; // Set this in Razorpay dashboard
   
   const shasum = crypto.createHmac('sha256', secret);
@@ -5912,193 +6048,6 @@ app.post('/api/razorpay-webhook', express.json(), (req, res) => {
 
   res.json({ status: 'ok' });
 });
-// const Razorpay = require('razorpay');
-
-// const razorpay = new Razorpay({
-//   key_id: 'YOUR_RAZORPAY_KEY_ID',
-//   key_secret: 'YOUR_RAZORPAY_KEY_SECRET'
-// });
-
-// // Create Razorpay order
-// app.post('/api/create-razorpay-order', async (req, res) => {
-//   try {
-//     const options = {
-//       amount: req.body.amount,
-//       currency: req.body.currency,
-//       receipt: req.body.receipt,
-//       notes: req.body.notes
-//     };
-
-//     const order = await razorpay.orders.create(options);
-//     res.json(order);
-//   } catch (error) {
-//     console.error('Razorpay order error:', error);
-//     res.status(500).json({ error: 'Failed to create order' });
-//   }
-// });
-
-// // Verify payment
-// app.post('/api/verify-payment', async (req, res) => {
-//   const { razorpay_payment_id, razorpay_order_id, razorpay_signature, orderData } = req.body;
-
-//   try {
-//     // Verify the payment signature
-//     const crypto = require('crypto');
-//     const expectedSignature = crypto
-//       .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
-//       .update(`${razorpay_order_id}|${razorpay_payment_id}`)
-//       .digest('hex');
-
-//     if (expectedSignature === razorpay_signature) {
-//       // Payment is successful, create your order
-//       const query = `
-//         INSERT INTO placeorder (
-//           consumer_id, name, mobile_number, email, produce_name, 
-//           quantity, amount, status, payment_status, payment_method,
-//           razorpay_payment_id, razorpay_order_id, is_self_delivery,
-//           recipient_name, recipient_phone, address
-//         )
-//         VALUES (?, ?, ?, ?, ?, ?, ?, 'Confirmed', 'Paid', ?, ?, ?, ?, ?, ?, ?)
-//       `;
-
-//       await queryDatabase(query, [
-//         orderData.consumer_id,
-//         orderData.name,
-//         orderData.mobile_number,
-//         orderData.email,
-//         orderData.produce_name,
-//         orderData.quantity,
-//         orderData.amount,
-//         orderData.payment_method,
-//         razorpay_payment_id,
-//         razorpay_order_id,
-//         orderData.is_self_delivery,
-//         orderData.recipient_name || null,
-//         orderData.recipient_phone || null,
-//         orderData.address
-//       ]);
-
-//       res.json({ success: true });
-//     } else {
-//       res.status(400).json({ error: 'Invalid payment signature' });
-//     }
-//   } catch (error) {
-//     console.error('Payment verification error:', error);
-//     res.status(500).json({ error: 'Payment verification failed' });
-//   }
-// });
-
-const paymentRoutes = require('./src/routes/payment'); // Assuming you put the route in routes/payment.js
-
-app.use('/api', paymentRoutes);
-const axios = require('axios');
-// Instamojo API configuration
-const INSTAMOJO_API_KEY = process.env.INSTAMOJO_API_KEY || '37393680f8c2f74c4962a7128cd25ad9';
-const INSTAMOJO_AUTH_TOKEN = process.env.INSTAMOJO_AUTH_TOKEN || '371fd9a798b0bf71538b6e1a2603dced';
-const INSTAMOJO_BASE_URL = 'https://test.instamojo.com/api/1.1/'; // Use https://www.instamojo.com/api/1.1/ for live
-// Create Instamojo payment request
-app.post('/create-instamojo-payment', async (req, res) => {
-  try {
-    const response = await axios.post(`${INSTAMOJO_BASE_URL}payment-requests/`, req.body, {
-      headers: {
-        'X-Api-Key': INSTAMOJO_API_KEY,
-        'X-Auth-Token': INSTAMOJO_AUTH_TOKEN,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    res.json(response.data);
-  } catch (error) {
-    console.error('Instamojo payment request error:', error.response?.data || error.message);
-    res.status(500).json({ error: 'Failed to create payment request' });
-  }
-});
-
-// Verify Instamojo payment
-app.post('/api/verify-instamojo-payment', async (req, res) => {
-  const { payment_id, payment_request_id, orderData } = req.body;
-
-  try {
-    // First verify the payment with Instamojo
-    const response = await axios.get(`${INSTAMOJO_BASE_URL}payments/${payment_id}/`, {
-      headers: {
-        'X-Api-Key': INSTAMOJO_API_KEY,
-        'X-Auth-Token': INSTAMOJO_AUTH_TOKEN
-      }
-    });
-
-    const paymentDetails = response.data.payment;
-
-    if (paymentDetails.status === 'Credit' && paymentDetails.payment_request.id === payment_request_id) {
-      // Payment is successful, create your order
-      const query = `
-        INSERT INTO placeorder (
-          consumer_id, name, mobile_number, email, produce_name, 
-          quantity, amount, status, payment_status, payment_method,
-          instamojo_payment_id, instamojo_payment_request_id, is_self_delivery,
-          recipient_name, recipient_phone, address
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, 'Confirmed', 'Paid', ?, ?, ?, ?, ?, ?, ?)
-      `;
-
-      await queryDatabase(query, [
-        orderData.consumer_id,
-        orderData.name,
-        orderData.mobile_number,
-        orderData.email,
-        orderData.produce_name,
-        orderData.quantity,
-        orderData.amount,
-        orderData.payment_method,
-        paymentDetails.id,
-        paymentDetails.payment_request.id,
-        orderData.is_self_delivery,
-        orderData.recipient_name || null,
-        orderData.recipient_phone || null,
-        orderData.address
-      ]);
-
-      res.json({ success: true });
-    } else {
-      res.status(400).json({ error: 'Payment verification failed' });
-    }
-  } catch (error) {
-    console.error('Payment verification error:', error.response?.data || error.message);
-    res.status(500).json({ error: 'Payment verification failed' });
-  }
-});
-
-// Instamojo webhook handler
-app.post('/api/instamojo-webhook', async (req, res) => {
-  try {
-    const { payment_id, payment_request_id, status } = req.body;
-
-    if (status === 'Credit') {
-      // Update your database with payment confirmation
-      await queryDatabase(
-        'UPDATE placeorder SET payment_status = ? WHERE instamojo_payment_id = ?',
-        ['Paid', payment_id]
-      );
-    }
-
-    res.status(200).send('OK');
-  } catch (error) {
-    console.error('Webhook error:', error);
-    res.status(500).send('Error processing webhook');
-  }
-});
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 // const router = express.Router();
@@ -6245,6 +6194,86 @@ module.exports = router;
 //     res.status(500).json({ error: "Database operation failed" });
 //   }
 // });
+// app.get('/api/bargain/farmers/:farmerId/sessions', authenticate, farmerOnly, async (req, res) => {
+//   try {
+//     const farmerId = req.params.farmerId;
+
+//     if (!/^[A-Z0-9]{8,12}$/.test(farmerId)) {
+//       return res.status(400).json({ error: "Invalid farmer ID format" });
+//     }
+
+//     const sessions = await queryDatabase(
+//       `
+//      SELECT 
+//   bs.bargain_id,
+//   bs.consumer_id,
+//   cr.first_name,
+//   cr.last_name,
+//   p.product_name,
+//   bsp.quantity,
+//   bsp.current_offer AS current_price,
+//   bsp.original_price AS initial_price,
+//   bs.status,
+//   bs.updated_at,
+//   (
+//     SELECT 
+//       CASE 
+//         WHEN bm.message_type = 'suggestion' THEN CONCAT('Suggested ₹', FORMAT(bm.price_suggestion, 2))
+//         WHEN bm.message_type = 'accept' THEN 'Accepted the offer'
+//         WHEN bm.message_type = 'reject' THEN 'Rejected the offer'
+//         WHEN bm.message_type = 'finalize' THEN 'Finalized the deal'
+//         ELSE 'Unknown'
+//       END
+//     FROM bargain_messages bm
+//     WHERE bm.bargain_id = bs.bargain_id
+//     ORDER BY bm.created_at DESC
+//     LIMIT 1
+//   ) as last_message_content,
+//   (
+//     SELECT bm.created_at
+//     FROM bargain_messages bm
+//     WHERE bm.bargain_id = bs.bargain_id
+//     ORDER BY bm.created_at DESC
+//     LIMIT 1
+//   ) as last_message_timestamp
+// FROM bargain_sessions bs
+// JOIN consumerregistration cr ON bs.consumer_id = cr.consumer_id
+// JOIN bargain_session_products bsp ON bs.bargain_id = bsp.bargain_id
+// JOIN products p ON bsp.product_id = p.product_id
+// WHERE bs.farmer_id = ?
+//   AND bsp.product_id IS NOT NULL
+// ORDER BY bs.updated_at DESC
+
+//       `,
+//       [farmerId]
+//     );
+
+//     const transformedSessions = sessions.map(session => ({
+//       bargain_id: session.bargain_id,
+//       consumer_id: session.consumer_id,
+//       consumer_name: `${session.first_name} ${session.last_name}`,
+//       product_name: session.product_name,
+//       quantity: session.quantity,
+//       current_price: session.current_price,
+//       initial_price: session.initial_price,
+//       status: session.status,
+//       updated_at: session.updated_at,
+//       last_message: session.last_message_content ? {
+//         content: session.last_message_content,
+//         timestamp: session.last_message_timestamp
+//       } : null
+//     }));
+
+//     console.log("🔥 Sessions Result:", transformedSessions);
+//     res.status(200).json(transformedSessions);
+
+//   } catch (err) {
+//     console.error("💥 DB Error:", err);
+//     res.status(500).json({ error: "Database operation failed" });
+//   }
+// });
+
+
 app.get('/api/bargain/farmers/:farmerId/sessions', authenticate, farmerOnly, async (req, res) => {
   try {
     const farmerId = req.params.farmerId;
@@ -6255,76 +6284,97 @@ app.get('/api/bargain/farmers/:farmerId/sessions', authenticate, farmerOnly, asy
 
     const sessions = await queryDatabase(
       `
-     SELECT 
-  bs.bargain_id,
-  bs.consumer_id,
-  cr.first_name,
-  cr.last_name,
-  p.product_name,
-  bsp.quantity,
-  bsp.current_offer AS current_price,
-  bsp.original_price AS initial_price,
-  bs.status,
-  bs.updated_at,
-  (
-    SELECT 
-      CASE 
-        WHEN bm.message_type = 'suggestion' THEN CONCAT('Suggested ₹', FORMAT(bm.price_suggestion, 2))
-        WHEN bm.message_type = 'accept' THEN 'Accepted the offer'
-        WHEN bm.message_type = 'reject' THEN 'Rejected the offer'
-        WHEN bm.message_type = 'finalize' THEN 'Finalized the deal'
-        ELSE 'Unknown'
-      END
-    FROM bargain_messages bm
-    WHERE bm.bargain_id = bs.bargain_id
-    ORDER BY bm.created_at DESC
-    LIMIT 1
-  ) as last_message_content,
-  (
-    SELECT bm.created_at
-    FROM bargain_messages bm
-    WHERE bm.bargain_id = bs.bargain_id
-    ORDER BY bm.created_at DESC
-    LIMIT 1
-  ) as last_message_timestamp
-FROM bargain_sessions bs
-JOIN consumerregistration cr ON bs.consumer_id = cr.consumer_id
-JOIN bargain_session_products bsp ON bs.bargain_id = bsp.bargain_id
-JOIN products p ON bsp.product_id = p.product_id
-WHERE bs.farmer_id = ?
-  AND bsp.product_id IS NOT NULL
-ORDER BY bs.updated_at DESC
-
+      SELECT 
+        bs.bargain_id,
+        bs.consumer_id,
+        cr.first_name,
+        cr.last_name,
+        cr.phone_number as consumer_phone,
+        ap.produce_name,
+        ap.produce_type,
+        ap.price_per_kg,
+        ap.availability,
+        ap.market_type,
+        bsp.product_id,
+        bsp.quantity,
+        bsp.current_offer AS current_price,
+        bsp.original_price AS initial_price,
+        bs.status,
+        bs.updated_at,
+        (
+          SELECT 
+            CASE 
+              WHEN bm.message_type = 'suggestion' THEN CONCAT('Suggested ₹', FORMAT(bm.price_suggestion, 2))
+              WHEN bm.message_type = 'accept' THEN 'Accepted the offer'
+              WHEN bm.message_type = 'reject' THEN 'Rejected the offer'
+              WHEN bm.message_type = 'finalize' THEN 'Finalized the deal'
+              ELSE NULL
+            END
+          FROM bargain_messages bm
+          WHERE bm.bargain_id = bs.bargain_id
+          ORDER BY bm.created_at DESC
+          LIMIT 1
+        ) as last_message_content,
+        (
+          SELECT bm.created_at
+          FROM bargain_messages bm
+          WHERE bm.bargain_id = bs.bargain_id
+          ORDER BY bm.created_at DESC
+          LIMIT 1
+        ) as last_message_timestamp
+      FROM bargain_sessions bs
+      JOIN consumerregistration cr ON bs.consumer_id = cr.consumer_id
+      JOIN bargain_session_products bsp ON bs.bargain_id = bsp.bargain_id
+      JOIN add_produce ap ON bsp.product_id = ap.product_id
+      WHERE bs.farmer_id = ?
+        AND bsp.product_id IS NOT NULL
+      ORDER BY bs.updated_at DESC
       `,
       [farmerId]
     );
 
-    const transformedSessions = sessions.map(session => ({
-      bargain_id: session.bargain_id,
-      consumer_id: session.consumer_id,
-      consumer_name: `${session.first_name} ${session.last_name}`,
-      product_name: session.product_name,
-      quantity: session.quantity,
-      current_price: session.current_price,
-      initial_price: session.initial_price,
-      status: session.status,
-      updated_at: session.updated_at,
-      last_message: session.last_message_content ? {
-        content: session.last_message_content,
-        timestamp: session.last_message_timestamp
-      } : null
-    }));
+    const transformedSessions = sessions.map(session => {
+      const productDetails = {
+        product_id: session.product_id,
+        produce_name: session.produce_name,
+        produce_type: session.produce_type,
+        price_per_kg: session.price_per_kg,
+        availability: session.availability,
+        market_type: session.market_type
+      };
 
-    console.log("🔥 Sessions Result:", transformedSessions);
+      return {
+        bargain_id: session.bargain_id,
+        consumer_id: session.consumer_id,
+        consumer_name: `${session.first_name} ${session.last_name}`,
+        consumer_phone: session.consumer_phone,
+        product_name: session.produce_name,
+        product_id: session.product_id,
+        product_details: productDetails,
+        quantity: session.quantity,
+        current_price: session.current_price,
+        initial_price: session.initial_price,
+        status: session.status,
+        updated_at: session.updated_at,
+        last_message: session.last_message_content ? {
+          content: session.last_message_content,
+          timestamp: session.last_message_timestamp
+        } : null,
+        unread_count: 0 // You can calculate this based on your business logic
+      };
+    });
+
+    console.log("✅ Fetched Bargain Sessions:", transformedSessions);
     res.status(200).json(transformedSessions);
 
   } catch (err) {
-    console.error("💥 DB Error:", err);
-    res.status(500).json({ error: "Database operation failed" });
+    console.error("💥 Database Error:", err);
+    res.status(500).json({ 
+      error: "Failed to fetch bargain sessions",
+      details: err.message
+    });
   }
 });
-
-
 
 
 
@@ -6374,22 +6424,4 @@ httpServer.listen(PORT, '0.0.0.0', () => {
     `);
     
 });
-
-
-
-
-
-
-// // ✅ Start Server
-// const PORT = process.env.PORT || 5000;
-// app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
-
-
-
-
-
-
-
-
-
 
