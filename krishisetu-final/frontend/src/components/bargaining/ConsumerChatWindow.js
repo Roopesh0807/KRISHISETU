@@ -44,7 +44,7 @@ const BargainChatWindow = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [selectedQuantity, setSelectedQuantity] = useState('');
+  const [selectedQuantity, setSelectedQuantity] = useState(selectedProduct?.minimum_quantity || '10');
   const [showPriceSuggestions, setShowPriceSuggestions] = useState(false);
   const [priceSuggestions, setPriceSuggestions] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
@@ -358,7 +358,7 @@ useEffect(() => {
         setSelectedProduct(product);
         setCurrentPrice(product.current_offer || product.price_per_kg);
         setQuantity(product.quantity || 1);
-        setSelectedQuantity(product.quantity || '10');
+        setSelectedQuantity(product.minimum_quantity || product.quantity || '10');
       }
       
       setBargainStatus(data.status || 'pending');
@@ -679,20 +679,21 @@ useEffect(() => {
                 <input
                   type="number"
                   className="popup-input"
-                  min="10"
+                  min={selectedProduct?.minimum_quantity || 10} 
                   max={selectedProduct.availability}
                   value={selectedQuantity}
                   onChange={(e) => {
+                    const minQty = selectedProduct.minimum_quantity || 10;
                     const val = Math.min(
-                      selectedProduct.availability,
-                      Math.max(10, e.target.value || 10)
+                      selectedProduct?.availability || 0,
+                      Math.max(minQty, e.target.value ? parseFloat(e.target.value) : minQty)
                     );
                     setSelectedQuantity(val);
                   }}
                   placeholder="Enter quantity"
                 />
                 <div className="quantity-range">
-                  <span>Min: 10 kg</span>
+                  <span>Min: {selectedProduct.minimum_quantity || 10} kg</span>
                   <span>Max: {selectedProduct.availability} kg</span>
                 </div>
               </div>

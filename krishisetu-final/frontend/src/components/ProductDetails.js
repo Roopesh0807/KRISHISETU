@@ -139,6 +139,11 @@ const ProductDetails = () => {
           setShowCommunitySelect(false);
           return;
         }
+
+        if (data.error === "Community is frozen") {
+          alert(`This community is currently frozen for orders. ${data.message}`);
+          return;
+        }
         throw new Error(data.error || "Failed to add to community cart");
       }
   

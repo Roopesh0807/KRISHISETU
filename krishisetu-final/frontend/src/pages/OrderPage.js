@@ -1435,12 +1435,15 @@ function OrderPage() {
             {yourOrders.map(order => (
               <div key={order.order_id} className="order-item">
                 <div className="order-item-img">
-                  <img 
-                    src={order.product_image || '/images/default-produce.jpg'} 
-                    alt={order.product_name}
-                    onError={(e) => e.target.src = '/images/default-produce.jpg'}
-                  />
-                </div>
+                <img 
+                  src={`/images/${(order.product_name || order.name || '').toLowerCase().replace(/\s+/g, '-')}.jpg`
+                  }
+                  alt={order.product_name || order.name || 'Product'}
+                  onError={(e) =>{ e.target.src = "/images/default-produce.jpg";
+                    e.target.onerror = null;
+                  }}
+                />
+              </div>
                 <div className="order-item-details">
                   <h3>{order.product_name}</h3>
                   <div className="order-item-meta">
