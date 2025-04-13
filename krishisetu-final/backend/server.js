@@ -1505,6 +1505,70 @@ app.post("/api/place-order", async (req, res) => {
   }
 });
 
+// Add this to your backend routes
+router.post('/api/orders/place-order',  async (req, res) => {
+  try {
+    const {
+      consumer_id,
+      name,
+      mobile_number,
+      email,
+      address,
+      pincode,
+      produce_name,
+      quantity,
+      amount,
+      payment_method,
+      is_community
+    } = req.body;
+
+    // Insert into placeorder table
+    const [result] = await db.query(
+      `INSERT INTO placeorder (
+        consumer_id,
+        name,
+        mobile_number,
+        email,
+        address,
+        pincode,
+        produce_name,
+        quantity,
+        amount,
+        payment_method,
+        is_community,
+        status,
+        payment_status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', ?)`,
+      [
+        consumer_id,
+        name,
+        mobile_number,
+        email,
+        address,
+        pincode,
+        produce_name,
+        quantity,
+        amount,
+        payment_method,
+        is_community,
+        payment_method === 'cash-on-delivery' ? 'Pending' : 'Paid'
+      ]
+    );
+
+    res.status(201).json({
+      success: true,
+      orderId: result.insertId,
+      message: 'Order placed successfully'
+    });
+  } catch (error) {
+    console.error('Error placing order:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to place order'
+    });
+  }
+});
+
 
 // Save address to placeorder table (before order is placed)
 // Add this endpoint to save address
