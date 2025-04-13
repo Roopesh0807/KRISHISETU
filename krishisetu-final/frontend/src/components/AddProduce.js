@@ -523,17 +523,17 @@ const AddProduce = () => {
 
     // Additional validation for Bargaining Market
     if (selectedMarket === 'Bargaining Market') {
-      if (!newProduce.min_quantity) {
+      if (!newProduce.minimum_quantity) {
         setError('Minimum quantity is required for Bargaining Market');
         return;
       }
       
-      if (isNaN(newProduce.min_quantity)) {
+      if (isNaN(newProduce.minimum_quantity)) {
         setError('Minimum quantity must be a number');
         return;
       }
       
-      if (parseFloat(newProduce.min_quantity) <= 0) {
+      if (parseFloat(newProduce.minimum_quantity) <= 0) {
         setError('Minimum quantity must be greater than 0');
         return;
       }
@@ -557,7 +557,7 @@ const AddProduce = () => {
         // Only include min_quantity if it's Bargaining Market
         ...(selectedMarket === 'Bargaining Market' && {
           minimum_quantity: selectedMarket === 'Bargaining Market' 
-          ? parseFloat(newProduce.min_quantity) 
+          ? parseFloat(newProduce.minimum_quantity) 
           : null
         })
       };
@@ -765,7 +765,7 @@ const AddProduce = () => {
                     <input
                       type="number"
                       name="minimum_quantity"
-                      value={newProduce.min_quantity}
+                      value={newProduce.minimum_quantity}
                       onChange={handleFormChange}
                       placeholder="Enter minimum quantity for bargaining"
                       min="0.1"
