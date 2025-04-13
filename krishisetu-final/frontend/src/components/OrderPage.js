@@ -1261,15 +1261,13 @@ const KrishiOrderPage = () => {
       alert("Please add an address.");
       return;
     }
-
+  
     if (deliveryOption === "other" && !selectedRecipientAddress) {
       alert("Please select or add a recipient address.");
       return;
     }
-
-    try {
-      // ... existing validation code ...
   
+    try {
       const orderData = {
         consumer_id: consumerprofile.consumer_id,
         name: consumerprofile.name,
@@ -1281,9 +1279,6 @@ const KrishiOrderPage = () => {
         is_self_delivery: deliveryOption === "self",
         payment_status: isPaid ? 'Paid' : 'Pending',
         payment_method: isPaid ? 'razorpay' : 'cash-on-delivery',
-        // Add these for better debugging
-        razorpay_order_id: isPaid ? razorpayOrderId : null,
-        razorpay_payment_id: isPaid ? razorpayPaymentId : null
       };
   
       if (deliveryOption === "other") {
@@ -1299,7 +1294,7 @@ const KrishiOrderPage = () => {
       } else {
         orderData.address = consumerprofile.address;
       }
-
+  
       const response = await fetch("http://localhost:5000/api/place-order", {
         method: "POST",
         headers: { 
@@ -1427,86 +1422,340 @@ const KrishiOrderPage = () => {
   //   }
   // };
 
-  const handleRazorpayPayment = async () => {
+//   const handleRazorpayPayment = async () => {
+//     try {
+//       // Validate prerequisites
+//       if (deliveryOption === "self" && !consumerprofile.address) {
+//         alert("Please add an address.");
+//         return;
+//       }
+  
+//       if (deliveryOption === "other" && !selectedRecipientAddress && !recipientDetails.street) {
+//         alert("Please select or add a recipient address.");
+//         return;
+//       }
+  
+//       const finalAmount = calculateFinalPrice();
+//       if (finalAmount <= 0) {
+//         alert("Invalid order amount.");
+//         return;
+//       }
+  
+//       // Prepare order data
+//       // Prepare order data
+//     const orderData = {
+//       consumer_id: consumerprofile.consumer_id,
+//       name: consumerprofile.name,
+//       mobile_number: consumerprofile.mobile_number,
+//       email: consumerprofile.email,
+//       produce_name: cart.map(p => p.product_name).join(", "),
+//       quantity: cart.reduce((total, p) => total + p.quantity, 0),
+//       amount: finalAmount,
+//       is_self_delivery: deliveryOption === "self",
+//       payment_method: 'razorpay',
+//       address: deliveryOption === "self" ? consumerprofile.address : 
+//         `${recipientDetails.street}, ${recipientDetails.city}, ${recipientDetails.state} - ${recipientDetails.pincode}`,
+//       pincode: deliveryOption === "self" ? newAddress.pincode : recipientDetails.pincode,
+//       recipient_name: deliveryOption === "other" ? 
+//         (selectedRecipientAddress 
+//           ? savedRecipientAddresses.find(a => a.id === selectedRecipientAddress)?.name 
+//           : recipientDetails.name) 
+//         : null,
+//       recipient_phone: deliveryOption === "other" ? 
+//         (selectedRecipientAddress 
+//           ? savedRecipientAddresses.find(a => a.id === selectedRecipientAddress)?.phone 
+//           : recipientDetails.phone) 
+//         : null
+//     };
+
+//     console.log("Submitting order:", orderData);
+
+//     // 1. Create order in database
+//     const orderResponse = await fetch("http://localhost:5000/api/place-order", {
+//       method: "POST",
+//       headers: { 
+//         "Content-Type": "application/json",
+//         "Authorization": `Bearer ${localStorage.getItem('token')}`
+//       },
+//       body: JSON.stringify(orderData)
+//     });
+
+//     const orderResult = await orderResponse.json();
+    
+//     if (!orderResult.success) {
+//       console.error("Order creation failed:", orderResult);
+//       throw new Error(orderResult.error || "Failed to create order");
+//     }
+
+//     if (!orderResult.order_id) {
+//       console.error("No order_id received:", orderResult);
+//       throw new Error("Order ID not received from server");
+//     }
+
+//     console.log("Order created with ID:", orderResult.order_id);
+// // 2. Create Razorpay order
+// const razorpayResponse = await fetch('http://localhost:5000/api/razorpay/create-order', {
+//   method: 'POST',
+//   headers: {
+//     'Content-Type': 'application/json',
+//     'Authorization': `Bearer ${localStorage.getItem('token')}`
+//   },
+//   body: JSON.stringify({ 
+//     amount: finalAmount,
+//     order_id: orderResult.order_id // Pass your internal order ID
+//   })
+// });
+
+// const razorpayData = await razorpayResponse.json();
+
+// if (!razorpayResponse.ok) {
+//   console.error("Razorpay order failed:", razorpayData);
+//   throw new Error(razorpayData.error || "Payment gateway error");
+// }
+
+// console.log("Razorpay order created:", razorpayData.order.id);
+
+// // 3. Initialize Razorpay checkout
+// const options = {
+//   key: process.env.RAZORPAY_KEY_ID || 'rzp_test_VLCfnymiyd6HGf',
+//   amount: razorpayData.order.amount,
+//   currency: razorpayData.order.currency,
+//   order_id: razorpayData.order.id,
+//   name: 'KrishiSetu',
+//   description: 'Farm Fresh Products',
+//   image: {
+//     svg: '', // Empty SVG to prevent errors
+//     width: '0', // Explicit dimensions
+//     height: '0'
+//   },
+//   handler: async (response) => {
+//     try {
+//       // 4. Verify payment
+//       const verificationResponse = await fetch('http://localhost:5000/api/razorpay/verify', {
+//         method: 'POST',
+//         headers: {
+//           'Content-Type': 'application/json',
+//           'Authorization': `Bearer ${localStorage.getItem('token')}`
+//         },
+//         body: JSON.stringify({
+//           razorpay_payment_id: response.razorpay_payment_id,
+//           razorpay_order_id: response.razorpay_order_id,
+//           razorpay_signature: response.razorpay_signature,
+//           order_id: orderResult.order_id,
+//           amount: razorpayData.order.amount
+//         })
+//       });
+
+//       const verificationData = await verificationResponse.json();
+      
+//       if (!verificationData.success) {
+//         throw new Error(verificationData.error || 'Payment verification failed');
+//       }
+
+//       // Payment successful
+//       setShowSuccessPopup(true);
+//       localStorage.removeItem(`cart_${consumerprofile.consumer_id}`);
+//       setTimeout(() => navigate("/consumer-dashboard"), 3000);
+
+//     } catch (error) {
+//       console.error('Payment verification failed:', error);
+//       alert(`Payment verification failed: ${error.message}`);
+//     }
+//   },
+//   // prefill: {
+//   //   name: consumerprofile?.name || '',
+//   //   email: consumerprofile?.email || '',
+//   //   contact: consumerprofile?.mobile_number || ''
+//   // },
+//   theme: {
+//     color: '#3399cc',
+//     hide_topbar: true // Helps prevent SVG issues
+//   },
+//   // modal: {
+//   //   ondismiss: function() {
+//   //     console.log('Payment modal closed by user');
+//   //   }
+//   // }
+// };
+
+// const rzp = new window.Razorpay(options);
+    
+//     // Prevent EMPTY_WORDMARK 404 error
+//     rzp.on('payment.loaded', function(response) {
+//       console.log('Payment UI loaded');
+//     });
+    
+//     rzp.on('payment.failed', function(response) {
+//       console.error('Payment failed:', response.error);
+//       alert(`Payment failed: ${response.error.description}`);
+//     });
+
+//     rzp.open();
+
+//   } catch (error) {
+//     console.error('Payment error:', error);
+//     alert(`Payment failed: ${error.message}`);
+//   }
+// };
+const handleRazorpayPayment = async () => {
+  try {
     // Validate prerequisites
     if (deliveryOption === "self" && !consumerprofile.address) {
       alert("Please add an address.");
       return;
     }
-  
-    if (deliveryOption === "other" && !selectedRecipientAddress) {
+
+    if (deliveryOption === "other" && !selectedRecipientAddress && !recipientDetails.street) {
       alert("Please select or add a recipient address.");
       return;
     }
-  
+
     const finalAmount = calculateFinalPrice();
     if (finalAmount <= 0) {
       alert("Invalid order amount.");
       return;
     }
-  
-    
-    try {
-      
-      // 1. Create order
-      const orderResponse = await fetch('http://localhost:5000/api/razorpay/create-order', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+
+    // 1. First create the order in your database
+    const orderResponse = await fetch("http://localhost:5000/api/place-order", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({
+        consumer_id: consumerprofile.consumer_id,
+        name: consumerprofile.name,
+        mobile_number: consumerprofile.mobile_number,
+        email: consumerprofile.email,
+        produce_name: cart.map(p => p.product_name).join(", "),
+        quantity: cart.reduce((total, p) => total + p.quantity, 0),
+        amount: finalAmount,
+        is_self_delivery: deliveryOption === "self",
+        payment_method: 'razorpay',
+        payment_status: 'Pending',
+        notes: {
+          cart_items: JSON.stringify(cart),
+          delivery_type: deliveryOption,
+          consumer_id: consumerprofile.consumer_id,
         },
-        body: JSON.stringify({
-          amount: Math.round(calculateFinalPrice() * 100), // in paise
-          currency: 'INR'
-        })
-      });
-  
-      const orderData = await orderResponse.json();
-  
-      // 2. Initialize Razorpay
-      const options = {
-        key: process.env.RAZORPAY_KEY_ID || 'rzp_test_VLCfnymiyd6HGf',
-        amount: orderData.amount,
-        currency: orderData.currency,
-        order_id: orderData.id,
-        name: 'KrishiSetu',
-        description: 'Farm Fresh Products',
-        image: logo,
-        handler: async (response) => {
-          try {
-            // 3. Verify payment
-            const verification = await verifyPayment({
+        address: deliveryOption === "self" ? consumerprofile.address : 
+          `${recipientDetails.street}, ${recipientDetails.city}, ${recipientDetails.state} - ${recipientDetails.pincode}`,
+        pincode: deliveryOption === "self" ? newAddress.pincode : recipientDetails.pincode,
+        recipient_name: deliveryOption === "other" ? 
+          (selectedRecipientAddress 
+            ? savedRecipientAddresses.find(a => a.id === selectedRecipientAddress)?.name 
+            : recipientDetails.name) 
+          : null,
+        recipient_phone: deliveryOption === "other" ? 
+          (selectedRecipientAddress 
+            ? savedRecipientAddresses.find(a => a.id === selectedRecipientAddress)?.phone 
+            : recipientDetails.phone) 
+          : null
+      })
+    });
+
+    const orderResult = await orderResponse.json();
+    
+    if (!orderResult.success || !orderResult.order_id) {
+      throw new Error(orderResult.error || "Failed to create order");
+    }
+
+    // 2. Create Razorpay order
+    const razorpayResponse = await fetch('http://localhost:5000/api/razorpay/create-order', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({ 
+        amount: finalAmount,
+        order_id: orderResult.order_id,notes: {
+          internal_order_id: orderResult.order_id,
+          consumer_id: consumerprofile.consumer_id
+        }
+      })
+    });
+
+    const razorpayData = await razorpayResponse.json();
+
+    if (!razorpayResponse.ok || !razorpayData.order) {
+      throw new Error(razorpayData.error || "Payment gateway error");
+    }
+
+    // 3. Initialize Razorpay checkout
+    const options = {
+      key: process.env.RAZORPAY_KEY_ID || 'rzp_test_VLCfnymiyd6HGf',
+      amount: razorpayData.order.amount,
+      currency: razorpayData.order.currency,
+      order_id: razorpayData.order.id,
+      name: 'KrishiSetu',
+      description: 'Farm Fresh Products',
+      image: '', // Use absolute URL to your logo
+      handler: async (response) => {
+        try {
+          // 4. Verify payment
+          const verificationResponse = await fetch('http://localhost:5000/api/razorpay/verify', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_order_id: response.razorpay_order_id,
               razorpay_signature: response.razorpay_signature,
-              amount: orderData.amount / 100 // convert back to rupees
-            });
-  
-            if (verification.success) {
-              // 4. Complete order
-              await handlePlaceOrder(true);
-              alert('Payment successful! Order confirmed.');
-            } else {
-              throw new Error(verification.error || 'Payment verification failed');
-            }
-          } catch (error) {
-            console.error('Payment processing error:', error);
-            alert(`Payment processing failed: ${error.message}`);
+              order_id: orderResult.order_id,
+              amount: razorpayData.order.amount
+            })
+          });
+
+          const verificationData = await verificationResponse.json();
+          
+          if (!verificationData.success) {
+            throw new Error(verificationData.error || 'Payment verification failed');
           }
-        },
-        theme: {
-          color: '#3399cc'
+
+          // Payment successful
+          setShowSuccessPopup(true);
+          localStorage.removeItem(`cart_${consumerprofile.consumer_id}`);
+          setTimeout(() => navigate("/consumer-dashboard"), 3000);
+
+        } catch (error) {
+          console.error('Payment verification failed:', error);
+          alert(`Payment verification failed: ${error.message}`);
         }
-      };
-  
-      const rzp = new window.Razorpay(options);
-      rzp.open();
-  
-    } catch (error) {
-      console.error('Payment initialization error:', error);
-      alert(`Payment failed to start: ${error.message}`);
-    }
-  };
+      },
+      prefill: {
+        name: consumerprofile?.name || '',
+        email: consumerprofile?.email || '',
+        contact: consumerprofile?.mobile_number || ''
+      },
+      theme: {
+        color: '#3399cc',
+        hide_topbar:true
+      },
+      modal: {
+        ondismiss: function() {
+          console.log('Payment modal closed by user');
+        }
+      }
+    };
+
+    const rzp = new window.Razorpay(options);
+    
+    rzp.on('payment.failed', function(response) {
+      console.error('Payment failed:', response.error);
+      alert(`Payment failed: ${response.error.description}`);
+    });
+
+    rzp.open();
+
+  } catch (error) {
+    console.error('Payment error:', error);
+    alert(`Payment failed: ${error.message}`);
+  }
+};
 // Helper functions
 const createRazorpayOrder = async (amount) => {
   try {

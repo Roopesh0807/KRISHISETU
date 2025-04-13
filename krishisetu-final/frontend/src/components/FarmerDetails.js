@@ -109,6 +109,16 @@ const FarmerDetails = () => {
         });
   
         if (response.data) {
+           // Only fetch products with market_type = 'Bargaining Market'
+      const productsResponse = await axios.get(`http://localhost:5000/api/produces`, {
+        headers: {
+          "Authorization": `Bearer ${consumer?.token}`,
+        },
+        params: {
+          farmer_id: farmer_id,
+          market_type: 'Bargaining Market'
+        }
+      });
           const reviewsResponse = await axios.get(`http://localhost:5000/reviews/${farmer_id}`, {
             headers: {
               "Authorization": `Bearer ${consumer?.token}`,
@@ -118,6 +128,7 @@ const FarmerDetails = () => {
           const averageRating = calculateAverageRating(reviewsResponse.data);
           setFarmer({
             ...response.data,
+            products: productsResponse.data, // Only bargaining market products
             ratings: averageRating,
           });
   
@@ -382,6 +393,7 @@ const FarmerDetails = () => {
 
           <div className="section-container">
             <h3 className="section-title">Available Products</h3>
+            {farmer.products && farmer.products.length > 0 ? (
             <table className="produce-table">
               <thead>
                 <tr>
@@ -402,6 +414,9 @@ const FarmerDetails = () => {
                 ))}
               </tbody>
             </table>
+            ):(
+              <p className="no-products">No products available for bargaining at this time.</p>
+            )}
           </div>
 
           <div className="action-buttons">
@@ -411,7 +426,7 @@ const FarmerDetails = () => {
             >
               ← Back to Dashboard
             </button>
-          
+            {farmer.products && farmer.products.length > 0 && (
                               <button 
                                 onClick={(e) => handleBargainClick(farmer, farmer.products[0], e)} 
                                 className="ks-farmer-action-btn ks-bargain-btn"
@@ -425,7 +440,7 @@ const FarmerDetails = () => {
                                   </>
                                 )}
                               </button>
-                            
+            )}
           </div>
 
           {showAddReviewForm && (

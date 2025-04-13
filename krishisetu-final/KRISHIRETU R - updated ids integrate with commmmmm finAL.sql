@@ -1226,3 +1226,11 @@ CREATE TABLE frozen_orders (
   FOREIGN KEY (community_id) REFERENCES communities(community_id),
   FOREIGN KEY (member_id) REFERENCES members(member_id)
 );
+
+
+ALTER TABLE placeorder ADD COLUMN is_community ENUM('yes', 'no') DEFAULT 'no';
+
+
+ALTER TABLE add_produce ADD COLUMN minimum_quantity INT NOT NULL;
+ALTER TABLE add_produce 
+MODIFY COLUMN minimum_quantity INT NULL CHECK (minimum_quantity IS NULL OR minimum_quantity >= 0);

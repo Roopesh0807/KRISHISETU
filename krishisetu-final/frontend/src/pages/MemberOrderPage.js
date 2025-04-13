@@ -14,6 +14,7 @@ function MemberOrderPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const { consumer } = useAuth();
+  const [yourOrders, setYourOrders] = useState([]);
 // Add similar states and effects as OrderPage.js
 const [freezeStatus, setFreezeStatus] = useState({
   isFrozen: false,
@@ -155,7 +156,14 @@ useEffect(() => {
       );
       const data = await response.json();
       if (response.ok) {
-        setDiscount(data);
+        setDiscount({
+          ...data,
+          // Ensure these values are set properly
+          memberDiscountAmount: data.memberDiscountAmount || 0,
+          itemDiscountAmount: data.itemDiscountAmount || 0,
+          totalDiscountAmount: data.totalDiscountAmount || 0,
+          subtotal: data.subtotal || total
+        });
       }
     } catch (error) {
       console.error("Error fetching discount:", error);
@@ -172,92 +180,140 @@ useEffect(() => {
       itemCount: 0,
       memberDiscount: 0,
       itemDiscount: 0,
-      totalDiscount: 0
+      totalDiscount: 0,
+      memberDiscountAmount: 0,
+      itemDiscountAmount: 0,
+      totalDiscountAmount: 0,
+      subtotal: total
     });
   }
-}, [orders, communityId, memberId, freezeStatus.isFrozen]);
+}, [orders, communityId, memberId, freezeStatus.isFrozen, total]);
 
-  const handleUpdateQuantity = async (orderId, productId, change) => {
-    try {
-      const order = orders.find(o => o.order_id === orderId);
-      const newQuantity = Math.max(1, order.quantity + change);
-
-      const response = await fetch(
-        `http://localhost:5000/api/member/${communityId}/order/${orderId}`,
-        {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-             'Authorization': `Bearer ${consumer.token}`
-          },
-          body: JSON.stringify({ quantity: newQuantity })
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to update quantity');
-      }
-
-      const updatedOrder = await response.json();
-
-      setOrders(prevOrders => 
-        prevOrders.map(order => 
-          order.order_id === orderId 
-            ? { ...order, quantity: updatedOrder.quantity }
-            : order
-        )
-      );
-
-      // Recalculate total
-      const updatedTotal = orders.reduce((sum, o) => {
-        return sum + (o.order_id === orderId 
-          ? o.price * updatedOrder.quantity 
-          : o.price * o.quantity);
-      }, 0);
-      setTotal(updatedTotal.toFixed(2));
-    } catch (err) {
-      console.error("Update quantity error:", err);
-      setError(err.message);
-    }
-  };
-
-
-const handleRemoveItem = async (orderId) => {
-  console.log('Attempting to delete order:', orderId); // Add this
+// Update the handleQuantityChange function
+const handleQuantityChange = async (orderId, delta) => {
   try {
-    const url = `http://localhost:5000/api/member/${communityId}/order/${orderId}`;
-    console.log('Request URL:', url); // And this
+    // Find the current order to get current quantity
+    const currentOrder = orders.find(order => order.order_id === orderId);
+    if (!currentOrder) return;
+
+    const newQuantity = currentOrder.quantity + delta;
+    if (newQuantity < 1) return;
+
+    const response = await fetch(
+      `http://localhost:5000/api/order/${communityId}/${orderId}`,
+      {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${consumer.token}`
+        },
+        body: JSON.stringify({ quantity: newQuantity })
+      }
+    );
     
-    const response = await fetch(url, { 
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-         'Authorization': `Bearer ${consumer.token}`
+    if (!response.ok) throw new Error("Failed to update quantity");
+
+    // Update local state
+    setOrders(prevOrders => 
+      prevOrders.map(order => 
+        order.order_id === orderId 
+          ? { ...order, quantity: newQuantity } 
+          : order
+      )
+    );
+
+    // Recalculate total
+    const updatedTotal = orders.reduce((sum, order) => {
+      return sum + (order.price * 
+        (order.order_id === orderId ? newQuantity : order.quantity));
+    }, 0);
+    setTotal(updatedTotal.toFixed(2));
+  } catch (error) {
+    console.error("Error updating quantity:", error);
+    setError("Failed to update quantity");
+  }
+};
+
+
+
+// Update the handleRemoveItem function
+const handleRemoveItem = async (orderId) => {
+  try {
+    const response = await fetch(
+      `http://localhost:5000/api/order/${communityId}/${orderId}`,
+      { 
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${consumer.token}`
+        }
+      }
+    );
+    
+    if (!response.ok) throw new Error("Failed to remove item");
+
+    // Update local state
+    setOrders(prevOrders => prevOrders.filter(order => order.order_id !== orderId));
+    
+    // Recalculate total
+    const updatedTotal = orders
+      .filter(order => order.order_id !== orderId)
+      .reduce((sum, order) => sum + (order.price * order.quantity), 0);
+    setTotal(updatedTotal.toFixed(2));
+  } catch (err) {
+    console.error("Remove item error:", err);
+    setError(err.message);
+  }
+};
+
+
+  // const handleProceedToPayment = () => {
+  //   navigate(`/orderpage`);
+  // };
+// MemberOrderPage.js
+// Add this function to handle proceeding to payment
+const handleProceedToPayment = async () => {
+  try {
+    // Prepare order data for submission
+    const orderData = orders.map(order => ({
+      product_id: order.product_id,
+      product_name: order.product_name,
+      price: order.price,
+      quantity: order.quantity,
+      category: order.category
+    }));
+
+    const response = await fetch(
+      `http://localhost:5000/api/community/${communityId}/member/${memberId}/submit-frozen-order`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${consumer.token}`
+        },
+        body: JSON.stringify({
+          orders: orderData,
+          discount: discount // Include the discount data in the request
+        })
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to submit frozen order');
+    }
+
+    const data = await response.json();
+    navigate(`/community/${communityId}/order/${data.orderId}`, {
+      state: {
+        discountData: discount // Pass discount data via navigation state
       }
     });
-    
-    if (!response.ok) {
-      const errorData = await response.json(); // Try to get error details
-      throw new Error(errorData.error || 'Failed to remove item');
-    }
-
-      setOrders(prevOrders => prevOrders.filter(order => order.order_id !== orderId));
-      
-      // Recalculate total
-      const updatedTotal = orders
-        .filter(order => order.order_id !== orderId)
-        .reduce((sum, order) => sum + (order.price * order.quantity), 0);
-      setTotal(updatedTotal.toFixed(2));
-    } catch (err) {
-      console.error("Remove item error:", err);
-      setError(err.message);
-    }
-  };
-
-  const handleProceedToPayment = () => {
-    navigate(`/orderpage`);
-  };
-
+  } catch (err) {
+    console.error("Error submitting frozen order:", err);
+    setError(err.message);
+  }
+};
   
 
 
@@ -355,14 +411,14 @@ const handleRemoveItem = async (orderId) => {
                         <div className="krishi-quantity-selector">
                           <button 
                             className="krishi-quantity-btn" 
-                            onClick={() => handleUpdateQuantity(order.order_id, order.product_id, -1)}
+                            onClick={() => handleQuantityChange(order.order_id, -1)}
                           >
                             −
                           </button>
                           <span className="krishi-quantity-value">{order.quantity}</span>
                           <button 
                             className="krishi-quantity-btn" 
-                            onClick={() => handleUpdateQuantity(order.order_id, order.product_id, 1)}
+                            onClick={() => handleQuantityChange(order.order_id, 1)}
                           >
                             +
                           </button>
@@ -435,7 +491,7 @@ const handleRemoveItem = async (orderId) => {
     <span>{orders.length}</span>
   </div>
   
-  {freezeStatus.isFrozen && (discount?.totalDiscount || 0) > 0 && (
+  {freezeStatus.isFrozen && discount.totalDiscountAmount > 0 && (
     <>
       <div className="krishi-summary-row">
         <span>Community Discount ({discount?.memberCount || 0} members):</span>

@@ -2383,6 +2383,7 @@ app.get('/api/wallet/transactions/:consumer_id', authenticateToken, async (req, 
 // Add these endpoints to your server.js
 
 // Generate bill for a subscription plan
+<<<<<<< HEAD
 app.get('/api/bills/:consumer_id/:plan', authenticateToken, async (req, res) => {
   console.log('BACKEND 1: Request received', req.params); // Backend Debug 1
   try {
@@ -2852,6 +2853,477 @@ app.get('/api/bills/pdf/:consumer_id/:plan', authenticateToken, async (req, res)
     });
   }
 });
+=======
+// app.get('/api/bills/:consumer_id/:plan', authenticateToken, async (req, res) => {
+//   console.log('BACKEND 1: Request received', req.params); // Backend Debug 1
+//   try {
+//     const { consumer_id, plan } = req.params;
+//     console.log('BACKEND 2: Authenticated user:', req.user); // Backend Debug 2
+//     const today = new Date();
+//     today.setHours(0, 0, 0, 0); // Normalize to midnight
+    
+//     // Verify the requested consumer_id matches the authenticated user
+//     if (consumer_id !== req.user.consumer_id) {
+//       return res.status(403).json({
+//         success: false,
+//         message: 'Unauthorized access to billing information'
+//       });
+//     }
+
+//     // Validate plan type
+//     const validPlans = ['Daily', 'Alternate Days', 'Weekly', 'Monthly'];
+//     if (!validPlans.includes(plan)) {
+//       return res.status(400).json({ 
+//         success: false,
+//         error: "Invalid subscription plan" 
+//       });
+//     }
+
+//     // Get all active subscriptions for this plan
+//     const subscriptions = await queryDatabase(
+//       `SELECT * FROM subscriptions 
+//        WHERE consumer_id = ? AND subscription_type = ? AND status = 'Active'`,
+//       [consumer_id, plan]
+//     );
+
+//     if (subscriptions.length === 0) {
+//       return res.status(404).json({ 
+//         success: false,
+//         error: "No active subscriptions found for this plan" 
+//       });
+//     }
+
+//     // Calculate billing period based on plan type
+//     let billingPeriod = {
+//       start: '',
+//       end: '',
+//       nextBillingDate: ''
+//     };
+    
+//     const startDate = new Date(subscriptions[0].start_date);
+//     startDate.setHours(0, 0, 0, 0);
+    
+//     if (plan === 'Daily') {
+//       billingPeriod = {
+//         start: today.toISOString().split('T')[0],
+//         end: today.toISOString().split('T')[0],
+//         nextBillingDate: new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+//       };
+//     } 
+//     else if (plan === 'Alternate Days') {
+//       const daysDiff = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
+      
+//       if (daysDiff % 2 === 0) {
+//         billingPeriod = {
+//           start: today.toISOString().split('T')[0],
+//           end: today.toISOString().split('T')[0],
+//           nextBillingDate: new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+//         };
+//       } else {
+//         return res.status(400).json({ 
+//           success: false,
+//           error: "Today is not a billing day for Alternate Days plan" 
+//         });
+//       }
+//     } 
+//     else if (plan === 'Weekly') {
+//       const startDayOfWeek = startDate.getDay(); // 0 (Sunday) to 6 (Saturday)
+//       const todayDayOfWeek = today.getDay();
+      
+//       if (startDayOfWeek === todayDayOfWeek) {
+//         const weekStart = new Date(today);
+//         weekStart.setDate(today.getDate() - today.getDay()); // Start of week (Sunday)
+        
+//         billingPeriod = {
+//           start: weekStart.toISOString().split('T')[0],
+//           end: today.toISOString().split('T')[0],
+//           nextBillingDate: new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+//         };
+//       } else {
+//         return res.status(400).json({ 
+//           success: false,
+//           error: "Today is not the billing day for Weekly plan" 
+//         });
+//       }
+//     } 
+//     else if (plan === 'Monthly') {
+//       const startDateDay = startDate.getDate();
+//       const todayDate = today.getDate();
+//       const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+      
+//       // Check if today is the billing day or the last day of month (for short months)
+//       if (todayDate === startDateDay || 
+//           (todayDate === lastDayOfMonth && startDateDay > lastDayOfMonth)) {
+//         const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+        
+//         billingPeriod = {
+//           start: monthStart.toISOString().split('T')[0],
+//           end: today.toISOString().split('T')[0],
+//           nextBillingDate: new Date(today.getFullYear(), today.getMonth() + 1, 
+//                                    Math.min(startDateDay, lastDayOfMonth)).toISOString().split('T')[0]
+//         };
+//       } else {
+//         return res.status(400).json({ 
+//           success: false,
+//           error: "Today is not the billing day for Monthly plan" 
+//         });
+//       }
+//     }
+
+//     // Calculate bill amounts
+//     const subtotal = subscriptions.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+//     const subscriptionFee = subscriptions.reduce((sum, item) => sum + (5 * item.quantity), 0); // ₹5 per item fee
+//     const total = subtotal + subscriptionFee;
+
+//     // Get billing history for this plan
+//     const billingHistory = await queryDatabase(
+//       `SELECT 
+//         bh.billing_id,
+//         bh.amount,
+//         DATE_FORMAT(bh.billing_date, '%Y-%m-%d') as billing_date,
+//         wt.transaction_id,
+//         DATE_FORMAT(wt.transaction_date, '%Y-%m-%d %H:%i:%s') as payment_date,
+//         bh.description
+//        FROM billing_history bh
+//        JOIN wallet_transactions wt ON bh.transaction_id = wt.transaction_id
+//        WHERE bh.consumer_id = ? AND bh.subscription_type = ?
+//        ORDER BY bh.billing_date DESC
+//        LIMIT 10`,
+//       [consumer_id, plan]
+//     );
+
+//     // Create bill object
+//     const bill = {
+//       plan,
+//       billingPeriod,
+//       items: subscriptions.map(item => ({
+//         subscription_id: item.subscription_id,
+//         product_name: item.product_name,
+//         quantity: item.quantity,
+//         price: item.price,
+//         total: item.price * item.quantity
+//       })),
+//       subtotal,
+//       subscriptionFee,
+//       total,
+//       generatedAt: new Date().toISOString(),
+//       billingHistory
+//     };
+
+//     res.json({ 
+//       success: true, 
+//       bill 
+//     });
+//   } catch (error) {
+//     console.error("Error generating bill:", error);
+//     res.status(500).json({ 
+//       success: false,
+//       error: "Failed to generate bill" 
+//     });
+//   }
+// });
+
+// // Process payment for a subscription plan
+// app.post('/api/bills/pay/:consumer_id/:plan', authenticateToken, async (req, res) => {
+//   try {
+//     const { consumer_id, plan } = req.params;
+//     const today = new Date();
+//     today.setHours(0, 0, 0, 0);
+    
+//     // Verify authorization
+//     if (consumer_id !== req.user.consumer_id) {
+//       return res.status(403).json({
+//         success: false,
+//         message: 'Unauthorized payment attempt'
+//       });
+//     }
+
+//     // First generate the bill to get the amount
+//     const billResponse = await queryDatabase(
+//       `SELECT 
+//         s.subscription_id,
+//         s.product_name,
+//         s.quantity,
+//         s.price,
+//         (s.price * s.quantity) as item_total,
+//         (5 * s.quantity) as fee
+//        FROM subscriptions s
+//        WHERE s.consumer_id = ? AND s.subscription_type = ? AND s.status = 'Active'`,
+//       [consumer_id, plan]
+//     );
+
+//     if (billResponse.length === 0) {
+//       return res.status(404).json({ 
+//         success: false,
+//         error: "No active subscriptions found for this plan" 
+//       });
+//     }
+
+//     // Calculate totals
+//     const subtotal = billResponse.reduce((sum, item) => sum + item.item_total, 0);
+//     const subscriptionFee = billResponse.reduce((sum, item) => sum + item.fee, 0);
+//     const total = subtotal + subscriptionFee;
+
+//     // Get current wallet balance
+//     const walletBalance = await queryDatabase(
+//       `SELECT balance FROM wallet_transactions 
+//        WHERE consumer_id = ? 
+//        ORDER BY transaction_date DESC LIMIT 1`,
+//       [consumer_id]
+//     );
+//     const currentBalance = walletBalance[0]?.balance || 0;
+
+//     if (currentBalance < total) {
+//       return res.status(400).json({ 
+//         success: false,
+//         error: "Insufficient wallet balance",
+//         required: total,
+//         current: currentBalance
+//       });
+//     }
+
+//     // Deduct from wallet
+//     const paymentDescription = `Subscription payment for ${plan} plan`;
+//     const paymentResult = await queryDatabase(
+//       `INSERT INTO wallet_transactions 
+//        (consumer_id, transaction_type, amount, description, payment_method) 
+//        VALUES (?, 'Debit', ?, ?, 'Subscription Payment')`,
+//       [consumer_id, total, paymentDescription]
+//     );
+
+//     // Record the payment in billing history
+//     await queryDatabase(
+//       `INSERT INTO billing_history 
+//        (consumer_id, subscription_type, amount, billing_date, transaction_id, description) 
+//        VALUES (?, ?, ?, ?, NULL, ?)`,
+//       [consumer_id, plan, total, today, paymentResult.insertId, paymentDescription]
+//     );
+
+//     // Log the delivery
+//     await queryDatabase(
+//       `INSERT INTO delivery_logs 
+//        (consumer_id, delivery_date, amount, transaction_id, status) 
+//        VALUES (?, ?, ?, NULL, 'Completed')`,
+//       [consumer_id, today, total, paymentResult.insertId]
+//     );
+
+//     // Get the updated balance
+//     const updatedBalance = await queryDatabase(
+//       `SELECT balance FROM wallet_transactions 
+//        WHERE transaction_id = ?`,
+//       [paymentResult.insertId]
+//     );
+
+//     res.json({ 
+//       success: true,
+//       message: "Payment processed successfully",
+//       amount: total,
+//       newBalance: updatedBalance[0].balance,
+//       transactionId: paymentResult.insertId
+//     });
+    
+//   } catch (error) {
+//     console.error("Error processing payment:", error);
+//     res.status(500).json({ 
+//       success: false,
+//       error: "Failed to process payment" 
+//     });
+//   }
+// });
+
+
+// // Get billing history
+// app.get('/api/bills/history/:consumer_id', verifyToken, async (req, res) => {
+//   try {
+//     const { consumer_id } = req.params;
+    
+//     const history = await queryDatabase(
+//       `SELECT 
+//         bh.billing_id,
+//         bh.subscription_type as plan,
+//         bh.amount,
+//         DATE_FORMAT(bh.billing_date, '%Y-%m-%d') as billing_date,
+//         wt.transaction_id,
+//         DATE_FORMAT(wt.transaction_date, '%Y-%m-%d %H:%i:%s') as payment_date,
+//         bh.description
+//        FROM billing_history bh
+//        JOIN wallet_transactions wt ON bh.transaction_id = wt.transaction_id
+//        WHERE bh.consumer_id = ?
+//        ORDER BY bh.billing_date DESC`,
+//       [consumer_id]
+//     );
+
+//     res.json({ success: true, history });
+//   } catch (error) {
+//     console.error("Error fetching billing history:", error);
+//     res.status(500).json({ error: "Failed to fetch billing history" });
+//   }
+// });
+
+// // Generate PDF bill
+// app.get('/api/bills/pdf/:consumer_id/:plan', authenticateToken, async (req, res) => {
+//   try {
+//     const { consumer_id, plan } = req.params;
+//     const today = new Date();
+    
+//     // Verify the requested consumer_id matches the authenticated user
+//     if (consumer_id !== req.user.consumer_id) {
+//       return res.status(403).json({
+//         success: false,
+//         message: 'Unauthorized access to billing information'
+//       });
+//     }
+
+//     // Get current bill
+//     const currentBill = await queryDatabase(
+//       `SELECT 
+//         s.subscription_id,
+//         s.product_name,
+//         s.quantity,
+//         s.price,
+//         (s.price * s.quantity) as item_total,
+//         (5 * s.quantity) as fee
+//        FROM subscriptions s
+//        WHERE s.consumer_id = ? AND s.subscription_type = ? AND s.status = 'Active'`,
+//       [consumer_id, plan]
+//     );
+
+//     if (currentBill.length === 0) {
+//       return res.status(404).json({ 
+//         success: false,
+//         error: "No active subscriptions found for this plan" 
+//       });
+//     }
+
+//     // Get billing history
+//     const billingHistory = await queryDatabase(
+//       `SELECT 
+//         bh.billing_id,
+//         bh.amount,
+//         DATE_FORMAT(bh.billing_date, '%Y-%m-%d') as billing_date,
+//         wt.transaction_id,
+//         DATE_FORMAT(wt.transaction_date, '%Y-%m-%d %H:%i:%s') as payment_date,
+//         bh.description
+//        FROM billing_history bh
+//        JOIN wallet_transactions wt ON bh.transaction_id = wt.transaction_id
+//        WHERE bh.consumer_id = ? AND bh.subscription_type = ?
+//        ORDER BY bh.billing_date DESC
+//        LIMIT 10`,
+//       [consumer_id, plan]
+//     );
+
+//     // Calculate totals for current bill
+//     const subtotal = currentBill.reduce((sum, item) => sum + item.item_total, 0);
+//     const subscriptionFee = currentBill.reduce((sum, item) => sum + item.fee, 0);
+//     const total = subtotal + subscriptionFee;
+
+//     // Generate PDF
+//     const PDFDocument = require('pdfkit');
+//     const fs = require('fs');
+//     const path = require('path');
+    
+//     const doc = new PDFDocument();
+//     const fileName = `subscription_bill_${plan}_${today.toISOString().split('T')[0]}.pdf`;
+//     const filePath = path.join(__dirname, 'temp', fileName);
+    
+//     // Ensure temp directory exists
+//     if (!fs.existsSync(path.join(__dirname, 'temp'))) {
+//       fs.mkdirSync(path.join(__dirname, 'temp'));
+//     }
+    
+//     const writeStream = fs.createWriteStream(filePath);
+//     doc.pipe(writeStream);
+    
+//     // PDF Content
+//     doc.fontSize(20).text(`${plan} Subscription Bill`, { align: 'center' });
+//     doc.moveDown();
+    
+//     // Consumer info
+//     const consumer = await queryDatabase(
+//       "SELECT first_name, last_name, address FROM consumerregistration WHERE consumer_id = ?",
+//       [consumer_id]
+//     );
+    
+//     if (consumer.length > 0) {
+//       doc.fontSize(12)
+//          .text(`Consumer: ${consumer[0].first_name} ${consumer[0].last_name}`)
+//          .text(`Address: ${consumer[0].address}`)
+//          .text(`Date: ${today.toLocaleDateString()}`)
+//          .moveDown();
+//     }
+    
+//     // Current Bill Section
+//     doc.fontSize(14).text('Current Bill Details', { underline: true });
+//     doc.moveDown(0.5);
+    
+//     // Table header
+//     doc.font('Helvetica-Bold')
+//        .text('Product', 50, doc.y)
+//        .text('Qty', 200, doc.y)
+//        .text('Unit Price', 250, doc.y)
+//        .text('Total', 350, doc.y)
+//        .moveDown(0.5);
+    
+//     doc.font('Helvetica');
+//     // Table rows
+//     currentBill.forEach(item => {
+//       doc.text(item.product_name, 50, doc.y)
+//          .text(item.quantity.toString(), 200, doc.y)
+//          .text(`₹${item.price.toFixed(2)}`, 250, doc.y)
+//          .text(`₹${item.item_total.toFixed(2)}`, 350, doc.y)
+//          .moveDown(0.5);
+//     });
+    
+//     // Totals
+//     doc.moveDown(0.5)
+//        .text(`Subtotal: ₹${subtotal.toFixed(2)}`, { align: 'right' })
+//        .text(`Subscription Fee: ₹${subscriptionFee.toFixed(2)}`, { align: 'right' })
+//        .font('Helvetica-Bold')
+//        .text(`Total: ₹${total.toFixed(2)}`, { align: 'right' })
+//        .font('Helvetica')
+//        .moveDown(2);
+    
+//     // Billing History Section
+//     if (billingHistory.length > 0) {
+//       doc.fontSize(14).text('Payment History', { underline: true });
+//       doc.moveDown(0.5);
+      
+//       // History table header
+//       doc.font('Helvetica-Bold')
+//          .text('Date', 50, doc.y)
+//          .text('Amount', 200, doc.y)
+//          .text('Status', 350, doc.y)
+//          .moveDown(0.5);
+      
+//       doc.font('Helvetica');
+//       // History rows
+//       billingHistory.forEach(item => {
+//         doc.text(item.billing_date, 50, doc.y)
+//            .text(`₹${item.amount.toFixed(2)}`, 200, doc.y)
+//            .text('Paid', 350, doc.y)
+//            .moveDown(0.5);
+//       });
+//     }
+    
+//     doc.end();
+    
+//     writeStream.on('finish', () => {
+//       res.download(filePath, fileName, (err) => {
+//         if (err) console.error("Error sending PDF:", err);
+//         // Delete the file after download
+//         fs.unlinkSync(filePath);
+//       });
+//     });
+    
+//   } catch (error) {
+//     console.error("Error generating PDF:", error);
+//     res.status(500).json({ 
+//       success: false,
+//       error: "Failed to generate PDF bill" 
+//     });
+//   }
+// });
+>>>>>>> 37be1020993e0911987d0df0450e0a3bbdc56817
 
 
 

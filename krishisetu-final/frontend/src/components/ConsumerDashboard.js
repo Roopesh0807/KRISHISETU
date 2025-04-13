@@ -181,7 +181,6 @@ const ConsumerDashboard = () => {
   
   useEffect(() => {
     const fetchFarmers = async () => {
-  
       try {
         const response = await fetch('http://localhost:5000/api/farmers', {
           method: "GET",
@@ -198,13 +197,37 @@ const ConsumerDashboard = () => {
   
         const data = await response.json();
   
-        // Ensure farmers have a default rating if missing
-        const formattedData = data.map(farmer => ({
-          ...farmer,
-          average_rating: farmer.average_rating || 0 // Default to 0 if missing
-        }));
+        // Fetch bargaining market products for each farmer
+        const farmersWithBargainingProducts = await Promise.all(
+          data.map(async (farmer) => {
+            try {
+              const productsResponse = await fetch(
+                `http://localhost:5000/api/produces?farmer_id=${farmer.farmer_id}&market_type=Bargaining Market`,
+                {
+                  headers: {
+                    "Authorization": `Bearer ${consumer?.token}`,
+                  },
+                }
+              );
+              
+              const productsData = await productsResponse.json();
+              return {
+                ...farmer,
+                products: productsData,
+                average_rating: farmer.average_rating || 0
+              };
+            } catch (error) {
+              console.error(`Error fetching products for farmer ${farmer.farmer_id}:`, error);
+              return {
+                ...farmer,
+                products: [],
+                average_rating: farmer.average_rating || 0
+              };
+            }
+          })
+        );
   
-        setFarmers(formattedData);
+        setFarmers(farmersWithBargainingProducts);
       } catch (error) {
         console.error("Error fetching farmers:", error);
         alert("Failed to load farmers. Please refresh the page.");
@@ -691,87 +714,83 @@ useEffect(() => {
         </div>
         
         <div className="ks-farmers-list">
-          {filteredFarmers.map((farmer) => {
-            const parsedProducts = Array.isArray(farmer.products)
-              ? farmer.products
-              : JSON.parse(farmer.products || "[]");
-
-            return (
-              <div 
-                key={farmer.farmer_id} 
-                className="ks-farmer-card"
-                onClick={() => handleFarmerClick(farmer.farmer_id)}
-              >
-                <div className="ks-farmer-header">
-                  <img src={Farmer} alt="Farmer" className="ks-farmer-avatar" />
-                  <div className="ks-farmer-basic-info">
-                    <h3 className="ks-farmer-name">{farmer.farmer_name}</h3>
-                    <div className="ks-farmer-meta">
-                      <span className="ks-farmer-id">ID: {farmer.farmer_id}</span>
-                      <span className="ks-farmer-rating">
-                        {renderRatingStars(farmer.ratings || 0)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="ks-products-table-container">
-                  <table className="ks-products-table">
-                    <thead>
-                      <tr>
-                        <th>Product</th>
-                        <th>Type</th>
-                        <th>Price/kg</th>
-                        <th>Available</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {parsedProducts.map((product) => (
-                        <tr key={`${product.product_id}-${product.produce_name}`}>
-                          <td>{product.produce_name}</td>
-                          <td>{product.produce_type}</td>
-                          <td>₹{product.price_per_kg}</td>
-                          <td>{product.availability}kg</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                
-                <div className="ks-farmer-actions">
-                  <button 
-                    onClick={(e) => handleBargainClick(farmer, farmer.products[0], e)} 
-                    className="ks-farmer-action-btn ks-bargain-btn"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <FontAwesomeIcon icon={faSpinner} spin />
-                    ) : (
-                      <>
-                        <FontAwesomeIcon icon={faHandshake} /> Bargain
-                      </>
-                    )}
-                  </button>
-                  {error && (
-  <div className="error-message">
-    <FontAwesomeIcon icon={faExclamationTriangle} />
-    <div>
-      {error.includes('initiator') ? (
-        <>
-          <p>Session initialization error</p>
-          <button onClick={() => window.location.reload()}>Refresh Page</button>
-        </>
-      ) : (
-        error
-      )}
-    </div>
-  </div>
-)}
-                </div>
-              </div>
-            );
-          })}
+  {filteredFarmers
+    .filter(farmer => farmer.products && farmer.products.length > 0) // Only show farmers with bargaining products
+    .map((farmer) => (
+      <div 
+        key={farmer.farmer_id} 
+        className="ks-farmer-card"
+        onClick={() => handleFarmerClick(farmer.farmer_id)}
+      >
+        <div className="ks-farmer-header">
+          <img src={Farmer} alt="Farmer" className="ks-farmer-avatar" />
+          <div className="ks-farmer-basic-info">
+            <h3 className="ks-farmer-name">{farmer.farmer_name}</h3>
+            <div className="ks-farmer-meta">
+              <span className="ks-farmer-id">ID: {farmer.farmer_id}</span>
+              <span className="ks-farmer-rating">
+                {renderRatingStars(farmer.ratings || 0)}
+              </span>
+            </div>
+          </div>
         </div>
+        
+        <div className="ks-products-table-container">
+          <table className="ks-products-table">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Type</th>
+                <th>Price/kg</th>
+                <th>Available</th>
+              </tr>
+            </thead>
+            <tbody>
+              {farmer.products.map((product) => (
+                <tr key={`${product.product_id}-${product.produce_name}`}>
+                  <td>{product.produce_name}</td>
+                  <td>{product.produce_type}</td>
+                  <td>₹{product.price_per_kg}</td>
+                  <td>{product.availability}kg</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        
+        <div className="ks-farmer-actions">
+          <button 
+            onClick={(e) => handleBargainClick(farmer, farmer.products[0], e)} 
+            className="ks-farmer-action-btn ks-bargain-btn"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <FontAwesomeIcon icon={faSpinner} spin />
+            ) : (
+              <>
+                <FontAwesomeIcon icon={faHandshake} /> Bargain
+              </>
+            )}
+          </button>
+          {error && (
+            <div className="error-message">
+              <FontAwesomeIcon icon={faExclamationTriangle} />
+              <div>
+                {error.includes('initiator') ? (
+                  <>
+                    <p>Session initialization error</p>
+                    <button onClick={() => window.location.reload()}>Refresh Page</button>
+                  </>
+                ) : (
+                  error
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    ))}
+</div>
       </div>
 
      

@@ -161,17 +161,25 @@ exports.getCommunityMembers = async (req, res) => {
 
     // Get all members except admin
     const query = `
-      SELECT 
-        m.member_id as id,
-        m.member_name as name,
-        m.phone_number as phone,
-        m.member_email,
-        m.consumer_id
-      FROM members m
-      WHERE m.community_id = ? AND m.consumer_id != ?
-    `;
+    SELECT 
+      m.member_id as id,
+      m.member_name as name,
+      m.phone_number as phone,
+      m.member_email,
+      m.consumer_id,
+      COUNT(o.order_id) AS order_count,
+      CASE 
+        WHEN COUNT(o.order_id) > 0 THEN 'Confirmed'
+        ELSE 'Pending'
+      END AS status,
+      MAX(o.payment_method) AS payment_method
+    FROM members m
+    LEFT JOIN orders o ON m.member_id = o.member_id AND o.community_id = ?
+    WHERE m.community_id = ? AND m.consumer_id != ?
+    GROUP BY m.member_id, m.member_name, m.phone_number, m.member_email, m.consumer_id
+  `;
     
-    const result = await queryDatabase(query, [communityId, adminId]);
+    const result = await queryDatabase(query, [communityId,communityId, adminId]);
     console.log('Members found:', result); // Debug log
     
     res.status(200).json(result);
@@ -901,7 +909,7 @@ exports.calculateDiscount = async (req, res) => {
       memberDiscount = Math.min(20, Math.floor(activeMemberCount / 5) * 2);
       
       // Item discount: 0.5% per item, capped at 10%
-      itemDiscount = Math.min(10, Math.floor(itemCount * 0.1));
+      itemDiscount = Math.min(10, Math.floor(itemCount * 0.4));
     }
 
     const totalDiscount = memberDiscount + itemDiscount;
@@ -997,9 +1005,10 @@ exports.checkFreezeStatus = async (req, res, next) => {
 };
 
 // ✅ Submit Frozen Order
+// In communityController.js - update the submitFrozenOrder function
 exports.submitFrozenOrder = async (req, res) => {
   const { communityId, memberId } = req.params;
-  const { orders } = req.body;
+  const { orders, discount } = req.body;
 
   try {
     // Verify community is frozen
@@ -1042,7 +1051,8 @@ exports.submitFrozenOrder = async (req, res) => {
     const discountData = JSON.stringify(discount);
     const totalAmount = orders.reduce((sum, order) => sum + (order.price * order.quantity), 0);
 
-    await queryDatabase(insertQuery, [
+    // Add this line to capture the result
+    const result = await queryDatabase(insertQuery, [
       communityId,
       memberId,
       orderData,
@@ -1060,6 +1070,7 @@ exports.submitFrozenOrder = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
 
 // Helper function to calculate discount
 async function calculateDiscountForMember(communityId, memberId) {
@@ -1081,7 +1092,7 @@ async function calculateDiscountForMember(communityId, memberId) {
 
     if (result.member_count >= 5) {
       memberDiscount = Math.min(20, Math.floor(result.member_count / 5) * 2);
-      itemDiscount = Math.min(10, Math.floor(result.item_count * 0.1));
+      itemDiscount = Math.min(10, Math.floor(result.item_count * 0.4));
     }
 
     return {
@@ -1107,81 +1118,228 @@ async function calculateDiscountForMember(communityId, memberId) {
 
 
 // ✅ Get Frozen Order Details
+// Add this to communityController.js
 exports.getFrozenOrderDetails = async (req, res) => {
   const { communityId, orderId } = req.params;
 
   try {
-    const orderQuery = `
+    const [order] = await queryDatabase(`
       SELECT 
-        fo.*,
-        c.community_name, c.address, c.delivery_date, c.delivery_time,
-        m.member_name, m.phone_number
-      FROM frozen_orders fo
-      JOIN communities c ON fo.community_id = c.community_id
-      JOIN members m ON fo.member_id = m.member_id
-      WHERE fo.community_id = ? AND fo.order_id = ?
-    `;
-    
-    const [order] = await queryDatabase(orderQuery, [communityId, orderId]);
+        order_id,
+        community_id,
+        member_id,
+        order_data,
+        discount_data,
+        CAST(total_amount AS DECIMAL(10,2)) as total_amount,
+        status,
+        created_at
+      FROM frozen_orders 
+      WHERE community_id = ? AND order_id = ?
+    `, [communityId, orderId]);
 
     if (!order) {
       return res.status(404).json({ error: "Order not found" });
     }
 
+    // Get community details
+    const communityQuery = `
+      SELECT 
+        community_name as name, 
+        address, 
+        delivery_date, 
+        delivery_time 
+      FROM communities 
+      WHERE community_id = ?
+    `;
+    const [community] = await queryDatabase(communityQuery, [communityId]);
+
+    // Get member details including consumer_id
+    const memberQuery = `
+      SELECT 
+        member_id,
+        member_name, 
+        phone_number,
+        consumer_id
+      FROM members 
+      WHERE member_id = ?
+    `;
+    const [member] = await queryDatabase(memberQuery, [order.member_id]);
+
     res.status(200).json({
       order,
-      community: {
-        name: order.community_name,
-        address: order.address,
-        delivery_date: order.delivery_date,
-        delivery_time: order.delivery_time
-      },
-      member: {
-        member_name: order.member_name,
-        phone_number: order.phone_number
-      }
+      community,
+      member
     });
-
   } catch (error) {
     console.error("Error fetching frozen order:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
 
-// ✅ Complete Frozen Order
 exports.completeFrozenOrder = async (req, res) => {
   const { communityId, orderId } = req.params;
   const { paymentMethod } = req.body;
 
   try {
-    // Verify order exists and is not already completed
+    // 1. Verify the order exists and belongs to this community
     const orderQuery = `
       SELECT * FROM frozen_orders 
       WHERE community_id = ? AND order_id = ? AND status = 'pending'
     `;
     const [order] = await queryDatabase(orderQuery, [communityId, orderId]);
-
+    
     if (!order) {
-      return res.status(404).json({ error: "Order not found or already completed" });
+      return res.status(404).json({ 
+        success: false,
+        error: "Order not found or already completed" 
+      });
     }
 
-    // Update order status
+    // 2. Update the frozen order status
     const updateQuery = `
       UPDATE frozen_orders 
       SET status = 'completed', 
-          payment_method = ?,
-          completed_at = NOW()
+          payment_method = ?, 
+          completed_at = NOW() 
       WHERE order_id = ?
     `;
     await queryDatabase(updateQuery, [paymentMethod, orderId]);
 
+    // 3. Get member details
+    const memberQuery = `
+      SELECT m.member_name, m.member_email, m.phone_number, m.consumer_id
+      FROM members m
+      WHERE m.member_id = ?
+    `;
+    const [member] = await queryDatabase(memberQuery, [order.member_id]);
+
+    // 4. Get community details
+    const communityQuery = `
+      SELECT community_name, address, delivery_date, delivery_time
+      FROM communities
+      WHERE community_id = ?
+    `;
+    const [community] = await queryDatabase(communityQuery, [communityId]);
+
+    // 5. Parse order data for placeorder table
+    const orderData = JSON.parse(order.order_data || '[]');
+    const discountData = JSON.parse(order.discount_data || '{}');
+
     res.status(200).json({ 
+      success: true,
       message: "Order completed successfully",
-      orderId
+      orderId,
+      orderData: {
+        community,
+        member,
+        order,
+        discountData
+      }
     });
 
   } catch (error) {
-    console.error("Error completing frozen order:", error);
+    console.error("Error in completeFrozenOrder:", error);
+    res.status(500).json({ 
+      success: false,
+      error: "Internal server error",
+      details: error.message 
+    });
+  }
+};
+
+
+// Add this new endpoint to get simplified member info
+exports.getCommunityMembersSummary = async (req, res) => {
+  const { communityId } = req.params;
+
+  try {
+    // Get all members with their order count and payment status
+    const query = `
+      SELECT 
+        m.member_id,
+        m.member_name,
+        m.phone_number,
+        COUNT(o.order_id) AS order_count,
+        CASE 
+          WHEN COUNT(o.order_id) > 0 THEN 'Confirmed'
+          ELSE 'Pending'
+        END AS status,
+        MAX(o.payment_method) AS payment_method
+      FROM members m
+      LEFT JOIN orders o ON m.member_id = o.member_id AND o.community_id = ?
+      WHERE m.community_id = ?
+      GROUP BY m.member_id, m.member_name, m.phone_number
+    `;
+
+    const members = await queryDatabase(query, [communityId, communityId]);
+    
+    res.status(200).json(members);
+  } catch (error) {
+    console.error("Error fetching community members summary:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+// Add this new function with your existing controller functions
+exports.getMemberOrderss = async (req, res) => {
+  const { communityId, consumerId } = req.params;
+
+  try {
+    // 1. Verify member belongs to this community and get member_id
+    const memberQuery = `
+      SELECT m.member_id, m.member_name 
+      FROM members m
+      WHERE m.community_id = ? AND m.consumer_id = ?
+    `;
+    const [member] = await queryDatabase(memberQuery, [communityId, consumerId]);
+
+    if (!member) {
+      return res.status(404).json({ 
+        success: false,
+        message: "Member not found in this community" 
+      });
+    }
+
+    // 2. Get all orders for this member in this community
+    const ordersQuery = `
+      SELECT 
+        o.order_id,
+        o.product_id,
+        p.product_name,
+        o.quantity,
+        o.price,
+        (o.price * o.quantity) as total,
+        o.created_at
+      FROM orders o
+      LEFT JOIN products p ON o.product_id = p.product_id
+      WHERE o.community_id = ? AND o.member_id = ?
+      ORDER BY o.created_at DESC
+    `;
+    const orders = await queryDatabase(ordersQuery, [communityId, member.member_id]);
+
+    // 3. Calculate subtotal - ensure it's a number
+    const subtotal = orders.reduce((sum, order) => sum + (Number(order.total) || 0), 0);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        member: {
+          id: member.member_id,
+          name: member.member_name
+        },
+        orders,
+        subtotal: Number(subtotal).toFixed(2) // Ensure it's a number before toFixed()
+      }
+    });
+
+  } catch (error) {
+    console.error("Error fetching member orders:", error);
+    res.status(500).json({
+      success: false,
+      error: "Internal server error",
+      details: error.message
+    });
+  }
+};
+
+

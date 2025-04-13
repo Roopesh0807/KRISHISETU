@@ -38,25 +38,108 @@ router.post('/:sessionId/respond', authenticate, farmerOnly, sessionIdValidator,
 
 router.get('/products/:productId/suggestions', authenticate, bargainController.getPriceSuggestions);
 
+// router.get('/:sessionId', async (req, res) => {
+//   try {
+//       const { sessionId } = req.params;
+//       console.log("Fetching session with ID:", sessionId);  // Debugging
+
+//       const query = `SELECT * FROM bargain_sessions WHERE bargain_id = ?`;
+//       const [rows] = await queryDatabase(query, [sessionId]);
+
+//       if (!rows || rows.length === 0) {
+//         return res.status(404).json({ message: "No bargain session found." });
+//       }
+
+//       console.log("✅ Session Found:", rows[0]);  
+//       res.json(rows[0]);
+//   } catch (error) {
+//       console.error("❌ Error fetching session:", error);
+//       res.status(500).json({ error: "Internal Server Error" });
+//   }
+// });
 router.get('/:sessionId', async (req, res) => {
   try {
-      const { sessionId } = req.params;
-      console.log("Fetching session with ID:", sessionId);  // Debugging
+    const { sessionId } = req.params;
+    console.log("📦 Fetching session with ID:", sessionId);
 
-      const query = `SELECT * FROM bargain_sessions WHERE bargain_id = ?`;
-      const [rows] = await queryDatabase(query, [sessionId]);
+    // ✅ Query 1: Fetch basic session info
+    const sessionQuery = `
+      SELECT 
+        bargain_id,
+        consumer_id,
+        farmer_id,
+        status,
+        initiator,
+        created_at,
+        updated_at,
+        expires_at
+      FROM bargain_sessions 
+      WHERE bargain_id = ?
+    `;
+    const sessionResult = await queryDatabase(sessionQuery, [sessionId]);
 
-      if (!rows || rows.length === 0) {
-        return res.status(404).json({ message: "No bargain session found." });
+    if (!sessionResult || sessionResult.length === 0) {
+      return res.status(404).json({ success: false, message: "Session not found" });
+    }
+
+    const session = sessionResult[0];
+
+    // ✅ Query 2: Get all products for the session
+    const productQuery = `
+      SELECT 
+        product_id,
+        original_price,
+        quantity,
+        current_offer
+      FROM bargain_session_products 
+      WHERE bargain_id = ?
+    `;
+    const products = await queryDatabase(productQuery, [sessionId]);
+
+    // ✅ Query 3: Get all messages from bargain_messages
+    const messagesQuery = `
+      SELECT 
+        message_id,
+        bargain_id,
+        sender_role AS sender_type,
+        sender_id,
+        price_suggestion,
+        message_type,
+        created_at AS timestamp
+      FROM bargain_messages
+      WHERE bargain_id = ?
+      ORDER BY created_at ASC
+    `;
+    const messages = await queryDatabase(messagesQuery, [sessionId]);
+
+    // ✅ Build and send final response
+    const responseData = {
+      success: true,
+      session: {
+        bargain_id: session.bargain_id,
+        consumer_id: session.consumer_id,
+        farmer_id: session.farmer_id,
+        status: session.status,
+        initiator: session.initiator,
+        created_at: session.created_at,
+        updated_at: session.updated_at,
+        expires_at: session.expires_at,
+        products: products || [],
+        messages: messages || []
       }
+    };
 
-      console.log("✅ Session Found:", rows[0]);  
-      res.json(rows[0]);
+    res.status(200).json(responseData);
+
   } catch (error) {
-      console.error("❌ Error fetching session:", error);
-      res.status(500).json({ error: "Internal Server Error" });
+    console.error("❌ Error fetching session:", error);
+    res.status(500).json({ success: false, error: "Internal Server Error" });
   }
 });
+
+
+
+
 const { sendBargainRequestMessage } = require('../controllers/bargainController');
 
 router.post('/send-bargain-message', sendBargainRequestMessage);
