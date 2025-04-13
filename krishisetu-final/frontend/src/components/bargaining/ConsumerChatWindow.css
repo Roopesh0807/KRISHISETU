@@ -81,7 +81,7 @@
   justify-content: center;
   align-items: center;
   z-index: 1000;
-  backdrop-filter: blur(5px);
+  /* backdrop-filter: blur(5px); */
 }
 
 .popup-content {
@@ -706,7 +706,7 @@
   justify-content: center;
   align-items: center;
   z-index: 1000;
-  backdrop-filter: blur(3px);
+  /* backdrop-filter: blur(3px); */
 }
 
 .bargain-popup-container {
@@ -985,4 +985,39 @@
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+/* Message styling */
+.message {
+  max-width: 70%;
+  padding: 10px 15px;
+  border-radius: 18px;
+  margin: 5px 0;
+  position: relative;
+}
+
+.message.system {
+  align-self: center;
+  background-color: #f0f0f0;
+  color: #555;
+  text-align: center;
+  max-width: 90%;
+}
+
+.message.consumer {
+  align-self: flex-end;
+  background-color: #0084ff;
+  color: white;
+  margin-left: auto;
+}
+
+.message.farmer {
+  align-self: flex-start;
+  background-color: #e5e5ea;
+  color: black;
+  margin-right: auto;
+}
+
+.system-label {
+  font-weight: bold;
+  margin-right: 5px;
 }

@@ -635,3 +635,191 @@
   font-weight: bold;
   font-size: 1.1rem;
 }
+
+/* Price Suggestions Styles */
+.price-suggestions {
+  background: #f8f9fa;
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.suggestion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.close-suggestions {
+  background: none;
+  border: none;
+  color: #6c757d;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.suggestion-buttons-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.suggestion-btn {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.suggestion-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+}
+
+.suggestion-btn.increase {
+  border-left: 3px solid #28a745;
+}
+
+.suggestion-btn.decrease {
+  border-left: 3px solid #dc3545;
+}
+
+.suggestion-icon {
+  margin-right: 10px;
+  font-size: 1.2rem;
+}
+
+.suggestion-details {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.suggestion-price {
+  font-weight: bold;
+}
+
+.suggestion-diff {
+  font-size: 0.8rem;
+  color: #6c757d;
+}
+
+/* Bargain Action Buttons */
+.bargain-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.show-suggestions-btn {
+  background: #17a2b8;
+  color: white;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.status-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.accept-btn {
+  background: #28a745;
+  color: white;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  flex: 1;
+}
+
+.reject-btn {
+  background: #dc3545;
+  color: white;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  flex: 1;
+}
+/* Message styling */
+.message {
+  max-width: 70%;
+  padding: 10px 15px;
+  border-radius: 18px;
+  margin: 5px 0;
+  position: relative;
+}
+
+.message.system {
+  align-self: center;
+  background-color: #f0f0f0;
+  color: #555;
+  text-align: center;
+  max-width: 90%;
+}
+
+.message.farmer {
+  align-self: flex-end;
+  background-color: #0084ff;
+  color: white;
+  margin-left: auto;
+}
+
+.message.consumer {
+  align-self: flex-start;
+  background-color: #e5e5ea;
+  color: black;
+  margin-right: auto;
+}
+
+.system-label {
+  font-weight: bold;
+  margin-right: 5px;
+}
+
+/* Typing indicator */
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  color: #666;
+  font-style: italic;
+}
+
+.typing-dots {
+  display: flex;
+  margin-right: 8px;
+}
+
+.typing-dots div {
+  width: 8px;
+  height: 8px;
+  background-color: #666;
+  border-radius: 50%;
+  margin: 0 2px;
+  animation: typingAnimation 1.4s infinite ease-in-out;
+}
+
+.typing-dots div:nth-child(1) {
+  animation-delay: 0s;
+}
+.typing-dots div:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.typing-dots div:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typingAnimation {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-5px); }
+}

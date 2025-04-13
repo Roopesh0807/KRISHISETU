@@ -18,47 +18,106 @@ const ConsumerProfile = () => {
     preferred_payment_method: "",
     subscription_method: "",
   });
-
+  
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { consumer } = useAuth();
   useEffect(() => {
     if (!consumer_id) {
-      setError("Consumer ID is missing.");
+      setError("Consumer ID is missing");
       setLoading(false);
       return;
     }
-
+  
     const fetchProfile = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/consumer/${consumer_id}`, {
-          method: 'GET',
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${consumer?.token}`,
-          },
-        });
+        setLoading(true);
+        setError(null);
+        
+        const response = await fetch(
+          `http://localhost:5000/api/consumer/${consumer_id}`,
+          {
+            headers: {
+              "Authorization": `Bearer ${consumer?.token}`
+            }
+          }
+        );
+  
         if (!response.ok) {
           throw new Error(`Failed to fetch profile: ${response.statusText}`);
         }
-
+  
         const data = await response.json();
+        // Construct proper photo URL if it exists
+      const photoUrl = data.photo 
+      ? data.photo.startsWith('http') 
+        ? data.photo 
+        : `http://localhost:5000${data.photo}`
+      : null;
         setProfile({
-          ...data,
-          subscription_method: data.subscription_method || "",
+          consumer_id: data.consumer_id,
+          first_name: data.first_name,
+          last_name: data.last_name,
+          name: data.full_name,
+          email: data.email,
+          phone_number: data.phone_number,
+          address: data.address,
+          pincode: data.pincode,
+          location: data.location,
+          photo: photoUrl,
+          preferred_payment_method: data.preferred_payment_method,
+          subscription_method: data.subscription_method
         });
       } catch (err) {
-        console.error("Error fetching profile:", err);
+        console.error("Fetch error:", err);
         setError(err.message);
       } finally {
         setLoading(false);
       }
     };
-
-    fetchProfile();
-  }, [consumer_id]);
-
+  
+    if (consumer_id) fetchProfile();
+  }, [consumer_id, consumer?.token]);
+  const ProfileAvatar = React.memo(({ photo, isEditing, onUploadClick }) => {
+    const [imgSrc, setImgSrc] = useState(photo);
+  
+    useEffect(() => {
+      if (photo) {
+        setImgSrc(`${photo}?t=${Date.now()}`);
+      } else {
+        setImgSrc(null);
+      }
+    }, [photo]);
+  
+    return (
+      <div className="ks-profile-avatar-wrapper">
+        {imgSrc ? (
+          <img 
+            src={imgSrc}
+            alt="Profile"
+            className="ks-profile-avatar"
+            onError={() => setImgSrc(null)}
+          />
+        ) : (
+          <div className="ks-profile-avatar-placeholder">
+            <i className="fas fa-user-circle ks-default-avatar-icon"></i>
+          </div>
+        )}
+        {isEditing && (
+          <label htmlFor="ks-photo-upload" className="ks-profile-avatar-edit">
+            <i className="fas fa-camera"></i>
+          </label>
+        )}
+      </div>
+    );
+  });
+  // In your main component's render:
+<ProfileAvatar 
+  photo={profile.photo ? `${profile.photo}?t=${Date.now()}` : null}
+  isEditing={isEditing}
+  onUploadClick={() => document.getElementById('ks-photo-upload').click()}
+/>
   const handleChange = (e) => {
     const { name, value } = e.target;
     setProfile((prevProfile) => ({ ...prevProfile, [name]: value }));
@@ -83,107 +142,198 @@ const ConsumerProfile = () => {
     }
   };
 
+  // const handlePhotoUpload = async (e) => {
+  //   const file = e.target.files[0];
+    
+  //   if (!file) {
+  //     setError("No file selected");
+  //     return;
+  //   }
+  
+  //   // Validate file type and size
+  //   if (!file.type.startsWith('image/')) {
+  //     setError("Please upload an image file (JPEG, PNG)");
+  //     return;
+  //   }
+  
+  //   if (file.size > 5 * 1024 * 1024) { // 5MB limit
+  //     setError("File size should be less than 5MB");
+  //     return;
+  //   }
+  
+  //   const formData = new FormData();
+  //   formData.append('photo', file); // Must match the field name in Multer
+  
+  //   try {
+  //     setLoading(true);
+  //     const response = await fetch(
+  //       `http://localhost:5000/api/upload/${profile.consumer_id}`,
+  //       {
+  //         method: "POST",
+  //         body: formData,
+  //         headers: {
+  //           "Authorization": `Bearer ${consumer?.token}`
+  //         }
+  //         // Don't set Content-Type header - let browser set it with boundary
+  //       }
+  //     );
+  
+  //     if (!response.ok) {
+  //       const errorData = await response.json();
+  //       throw new Error(errorData.message || "Failed to upload photo");
+  //     }
+  
+  //     const data = await response.json();
+      
+  //     // Use the photoUrl from the response
+  //     setProfile(prev => ({
+  //       ...prev,
+  //       photo: data.photoUrl
+  //     }));
+      
+  //     setError(null);
+  //   } catch (error) {
+  //     console.error("Upload error:", error);
+  //     setError(error.message);
+  //   } finally {
+  //     setLoading(false);
+  //     e.target.value = null; // Reset file input
+  //   }
+  // };
   const handlePhotoUpload = async (e) => {
     const file = e.target.files[0];
-  
-    if (!file) {
-      console.error("No file selected.");
-      return;
-    }
-  
-    const formData = new FormData();
-    formData.append("file", file);
+    if (!file) return;
   
     try {
-      const response = await fetch(`http://localhost:5000/api/upload/${consumer_id}`, {
-        method: "POST",
-        body: formData,
-        headers: {
-          "Authorization": `Bearer ${consumer?.token}`
-        }
-      });
+      setLoading(true);
+      
+      const formData = new FormData();
+      formData.append('photo', file);
   
-      if (!response.ok) {
-        throw new Error("Failed to upload photo");
-      }
+      const response = await fetch(
+        `http://localhost:5000/api/upload/${profile.consumer_id}`,
+        {
+          method: "POST",
+          body: formData,
+          headers: {
+            "Authorization": `Bearer ${consumer?.token}`
+          }
+        }
+      );
+  
+      if (!response.ok) throw new Error("Upload failed");
   
       const data = await response.json();
-      setProfile((prevProfile) => ({
-        ...prevProfile,
-        photo: `http://localhost:5000${data.filePath}?t=${Date.now()}`,
+      
+      // Update state optimistically without causing flicker
+      setProfile(prev => ({
+        ...prev,
+        photo: `${data.photoUrl}?t=${Date.now()}` // Add timestamp to force refresh
       }));
   
-      e.target.value = null;
     } catch (error) {
-      console.error("Error uploading photo:", error);
+      console.error("Upload error:", error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
+      e.target.value = ''; // Reset input
     }
   };
   
   const removePhoto = async () => {
     try {
-       const response = await fetch(`http://localhost:5000/remove-photo/${profile.consumer_id}`, {
-        method: "DELETE",
-        headers: {
-          "Authorization": `Bearer ${consumer?.token}`,
-        },
-      });
+      setLoading(true);
+      const response = await fetch(
+        `http://localhost:5000/api/remove-photo/${profile.consumer_id}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Authorization": `Bearer ${consumer?.token}`,
+            "Content-Type": "application/json"
+          }
+        }
+      );
   
-      if (response.ok) {
-        setProfile({ ...profile, photo: "" });
-        alert("Photo removed successfully");
-      } else {
-        alert("Failed to remove photo");
+      if (!response.ok) {
+        throw new Error("Failed to remove photo");
       }
+  
+      setProfile(prev => ({ ...prev, photo: null }));
+      setError(null);
     } catch (error) {
-      console.error("Error removing photo:", error);
-      alert("Something went wrong");
+      console.error("Remove error:", error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
     }
   };
-  
   const handleSave = async () => {
     try {
-      if (!consumer_id) {
-        console.error("Consumer ID is missing");
-        setError("Consumer ID is missing");
-        return;
-      }
-
-      const response = await fetch(`http://localhost:5000/api/consumerprofile/${consumer_id}`, {
-        "Authorization": `Bearer ${consumer?.token}`,
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${consumer?.token}`
-        },
-        body: JSON.stringify({
-          address: profile.address,
-          pincode: profile.pincode,
-          location: profile.location,
-          preferred_payment_method: profile.preferred_payment_method,
-          subscription_method: profile.subscription_method
-        }),
-      });
-
+      setLoading(true);
+      setError(null);
+  
+      // Prepare the updated data
+      const updatedData = {
+        address: profile.address,
+        pincode: profile.pincode,
+        location: profile.location,
+        preferred_payment_method: profile.preferred_payment_method,
+        subscription_method: profile.subscription_method
+      };
+  
+      const response = await fetch(
+        `http://localhost:5000/api/consumerprofile/${profile.consumer_id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${consumer?.token}`
+          },
+          body: JSON.stringify(updatedData)
+        }
+      );
+  
       if (!response.ok) {
-        const errorMessage = await response.text();
-        throw new Error(`Failed to update profile: ${errorMessage}`);
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to update profile");
       }
-
-      const updatedData = await response.json();
-      setProfile(prevProfile => ({
-        ...prevProfile,
-        address: updatedData.address || prevProfile.address,
-        pincode: updatedData.pincode || prevProfile.pincode,
-        location: updatedData.location || prevProfile.location,
-        preferred_payment_method: updatedData.preferred_payment_method || prevProfile.preferred_payment_method,
-        subscription_method: updatedData.subscription_method || prevProfile.subscription_method
-      }));
+  
+      // Get the full updated profile data from the server
+      const updatedProfileResponse = await fetch(
+        `http://localhost:5000/api/consumer/${profile.consumer_id}`,
+        {
+          headers: {
+            "Authorization": `Bearer ${consumer?.token}`
+          }
+        }
+      );
+  
+      if (!updatedProfileResponse.ok) {
+        throw new Error("Failed to fetch updated profile");
+      }
+  
+      const updatedProfileData = await updatedProfileResponse.json();
       
+      // Single state update with all changes
+      setProfile(prev => ({
+        ...prev,
+        ...updatedProfileData,
+        photo: updatedProfileData.photo 
+          ? updatedProfileData.photo.startsWith('http') 
+            ? updatedProfileData.photo 
+            : `http://localhost:5000${updatedProfileData.photo}`
+          : null
+      }));
+  
       setIsEditing(false);
+      
+      // Show success feedback
       alert("Profile updated successfully!");
-    } catch (err) {
-      console.error("Error updating profile:", err);
-      setError(err.message);
+    } catch (error) {
+      console.error("Save error:", error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -200,6 +350,30 @@ const ConsumerProfile = () => {
       <p>{error}</p>
     </div>
   );
+
+ 
+  
+  const ImageWithFallback = ({ src, alt, className, fallbackSrc }) => {
+    const [imgSrc, setImgSrc] = useState(src);
+  
+    return (
+      <img
+        src={imgSrc}
+        alt={alt}
+        className={className}
+        onError={() => setImgSrc(fallbackSrc || '/default-avatar.jpg')}
+      />
+    );
+  };
+  
+  // Then use it in your JSX:
+  <ImageWithFallback 
+    src={`${profile.photo}?${Date.now()}`}
+    alt="Profile"
+    className="ks-profile-avatar"
+    fallbackSrc="/default-avatar.jpg"
+  />
+  
 
   return (
     <div className="ks-profile-container">
@@ -232,24 +406,28 @@ const ConsumerProfile = () => {
 
         <div className="ks-profile-content">
           <div className="ks-profile-photo-section">
-            <div className="ks-profile-avatar-wrapper">
-              {profile.photo ? (
-                <img 
-                  src={`${profile.photo}?t=${Date.now()}`}
-                  alt="Profile"
-                  className="ks-profile-avatar"
-                />
-              ) : (
-                <div className="ks-profile-avatar-placeholder">
-                  <i className="fas fa-user-circle ks-default-avatar-icon"></i>
-                </div>
-              )}
-              {isEditing && (
-                <label htmlFor="ks-photo-upload" className="ks-profile-avatar-edit">
-                  <i className="fas fa-camera"></i>
-                </label>
-              )}
-            </div>
+          <div className="ks-profile-avatar-wrapper">
+  {profile.photo ? (
+    <img 
+      src={`${profile.photo}?${Date.now()}`} // Add timestamp to prevent caching
+      alt="Profile"
+      className="ks-profile-avatar"
+      onError={(e) => {
+        e.target.onerror = null;
+        e.target.src = '/default-avatar.jpg'; // Fallback image
+      }}
+    />
+  ) : (
+    <div className="ks-profile-avatar-placeholder">
+      <i className="fas fa-user-circle ks-default-avatar-icon"></i>
+    </div>
+  )}
+  {isEditing && (
+    <label htmlFor="ks-photo-upload" className="ks-profile-avatar-edit">
+      <i className="fas fa-camera"></i>
+    </label>
+  )}
+</div>
             
             {isEditing && (
               <div className="ks-profile-photo-actions">
