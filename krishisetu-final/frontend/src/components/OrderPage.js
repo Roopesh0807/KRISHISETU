@@ -1506,7 +1506,7 @@ const KrishiOrderPage = () => {
 //   })
 // });
 
-// const razorpayData = await razorpayResponse.json();
+
 
 // if (!razorpayResponse.ok) {
 //   console.error("Razorpay order failed:", razorpayData);
