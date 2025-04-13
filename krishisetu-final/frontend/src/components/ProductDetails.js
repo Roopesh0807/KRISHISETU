@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import "./ProductDetails.css";
@@ -29,6 +30,7 @@ const ProductDetails = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [subscriptionConfirmed, setSubscriptionConfirmed] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [dateSelectionError, setDateSelectionError] = useState("");
 
   useEffect(() => {
     fetch(`http://localhost:5000/api/products/${product_id}`, {
@@ -168,28 +170,51 @@ const ProductDetails = () => {
       return;
     }
     setShowSubscriptionPopup(true);
+    setDateSelectionError("");
   };
 
   const handleFrequencySelect = (frequency) => {
     setSelectedFrequency(frequency);
     setShowCalendar(true);
+    setDateSelectionError("");
   };
 
   const handleDateChange = (date) => {
     setSelectedDate(date);
+    setDateSelectionError("");
+  };
+
+  const isPastCutoffTime = () => {
+    const now = new Date();
+    const cutoffHour = 22; // 10 PM
+    const cutoffMinute = 30; // 30 minutes
+    return now.getHours() > cutoffHour || 
+           (now.getHours() === cutoffHour && now.getMinutes() >= cutoffMinute);
   };
 
   const confirmSubscriptionDate = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    if (selectedDate <= today) {
-      alert("Please select a future date. Orders need to be modified before 10 PM today.");
+    const selectedDay = new Date(selectedDate);
+    selectedDay.setHours(0, 0, 0, 0);
+    
+    // Check if selected date is today
+    if (selectedDay.getTime() === today.getTime()) {
+      if (isPastCutoffTime()) {
+        setDateSelectionError("Orders for today are closed. Please select tomorrow's date or later.");
+        return;
+      }
+    } 
+    // Check if selected date is in the past
+    else if (selectedDay < today) {
+      setDateSelectionError("Please select today's date (before 10:30 PM) or a future date.");
       return;
     }
     
     setShowCalendar(false);
     setSubscriptionConfirmed(true);
+    setDateSelectionError("");
   };
 
   const saveSubscription = async () => {
@@ -284,6 +309,17 @@ const ProductDetails = () => {
 
   const totalPrice = selectedQuantity * (product.price_1kg || 0);
   const discountedPrice = calculateDiscountedPrice(totalPrice);
+
+  // Calculate minimum date based on current time
+  const getMinDate = () => {
+    const now = new Date();
+    if (isPastCutoffTime()) {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      return tomorrow;
+    }
+    return now;
+  };
 
   return (
     <div className="ks-product-page">
@@ -419,6 +455,7 @@ const ProductDetails = () => {
                 setShowCalendar(false);
                 setSubscriptionConfirmed(false);
                 setSelectedFrequency("");
+                setDateSelectionError("");
               }}
             >
               <FaTimes />
@@ -456,12 +493,21 @@ const ProductDetails = () => {
             ) : showCalendar ? (
               <div className="ks-calendar-section">
                 <h3>Select Start Date</h3>
-                <p>Please choose a future date (orders can be modified until 10 PM today)</p>
+                {isPastCutoffTime() ? (
+                  <p className="ks-cutoff-message">
+                    Orders for today are closed (after 10:30 PM). Please select tomorrow's date or later.
+                  </p>
+                ) : (
+                  <p>Please choose today's date (before 10:30 PM) or a future date</p>
+                )}
                 <Calendar 
                   onChange={handleDateChange}
                   value={selectedDate}
-                  minDate={new Date()}
+                  minDate={getMinDate()}
                 />
+                {dateSelectionError && (
+                  <div className="ks-date-error">{dateSelectionError}</div>
+                )}
                 <button 
                   className="ks-confirm-date-btn"
                   onClick={confirmSubscriptionDate}

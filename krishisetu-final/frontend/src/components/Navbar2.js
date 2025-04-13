@@ -36,12 +36,12 @@ const Navbar2 = () => {
         </li>
 
         {/* Notifications */}
-        <li>
+        {/* <li>
           <Link to="/notifications" className="icon-link" title="Notifications">
             <FaBell className="icon" aria-label="Notifications" />
             <span className="icon-text">Notifications</span>
           </Link>
-        </li>
+        </li> */}
 
         {/* Profile - Now using actual farmer_id */}
         <li>
