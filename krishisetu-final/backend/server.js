@@ -1311,6 +1311,70 @@ app.get("/api/consumerprofile/:consumer_id", async (req, res) => {
 });
 // Update the place-order endpoint
 
+// Add this to your backend routes
+router.post('/api/orders/place-order',  async (req, res) => {
+  try {
+    const {
+      consumer_id,
+      name,
+      mobile_number,
+      email,
+      address,
+      pincode,
+      produce_name,
+      quantity,
+      amount,
+      payment_method,
+      is_community
+    } = req.body;
+
+    // Insert into placeorder table
+    const [result] = await db.query(
+      `INSERT INTO placeorder (
+        consumer_id,
+        name,
+        mobile_number,
+        email,
+        address,
+        pincode,
+        produce_name,
+        quantity,
+        amount,
+        payment_method,
+        is_community,
+        status,
+        payment_status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', ?)`,
+      [
+        consumer_id,
+        name,
+        mobile_number,
+        email,
+        address,
+        pincode,
+        produce_name,
+        quantity,
+        amount,
+        payment_method,
+        is_community,
+        payment_method === 'cash-on-delivery' ? 'Pending' : 'Paid'
+      ]
+    );
+
+    res.status(201).json({
+      success: true,
+      orderId: result.insertId,
+      message: 'Order placed successfully'
+    });
+  } catch (error) {
+    console.error('Error placing order:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to place order'
+    });
+  }
+});
+
 
 app.post("/api/save-address", async (req, res) => {
   try {
@@ -4253,11 +4317,11 @@ app.post('/api/bargain/:bargainId/messages', authenticate, async (req, res) => {
     }
     if (!sender_role || !sender_id || !message_content || !message_type) {
       return res.status(400).json({ 
-        error: 'Missing required fields: sender_role, sender_id, message_content, message_type' 
+        error: 'Missing required fields' 
       });
     }
 
-    // Insert into database
+    // Insert message (without product_id)
     const result = await queryDatabase(`
       INSERT INTO bargain_messages (
         bargain_id,
@@ -4282,10 +4346,12 @@ app.post('/api/bargain/:bargainId/messages', authenticate, async (req, res) => {
 
   } catch (err) {
     console.error('Error saving message:', err);
-    res.status(500).json({ error: 'Database error: ' + err.message });
+    res.status(500).json({ 
+      error: 'Failed to save message',
+      details: err.sqlMessage || err.message 
+    });
   }
 });
-
 // Send new message
 // POST /api/bargain/:bargainId/messages
 // app.post('/api/bargain/:bargainId/messages', authenticate, async (req, res) => {
@@ -4368,6 +4434,9 @@ app.post('/api/bargain/:bargainId/system-message', authenticate, async (req, res
     res.status(500).json({ error: 'Failed to save system message' });
   }
 }); 
+
+
+
 app.get('/api/sessions', authenticate, async (req, res) => {
   try {
     const userType = req.user.type; // 'farmer' or 'consumer'
