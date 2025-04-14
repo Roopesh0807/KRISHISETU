@@ -1033,6 +1033,51 @@ app.post("/api/upload/:consumer_id", upload.single('photo'), async (req, res) =>
   }
 });
 
+//CLEARS THE ORDER ONCE CONFIRMED
+// In your backend routes
+// Make sure this comes before any error handling middleware
+// router.delete('/api/community/:communityId/clear-orders/:memberId', async (req, res) => {
+//   try {
+//     const { communityId, memberId } = req.params;
+//     console.log(`Attempting to clear orders for community ${communityId} member ${memberId}`); // Add logging
+    
+//     const result = await OrderItem.destroy({
+//       where: {
+//         community_id: communityId,
+//         member_id: memberId
+//       }
+//     });
+    
+//     console.log(`Cleared ${result} order items`); // Add logging
+//     res.json({ success: true, deletedCount: result });
+//   } catch (error) {
+//     console.error("Error clearing orders:", error);
+//     res.status(500).json({ 
+//       error: 'Failed to clear orders',
+//       details: error.message 
+//     });
+//   }
+// });
+
+// router.get('/api/community/:communityId/member/:memberId/has-confirmed-order', async (req, res) => {
+//   try {
+//     const { communityId, memberId } = req.params;
+    
+//     const confirmedOrder = await Order.findOne({
+//       where: {
+//         community_id: communityId,
+//         member_id: memberId,
+//         status: 'confirmed'
+//       }
+//     });
+    
+//     res.json({ hasConfirmedOrder: !!confirmedOrder });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ error: 'Failed to check confirmed order' });
+//   }
+// });
+
 
 app.post("/api/upload/:id", upload.single("file"), (req, res) => {
   const userId = req.params.id;
@@ -6439,13 +6484,13 @@ app.post("/api/place-order", verifyToken, async (req, res) => {
     const { consumer_id, name, mobile_number, email, produce_name, quantity, amount, 
             is_self_delivery, payment_method, address, pincode, recipient_name, recipient_phone } = req.body;
 
-    // Validate required fields
-    if (!address || !pincode) {
-      return res.status(400).json({ 
-        success: false,
-        error: "Address and pincode are required" 
-      });
-    }
+    // // Validate required fields
+    // if (!address || !pincode) {
+    //   return res.status(400).json({ 
+    //     success: false,
+    //     error: "Address and pincode are required" 
+    //   });
+    // }
 
     // Insert order - trigger will handle order_id generation
     const result = await queryDatabase(

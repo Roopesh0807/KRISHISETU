@@ -1268,6 +1268,15 @@ const KrishiOrderPage = () => {
     }
   
     try {
+
+      // Extract pincode from address for self delivery
+      let pincode = '';
+      if (deliveryOption === "self") {
+        const addressParts = consumerprofile.address.split(', ');
+        const lastPart = addressParts[addressParts.length - 1];
+        const pincodeMatch = lastPart.match(/- (\d+)$/);
+        pincode = pincodeMatch ? pincodeMatch[1] : '';
+      }
       const orderData = {
         consumer_id: consumerprofile.consumer_id,
         name: consumerprofile.name,
@@ -1291,8 +1300,12 @@ const KrishiOrderPage = () => {
         orderData.address = selectedRecipient ? 
           selectedRecipient.address : 
           `${recipientDetails.street}, ${recipientDetails.landmark ? recipientDetails.landmark + ', ' : ''}${recipientDetails.city}, ${recipientDetails.state} - ${recipientDetails.pincode}`;
+          orderData.pincode = selectedRecipient ? 
+          selectedRecipient.details.pincode : 
+          recipientDetails.pincode;
       } else {
         orderData.address = consumerprofile.address;
+        orderData.pincode = pincode;
       }
   
       const response = await fetch("http://localhost:5000/api/place-order", {

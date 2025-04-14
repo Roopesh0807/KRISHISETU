@@ -1,7 +1,7 @@
 const express = require("express");
 const orderController = require("../controllers/orderController");
 const communityController = require("../controllers/communityController");
-
+const db = require('../config/db'); // Your existing db.js
 const { queryDatabase } = require('../config/db'); 
 const router = express.Router();
 const { checkFreezeStatus } = require('../controllers/communityController');
@@ -168,6 +168,7 @@ router.delete('/:communityId/:orderId', (req, res, next) => {
   }
 });
 
+
   // router.get('/community/:communityId/member/:memberId', async (req, res) => {
   //   try {
   //     const { communityId, memberId } = req.params;
@@ -199,111 +200,107 @@ router.delete('/:communityId/:orderId', (req, res, next) => {
   // });
 
 
-  // Add this new route to orderRoutesC.js
-router.post('/place-community-order', async (req, res) => {
-  try {
-    const {
-      communityId,
-      memberId,
-      consumer_id,
-      name,
-      mobile_number,
-      email,
-      address,
-      pincode,
-      produce_name,
-      quantity,
-      amount,
-      payment_method,
-      order_items // Array of order items
-    } = req.body;
 
-    // Start transaction
-    await queryDatabase('START TRANSACTION');
-
-    // 1. Insert into placeorder table
-    const placeOrderQuery = `
-      INSERT INTO placeorder (
-        consumer_id,
-        name,
-        mobile_number,
-        email,
-        address,
-        pincode,
-        produce_name,
-        quantity,
-        amount,
-        payment_method,
-        is_community,
-        community_id,
-        status,
-        payment_status,
-        order_date
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'yes', ?, 'Pending', ?, CURDATE())
-    `;
-    
-    const paymentStatus = payment_method === 'cash-on-delivery' ? 'Pending' : 'Paid';
-    
-    const placeOrderResult = await queryDatabase(placeOrderQuery, [
-      consumer_id,
-      name,
-      mobile_number,
-      email,
-      address,
-      pincode,
-      produce_name,
-      quantity,
-      amount,
-      payment_method,
-      communityId,
-      paymentStatus
-    ]);
-
-    // 2. Optionally insert order items into another table if needed
-    if (order_items && order_items.length > 0) {
-      const itemsQuery = `
-        INSERT INTO order_items (
-          order_id,
-          product_id,
-          product_name,
-          quantity,
-          price,
+  router.post('/:communityId/place-community-order', async (req, res) => {
+    try {
+      console.log("Incoming request body:", req.body);
+      
+      const { communityId } = req.params;
+      const { email } = req.user;
+      
+      // Define required fields
+      const requiredFields = {
+        consumer_id: 'Consumer ID',
+        name: 'Name',
+        mobile_number: 'Mobile Number',
+        address: 'Address',
+        pincode: 'Pincode',
+        produce_name: 'Produce Name',
+        quantity: 'Quantity',
+        amount: 'Amount',
+        payment_method: 'Payment Method'
+      };
+  
+      // Check for missing or empty required fields
+      const missingOrEmptyFields = Object.entries(requiredFields)
+        .filter(([field]) => {
+          const value = req.body[field];
+          return value === undefined || value === null || value === '';
+        })
+        .map(([field]) => field);
+  
+      if (missingOrEmptyFields.length > 0) {
+        console.log("Missing or empty fields:", missingOrEmptyFields);
+        return res.status(400).json({
+          success: false,
+          error: 'Missing or empty required fields',
+          missingFields: missingOrEmptyFields,
+          receivedData: req.body
+        });
+      }
+  
+      // Validate quantity and amount are numbers
+      if (isNaN(req.body.quantity) || isNaN(req.body.amount)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Quantity and amount must be numbers'
+        });
+      }
+  
+      // Proceed with order creation
+      const result = await db.queryDatabase(
+        `INSERT INTO community_orders (
           community_id,
-          member_id
-        ) VALUES ?
-      `;
-      
-      const itemsValues = order_items.map(item => [
-        placeOrderResult.insertId,
-        item.product_id,
-        item.product_name,
-        item.quantity,
-        item.price,
-        communityId,
-        memberId
-      ]);
-      
-      await queryDatabase(itemsQuery, [itemsValues]);
+          consumer_id,
+          name,
+          mobile_number,
+          email,
+          address,
+          pincode,
+          produce_name,
+          quantity,
+          amount,
+          payment_method,
+          is_community,
+          status,
+          payment_status,
+          order_date,
+          discount_data
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          communityId,
+          req.body.consumer_id,
+          req.body.name,
+          req.body.mobile_number,
+          email,
+          req.body.address,
+          req.body.pincode,
+          req.body.produce_name,
+          Number(req.body.quantity),
+          Number(req.body.amount),
+          req.body.payment_method,
+          true,
+          'Pending',
+          req.body.payment_method === 'cash-on-delivery' ? 'Pending' : 'Paid',
+          new Date(),
+          JSON.stringify(req.body.discount_data || {})
+        ]
+      );
+  
+      res.status(201).json({
+        success: true,
+        orderId: result.insertId,
+        message: 'Community order placed successfully'
+      });
+  
+    } catch (error) {
+      console.error('Error placing community order:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to place community order',
+        details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
     }
+  });
 
-    // Commit transaction
-    await queryDatabase('COMMIT');
-
-    res.status(201).json({
-      success: true,
-      orderId: placeOrderResult.insertId,
-      message: 'Community order placed successfully'
-    });
-
-  } catch (error) {
-    // Rollback on error
-    await queryDatabase('ROLLBACK');
-    console.error('Error placing community order:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to place community order',
-      details: error.message
-    });
-  }
-});
 module.exports = router;
