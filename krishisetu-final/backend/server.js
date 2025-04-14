@@ -934,21 +934,51 @@ io.on("connection", (socket) => {
   // });
 
   // ⚡ Handle price updates
-  socket.on("updateBargainStatus", (data) => {
-    const { bargainId, status, currentPrice } = data;
-    
-    // Get the actor from the connected socket (THIS WAS MISSING)
-    const initiatedBy = socket.user.userType; // 'farmer' or 'consumer'
+  socket.on("updateBargainStatus", async (data) => {
+    try {
+      const { bargainId, status, currentPrice, userId, userType } = data;
+      
+      // Validate required fields
+      if (!bargainId || !status || currentPrice === undefined || !userType) {
+        throw new Error('Missing required fields in updateBargainStatus');
+      }
   
-    // Broadcast with PROPER actor context
-    io.to(bargainId).emit("bargainStatusUpdate", {
-      status,
-      currentPrice,
-      initiatedBy, // Now guaranteed correct
-      timestamp: new Date().toISOString()
-    });
+      // Use the userType from the emitting client
+      const initiatedBy = userType; // This should be 'farmer' or 'consumer'
+      
+      console.log(`Status update from ${initiatedBy}:`, { bargainId, status, currentPrice });
+  
+      // Broadcast to all in the bargain room
+      io.to(bargainId).emit("bargainStatusUpdate", {
+        status,
+        currentPrice,
+        initiatedBy, // This is the critical fix
+        timestamp: new Date().toISOString()
+      });
+  
+      // Update database if needed (make sure to import your Bargain model)
+      // Remove this if you're not using MongoDB/Mongoose
+      /*
+      if (BargainModel) {
+        await BargainModel.updateOne(
+          { _id: bargainId },
+          { 
+            status,
+            current_price: currentPrice,
+            updated_at: new Date() 
+          }
+        );
+      }
+      */
+  
+    } catch (error) {
+      console.error('Error in updateBargainStatus:', error.message);
+      socket.emit('bargainError', {
+        message: 'Failed to update status',
+        error: error.message
+      });
+    }
   });
- 
  
   socket.on("priceUpdate", (data) => {
     if (!data?.bargainId) {
@@ -1155,6 +1185,98 @@ app.post("/api/upload/:id", upload.single("file"), (req, res) => {
     res.json({ filePath });
   });
 });
+
+
+// Add this to your server routes
+// Add this route
+// Handle bargain order creation
+// routes/bargainRoutes.js
+// app.post('/api/bargain-orders', async (req, res) => {
+//   try {
+//     const { 
+//       bargain_id, farmer_id, farmer_name, consumer_id, consumer_name,
+//       product_id, // Optional - can come from client
+//       product_name, product_category, quantity, base_price, 
+//       final_price, status, initiated_by 
+//     } = req.body;
+
+//     // Validate required fields
+//     if (!bargain_id) {
+//       throw new Error('bargain_id is required');
+//     }
+
+//     // If product_id not provided, get the first product from the session
+//     let actualProductId = product_id;
+//     if (!actualProductId) {
+//       const productResult = await queryDatabase(
+//         `SELECT product_id, product_name, product_category 
+//          FROM bargain_session_products 
+//          WHERE bargain_id = ? LIMIT 1`,
+//         [bargain_id]
+//       );
+
+//       if (!productResult.length) {
+//         throw new Error('No products found in this bargain session');
+//       }
+
+//       actualProductId = productResult[0].product_id;
+//       // You might want to use these if not provided in request
+//       product_name = product_name || productResult[0].product_name;
+//       product_category = product_category || productResult[0].product_category;
+//     } else {
+//       // Verify the specified product exists in bargain_session_products
+//       const productResult = await queryDatabase(
+//         `SELECT product_id FROM bargain_session_products 
+//          WHERE bargain_id = ? AND product_id = ? LIMIT 1`,
+//         [bargain_id, actualProductId]
+//       );
+
+//       if (!productResult.length) {
+//         throw new Error('Specified product not found in this bargain session');
+//       }
+//     }
+
+//     // Insert into bargain_orders
+//     const [result] = await queryDatabase(
+//       `INSERT INTO bargain_orders SET ?`, {
+//         bargain_id,
+//         farmer_id,
+//         farmer_name,
+//         consumer_id,
+//         consumer_name,
+//         product_id: actualProductId,
+//         product_name,
+//         product_category,
+//         quantity,
+//         base_price,
+//         final_price,
+//         status,
+//         initiated_by,
+//         created_at: new Date(),
+//         updated_at: new Date()
+//       }
+//     );
+
+//     res.json({
+//       success: true,
+//       order_id: result.insertId,
+//       message: 'Bargain order created successfully'
+//     });
+
+//   } catch (error) {
+//     console.error('Error creating bargain order:', {
+//       message: error.message,
+//       stack: error.stack,
+//       requestBody: req.body // Log the request for debugging
+//     });
+    
+//     res.status(500).json({
+//       success: false,
+//       error: error.message || 'Failed to create bargain order'
+//     });
+//   }
+// });
+
 
 app.delete("/api/remove-photo/:consumer_id", async (req, res) => {
   const { consumer_id } = req.params;

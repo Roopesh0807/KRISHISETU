@@ -205,28 +205,33 @@ socket.current.on('newMessage', (message) => {
     }
   }
 });
-// Add these handlers:
-// Inside initializeSocketConnection()
-socket.current.on("bargainStatusUpdate", (data) => {
+
+socket.current.on('bargainStatusUpdate', (data) => {
   const { status, currentPrice, initiatedBy } = data;
   
-  // Only add system message if the action was initiated by the consumer
-  if (initiatedBy === 'consumer') {
+  // Farmer's perspective
+  if (initiatedBy === 'farmer') {
+    // Farmer initiated this action
     if (status === 'accepted') {
-      addSystemMessage(`🎉 Consumer accepted at ₹${currentPrice}/kg`);
-    } 
-    else if (status === 'rejected') {
-      addSystemMessage(`😞 Consumer rejected your offer`);
+      addSystemMessage(`✅ You accepted the offer at ₹${currentPrice}/kg`);
+    } else if (status === 'rejected') {
+      addSystemMessage(`❌ You rejected the offer at ₹${currentPrice}/kg`);
+    }
+  } else {
+    // Consumer initiated this action
+    if (status === 'accepted') {
+      addSystemMessage(`🎉 ${selectedConsumer.first_name} accepted your offer at ₹${currentPrice}/kg`);
+    } else if (status === 'rejected') {
+      addSystemMessage(`😞 ${selectedConsumer.first_name} rejected your offer`);
     }
   }
   
   setBargainStatus(status);
   setCurrentPrice(currentPrice);
   setWaitingForResponse(false);
+  setWaitingForConsumerResponse(false);
 });
-    // Price update handling
-   // Update the priceUpdate handler to ensure it shows in messages
-  // Update the priceUpdate handler in initializeSocketConnection
+   
 socket.current.on('priceUpdate', (data) => {
   if (data?.newPrice) {
     setCurrentPrice(data.newPrice);
