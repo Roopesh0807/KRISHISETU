@@ -304,7 +304,35 @@ socket.current.on('consumerResponse', (response) => {
     try {
       setWaitingForResponse(true);
       
-      // Only emit the status update - don't add local message here
+      // First save to database
+      const messageContent = status === 'accepted' 
+        ? `✅ You accepted the offer at ₹${currentPrice}/kg`
+        : `❌ You rejected the offer at ₹${currentPrice}/kg`;
+      
+      const response = await fetch(
+        `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/bargain/${bargainId}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            sender_role: 'farmer',
+            sender_id: farmer.farmer_id,
+            message_content: messageContent,
+            message_type: status === 'accepted' ? 'accept' : 'reject',
+            price_suggestion: currentPrice
+          })
+        }
+      );
+  
+      if (!response.ok) throw new Error('Failed to save status message');
+  
+      const savedMessage = await response.json();
+      setMessages(prev => [...prev, savedMessage]);
+      
+      // Then emit socket event
       socket.current.emit('updateBargainStatus', {
         bargainId,
         status,
@@ -316,7 +344,6 @@ socket.current.on('consumerResponse', (response) => {
       setBargainStatus(status);
       setShowPriceSuggestions(false);
       
-      // Don't add local message here - let the socket handler handle it
     } catch (err) {
       setError(err.message);
       setWaitingForResponse(false);

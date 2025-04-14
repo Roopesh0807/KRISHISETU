@@ -574,49 +574,99 @@ const messageContent = `💰 ${hasFarmerCounterOffer ? 'Counter offer' : 'Offere
 
 
   // Update handleAcceptFarmerOffer and handleRejectFarmerOffer
-const handleAcceptFarmerOffer = async () => {
-  try {
-    setWaitingForResponse(true);
-    
-    socket.current.emit('updateBargainStatus', {
-      bargainId,
-      status: 'accepted',
-      currentPrice,
-      userId: consumer.consumer_id,
-      userType: 'consumer'
-    });
-
-    setBargainStatus('accepted');
-    setShowPriceSuggestions(false);
-    setHasFarmerCounterOffer(false);
-    
-  } catch (err) {
-    setError(err.message);
-    setWaitingForResponse(false);
-  }
-};
-
-const handleRejectFarmerOffer = async () => {
-  try {
-    setWaitingForResponse(true);
-    
-    socket.current.emit('updateBargainStatus', {
-      bargainId,
-      status: 'rejected',
-      currentPrice,
-      userId: consumer.consumer_id,
-      userType: 'consumer'
-    });
-
-    setBargainStatus('rejected');
-    setShowPriceSuggestions(false);
-    setHasFarmerCounterOffer(false);
-    
-  } catch (err) {
-    setError(err.message);
-    setWaitingForResponse(false);
-  }
-};
+  const handleAcceptFarmerOffer = async () => {
+    try {
+      setWaitingForResponse(true);
+      
+      // Save acceptance to database first
+      const response = await fetch(
+        `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/bargain/${bargainId}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            sender_role: 'consumer',
+            sender_id: consumer.consumer_id,
+            message_content: `✅ You accepted the offer at ₹${currentPrice}/kg`,
+            message_type: 'accept',
+            price_suggestion: currentPrice
+          })
+        }
+      );
+  
+      if (!response.ok) throw new Error('Failed to save acceptance message');
+  
+      const savedMessage = await response.json();
+      setMessages(prev => [...prev, savedMessage]);
+      
+      // Then emit socket event
+      socket.current.emit('updateBargainStatus', {
+        bargainId,
+        status: 'accepted',
+        currentPrice,
+        userId: consumer.consumer_id,
+        userType: 'consumer'
+      });
+  
+      setBargainStatus('accepted');
+      setShowPriceSuggestions(false);
+      setHasFarmerCounterOffer(false);
+      
+    } catch (err) {
+      setError(err.message);
+      setWaitingForResponse(false);
+    }
+  };
+  
+  const handleRejectFarmerOffer = async () => {
+    try {
+      setWaitingForResponse(true);
+      
+      // Save rejection to database first
+      const response = await fetch(
+        `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/bargain/${bargainId}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            sender_role: 'consumer',
+            sender_id: consumer.consumer_id,
+            message_content: `❌ You rejected the offer at ₹${currentPrice}/kg`,
+            message_type: 'reject',
+            price_suggestion: currentPrice
+          })
+        }
+      );
+  
+      if (!response.ok) throw new Error('Failed to save rejection message');
+  
+      const savedMessage = await response.json();
+      setMessages(prev => [...prev, savedMessage]);
+      
+      // Then emit socket event
+      socket.current.emit('updateBargainStatus', {
+        bargainId,
+        status: 'rejected',
+        currentPrice,
+        userId: consumer.consumer_id,
+        userType: 'consumer'
+      });
+  
+      setBargainStatus('rejected');
+      setShowPriceSuggestions(false);
+      setHasFarmerCounterOffer(false);
+      
+    } catch (err) {
+      setError(err.message);
+      setWaitingForResponse(false);
+    }
+  };
 
   // Add these at the bottom of your component
 useEffect(() => {

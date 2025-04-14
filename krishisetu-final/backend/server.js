@@ -5534,17 +5534,15 @@ app.post('/api/bargain/:bargainId/messages', authenticate, async (req, res) => {
     const { bargainId } = req.params;
     const { sender_role, sender_id, message_content, price_suggestion, message_type } = req.body;
 
-    // Validate required fields
     if (!bargainId || isNaN(bargainId)) {
       return res.status(400).json({ error: 'Invalid bargain ID' });
     }
+
     if (!sender_role || !sender_id || !message_content || !message_type) {
-      return res.status(400).json({ 
-        error: 'Missing required fields' 
-      });
+      return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Insert message (without product_id)
+    // Step 1: Insert the message
     const result = await queryDatabase(`
       INSERT INTO bargain_messages (
         bargain_id,
@@ -5555,6 +5553,37 @@ app.post('/api/bargain/:bargainId/messages', authenticate, async (req, res) => {
         message_type
       ) VALUES (?, ?, ?, ?, ?, ?)
     `, [bargainId, sender_role, sender_id, message_content, price_suggestion || null, message_type]);
+
+    // Step 2: On 'accept', insert product_name and category
+    if (message_type === 'accept') {
+      const [sessionProduct] = await queryDatabase(`
+        SELECT product_id
+        FROM bargain_session_products
+        WHERE bargain_id = ?
+        LIMIT 1
+      `, [bargainId]);
+
+      if (sessionProduct) {
+        const productId = sessionProduct.product_id;
+
+        const [product] = await queryDatabase(`
+          SELECT produce_name AS product_name, produce_type
+          FROM add_produce
+          WHERE product_id = ?
+          LIMIT 1
+        `, [productId]);
+
+        if (product) {
+          const { product_name, produce_type } = product;
+
+          await queryDatabase(`
+            UPDATE bargain_orders
+            SET product_name = ?, product_category = ?
+            WHERE bargain_id = ?
+          `, [product_name, produce_type, bargainId]);
+        }
+      }
+    }
 
     res.status(201).json({
       message_id: result.insertId,
@@ -5569,12 +5598,101 @@ app.post('/api/bargain/:bargainId/messages', authenticate, async (req, res) => {
 
   } catch (err) {
     console.error('Error saving message:', err);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to save message',
-      details: err.sqlMessage || err.message 
+      details: err.sqlMessage || err.message
     });
   }
 });
+
+// server.js or your routes file
+app.get('/api/farmer/:farmerId/bargain-orders', authenticate, async (req, res) => {
+  const { farmerId } = req.params;
+
+  try {
+    const query = `
+      SELECT 
+        bo.order_id,
+        bo.bargain_id,
+        bo.consumer_id,
+        cr.first_name AS consumer_name,
+        bo.farmer_id,
+        bo.farmer_name,
+        bo.product_id,
+        bo.product_name,
+        bo.product_category,
+        bo.quantity,
+        bo.original_price,
+        bo.final_price,
+        bo.total_amount,
+        bo.status,
+        bo.created_at,
+        bo.updated_at
+      FROM bargain_orders bo
+      JOIN consumerregistration cr ON bo.consumer_id = cr.consumer_id
+      WHERE bo.farmer_id = ?
+      ORDER BY bo.order_id DESC
+    `;
+
+    // Use queryDatabase instead of connection.query
+    const rows = await queryDatabase(query, [farmerId]);
+    
+    console.log('Database rows returned:', rows); // Debug log
+    
+    // Ensure we're sending an array
+    if (!Array.isArray(rows)) {
+      console.error('Expected array but got:', typeof rows);
+      return res.status(500).json({ message: 'Data format error' });
+    }
+    
+    res.json(rows);
+  } catch (err) {
+    console.error('Error fetching farmer orders:', err);
+    res.status(500).json({ message: 'Failed to fetch orders' });
+  }
+});
+
+// Get all bargain orders for a specific consumer
+app.get('/api/consumer/:consumerId/bargain-orders', authenticate, async (req, res) => {
+  const { consumerId } = req.params;
+
+  try {
+    const query = `
+      SELECT 
+        bo.order_id,
+        bo.bargain_id,
+        bo.consumer_id,
+        bo.consumer_name,
+        bo.farmer_id,
+        fr.first_name AS farmer_name,
+        bo.product_id,
+        bo.product_name,
+        bo.product_category,
+        bo.quantity,
+        bo.original_price,
+        bo.final_price,
+        bo.total_amount,
+        bo.status,
+        bo.created_at,
+        bo.updated_at
+      FROM bargain_orders bo
+      JOIN farmerregistration fr ON bo.farmer_id = fr.farmer_id
+      WHERE bo.consumer_id = ?
+      ORDER BY bo.created_at DESC
+    `;
+
+    const rows = await queryDatabase(query, [consumerId]);
+    
+    console.log(`Fetched ${rows.length} orders for consumer ${consumerId}`);
+    
+    res.json(rows);
+  } catch (err) {
+    console.error('Error fetching consumer orders:', err);
+    res.status(500).json({ message: 'Failed to fetch orders' });
+  }
+});
+
+
 // Send new message
 // POST /api/bargain/:bargainId/messages
 // app.post('/api/bargain/:bargainId/messages', authenticate, async (req, res) => {
