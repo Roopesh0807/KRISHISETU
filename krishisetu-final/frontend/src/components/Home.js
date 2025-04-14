@@ -2,14 +2,14 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./styles.css";
 import "./Navbar1.css";
-import ContactUsPage from "./ScrollSection.js"; // Import the scrollsection.js (or about.js) component
-import ContactUs from "./Contact.js"; // Import the contact.js component
+import ContactUsPage from "./ScrollSection.js";
+import ContactUs from "./Contact.js";
 
 const Home = () => {
   const navigate = useNavigate();
   const [text, setText] = useState("");
-  const [showCursor, setShowCursor] = useState(true); // Control cursor visibility
-  const fullText = "WEELCOME TO KRISHISETU"; // Corrected spelling
+  const [showCursor, setShowCursor] = useState(true);
+  const fullText = "WEELCOME TO KRISHISETU";
 
   useEffect(() => {
     let index = 0;
@@ -17,39 +17,39 @@ const Home = () => {
     const typingInterval = setInterval(() => {
       if (index < fullText.length) {
         setText((prev) => prev + fullText.charAt(index));
-        index+=1;
+        index += 1;
       } else {
         clearInterval(typingInterval);
-        setShowCursor(false); // Hide cursor after typing is complete
+        setShowCursor(false);
       }
-    }, 150); // Typing speed (adjust as needed)
+    }, 150);
 
     return () => clearInterval(typingInterval);
-  }, [fullText]); // Add fullText as a dependency
+  }, [fullText]);
 
   return (
-    <div>
+    <div className="ks-home-container">
       {/* Home Section */}
-      <section id="home" className="hero-section1">
-        <div className="hero-text1">
-          <h1>
+      <section id="home" className="ks-hero-section">
+        <div className="ks-hero-content">
+          <h1 className="ks-hero-title">
             {text}
-            {showCursor && <span className="cursor">|</span>} {/* Blinking cursor */}
+            {showCursor && <span className="ks-type-cursor">|</span>}
           </h1>
-          <p>Revolutionizing the Farm-to-table journey</p>
-          <button className="login-btnhome" onClick={() => navigate("/LoginPage")}>
+          <p className="ks-hero-subtitle">Revolutionizing the Farm-to-table journey</p>
+          <button className="ks-hero-btn" onClick={() => navigate("/LoginPage")}>
             Log in
           </button>
         </div>
       </section>
 
       {/* Scroll Section (About Us) */}
-      <section id="about">
+      <section id="about" className="ks-about-section">
         <ContactUsPage />
       </section>
 
       {/* Contact Section */}
-      <section id="contact">
+      <section id="contact" className="ks-contact-section">
         <ContactUs />
       </section>
     </div>
