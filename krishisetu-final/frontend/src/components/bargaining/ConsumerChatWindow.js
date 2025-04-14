@@ -244,29 +244,35 @@ const initializeSocketConnection = useCallback(() => {
       }
     }
   });
-  socket.current.on("bargainStatusUpdate", (data) => {
-    const { status, currentPrice, initiatedBy } = data;
-    
+
+// Update the bargainStatusUpdate handler in initializeSocketConnection
+// Update the socket initialization in initializeSocketConnection
+socket.current.on('bargainStatusUpdate', (data) => {
+  const { status, currentPrice, initiatedBy } = data;
+  
+  // Remove any duplicate handlers for bargainStatusUpdate
+  
+  // Consumer's perspective
+  if (initiatedBy === 'consumer') {
+    // Consumer initiated this action
     if (status === 'accepted') {
-      // Consumer's perspective
-      const message = initiatedBy === 'consumer'
-        ? `✅ You accepted the offer at ₹${currentPrice}/kg`
-        : `🎉 ${selectedFarmer.farmer_name} accepted your offer at ₹${currentPrice}/kg`;
-        
-      addSystemMessage(message);
+      addSystemMessage(`✅ You accepted the offer at ₹${currentPrice}/kg`);
+    } else if (status === 'rejected') {
+      addSystemMessage(`❌ You rejected the offer at ₹${currentPrice}/kg`);
     }
-    else if (status === 'rejected') {
-      const message = initiatedBy === 'consumer'
-        ? `❌ You rejected the offer at ₹${currentPrice}/kg`
-        : `😞 ${selectedFarmer.farmer_name} rejected your offer`;
-        
-      addSystemMessage(message);
+  } else {
+    // Farmer initiated this action
+    if (status === 'accepted') {
+      addSystemMessage(`🎉 ${selectedFarmer.farmer_name} accepted your offer at ₹${currentPrice}/kg`);
+    } else if (status === 'rejected') {
+      addSystemMessage(`😞 ${selectedFarmer.farmer_name} rejected your offer`);
     }
-    
-    setBargainStatus(status);
-    setCurrentPrice(currentPrice);
-    setWaitingForResponse(false);
-  });
+  }
+  
+  setBargainStatus(status);
+  setCurrentPrice(currentPrice);
+  setWaitingForResponse(false);
+});
 
 socket.current.on('priceUpdate', (data) => {
   if (data?.newPrice) {

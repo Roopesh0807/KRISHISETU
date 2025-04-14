@@ -1,700 +1,30 @@
-/* Base Styles with Agri Theme */
-:root {
-  --primary-green: #2e7d32;
-  --secondary-green: #388e3c;
-  --light-green: #8bc34a;
-  --lighter-green: #dcedc8;
-  --dark-green: #1b5e20;
-  --soil-brown: #5d4037;
-  --wheat-yellow: #ffd54f;
-  --sun-orange: #ff9800;
-  --sky-blue: #4fc3f7;
-  --error-red: #d32f2f;
-}
+/* ConsumerChatWindow.css */
 
-/* Animations */
-@keyframes growFromSoil {
-  0% { transform: translateY(20px); opacity: 0; }
-  100% { transform: translateY(0); opacity: 1; }
-}
-
-@keyframes leafWiggle {
-  0%, 100% { transform: rotate(-2deg); }
-  50% { transform: rotate(2deg); }
-}
-
-@keyframes sunPulse {
-  0% { box-shadow: 0 0 0 0 rgba(255, 152, 0, 0.4); }
-  70% { box-shadow: 0 0 0 10px rgba(255, 152, 0, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(255, 152, 0, 0); }
-}
-
-/* Chat Container */
+/* Base Styles */
 .bargain-chat-container {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: linear-gradient(135deg, var(--lighter-green) 0%, #f5f5f5 100%);
-  min-height: 100vh;
-  position: relative;
-  overflow: hidden;
-  margin-top:60px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #f5f7fa;
 }
 
-.bargain-chat-container::before {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 100px;
-  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none"><path d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z" opacity=".25" fill="%235D4037"/><path d="M0,0V15.81C13,36.92,27.64,56.86,47.69,72.05,99.41,111.27,165,111,224.58,91.58c31.15-10.15,60.09-26.07,89.67-39.8,40.92-19,84.73-46,130.83-49.67,36.26-2.85,70.9,9.42,98.6,31.56,31.77,25.39,62.32,62,103.63,73,40.44,10.79,81.35-6.69,119.13-24.28s75.16-39,116.92-43.05c59.73-5.85,113.28,22.88,168.9,38.84,30.2,8.66,59,6.17,87.09-7.5,22.43-10.89,48-26.93,60.65-49.24V0Z" opacity=".5" fill="%235D4037"/><path d="M0,0V5.63C149.93,59,314.09,71.32,475.83,42.57c43-7.64,84.23-20.12,127.61-26.46,59-8.63,112.48,12.24,165.56,35.4C827.93,77.22,886,95.24,951.2,90c86.53-7,172.46-45.71,248.8-84.81V0Z" fill="%235D4037"/></svg>');
-  background-size: cover;
-  z-index: 0;
-}
-
-/* Loading Container */
+/* Loading Animation */
 .loading-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100vh;
-  color: var(--dark-green);
-  background-color: rgba(255, 255, 255, 0.9);
-  z-index: 10;
-  position: relative;
-}
-
-.loading-container svg {
-  color: var(--primary-green);
-  margin-bottom: 20px;
-}
-
-/* Bargain Initiation Popup */
-.bargain-initiation-popup {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(75, 54, 33, 0.8);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  /* backdrop-filter: blur(5px); */
-}
-
-.popup-content {
-  background: white;
-  padding: 25px;
-  border-radius: 15px;
-  width: 90%;
-  max-width: 500px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-  position: relative;
-  border: 2px solid var(--primary-green);
-  animation: growFromSoil 0.6s ease-out;
-  background-color: #fffdf7;
-}
-
-.popup-content h3 {
-  color: var(--dark-green);
-  text-align: center;
-  margin-bottom: 20px;
-  font-size: 1.5rem;
-  border-bottom: 2px dashed var(--light-green);
-  padding-bottom: 10px;
-}
-
-.close-btn {
-  position: absolute;
-  top: 15px;
-  right: 15px;
-  background: none;
-  border: none;
-  font-size: 1.2rem;
-  cursor: pointer;
-  color: var(--soil-brown);
-  transition: transform 0.3s;
-}
-
-.close-btn:hover {
-  transform: rotate(90deg);
-  color: var(--error-red);
-}
-
-.form-group {
-  margin-bottom: 20px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 8px;
-  color: var(--soil-brown);
-  font-weight: 600;
-}
-
-.form-group select, 
-.form-group input {
-  width: 100%;
-  padding: 12px;
-  border: 2px solid var(--light-green);
-  border-radius: 8px;
-  background-color: white;
-  font-size: 1rem;
-  transition: all 0.3s;
-}
-
-.form-group select:focus, 
-.form-group input:focus {
-  outline: none;
-  border-color: var(--primary-green);
-  box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.2);
-}
-
-.product-details {
-  background-color: var(--lighter-green);
-  padding: 15px;
-  border-radius: 8px;
-  margin: 15px 0;
-  border-left: 4px solid var(--primary-green);
-}
-
-.quantity-hints {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 5px;
-  font-size: 0.8rem;
-  color: var(--soil-brown);
-}
-
-.current-price-display {
-  background-color: #f5f5f5;
-  padding: 15px;
-  border-radius: 8px;
-  margin: 20px 0;
-  text-align: center;
-  border: 1px dashed var(--primary-green);
-}
-
-.total-price {
-  font-size: 1.3rem;
-  color: var(--primary-green);
-  font-weight: bold;
-  margin-top: 10px;
-}
-
-.error-message {
-  color: var(--error-red);
-  background-color: #ffebee;
-  padding: 10px;
-  border-radius: 5px;
-  margin: 15px 0;
-  text-align: center;
-}
-
-.confirm-btn {
-  width: 100%;
-  padding: 15px;
-  background-color: var(--primary-green);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 1.1rem;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.3s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-}
-
-.confirm-btn:hover {
-  background-color: var(--dark-green);
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(46, 125, 50, 0.4);
-}
-
-.confirm-btn.loading {
-  background-color: var(--light-green);
-}
-
-/* Chat Interface */
-.chat-interface {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
-  position: relative;
-  z-index: 1;
-  background-color: rgba(255, 255, 255, 0.95);
-  border-radius: 15px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-  margin-top: 20px;
-  margin-bottom: 100px;
-  border: 1px solid var(--light-green);
-}
-
-.chat-header {
-  background: linear-gradient(to right, var(--primary-green), var(--secondary-green));
-  color: white;
-  padding: 15px 20px;
-  border-radius: 12px 12px 0 0;
-  margin-bottom: 20px;
-  position: relative;
-  overflow: hidden;
-}
-
-.chat-header::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 5px;
-  background: linear-gradient(to right, var(--wheat-yellow), var(--sun-orange));
-}
-
-.header-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.header-top h2 {
-  margin: 0;
-  font-size: 1.4rem;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.connection-status {
-  padding: 5px 10px;
-  border-radius: 15px;
-  font-size: 0.7rem;
-  font-weight: bold;
-  text-transform: uppercase;
-}
-
-.connection-status.connected {
-  background-color: #4caf50;
-  animation: leafWiggle 2s infinite;
-}
-
-.connection-status.connecting {
-  background-color: #ffc107;
-}
-
-.connection-status.error,
-.connection-status.disconnected {
-  background-color: #f44336;
-}
-
-.product-info {
-  background-color: rgba(255, 255, 255, 0.9);
-  padding: 12px;
-  border-radius: 8px;
-  color: var(--soil-brown);
-  margin-top: 10px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 15px;
-  justify-content: space-between;
-  font-size: 0.9rem;
-  border: 1px solid var(--light-green);
-}
-
-.product-info p {
-  margin: 5px 0;
-}
-
-.price-display {
-  display: flex;
-  gap: 15px;
-  flex-wrap: wrap;
-}
-
-.current-price, .base-price, .total-price {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.current-price::before {
-  content: "🌱";
-}
-
-.base-price::before {
-  content: "🌾";
-}
-
-.total-price::before {
-  content: "💰";
-}
-
-.status-accepted, .status-rejected {
-  width: 100%;
-  text-align: center;
-  padding: 5px;
-  border-radius: 5px;
-  margin-top: 5px;
-  font-weight: bold;
-}
-
-.status-accepted {
-  background-color: rgba(76, 175, 80, 0.2);
-  color: var(--primary-green);
-}
-
-.status-rejected {
-  background-color: rgba(244, 67, 54, 0.2);
-  color: var(--error-red);
-}
-
-/* Chat Messages */
-.chat-messages {
-  height: 50vh;
-  overflow-y: auto;
-  padding: 15px;
-  background-color: #f9f9f7;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  border: 1px solid #e0e0e0;
-  scroll-behavior: smooth;
-}
-
-.no-messages {
-  display: flex;
-  justify-content: center;
-  align-items: center;
   height: 100%;
-  color: var(--soil-brown);
-  font-style: italic;
+  color: #4a6fa5;
 }
 
-.message {
-  margin-bottom: 15px;
-  max-width: 80%;
-  position: relative;
+.loading-container p {
+  margin-top: 1rem;
+  font-size: 1.2rem;
 }
 
-.message::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  width: 20px;
-  height: 20px;
-  background-size: contain;
-  background-repeat: no-repeat;
-}
-
-.message.consumer {
-  margin-right: auto;
-  text-align: left;
-}
-
-.message.farmer {
-  margin-left: auto;
-  text-align: right;
-}
-
-.message.system {
-  margin: 20px auto;
-  text-align: center;
-  max-width: 90%;
-}
-
-.message-content {
-  padding: 12px 15px;
-  border-radius: 18px;
-  display: inline-block;
-  position: relative;
-  word-wrap: break-word;
-  animation: growFromSoil 0.3s ease-out;
-}
-
-.consumer .message-content {
-  background-color: var(--sky-blue);
-  color: #333;
-  border-bottom-left-radius: 5px;
-  text-align: left;
-}
-
-.farmer .message-content {
-  background-color: var(--light-green);
-  color: #333;
-  border-bottom-right-radius: 5px;
-  text-align: right;
-}
-
-.system .message-content {
-  background-color: #f5f5f5;
-  color: var(--soil-brown);
-  border: 1px dashed var(--light-green);
-  font-size: 0.9rem;
-}
-
-.message-meta {
-  font-size: 0.7rem;
-  color: #666;
-  margin-top: 5px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.consumer .message-meta {
-  justify-content: flex-start;
-}
-
-.farmer .message-meta {
-  justify-content: flex-end;
-}
-
-.system .message-meta {
-  justify-content: center;
-}
-
-.typing-indicator {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 10px 0;
-  color: var(--soil-brown);
-  font-style: italic;
-}
-
-.typing-dots {
-  display: flex;
-  gap: 5px;
-}
-
-.typing-dots div {
-  width: 8px;
-  height: 8px;
-  background-color: var(--light-green);
-  border-radius: 50%;
-  animation: typingAnimation 1.4s infinite ease-in-out;
-}
-
-.typing-dots div:nth-child(1) {
-  animation-delay: 0s;
-}
-
-.typing-dots div:nth-child(2) {
-  animation-delay: 0.2s;
-}
-
-.typing-dots div:nth-child(3) {
-  animation-delay: 0.4s;
-}
-
-@keyframes typingAnimation {
-  0%, 60%, 100% { transform: translateY(0); }
-  30% { transform: translateY(-5px); }
-}
-
-/* Chat Controls */
-.chat-controls {
-  background-color: white;
-  padding: 15px;
-  border-radius: 8px;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
-  border: 1px solid #e0e0e0;
-}
-
-.price-suggestions {
-  background-color: var(--lighter-green);
-  padding: 15px;
-  border-radius: 8px;
-  margin-bottom: 15px;
-  border: 1px dashed var(--primary-green);
- 
-}
-
-.price-suggestions h4 {
-  margin-top: 0;
-  color: var(--dark-green);
-  text-align: center;
-  margin-bottom: 15px;
-}
-
-.suggestion-buttons {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 10px;
- 
-}
-
-.suggestion-btn {
-  padding: 12px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  font-weight: bold;
-  background-color: white;
-  animation: leafWiggle 2s infinite;
-}
-
-.suggestion-btn:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
-}
-
-.suggestion-btn.increase {
-  border: 2px solid var(--sun-orange);
-  color: var(--sun-orange);
-}
-
-.suggestion-btn.decrease {
-  border: 2px solid var(--primary-green);
-  color: var(--primary-green);
-}
-
-.suggestion-btn .price-change {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 1.1rem;
-}
-
-.suggestion-btn .price-label {
-  font-size: 0.7rem;
-  font-weight: normal;
-  margin-top: 5px;
-}
-
-.waiting-indicator {
-  text-align: center;
-  padding: 10px;
-  color: var(--soil-brown);
-  background-color: #fff3e0;
-  border-radius: 8px;
-  margin-bottom: 15px;
-  border: 1px solid var(--wheat-yellow);
-}
-
-.accepted-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.primary-action, .secondary-action {
-  padding: 15px;
-  border: none;
-  border-radius: 8px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.3s;
-  text-align: center;
-}
-
-.primary-action {
-  background-color: var(--primary-green);
-  color: white;
-}
-
-.primary-action:hover {
-  background-color: var(--dark-green);
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(46, 125, 50, 0.4);
-}
-
-.secondary-action {
-  background-color: white;
-  color: var(--primary-green);
-  border: 2px solid var(--primary-green);
-}
-
-.secondary-action:hover {
-  background-color: var(--lighter-green);
-}
-
-/* Responsive Adjustments */
-@media (max-width: 768px) {
-  .popup-content {
-    width: 95%;
-    padding: 15px;
-  }
-  
-  .chat-header h2 {
-    font-size: 1.2rem;
-  }
-  
-  .product-info {
-    flex-direction: column;
-    gap: 8px;
-  }
-  
-  .price-display {
-    flex-direction: column;
-    gap: 5px;
-  }
-  
-  .suggestion-buttons {
-    grid-template-columns: 1fr 1fr;
-  }
-  
-  .message {
-    max-width: 90%;
-  }
-}
-
-@media (max-width: 480px) {
-  .chat-interface {
-    padding: 10px;
-  }
-  
-  .suggestion-buttons {
-    grid-template-columns: 1fr;
-  }
-  
-  .message-content {
-    padding: 10px 12px;
-  }
-}
-/* Unique Close Button Styles */
-.unique-close-btn {
-  position: absolute;
-  top: 28px;
-  right: 150px;
-  background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
-  color: white;
-  border: none;
-  border-radius: 25px;
-  padding: 8px 15px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 600;
-  box-shadow: 0 4px 8px rgba(255, 107, 107, 0.3);
-  z-index: 100;
-  transition: all 0.3s ease;
-  animation: leafWiggle 2s infinite;
-}
-
-.unique-close-btn:hover {
-  background: linear-gradient(135deg, #ff5252, #ff7676);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(255, 107, 107, 0.4);
-}
-
-.unique-close-btn:active {
-  transform: translateY(0);
-}
-
-.unique-close-btn svg {
-  font-size: 1.1rem;
-}
-/* Bargain Popup Styles */
+/* Popup Animation */
 .bargain-popup-overlay {
   position: fixed;
   top: 0;
@@ -706,318 +36,533 @@
   justify-content: center;
   align-items: center;
   z-index: 1000;
-  /* backdrop-filter: blur(3px); */
+  animation: fadeIn 0.3s ease-out;
 }
 
 .bargain-popup-container {
-  width: 90%;
-  max-width: 500px;
   background: white;
   border-radius: 12px;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 500px;
   overflow: hidden;
-  animation: popIn 0.3s ease-out;
+  transform: translateY(0);
+  transition: transform 0.3s ease;
 }
 
-@keyframes popIn {
-  from {
-    transform: scale(0.95);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-.bargain-popup-content {
-  padding: 25px;
+.bargain-popup-container:hover {
+  transform: translateY(-5px);
 }
 
 .popup-header {
+  background: linear-gradient(135deg, #4a6fa5, #3a5a80);
+  color: white;
+  padding: 1rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-}
-
-.popup-header h3 {
-  margin: 0;
-  color: #2c3e50;
-  font-size: 1.4rem;
-  display: flex;
-  align-items: center;
-  gap: 10px;
 }
 
 .popup-close-btn {
   background: none;
   border: none;
+  color: white;
   font-size: 1.2rem;
-  color: #7f8c8d;
   cursor: pointer;
-  transition: color 0.2s;
+  transition: transform 0.2s;
 }
 
 .popup-close-btn:hover {
-  color: #e74c3c;
+  transform: scale(1.2);
 }
 
 .popup-section {
-  margin-bottom: 20px;
-}
-
-.popup-label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 600;
-  color: #34495e;
+  padding: 1rem;
+  border-bottom: 1px solid #eee;
 }
 
 .popup-select, .popup-input {
   width: 100%;
-  padding: 12px 15px;
+  padding: 0.8rem;
   border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 1rem;
-  transition: border-color 0.2s;
+  border-radius: 8px;
+  margin-top: 0.5rem;
+  transition: border 0.3s;
 }
 
 .popup-select:focus, .popup-input:focus {
+  border-color: #4a6fa5;
   outline: none;
-  border-color: #3498db;
-}
-
-.quantity-input-container {
-  position: relative;
-}
-
-.quantity-range {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 5px;
-  font-size: 0.85rem;
-  color: #7f8c8d;
-}
-
-.product-details {
-  background: #f8f9fa;
-  padding: 15px;
-  border-radius: 6px;
-  margin-top: 15px;
-}
-
-.detail-row {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-
-.detail-label {
-  font-weight: 600;
-  color: #34495e;
-}
-
-.detail-value {
-  color: #2c3e50;
+  box-shadow: 0 0 0 2px rgba(74, 111, 165, 0.2);
 }
 
 .price-summary {
-  margin: 20px 0;
-  padding: 15px;
+  padding: 1rem;
   background: #f8f9fa;
-  border-radius: 6px;
+  border-radius: 8px;
+  margin: 1rem;
 }
 
 .price-row {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: 0.5rem;
 }
 
 .price-row.total {
-  font-weight: 600;
+  font-weight: bold;
+  color: #2c3e50;
   font-size: 1.1rem;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px dashed #ddd;
-}
-
-.popup-error {
-  background: #ffebee;
-  color: #c62828;
-  padding: 12px;
-  border-radius: 6px;
-  margin: 15px 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  animation: shake 0.5s;
-}
-
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  20%, 60% { transform: translateX(-5px); }
-  40%, 80% { transform: translateX(5px); }
 }
 
 .popup-actions {
   display: flex;
-  gap: 15px;
-  margin-top: 20px;
+  justify-content: flex-end;
+  padding: 1rem;
+  gap: 1rem;
 }
 
-.popup-cancel-btn, .popup-confirm-btn {
-  flex: 1;
-  padding: 12px;
-  border-radius: 6px;
-  font-weight: 600;
+.popup-cancel-btn, .bargain-btn {
+  padding: 0.8rem 1.5rem;
+  border-radius: 8px;
+  font-weight: bold;
   cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
+  transition: all 0.3s;
 }
 
 .popup-cancel-btn {
-  background: #f1f2f6;
-  color: #7f8c8d;
+  background: white;
   border: 1px solid #ddd;
+  color: #666;
 }
 
 .popup-cancel-btn:hover {
-  background: #e0e0e0;
+  background: #f5f5f5;
 }
 
-.popup-confirm-btn {
-  background: #2ecc71;
+.bargain-btn {
+  background: linear-gradient(135deg, #4a6fa5, #3a5a80);
   color: white;
   border: none;
-}
-
-.popup-confirm-btn:disabled {
-  background: #bdc3c7;
-  cursor: not-allowed;
-}
-
-.popup-confirm-btn.loading {
-  background: #27ae60;
-}
-
-/* Responsive adjustments */
-@media (max-width: 480px) {
-  .bargain-popup-content {
-    padding: 20px;
-  }
-  
-  .popup-actions {
-    flex-direction: column;
-  }
-}
-.popup-confirm-btn {
-  padding: 12px 24px;
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 16px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  transition: all 0.3s ease;
+  gap: 0.5rem;
 }
 
-.popup-confirm-btn:hover:not(:disabled) {
-  background-color: #45a049;
-  transform: translateY(-1px);
+.bargain-btn:hover {
+  background: linear-gradient(135deg, #3a5a80, #2c3e50);
+  transform: translateY(-2px);
 }
 
-.popup-confirm-btn:disabled {
-  background-color: #cccccc;
-  cursor: not-allowed;
+.bargain-btn.loading {
+  opacity: 0.8;
 }
 
-.popup-confirm-btn.loading {
-  background-color: #2196F3;
+/* Chat Interface */
+.chat-interface {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: white;
 }
 
-.popup-confirm-btn .fa-spinner {
-  margin-right: 8px;
-}
-.popup-confirm-btn {
-  padding: 12px 24px;
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 16px;
+.unique-close-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  padding: 0.5rem 1rem;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  transition: all 0.3s ease;
-  min-width: 180px;
+  gap: 0.5rem;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.3s;
 }
 
-.popup-confirm-btn:hover:not(:disabled) {
-  background-color: #45a049;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+.unique-close-btn:hover {
+  background: #f5f5f5;
+  transform: scale(1.05);
 }
 
-.popup-confirm-btn:disabled {
-  background-color: #cccccc;
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-
-.popup-confirm-btn.loading {
-  background-color: #2196F3;
-}
-
-.popup-confirm-btn .fa-spinner {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-/* Message styling */
-.message {
-  max-width: 70%;
-  padding: 10px 15px;
-  border-radius: 18px;
-  margin: 5px 0;
+.chat-header {
+  background: linear-gradient(135deg, #4a6fa5, #3a5a80);
+  color: white;
+  padding: 1rem;
   position: relative;
 }
 
-.message.system {
-  align-self: center;
-  background-color: #f0f0f0;
-  color: #555;
-  text-align: center;
-  max-width: 90%;
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.connection-status {
+  font-size: 0.8rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.connection-status.connected {
+  background: rgba(46, 204, 113, 0.2);
+  color: #2ecc71;
+}
+
+.connection-status.connecting {
+  background: rgba(241, 196, 15, 0.2);
+  color: #f1c40f;
+}
+
+.connection-status.disconnected, .connection-status.error {
+  background: rgba(231, 76, 60, 0.2);
+  color: #e74c3c;
+}
+
+.product-info {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+
+.price-display {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.current-price, .base-price, .total-price {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.3rem 0.6rem;
+  border-radius: 8px;
+}
+
+.status-accepted {
+  color: #2ecc71;
+  margin-top: 0.5rem;
+}
+
+.status-rejected {
+  color: #e74c3c;
+  margin-top: 0.5rem;
+}
+
+/* Chat Messages */
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  background: #f5f7fa;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.no-messages {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  color: #7f8c8d;
+}
+
+.message {
+  max-width: 80%;
+  padding: 0.8rem 1rem;
+  border-radius: 12px;
+  position: relative;
+  animation: fadeInUp 0.3s ease-out;
 }
 
 .message.consumer {
   align-self: flex-end;
-  background-color: #0084ff;
+  background: #4a6fa5;
   color: white;
-  margin-left: auto;
+  border-bottom-right-radius: 0;
 }
 
 .message.farmer {
   align-self: flex-start;
-  background-color: #e5e5ea;
-  color: black;
-  margin-right: auto;
+  background: white;
+  color: #333;
+  border: 1px solid #ddd;
+  border-bottom-left-radius: 0;
+}
+
+.message.system {
+  align-self: center;
+  background: #f1f3f6;
+  color: #7f8c8d;
+  font-size: 0.9rem;
+  text-align: center;
+  max-width: 90%;
 }
 
 .system-label {
   font-weight: bold;
-  margin-right: 5px;
+  color: #4a6fa5;
+}
+
+.message-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  margin-top: 0.3rem;
+  opacity: 0.8;
+}
+
+.message.consumer .message-meta {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Typing Indicator */
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.8rem;
+  background: white;
+  border-radius: 12px;
+  align-self: flex-start;
+  margin-top: 0.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  animation: fadeIn 0.3s ease-out;
+}
+
+.typing-dots {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.typing-dots div {
+  width: 8px;
+  height: 8px;
+  background: #7f8c8d;
+  border-radius: 50%;
+  animation: bounce 1.4s infinite ease-in-out;
+}
+
+.typing-dots div:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.typing-dots div:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+/* Chat Controls */
+.chat-controls {
+  padding: 1rem;
+  background: white;
+  border-top: 1px solid #eee;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.farmer-counter-options {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  animation: slideInUp 0.3s ease-out;
+}
+
+.farmer-counter-options h4 {
+  margin: 0 0 1rem 0;
+  color: #2c3e50;
+}
+
+.response-buttons {
+  display: flex;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.response-buttons button {
+  flex: 1;
+  min-width: 120px;
+  padding: 0.8rem;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.accept-btn {
+  background: linear-gradient(135deg, #2ecc71, #27ae60);
+  color: white;
+  border: none;
+}
+
+.accept-btn:hover {
+  background: linear-gradient(135deg, #27ae60, #219653);
+  transform: translateY(-2px);
+}
+
+.reject-btn {
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  color: white;
+  border: none;
+}
+
+.reject-btn:hover {
+  background: linear-gradient(135deg, #c0392b, #a93226);
+  transform: translateY(-2px);
+}
+
+.counter-btn {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  color: white;
+  border: none;
+}
+
+.counter-btn:hover {
+  background: linear-gradient(135deg, #2980b9, #1a6ea8);
+  transform: translateY(-2px);
+}
+
+/* Price Suggestions */
+.price-suggestions {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.price-suggestions h4 {
+  margin: 0 0 1rem 0;
+  color: #2c3e50;
+}
+
+.suggestion-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.8rem;
+}
+
+.suggestion-btn {
+  padding: 0.8rem;
+  border-radius: 8px;
+  background: white;
+  border: 1px solid #ddd;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.suggestion-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.suggestion-btn.decrease {
+  border-color: #e74c3c;
+  color: #e74c3c;
+}
+
+.suggestion-btn.increase {
+  border-color: #2ecc71;
+  color: #2ecc71;
+}
+
+.price-change {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.price-label {
+  font-size: 0.8rem;
+  margin-top: 0.3rem;
+}
+
+/* Waiting Indicator */
+.waiting-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  color: #7f8c8d;
+  animation: pulse 2s infinite;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes bounce {
+  0%, 80%, 100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .bargain-popup-container {
+    width: 95%;
+  }
+  
+  .message {
+    max-width: 90%;
+  }
+  
+  .response-buttons, .suggestion-buttons {
+    grid-template-columns: 1fr;
+  }
+  
+  .price-display {
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .popup-actions {
+    flex-direction: column;
+  }
+  
+  .popup-cancel-btn, .bargain-btn {
+    width: 100%;
+  }
 }
