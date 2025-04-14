@@ -15,6 +15,7 @@ const path = require("path");
 const multer = require("multer");
 const fs = require("fs");
 const cron = require('node-cron');
+// const { checkFarmerConsistency } = require('./src/middlewares/cartMiddleware');
 
 const axios = require('axios');
 const moment = require('moment');
@@ -5450,8 +5451,321 @@ app.get('/api/consumer/:consumerId/bargain-orders', authenticate, async (req, re
     res.status(500).json({ message: 'Failed to fetch orders' });
   }
 });
+// Middleware to ensure the farmer in the request matches the logged-in user
+const addAcceptedBargainToCart = async (req, res) => {
+  try {
+    const { bargain_id } = req.body;
+    
+    // 1. Get the accepted bargain details
+    const bargain = await Bargain.findOne({
+      where: { id: bargain_id, status: 'accepted' },
+      include: [
+        { model: Product, attributes: ['id', 'produce_name', 'produce_type', 'farmer_id'] },
+        { model: User, as: 'Consumer', attributes: ['id'] }
+      ]
+    });
 
+    if (!bargain) {
+      return res.status(404).json({ message: "Accepted bargain not found" });
+    }
 
+    // 2. Verify the requesting user is either the farmer or consumer involved
+    const isFarmer = req.user.role === 'farmer' && req.user._id === bargain.Product.farmer_id;
+    const isConsumer = req.user.role === 'consumer' && req.user._id === bargain.Consumer.id;
+    
+    if (!isFarmer && !isConsumer) {
+      return res.status(403).json({ message: "Not authorized to add this to cart" });
+    }
+
+    const consumer_id = bargain.Consumer.id;
+    const farmer_id = bargain.Product.farmer_id;
+
+    // 3. Check if cart has items from another farmer
+    const existingCartItems = await Cart.findAll({ 
+      where: { consumer_id } 
+    });
+
+    if (existingCartItems.length > 0) {
+      const differentFarmerItem = existingCartItems.find(item => item.farmer_id !== farmer_id);
+      if (differentFarmerItem) {
+        return res.status(400).json({
+          message: "Cannot add item - cart contains products from another farmer",
+          current_farmer_id: differentFarmerItem.farmer_id
+        });
+      }
+    }
+
+    // 4. Add to cart
+    const cartItem = await Cart.create({
+      consumer_id,
+      farmer_id,
+      product_id: bargain.Product.id,
+      product_name: bargain.Product.produce_name,
+      product_category: bargain.Product.produce_type,
+      quantity: bargain.agreed_quantity,
+      price_per_kg: bargain.agreed_price,
+      total_price: (bargain.agreed_price * bargain.agreed_quantity).toFixed(2),
+      bargain_id: bargain.id
+    });
+
+    res.status(201).json(cartItem);
+  } catch (error) {
+    console.error("Error adding accepted bargain to cart:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// // Middleware to validate cart operations for consumers only
+// const validateConsumerCart = async (req, res, next) => {
+//   if (req.user.role !== 'consumer') {
+//     return res.status(403).json({ message: "Only consumers can manage cart items" });
+//   }
+//   next();
+// };
+// GET /api/cart - Fetch cart items with required fields
+app.post('/api/cart/add-to-cart', async (req, res) => {
+  try {
+    const {
+      consumer_id,
+      farmer_id,
+      product_id,
+      product_name,
+      product_category,
+      quantity,
+      price_per_kg,
+      bargain_id
+    } = req.body;
+
+    const total_price = quantity * price_per_kg;
+
+    const sql = `
+      INSERT INTO cart (
+        consumer_id,
+        farmer_id,
+        product_id,
+        product_name,
+        product_category,
+        quantity,
+        price_per_kg,
+        total_price,
+        bargain_id
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+
+    await queryDatabase(sql, [
+      consumer_id,
+      farmer_id,
+      product_id,
+      product_name,
+      product_category,
+      quantity,
+      price_per_kg,
+      total_price,
+      bargain_id
+    ]);
+
+    res.status(200).json({ message: 'Item added to cart successfully' });
+  } catch (error) {
+    console.error('Error adding to cart:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+// GET: /cart/:consumerId
+app.post('/api/cart/:consumerId', async (req, res) => {
+  const consumerId = req.params.consumerId;
+  const {
+    bargain_id,
+    product_id,
+    product_name,
+    product_category,
+    price_per_kg,
+    quantity,
+    total_price,
+    farmer_id,
+    consumer_id
+  } = req.body;
+
+  try {
+    // First check if this bargain already exists in cart
+    const checkSql = `SELECT * FROM cart WHERE consumer_id = ? AND bargain_id = ?`;
+    const existingItem = await queryDatabase(checkSql, [consumerId, bargain_id]);
+
+    if (existingItem.length > 0) {
+      // Update existing entry
+      const updateSql = `
+        UPDATE cart SET
+          product_id = ?,
+          product_name = ?,
+          product_category = ?,
+          price_per_kg = ?,
+          quantity = ?,
+          total_price = ?,
+          farmer_id = ?,
+          updated_at = NOW()
+        WHERE consumer_id = ? AND bargain_id = ?
+      `;
+      
+      await queryDatabase(updateSql, [
+        product_id || null,
+        product_name,
+        product_category,
+        price_per_kg,
+        quantity,
+        total_price,
+        farmer_id,
+        consumerId,
+        bargain_id
+      ]);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Cart item updated successfully'
+      });
+    } else {
+      // Insert new entry
+      const insertSql = `
+        INSERT INTO cart 
+        (consumer_id, farmer_id, product_id, product_name, product_category, 
+         quantity, price_per_kg, total_price, bargain_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `;
+      
+      await queryDatabase(insertSql, [
+        consumerId,
+        farmer_id,
+        product_id || null,
+        product_name,
+        product_category,
+        quantity,
+        price_per_kg,
+        total_price,
+        bargain_id
+      ]);
+
+      return res.status(201).json({
+        success: true,
+        message: 'Item added to cart successfully'
+      });
+    }
+  } catch (error) {
+    console.error('Error updating cart:', error);
+    res.status(500).json({ 
+      error: 'Internal Server Error',
+      details: error.message
+    });
+  }
+});
+app.get('/api/cart/:consumerId', async (req, res) => {
+  const consumerId = req.params.consumerId;
+
+  try {
+    const sql = `
+      SELECT 
+        product_name,
+        product_category,
+        price_per_kg,
+        total_price,
+        quantity,
+        consumer_id,
+        farmer_id
+      FROM cart 
+      WHERE consumer_id = ?
+    `;
+    
+    const cartItems = await queryDatabase(sql, [consumerId]);
+    
+    res.status(200).json({
+      success: true,
+      data: cartItems,
+      count: cartItems.length
+    });
+  } catch (error) {
+    console.error('Error fetching cart:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Internal Server Error'
+    });
+  }
+});
+// DELETE /api/cart/:consumerId/:cartId
+// DELETE /api/cart/remove-items
+app.delete('/api/cart/remove-items', async (req, res) => {
+  try {
+    const { consumerId, cartIds } = req.body;
+    
+    if (!Array.isArray(cartIds) || cartIds.length === 0) {
+      return res.status(400).json({ error: 'Invalid cart IDs' });
+    }
+
+    // Delete all specified cart items that belong to this consumer
+    const placeholders = cartIds.map(() => '?').join(',');
+    const query = `
+      DELETE FROM cart 
+      WHERE cart_id IN (${placeholders}) 
+      AND consumer_id = ?
+    `;
+    
+    const result = await queryDatabase(query, [...cartIds, consumerId]);
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'No matching cart items found' });
+    }
+    
+    res.json({ 
+      success: true,
+      deletedCount: result.affectedRows
+    });
+  } catch (error) {
+    console.error('Error deleting cart items:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+// Trigger endpoint (called when bargain is accepted)
+app.post('/api/cart/add-from-bargain', authMiddleware, async (req, res) => {
+  try {
+    const { bargain_id } = req.body;
+    
+    // Get the accepted bargain
+    const bargain = await BargainOrder.findOne({
+      where: { 
+        bargain_id,
+        status: 'accepted'
+      }
+    });
+
+    if (!bargain) {
+      return res.status(400).json({ error: "Bargain not found or not accepted" });
+    }
+
+    // Check if already in cart
+    const existing = await Cart.findOne({
+      where: { bargain_id }
+    });
+
+    if (existing) {
+      return res.json({ message: "Item already in cart" });
+    }
+
+    // Add to cart
+    await Cart.create({
+      consumer_id: bargain.consumer_id,
+      farmer_id: bargain.farmer_id,
+      product_id: bargain.product_id,
+      product_name: bargain.product_name,
+      product_category: bargain.product_category,
+      quantity: bargain.quantity,
+      price_per_kg: bargain.final_price,
+      total_price: bargain.total_amount,
+      bargain_id: bargain.bargain_id
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Add from bargain error:', error);
+    res.status(500).json({ error: "Failed to add to cart" });
+  }
+});
 // Send new message
 // POST /api/bargain/:bargainId/messages
 // app.post('/api/bargain/:bargainId/messages', authenticate, async (req, res) => {
