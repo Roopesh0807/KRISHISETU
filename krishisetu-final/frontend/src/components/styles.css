@@ -410,3 +410,364 @@ body {
     opacity: 0;
   }
 }
+
+
+
+
+/* Krishisetu Contact Section */
+.ks-contact-container {
+  width: 90%;
+  max-width: 1200px;
+  margin: 80px auto;
+  padding: 40px;
+  background-color: #fff;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  background: linear-gradient(to bottom, #ffffff, #f8fff8);
+  border: 1px solid #e0f0e0;
+}
+
+.ks-contact-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.ks-contact-title {
+  font-size: 2.5rem;
+  color: #2e7d32;
+  margin-bottom: 10px;
+  font-weight: 700;
+  position: relative;
+  display: inline-block;
+}
+
+.ks-contact-title::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 3px;
+  background: linear-gradient(to right, #4CAF50, #8BC34A);
+}
+
+.ks-contact-subtitle {
+  font-size: 1.1rem;
+  color: #666;
+  margin-top: 10px;
+}
+
+.ks-contact-content {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 40px;
+}
+
+.ks-contact-info {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.ks-contact-info-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+}
+
+.ks-contact-icon {
+  font-size: 1.5rem;
+  color: #4CAF50;
+  margin-top: 5px;
+}
+
+.ks-contact-info-title {
+  font-size: 1.2rem;
+  color: #333;
+  margin-bottom: 5px;
+  font-weight: 600;
+}
+
+.ks-contact-info-text {
+  font-size: 1rem;
+  color: #666;
+  line-height: 1.5;
+}
+
+.ks-contact-social {
+  margin-top: 20px;
+}
+
+.ks-social-title {
+  font-size: 1.1rem;
+  color: #333;
+  margin-bottom: 15px;
+  font-weight: 600;
+}
+
+.ks-social-icons {
+  display: flex;
+  gap: 15px;
+}
+
+.ks-social-icon {
+  font-size: 1.8rem;
+  color: #555;
+  transition: all 0.3s ease;
+}
+
+.ks-social-icon:hover {
+  color: #4CAF50;
+  transform: translateY(-3px);
+}
+
+.ks-contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.ks-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ks-form-label {
+  font-size: 1rem;
+  color: #333;
+  font-weight: 500;
+}
+
+.ks-form-input,
+.ks-form-textarea {
+  padding: 12px 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background-color: #f9f9f9;
+  font-family: inherit;
+}
+
+.ks-form-input:focus,
+.ks-form-textarea:focus {
+  outline: none;
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+  background-color: #fff;
+}
+
+.ks-form-textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+/* Primary Button Styles */
+/* KRISHISETU BUTTON - 100% VISIBLE SOLUTION */
+.ks-submit-btn {
+  /* ALWAYS VISIBLE INITIAL STATE */
+  background: #2e7d32 !important; /* Dark green always */
+  color: white !important; /* White text always */
+  padding: 14px 25px;
+  border: 2px solid #2e7d32 !important;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 10px;
+  box-shadow: 0 2px 5px rgba(46, 125, 50, 0.2);
+  transition: all 0.2s ease;
+
+  /* Remove any inherited white backgrounds */
+  background-image: none !important;
+}
+
+/* Hover State */
+.ks-submit-btn:not(:disabled):hover {
+  background: #1b5e20 !important; /* Slightly darker green */
+  transform: translateY(-1px);
+}
+
+/* Disabled State */
+.ks-submit-btn:disabled {
+  background: #e8f5e9 !important; /* Very light green */
+  color: #2e7d32 !important; /* Dark green text */
+  border-color: #c8e6c9 !important;
+}
+
+
+.ks-spinner {
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  animation: ks-spin 1s linear infinite;
+}
+
+@keyframes ks-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive Design */
+@media (max-width: 992px) {
+  .ks-contact-content {
+    grid-template-columns: 1fr;
+  }
+  
+  .ks-contact-info {
+    order: 2;
+    margin-top: 30px;
+  }
+  
+  .ks-contact-form {
+  background-color: #ffffff;
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+}
+}
+
+@media (max-width: 576px) {
+  .ks-contact-container {
+    padding: 30px 20px;
+  }
+  
+  .ks-contact-title {
+    font-size: 2rem;
+  }
+}
+
+
+
+/* ===================== */
+/* KRISHISETU HOME STYLES */
+/* ===================== */
+
+/* Home Container */
+.ks-home-container {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+/* Hero Section */
+.ks-hero-section {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.6)), 
+              url("../assets/background.jpg");
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  color: white;
+}
+
+.ks-hero-content {
+  max-width: 1200px;
+  padding: 0 20px;
+  animation: ks-fadeIn 1.5s ease-in-out;
+}
+
+.ks-hero-title {
+  font-size: clamp(2.5rem, 5vw, 5rem);
+  margin-bottom: 20px;
+  font-weight: 700;
+  text-shadow: 2px 2px 10px rgba(0, 177, 0, 0.5);
+  background: linear-gradient(135deg, #4CAF50, #45a049);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  line-height: 1.2;
+  min-height: 1.2em; /* Prevent layout shift during typing */
+}
+
+.ks-type-cursor {
+  display: inline-block;
+  margin-left: 5px;
+  animation: ks-blink 0.75s infinite;
+  color: #4CAF50;
+}
+
+.ks-hero-subtitle {
+  font-size: clamp(1rem, 2vw, 1.5rem);
+  margin-bottom: 40px;
+  text-shadow: 1px 1px 5px rgba(0, 104, 21, 0.5);
+}
+
+.ks-hero-btn {
+  padding: 12px 30px;
+  font-size: 1.2rem;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 30px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.ks-hero-btn:hover {
+  background-color: #45a049;
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.ks-hero-btn:active {
+  transform: translateY(1px);
+}
+
+/* Section Styling */
+.ks-about-section,
+.ks-contact-section {
+  padding: 80px 0;
+  background-color: #f9f9f9;
+}
+
+/* Animations */
+@keyframes ks-fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes ks-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .ks-hero-title {
+    font-size: 3rem;
+  }
+  
+  .ks-hero-subtitle {
+    font-size: 1.2rem;
+  }
+  
+  .ks-hero-btn {
+    font-size: 1rem;
+    padding: 10px 25px;
+  }
+}
+
+@media (max-width: 480px) {
+  .ks-hero-title {
+    font-size: 2.2rem;
+  }
+  
+  .ks-hero-subtitle {
+    font-size: 1rem;
+  }
+}
