@@ -14,6 +14,10 @@ const { Server } = require("socket.io");
 const path = require("path");
 const multer = require("multer");
 const fs = require("fs");
+const cron = require('node-cron');
+
+const axios = require('axios');
+const moment = require('moment');
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
@@ -76,19 +80,7 @@ const storage = multer.diskStorage({
 });
 
 const uploads = multer({ storage });
-// Protected route middleware
-// const authenticateToken = (req, res, next) => {
-//   const authHeader = req.headers['authorization'];
-//   const token = authHeader && authHeader.split(' ')[1];
-  
-//   if (!token) return res.status(401).json({ message: "Access denied. No token provided." });
 
-//   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-//     if (err) return res.status(403).json({ message: "Invalid token" });
-//     req.user = user;
-//     next();
-//   });
-// };
 
 
 const upload = multer({ storage });
@@ -108,26 +100,6 @@ const uploadReviewImages = multer({ storage: reviewStorage });
 app.use('/uploads', express.static(uploadsDir));
 // Add this near the top of server.js (after the imports)
 
-
-
-
-// const farmerDocumentStorage = multer.diskStorage({
-//   destination: (req, file, cb) => {
-//     const uploadDir = '/uploads/farmer-documents';
-//     if (!fs.existsSync(uploadDir)) {
-//       fs.mkdirSync(uploadDir, { recursive: true });
-//     }
-//     cb(null, uploadDir);
-//   },
-//   filename: (req, file, cb) => {
-//     const farmerId = req.params.farmer_id;
-//     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-//     const ext = path.extname(file.originalname);
-//     cb(null, `farmer-${farmerId}-${uniqueSuffix}${ext}`);
-//   }
-// });
-// Update the farmerDocumentStorage configuration (around line 50)
-// Update the farmerDocumentStorage configuration
 const farmerDocumentStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     let folder = path.join(uploadsDir, 'farmer-documents');
@@ -160,21 +132,6 @@ const farmerDocumentUpload = multer({
 });
 
 
-// const farmerDocumentUpload = multer({ 
-//   storage: farmerDocumentStorage,
-//   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-//   fileFilter: (req, file, cb) => {
-//     if (file.mimetype === 'application/pdf' || 
-//         file.mimetype.startsWith('image/') ||
-//         file.mimetype === 'application/msword' ||
-//         file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-//       cb(null, true);
-//     } else {
-//       cb(new Error('Only PDF, Word, and image files are allowed!'), false);
-//     }
-//   }
-// });
-
 const { verifyToken, authenticate, farmerOnly } = require('./src/middlewares/authMiddleware');
 // const { initiateBargain } = require("./src/controllers/bargainController"); // Correct file
 
@@ -196,15 +153,8 @@ const io = new Server(httpServer, {
   }
 });
 const router = express.Router();
-// const express = require('express');
-
-// const FarmerModel = require('./src/models/farmerModels');  // ✅ Ensure this path is correct
-// const pool = require('./src/config/db');  // Ensure this line is present
-
 
 const { authMiddleware } = require("./src/middlewares/authMiddleware"); // your renamed one
-
-
 
 // ✅ PROPER CORS SETUP
 const corsOptions = {
@@ -223,34 +173,6 @@ const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_VLCfnymiyd6HGf',
   key_secret: process.env.RAZORPAY_KEY_SECRET
 });
-// const razorpay = new Razorpay({
-//   key_id: 'rzp_test_VLCfnymiyd6HGf',
-//   key_secret: 'dwcSRSRah7Y4eBZUzL8M'
-// });
-
-
-// console.log('Loading Razorpay with key:', process.env.RAZORPAY_KEY_ID);
-// const razorpay = new Razorpay({
-
-//   key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_VLCfnymiyd6HGf', // Fallback for testing
-//   key_secret: process.env.RAZORPAY_KEY_SECRET || 'JXgWqR4bQ9mN2kL7pS8hT3wZ'
-// });
-
-// // Add this error handling to verify credentials on startup
-// razorpay.orders.create({
-//   amount: 100, // 1 INR
-//   currency: 'INR',
-//   receipt: 'test_receipt'
-// }).then(() => {
-//   console.log('✅ Razorpay credentials verified successfully');
-// }).catch(err => {
-//   console.error('❌ Razorpay credential verification failed:');
-
-//   key_id: process.env.RAZORPAY_KEY_ID,
-//   key_secret: process.env.RAZORPAY_KEY_SECRET
-
-// });
-
 // ✅ Then these
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -482,14 +404,6 @@ const token = jwt.sign(
 
 
 
-
-
-
-
-
-
-
-
 // ✅ Upload Profile Photo
 app.post("/api/farmerprofile/:farmer_id/photo", verifyToken, upload.single('photo'), async (req, res) => {
   try {
@@ -687,8 +601,6 @@ const reviewsRoutes = require('./src/routes/reviews');
 
 const secretKey = process.env.JWT_SECRET;
 
-
-
 // Middleware to verify JWT from HTTP API
 const authenticateJWT = (req, res, next) => {
   const token = req.cookies.token; // assuming token is in cookies
@@ -824,58 +736,6 @@ io.use((socket, next) => {
   }
 });
 
-// io.on("connection", (socket) => {
-//   const user = socket.user;
-//   const userType = user?.userType;
-//   const bargainId = socket.handshake.query?.bargainId;
-
-//   console.log("🎯 Reached io.on(connection) with socket.user:", user);
-//   console.log("🔗 bargainId received in query:", bargainId);
-
-//   if (!user || (userType !== "farmer" && userType !== "consumer")) {
-//     console.warn(`❌ Unauthorized socket connection attempt: ${socket.id}`);
-//     socket.disconnect(true);
-//     return;
-//   }
-
-//   console.log(`📡 ${userType} connected via socket: ${socket.id} (User ID: ${user.id})`);
-
-//   // 💬 Handle bargain messages within the same room
-//   if (bargainId) {
-//     socket.join(bargainId); // ✅ Join a room for the bargain session
-//     console.log(`🏠 Joined room for bargainId: ${bargainId}`);
-//   }
-
-//   // 🔁 Listen and emit within room
-//   socket.on("bargainMessage", (data) => {
-//     const bargainId = data.bargain_id; // ✅ Correct way to fetch bargainId from message
-//     const user = socket.user;
-  
-//     console.log(`💬 [${user.userType}] Bargain Message Received from ${user.id}:`, data);
-  
-//     if (bargainId) {
-//       socket.to(bargainId).emit("bargainMessage", {
-//         ...data,
-//         senderId: user.id,
-//         senderType: user.userType,
-//       });
-//     } else {
-//       console.warn("⚠️ bargainId missing in message. Broadcasting to all instead.");
-//       socket.broadcast.emit("bargainMessage", {
-//         ...data,
-//         senderId: user.id,
-//         senderType: user.userType,
-//       });
-//     }
-//   });
-  
-
-//   socket.on("disconnect", () => {
-//     console.log(`❌ ${userType} disconnected: ${socket.id}`);
-//   });
-// });
-
-
 
 io.on("connection", (socket) => {
   const user = socket.user;
@@ -919,19 +779,6 @@ io.on("connection", (socket) => {
     }
   });
 
-  // socket.on("updateBargainStatus", (data) => {
-  //   const { bargainId, status, currentPrice, userId } = data;
-    
-  //   // Add this critical line:
-  //   const initiatedBy = socket.user.userType; // 'farmer' or 'consumer'
-  
-  //   io.to(bargainId).emit("bargainStatusUpdate", {
-  //     status,
-  //     currentPrice,
-  //     initiatedBy, // Crucial for correct message display
-  //     timestamp: new Date().toISOString()
-  //   });
-  // });
 
   // ⚡ Handle price updates
   socket.on("updateBargainStatus", async (data) => {
@@ -1159,6 +1006,51 @@ app.post("/api/upload/:consumer_id", upload.single('photo'), async (req, res) =>
     });
   }
 });
+
+//CLEARS THE ORDER ONCE CONFIRMED
+// In your backend routes
+// Make sure this comes before any error handling middleware
+// router.delete('/api/community/:communityId/clear-orders/:memberId', async (req, res) => {
+//   try {
+//     const { communityId, memberId } = req.params;
+//     console.log(`Attempting to clear orders for community ${communityId} member ${memberId}`); // Add logging
+    
+//     const result = await OrderItem.destroy({
+//       where: {
+//         community_id: communityId,
+//         member_id: memberId
+//       }
+//     });
+    
+//     console.log(`Cleared ${result} order items`); // Add logging
+//     res.json({ success: true, deletedCount: result });
+//   } catch (error) {
+//     console.error("Error clearing orders:", error);
+//     res.status(500).json({ 
+//       error: 'Failed to clear orders',
+//       details: error.message 
+//     });
+//   }
+// });
+
+// router.get('/api/community/:communityId/member/:memberId/has-confirmed-order', async (req, res) => {
+//   try {
+//     const { communityId, memberId } = req.params;
+    
+//     const confirmedOrder = await Order.findOne({
+//       where: {
+//         community_id: communityId,
+//         member_id: memberId,
+//         status: 'confirmed'
+//       }
+//     });
+    
+//     res.json({ hasConfirmedOrder: !!confirmedOrder });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ error: 'Failed to check confirmed order' });
+//   }
+// });
 
 
 app.post("/api/upload/:id", upload.single("file"), (req, res) => {
@@ -1498,38 +1390,6 @@ app.put("/api/consumerprofile/:consumer_id", async (req, res) => {
   }
 });
 
-// Add this endpoint to fetch consumer profile
-// app.get("/api/consumerprofile/:consumer_id", async (req, res) => {
-//   try {
-//     const { consumer_id } = req.params;
-//     const query = `
-//       SELECT 
-//         consumer_id, 
-//         name, 
-//         mobile_number, 
-//         email, 
-//         address, 
-//         pincode, 
-//         location, 
-//         photo, 
-//         preferred_payment_method, 
-//         subscription_method 
-//       FROM consumerprofile 
-//       WHERE consumer_id = ?`;
-    
-//     const results = await queryDatabase(query, [consumer_id]);
-    
-//     if (results.length > 0) {
-//       res.json(results[0]);
-//     } else {
-//       res.status(404).json({ message: 'Consumer profile not found' });
-//     }
-//   } catch (error) {
-//     console.error('Error fetching consumer profile:', error);
-//     res.status(500).json({ message: 'Internal Server Error' });
-//   }
-// });
-// Update the place-order endpoint
 
 // Add this to your backend routes
 router.post('/api/orders/place-order',  async (req, res) => {
@@ -1837,149 +1697,7 @@ app.delete("/remove-photo/:consumer_id", async (req, res) => {
 });
 
 
-//     const authHeader = req.headers.authorization;
-//     if (!authHeader) {
-//       console.error("❌ No Authorization header!");
-//       return res.status(401).json({ error: "Authorization token required" });
-//     }
 
-//     const token = authHeader.split(" ")[1];
-//     console.log("🔍 Extracted Token:", token);
-
-//     if (!token) {
-//       console.error("❌ Token is missing in Authorization header!");
-//       return res.status(401).json({ error: "Authorization token required" });
-//     }
-
-//     let decoded;
-//     try {
-//       decoded = jwt.verify(token, process.env.JWT_SECRET);
-//       console.log("✅ Token Decoded:", decoded);
-//     } catch (err) {
-//       console.error("❌ Token verification failed:", err.message);
-//       return res.status(401).json({ error: "Invalid or expired token" });
-//     }
-
-//     const { bargain_id } = req.params;
-//     console.log("🔍 Checking bargain session for ID:", bargain_id);
-
-//     const session = await queryDatabase(
-//       "SELECT * FROM bargain_sessions WHERE bargain_id = ?",
-//       [bargain_id]
-//     );
-    
-//     console.log("🔎 DB Result:", session);
-    
-
-//     if (session.length === 0) {
-//       console.error("❌ Session not found in DB!");
-//       return res.status(404).json({ error: "Session not found" });
-//     }
-   
-//     console.log("📨 Sending response to frontend:", { success: true, session: session[0] });
-
-    
-
-//   } catch (error) {
-//     console.error("🔥 Auth Error:", error.stack);
-//     res.status(500).json({ error: "Internal Server Error" });
-//   }
-// });
-// app.get("/api/bargain/:bargain_id", verifyToken, async (req, res) => {
-//   try {
-//     const { bargain_id } = req.params;
-
-//     if (!bargain_id) {
-//       return res.status(400).json({
-//         success: false,
-//         error: "Bargain ID is required"
-//       });
-//     }
-
-//     // Get bargain session
-//     console.log("🔍 Fetching bargain session for ID:", bargain_id);
-
-//     const sessionResult = await queryDatabase(
-//       `SELECT 
-//         bargain_id,
-//         consumer_id,
-//         farmer_id,
-//         product_id,
-//         original_price,
-//         quantity,
-//         current_offer,
-//         status,
-//         initiator,
-//         created_at,
-//         updated_at,
-//         expires_at
-//       FROM bargain_sessions 
-//       WHERE bargain_id = ?`,
-//       [bargain_id]
-//     );
-
-//     console.log("🧪 Session result:", sessionResult);
-
-//     if (!sessionResult || sessionResult.length === 0) {
-//       return res.status(404).json({
-//         success: false,
-//         error: "Bargain session not found"
-//       });
-//     }
-
-//     const session = sessionResult[0];
-
-//     // Get messages
-//     const messages = await queryDatabase(
-//       `SELECT 
-//         message_id,
-//         bargain_id,
-//         price,
-//         sender_type,
-//         message_type,
-//         content,
-//         timestamp
-//        FROM bargain_messages
-//        WHERE bargain_id = ?
-//        ORDER BY timestamp ASC`,
-//       [bargain_id]
-//     );
-//     if (!Array.isArray(messages)) {
-//       console.warn("⚠️ messages query returned non-array:", messages);
-//     }
-//     // Construct response
-//     const responseData = {
-//       success: true,
-//       session: {
-//         bargain_id: session.bargain_id,
-//         consumer_id: session.consumer_id,
-//         farmer_id: session.farmer_id,
-//         product_id: session.product_id,
-//         initial_price: session.original_price,        // ← 💡 You’ll use this as base price per 1kg
-//         quantity: session.quantity,
-//         current_price: session.current_offer || null, // ← 💡 Updated based on selected suggestion
-//         status: session.status,
-//         initiator: session.initiator,
-//         created_at: session.created_at,
-//         updated_at: session.updated_at,
-//         expires_at: session.expires_at,
-//         messages: messages || []
-//       }
-//     };
-
-//     res.status(200).json(responseData); // ✅ Let Express handle serialization
-
-//   } catch (error) {
-//     console.error("🔥 Error fetching bargain:", error);
-  
-//     return res.status(500).json({ // ← ✅ Add `return`
-//       success: false,
-//       error: "Internal server error",
-//       ...(process.env.NODE_ENV === "development" && { details: error.message })
-//     });
-//   }
-  
-// });
 
 app.get("/api/bargain/:bargain_id", verifyToken, async (req, res) => {
   try {
@@ -2239,35 +1957,7 @@ app.get('/api/products/price', async (req, res) => {
       res.status(500).json({ error: "Database error" });
   }
 });
-// app.get('/api/consumerprofile/:consumer_id', async (req, res) => {
-//   const { consumer_id } = req.params;
-//   try {
-//       const query = `
-//       SELECT consumer_id, 
-//              name, 
-//              mobile_number, 
-//              email, 
-//              address, 
-//              pincode, 
-//              location, 
-//              photo, 
-//              preferred_payment_method, 
-//              subscription_method 
-//       FROM consumerprofile 
-//       WHERE consumer_id = ?`;
 
-//       const results = await queryDatabase(query, [consumer_id]);
-
-//       if (results.length > 0) {
-//           res.json(results[0]);
-//       } else {
-//           res.status(404).json({ message: 'Consumer profile not found' });
-//       }
-//   } catch (error) {
-//       console.error('Error fetching consumer profile:', error);
-//       res.status(500).json({ message: 'Internal Server Error' });
-//   }
-// });
 app.get("/api/consumerdetails/:id", async (req, res) => {
   try {
     const consumer_id = req.params.id;
@@ -2376,14 +2066,6 @@ app.get("/api/orders/:consumer_id", async (req, res) => {
       res.status(500).json({ error: "Failed to fetch order products" });
   }
 });
-
-
-
-
-
-
-
-
 
 
 // Authentication Middleware
@@ -3074,504 +2756,6 @@ app.get('/api/bills/pdf/:consumer_id/:plan', authenticateToken, async (req, res)
   }
 });
 
-// app.get('/api/bills/:consumer_id/:plan', authenticateToken, async (req, res) => {
-//   console.log('BACKEND 1: Request received', req.params); // Backend Debug 1
-//   try {
-//     const { consumer_id, plan } = req.params;
-//     console.log('BACKEND 2: Authenticated user:', req.user); // Backend Debug 2
-//     const today = new Date();
-//     today.setHours(0, 0, 0, 0); // Normalize to midnight
-    
-//     // Verify the requested consumer_id matches the authenticated user
-//     if (consumer_id !== req.user.consumer_id) {
-//       return res.status(403).json({
-//         success: false,
-//         message: 'Unauthorized access to billing information'
-//       });
-//     }
-
-//     // Validate plan type
-//     const validPlans = ['Daily', 'Alternate Days', 'Weekly', 'Monthly'];
-//     if (!validPlans.includes(plan)) {
-//       return res.status(400).json({ 
-//         success: false,
-//         error: "Invalid subscription plan" 
-//       });
-//     }
-
-//     // Get all active subscriptions for this plan
-//     const subscriptions = await queryDatabase(
-//       `SELECT * FROM subscriptions 
-//        WHERE consumer_id = ? AND subscription_type = ? AND status = 'Active'`,
-//       [consumer_id, plan]
-//     );
-
-//     if (subscriptions.length === 0) {
-//       return res.status(404).json({ 
-//         success: false,
-//         error: "No active subscriptions found for this plan" 
-//       });
-//     }
-
-//     // Calculate billing period based on plan type
-//     let billingPeriod = {
-//       start: '',
-//       end: '',
-//       nextBillingDate: ''
-//     };
-    
-//     const startDate = new Date(subscriptions[0].start_date);
-//     startDate.setHours(0, 0, 0, 0);
-    
-//     if (plan === 'Daily') {
-//       billingPeriod = {
-//         start: today.toISOString().split('T')[0],
-//         end: today.toISOString().split('T')[0],
-//         nextBillingDate: new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-//       };
-//     } 
-//     else if (plan === 'Alternate Days') {
-//       const daysDiff = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
-      
-//       if (daysDiff % 2 === 0) {
-//         billingPeriod = {
-//           start: today.toISOString().split('T')[0],
-//           end: today.toISOString().split('T')[0],
-//           nextBillingDate: new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-//         };
-//       } else {
-//         return res.status(400).json({ 
-//           success: false,
-//           error: "Today is not a billing day for Alternate Days plan" 
-//         });
-//       }
-//     } 
-//     else if (plan === 'Weekly') {
-//       const startDayOfWeek = startDate.getDay(); // 0 (Sunday) to 6 (Saturday)
-//       const todayDayOfWeek = today.getDay();
-      
-//       if (startDayOfWeek === todayDayOfWeek) {
-//         const weekStart = new Date(today);
-//         weekStart.setDate(today.getDate() - today.getDay()); // Start of week (Sunday)
-        
-//         billingPeriod = {
-//           start: weekStart.toISOString().split('T')[0],
-//           end: today.toISOString().split('T')[0],
-//           nextBillingDate: new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-//         };
-//       } else {
-//         return res.status(400).json({ 
-//           success: false,
-//           error: "Today is not the billing day for Weekly plan" 
-//         });
-//       }
-//     } 
-//     else if (plan === 'Monthly') {
-//       const startDateDay = startDate.getDate();
-//       const todayDate = today.getDate();
-//       const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-      
-//       // Check if today is the billing day or the last day of month (for short months)
-//       if (todayDate === startDateDay || 
-//           (todayDate === lastDayOfMonth && startDateDay > lastDayOfMonth)) {
-//         const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-        
-//         billingPeriod = {
-//           start: monthStart.toISOString().split('T')[0],
-//           end: today.toISOString().split('T')[0],
-//           nextBillingDate: new Date(today.getFullYear(), today.getMonth() + 1, 
-//                                    Math.min(startDateDay, lastDayOfMonth)).toISOString().split('T')[0]
-//         };
-//       } else {
-//         return res.status(400).json({ 
-//           success: false,
-//           error: "Today is not the billing day for Monthly plan" 
-//         });
-//       }
-//     }
-
-//     // Calculate bill amounts
-//     const subtotal = subscriptions.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-//     const subscriptionFee = subscriptions.reduce((sum, item) => sum + (5 * item.quantity), 0); // ₹5 per item fee
-//     const total = subtotal + subscriptionFee;
-
-//     // Get billing history for this plan
-//     const billingHistory = await queryDatabase(
-//       `SELECT 
-//         bh.billing_id,
-//         bh.amount,
-//         DATE_FORMAT(bh.billing_date, '%Y-%m-%d') as billing_date,
-//         wt.transaction_id,
-//         DATE_FORMAT(wt.transaction_date, '%Y-%m-%d %H:%i:%s') as payment_date,
-//         bh.description
-//        FROM billing_history bh
-//        JOIN wallet_transactions wt ON bh.transaction_id = wt.transaction_id
-//        WHERE bh.consumer_id = ? AND bh.subscription_type = ?
-//        ORDER BY bh.billing_date DESC
-//        LIMIT 10`,
-//       [consumer_id, plan]
-//     );
-
-//     // Create bill object
-//     const bill = {
-//       plan,
-//       billingPeriod,
-//       items: subscriptions.map(item => ({
-//         subscription_id: item.subscription_id,
-//         product_name: item.product_name,
-//         quantity: item.quantity,
-//         price: item.price,
-//         total: item.price * item.quantity
-//       })),
-//       subtotal,
-//       subscriptionFee,
-//       total,
-//       generatedAt: new Date().toISOString(),
-//       billingHistory
-//     };
-
-//     res.json({ 
-//       success: true, 
-//       bill 
-//     });
-//   } catch (error) {
-//     console.error("Error generating bill:", error);
-//     res.status(500).json({ 
-//       success: false,
-//       error: "Failed to generate bill" 
-//     });
-//   }
-// });
-
-// // Process payment for a subscription plan
-// app.post('/api/bills/pay/:consumer_id/:plan', authenticateToken, async (req, res) => {
-//   try {
-//     const { consumer_id, plan } = req.params;
-//     const today = new Date();
-//     today.setHours(0, 0, 0, 0);
-    
-//     // Verify authorization
-//     if (consumer_id !== req.user.consumer_id) {
-//       return res.status(403).json({
-//         success: false,
-//         message: 'Unauthorized payment attempt'
-//       });
-//     }
-
-//     // First generate the bill to get the amount
-//     const billResponse = await queryDatabase(
-//       `SELECT 
-//         s.subscription_id,
-//         s.product_name,
-//         s.quantity,
-//         s.price,
-//         (s.price * s.quantity) as item_total,
-//         (5 * s.quantity) as fee
-//        FROM subscriptions s
-//        WHERE s.consumer_id = ? AND s.subscription_type = ? AND s.status = 'Active'`,
-//       [consumer_id, plan]
-//     );
-
-//     if (billResponse.length === 0) {
-//       return res.status(404).json({ 
-//         success: false,
-//         error: "No active subscriptions found for this plan" 
-//       });
-//     }
-
-//     // Calculate totals
-//     const subtotal = billResponse.reduce((sum, item) => sum + item.item_total, 0);
-//     const subscriptionFee = billResponse.reduce((sum, item) => sum + item.fee, 0);
-//     const total = subtotal + subscriptionFee;
-
-//     // Get current wallet balance
-//     const walletBalance = await queryDatabase(
-//       `SELECT balance FROM wallet_transactions 
-//        WHERE consumer_id = ? 
-//        ORDER BY transaction_date DESC LIMIT 1`,
-//       [consumer_id]
-//     );
-//     const currentBalance = walletBalance[0]?.balance || 0;
-
-//     if (currentBalance < total) {
-//       return res.status(400).json({ 
-//         success: false,
-//         error: "Insufficient wallet balance",
-//         required: total,
-//         current: currentBalance
-//       });
-//     }
-
-//     // Deduct from wallet
-//     const paymentDescription = `Subscription payment for ${plan} plan`;
-//     const paymentResult = await queryDatabase(
-//       `INSERT INTO wallet_transactions 
-//        (consumer_id, transaction_type, amount, description, payment_method) 
-//        VALUES (?, 'Debit', ?, ?, 'Subscription Payment')`,
-//       [consumer_id, total, paymentDescription]
-//     );
-
-//     // Record the payment in billing history
-//     await queryDatabase(
-//       `INSERT INTO billing_history 
-//        (consumer_id, subscription_type, amount, billing_date, transaction_id, description) 
-//        VALUES (?, ?, ?, ?, NULL, ?)`,
-//       [consumer_id, plan, total, today, paymentResult.insertId, paymentDescription]
-//     );
-
-//     // Log the delivery
-//     await queryDatabase(
-//       `INSERT INTO delivery_logs 
-//        (consumer_id, delivery_date, amount, transaction_id, status) 
-//        VALUES (?, ?, ?, NULL, 'Completed')`,
-//       [consumer_id, today, total, paymentResult.insertId]
-//     );
-
-//     // Get the updated balance
-//     const updatedBalance = await queryDatabase(
-//       `SELECT balance FROM wallet_transactions 
-//        WHERE transaction_id = ?`,
-//       [paymentResult.insertId]
-//     );
-
-//     res.json({ 
-//       success: true,
-//       message: "Payment processed successfully",
-//       amount: total,
-//       newBalance: updatedBalance[0].balance,
-//       transactionId: paymentResult.insertId
-//     });
-    
-//   } catch (error) {
-//     console.error("Error processing payment:", error);
-//     res.status(500).json({ 
-//       success: false,
-//       error: "Failed to process payment" 
-//     });
-//   }
-// });
-
-
-// // Get billing history
-// app.get('/api/bills/history/:consumer_id', verifyToken, async (req, res) => {
-//   try {
-//     const { consumer_id } = req.params;
-    
-//     const history = await queryDatabase(
-//       `SELECT 
-//         bh.billing_id,
-//         bh.subscription_type as plan,
-//         bh.amount,
-//         DATE_FORMAT(bh.billing_date, '%Y-%m-%d') as billing_date,
-//         wt.transaction_id,
-//         DATE_FORMAT(wt.transaction_date, '%Y-%m-%d %H:%i:%s') as payment_date,
-//         bh.description
-//        FROM billing_history bh
-//        JOIN wallet_transactions wt ON bh.transaction_id = wt.transaction_id
-//        WHERE bh.consumer_id = ?
-//        ORDER BY bh.billing_date DESC`,
-//       [consumer_id]
-//     );
-
-//     res.json({ success: true, history });
-//   } catch (error) {
-//     console.error("Error fetching billing history:", error);
-//     res.status(500).json({ error: "Failed to fetch billing history" });
-//   }
-// });
-
-// // Generate PDF bill
-// app.get('/api/bills/pdf/:consumer_id/:plan', authenticateToken, async (req, res) => {
-//   try {
-//     const { consumer_id, plan } = req.params;
-//     const today = new Date();
-    
-//     // Verify the requested consumer_id matches the authenticated user
-//     if (consumer_id !== req.user.consumer_id) {
-//       return res.status(403).json({
-//         success: false,
-//         message: 'Unauthorized access to billing information'
-//       });
-//     }
-
-//     // Get current bill
-//     const currentBill = await queryDatabase(
-//       `SELECT 
-//         s.subscription_id,
-//         s.product_name,
-//         s.quantity,
-//         s.price,
-//         (s.price * s.quantity) as item_total,
-//         (5 * s.quantity) as fee
-//        FROM subscriptions s
-//        WHERE s.consumer_id = ? AND s.subscription_type = ? AND s.status = 'Active'`,
-//       [consumer_id, plan]
-//     );
-
-//     if (currentBill.length === 0) {
-//       return res.status(404).json({ 
-//         success: false,
-//         error: "No active subscriptions found for this plan" 
-//       });
-//     }
-
-//     // Get billing history
-//     const billingHistory = await queryDatabase(
-//       `SELECT 
-//         bh.billing_id,
-//         bh.amount,
-//         DATE_FORMAT(bh.billing_date, '%Y-%m-%d') as billing_date,
-//         wt.transaction_id,
-//         DATE_FORMAT(wt.transaction_date, '%Y-%m-%d %H:%i:%s') as payment_date,
-//         bh.description
-//        FROM billing_history bh
-//        JOIN wallet_transactions wt ON bh.transaction_id = wt.transaction_id
-//        WHERE bh.consumer_id = ? AND bh.subscription_type = ?
-//        ORDER BY bh.billing_date DESC
-//        LIMIT 10`,
-//       [consumer_id, plan]
-//     );
-
-//     // Calculate totals for current bill
-//     const subtotal = currentBill.reduce((sum, item) => sum + item.item_total, 0);
-//     const subscriptionFee = currentBill.reduce((sum, item) => sum + item.fee, 0);
-//     const total = subtotal + subscriptionFee;
-
-//     // Generate PDF
-//     const PDFDocument = require('pdfkit');
-//     const fs = require('fs');
-//     const path = require('path');
-    
-//     const doc = new PDFDocument();
-//     const fileName = `subscription_bill_${plan}_${today.toISOString().split('T')[0]}.pdf`;
-//     const filePath = path.join(__dirname, 'temp', fileName);
-    
-//     // Ensure temp directory exists
-//     if (!fs.existsSync(path.join(__dirname, 'temp'))) {
-//       fs.mkdirSync(path.join(__dirname, 'temp'));
-//     }
-    
-//     const writeStream = fs.createWriteStream(filePath);
-//     doc.pipe(writeStream);
-    
-//     // PDF Content
-//     doc.fontSize(20).text(`${plan} Subscription Bill`, { align: 'center' });
-//     doc.moveDown();
-    
-//     // Consumer info
-//     const consumer = await queryDatabase(
-//       "SELECT first_name, last_name, address FROM consumerregistration WHERE consumer_id = ?",
-//       [consumer_id]
-//     );
-    
-//     if (consumer.length > 0) {
-//       doc.fontSize(12)
-//          .text(`Consumer: ${consumer[0].first_name} ${consumer[0].last_name}`)
-//          .text(`Address: ${consumer[0].address}`)
-//          .text(`Date: ${today.toLocaleDateString()}`)
-//          .moveDown();
-//     }
-    
-//     // Current Bill Section
-//     doc.fontSize(14).text('Current Bill Details', { underline: true });
-//     doc.moveDown(0.5);
-    
-//     // Table header
-//     doc.font('Helvetica-Bold')
-//        .text('Product', 50, doc.y)
-//        .text('Qty', 200, doc.y)
-//        .text('Unit Price', 250, doc.y)
-//        .text('Total', 350, doc.y)
-//        .moveDown(0.5);
-    
-//     doc.font('Helvetica');
-//     // Table rows
-//     currentBill.forEach(item => {
-//       doc.text(item.product_name, 50, doc.y)
-//          .text(item.quantity.toString(), 200, doc.y)
-//          .text(`₹${item.price.toFixed(2)}`, 250, doc.y)
-//          .text(`₹${item.item_total.toFixed(2)}`, 350, doc.y)
-//          .moveDown(0.5);
-//     });
-    
-//     // Totals
-//     doc.moveDown(0.5)
-//        .text(`Subtotal: ₹${subtotal.toFixed(2)}`, { align: 'right' })
-//        .text(`Subscription Fee: ₹${subscriptionFee.toFixed(2)}`, { align: 'right' })
-//        .font('Helvetica-Bold')
-//        .text(`Total: ₹${total.toFixed(2)}`, { align: 'right' })
-//        .font('Helvetica')
-//        .moveDown(2);
-    
-//     // Billing History Section
-//     if (billingHistory.length > 0) {
-//       doc.fontSize(14).text('Payment History', { underline: true });
-//       doc.moveDown(0.5);
-      
-//       // History table header
-//       doc.font('Helvetica-Bold')
-//          .text('Date', 50, doc.y)
-//          .text('Amount', 200, doc.y)
-//          .text('Status', 350, doc.y)
-//          .moveDown(0.5);
-      
-//       doc.font('Helvetica');
-//       // History rows
-//       billingHistory.forEach(item => {
-//         doc.text(item.billing_date, 50, doc.y)
-//            .text(`₹${item.amount.toFixed(2)}`, 200, doc.y)
-//            .text('Paid', 350, doc.y)
-//            .moveDown(0.5);
-//       });
-//     }
-    
-//     doc.end();
-    
-//     writeStream.on('finish', () => {
-//       res.download(filePath, fileName, (err) => {
-//         if (err) console.error("Error sending PDF:", err);
-//         // Delete the file after download
-//         fs.unlinkSync(filePath);
-//       });
-//     });
-    
-//   } catch (error) {
-//     console.error("Error generating PDF:", error);
-//     res.status(500).json({ 
-//       success: false,
-//       error: "Failed to generate PDF bill" 
-//     });
-//   }
-// });
-
-
-
-
-
-// // ✅ Middleware: Verify JWT Token
-// const verifyToken = (req, res, next) => {
-//   const token = req.cookies.token;
-//   if (!token) return res.status(401).json({ success: false, message: "Access denied. No token provided." });
-
-//   try {
-//     const decoded = jwt.verify(token, SECRET_KEY);
-//     req.user = decoded;
-//     next();
-//   } catch (err) {
-//     res.status(401).json({ success: false, message: "Invalid or expired token" });
-//   }
-// };
-
-// ✅ API to Fetch Products
-// app.get("/api/products", async (req, res) => {
-//   try {
-//     const products = await queryDatabase("SELECT * FROM products");
-//     res.json(products);
-//   } catch (err) {
-//     res.status(500).json({ success: false, message: "Error fetching products", error: err.message });
-//   }
-// });
-
 
 app.get("/api/products", async (req, res) => {
   try {
@@ -3584,9 +2768,6 @@ app.get("/api/products", async (req, res) => {
     res.status(500).json({ success: false, message: "Error fetching products", error: err.message });
   }
 });
-
-
-
 
 
 const saltRounds = 10;
@@ -5318,21 +4499,599 @@ app.delete("/api/subscriptions/:subscription_id", verifyToken, async (req, res) 
     res.status(500).json({ error: "Failed to delete subscription" });
   }
 });
+// Add these new routes for subscription management
+
+// Daily Subscription Processing
+app.post('/api/process-subscriptions/daily', async (req, res) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Get all active daily subscriptions
+    const subscriptions = await queryDatabase(
+      `SELECT s.subscription_id, s.consumer_id, s.product_id, 
+              s.product_name, s.quantity, s.price,
+              cr.first_name, cr.last_name
+       FROM subscriptions s
+       JOIN consumerregistration cr ON s.consumer_id = cr.consumer_id
+       WHERE s.subscription_type = 'Daily' 
+       AND s.status = 'Active'`
+    );
+
+    if (subscriptions.length === 0) {
+      return res.json({ success: true, message: "No daily subscriptions to process" });
+    }
+
+    // Process each subscription
+    for (const sub of subscriptions) {
+      const amount = sub.price * sub.quantity;
+      const subscriptionFee = 5 * sub.quantity; // ₹5 per item fee
+      const total = amount + subscriptionFee;
+
+      // Check wallet balance
+      const [wallet] = await queryDatabase(
+        `SELECT balance FROM wallet_transactions 
+         WHERE consumer_id = ? 
+         ORDER BY transaction_date DESC LIMIT 1`,
+        [sub.consumer_id]
+      );
+
+      const currentBalance = wallet?.balance || 0;
+
+      if (currentBalance < total) {
+        // Insufficient funds - skip this subscription
+        await queryDatabase(
+          `INSERT INTO subscription_logs 
+           (subscription_id, consumer_id, amount, status, message)
+           VALUES (?, ?, ?, 'Failed', 'Insufficient funds')`,
+          [sub.subscription_id, sub.consumer_id, total]
+        );
+        continue;
+      }
+
+      // Deduct from wallet
+      await queryDatabase(
+        `INSERT INTO wallet_transactions 
+         (consumer_id, transaction_type, amount, description, payment_method)
+         VALUES (?, 'Debit', ?, 'Daily subscription payment', 'Subscription')`,
+        [sub.consumer_id, total]
+      );
+
+      // Record payment in billing history
+      await queryDatabase(
+        `INSERT INTO billing_history 
+         (consumer_id, subscription_type, amount, billing_date, description)
+         VALUES (?, 'Daily', ?, ?, 'Daily subscription payment')`,
+        [sub.consumer_id, total, today]
+      );
+
+      // Record successful delivery
+      await queryDatabase(
+        `INSERT INTO delivery_logs 
+         (consumer_id, delivery_date, amount, status)
+         VALUES (?, ?, ?, 'Completed')`,
+        [sub.consumer_id, today, total]
+      );
+
+      // Log successful processing
+      await queryDatabase(
+        `INSERT INTO subscription_logs 
+         (subscription_id, consumer_id, amount, status, message)
+         VALUES (?, ?, ?, 'Completed', 'Payment processed successfully')`,
+        [sub.subscription_id, sub.consumer_id, total]
+      );
+    }
+
+    res.json({ 
+      success: true, 
+      message: "Daily subscriptions processed successfully",
+      processed: subscriptions.length
+    });
+
+  } catch (error) {
+    console.error("Error processing daily subscriptions:", error);
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to process subscriptions",
+      details: error.message
+    });
+  }
+});
+
+// Similar endpoints for other subscription types (Alternate Days, Weekly, Monthly)
+// ... (implement similar logic for other subscription types)
+
+// Combined Bill Generation
+app.get('/api/subscriptions/combined-bill/:consumer_id', async (req, res) => {
+  try {
+    const { consumer_id } = req.params;
+    const { start_date, end_date } = req.query;
+
+    // Validate dates
+    const startDate = start_date ? new Date(start_date) : new Date();
+    startDate.setHours(0, 0, 0, 0);
+    
+    const endDate = end_date ? new Date(end_date) : new Date();
+    endDate.setHours(23, 59, 59, 999);
+
+    // Get all billing history for the period
+    const billingHistory = await queryDatabase(
+      `SELECT 
+        bh.billing_id,
+        bh.subscription_type,
+        bh.amount,
+        bh.billing_date,
+        bh.description,
+        wt.transaction_id,
+        wt.transaction_date
+       FROM billing_history bh
+       JOIN wallet_transactions wt ON bh.transaction_id = wt.transaction_id
+       WHERE bh.consumer_id = ?
+       AND bh.billing_date BETWEEN ? AND ?
+       ORDER BY bh.billing_date DESC`,
+      [consumer_id, startDate, endDate]
+    );
+
+    // Calculate totals
+    const totals = billingHistory.reduce((acc, item) => {
+      if (!acc[item.subscription_type]) {
+        acc[item.subscription_type] = 0;
+      }
+      acc[item.subscription_type] += item.amount;
+      acc.total += item.amount;
+      return acc;
+    }, { total: 0 });
+
+    // Get consumer details
+    const [consumer] = await queryDatabase(
+      `SELECT first_name, last_name, email, phone_number 
+       FROM consumerregistration 
+       WHERE consumer_id = ?`,
+      [consumer_id]
+    );
+
+    res.json({
+      success: true,
+      consumer,
+      period: {
+        start: startDate.toISOString().split('T')[0],
+        end: endDate.toISOString().split('T')[0]
+      },
+      billingHistory,
+      totals,
+      generatedAt: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error("Error generating combined bill:", error);
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to generate combined bill"
+    });
+  }
+});
+
+// PDF Generation for Combined Bill
+// Updated Combined Bill PDF Generation
+// app.get('/api/subscriptions/combined-bill-pdf/:consumer_id', async (req, res) => {
+//   try {
+//     const { consumer_id } = req.params;
+//     const { start_date, end_date } = req.query;
+
+//     // First get the bill data
+//     const billData = await getCombinedBillData(consumer_id, start_date, end_date);
+
+//     // Generate PDF
+//     const PDFDocument = require('pdfkit');
+//     const doc = new PDFDocument();
+    
+//     // Set response headers
+//     res.setHeader('Content-Type', 'application/pdf');
+//     res.setHeader('Content-Disposition', `attachment; filename=combined_bill_${consumer_id}_${new Date().toISOString().split('T')[0]}.pdf`);
+    
+//     // Pipe PDF to response
+//     doc.pipe(res);
+    
+//     // PDF Content
+//     doc.fontSize(20).text('Combined Subscription Bill', { align: 'center' });
+//     doc.moveDown();
+    
+//     // Consumer info
+//     doc.fontSize(12)
+//        .text(`Consumer: ${billData.consumer.first_name} ${billData.consumer.last_name}`)
+//        .text(`Period: ${billData.period.start} to ${billData.period.end}`)
+//        .text(`Generated on: ${new Date().toLocaleDateString()}`)
+//        .moveDown();
+    
+//     // Bill summary
+//     doc.fontSize(14).text('Bill Summary', { underline: true });
+//     doc.moveDown(0.5);
+    
+//     // Table header
+//     doc.font('Helvetica-Bold')
+//        .text('Date', 50, doc.y)
+//        .text('Type', 150, doc.y)
+//        .text('Description', 250, doc.y)
+//        .text('Amount', 450, doc.y)
+//        .moveDown(0.5);
+    
+//     doc.font('Helvetica');
+//     // Table rows
+//     billData.billingHistory.forEach(item => {
+//       doc.text(new Date(item.billing_date).toLocaleDateString(), 50, doc.y)
+//          .text(item.subscription_type, 150, doc.y)
+//          .text(item.description, 250, doc.y)
+//          .text(`₹${item.amount.toFixed(2)}`, 450, doc.y)
+//          .moveDown(0.5);
+//     });
+    
+//     // Total
+//     doc.moveDown();
+//     doc.font('Helvetica-Bold')
+//        .text('Total Amount:', 350, doc.y)
+//        .text(`₹${billData.totals.total.toFixed(2)}`, 450, doc.y);
+    
+//     doc.end();
+    
+//   } catch (error) {
+//     console.error("Error generating PDF:", error);
+//     res.status(500).json({ 
+//       success: false,
+//       error: "Failed to generate PDF bill" 
+//     });
+//   }
+// });
+// Combined Bill PDF Generation
+app.get('/api/subscriptions/combined-bill-pdf/:consumer_id', async (req, res) => {
+  try {
+    const { consumer_id } = req.params;
+    const { start_date, end_date } = req.query;
+
+    // Get consumer details
+    const [consumer] = await queryDatabase(
+      `SELECT first_name, last_name FROM consumerregistration 
+       WHERE consumer_id = ?`,
+      [consumer_id]
+    );
+
+    // Get billing history
+    const billingHistory = await queryDatabase(
+      `SELECT bh.*, wt.transaction_date 
+       FROM billing_history bh
+       JOIN wallet_transactions wt ON bh.transaction_id = wt.transaction_id
+       WHERE bh.consumer_id = ?
+       AND bh.billing_date BETWEEN ? AND ?
+       ORDER BY bh.billing_date DESC`,
+      [consumer_id, start_date || '1970-01-01', end_date || new Date().toISOString()]
+    );
+
+    // Calculate totals
+    const totals = billingHistory.reduce((acc, item) => {
+      if (!acc[item.subscription_type]) {
+        acc[item.subscription_type] = 0;
+      }
+      acc[item.subscription_type] += item.amount;
+      acc.total = (acc.total || 0) + item.amount;
+      return acc;
+    }, {});
+
+    // Generate PDF
+    const PDFDocument = require('pdfkit');
+    const doc = new PDFDocument();
+    
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=subscription_bill_${consumer_id}.pdf`);
+    
+    doc.pipe(res);
+
+    // Header
+    doc.fontSize(20).text('Subscription Bill Summary', { align: 'center' });
+    doc.moveDown();
+    
+    // Consumer Info
+    doc.fontSize(12)
+       .text(`Customer: ${consumer.first_name} ${consumer.last_name}`)
+       .text(`Customer ID: ${consumer_id}`)
+       .text(`Generated on: ${new Date().toLocaleDateString()}`)
+       .moveDown();
+
+    // Bill Summary
+    doc.fontSize(16).text('Billing Summary', { underline: true });
+    doc.moveDown(0.5);
+    
+    doc.font('Helvetica-Bold')
+       .text('Subscription Type', 50, doc.y)
+       .text('Amount', 350, doc.y)
+       .moveDown(0.5);
+    
+    doc.font('Helvetica');
+    for (const [type, amount] of Object.entries(totals)) {
+      if (type !== 'total') {
+        doc.text(type, 50, doc.y)
+           .text(`₹${amount.toFixed(2)}`, 350, doc.y)
+           .moveDown(0.5);
+      }
+    }
+    
+    // Total
+    doc.moveDown();
+    doc.font('Helvetica-Bold')
+       .text('Total Amount:', 300, doc.y)
+       .text(`₹${totals.total.toFixed(2)}`, 350, doc.y)
+       .moveDown();
+
+    // Transaction Details
+    doc.addPage();
+    doc.fontSize(16).text('Transaction Details', { underline: true });
+    doc.moveDown(0.5);
+    
+    doc.font('Helvetica-Bold')
+       .text('Date', 50, doc.y)
+       .text('Type', 150, doc.y)
+       .text('Description', 250, doc.y)
+       .text('Amount', 450, doc.y)
+       .moveDown(0.5);
+    
+    doc.font('Helvetica');
+    billingHistory.forEach(item => {
+      doc.text(new Date(item.billing_date).toLocaleDateString(), 50, doc.y)
+         .text(item.subscription_type, 150, doc.y)
+         .text(item.description, 250, doc.y)
+         .text(`₹${item.amount.toFixed(2)}`, 450, doc.y)
+         .moveDown(0.5);
+    });
+
+    doc.end();
+  } catch (error) {
+    console.error("Error generating PDF:", error);
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to generate PDF bill" 
+    });
+  }
+});
+async function getCombinedBillData(consumer_id, start_date, end_date) {
+  // Validate dates
+  const startDate = start_date ? new Date(start_date) : new Date();
+  startDate.setHours(0, 0, 0, 0);
+  
+  const endDate = end_date ? new Date(end_date) : new Date();
+  endDate.setHours(23, 59, 59, 999);
+
+  // Get all billing history for the period
+  const billingHistory = await queryDatabase(
+    `SELECT 
+      bh.billing_id,
+      bh.subscription_type,
+      bh.amount,
+      bh.billing_date,
+      bh.description,
+      wt.transaction_id,
+      wt.transaction_date
+     FROM billing_history bh
+     JOIN wallet_transactions wt ON bh.transaction_id = wt.transaction_id
+     WHERE bh.consumer_id = ?
+     AND bh.billing_date BETWEEN ? AND ?
+     ORDER BY bh.billing_date DESC`,
+    [consumer_id, startDate, endDate]
+  );
+
+  // Calculate totals
+  const totals = billingHistory.reduce((acc, item) => {
+    if (!acc[item.subscription_type]) {
+      acc[item.subscription_type] = 0;
+    }
+    acc[item.subscription_type] += item.amount;
+    acc.total += item.amount;
+    return acc;
+  }, { total: 0 });
+
+  // Get consumer details
+  const [consumer] = await queryDatabase(
+    `SELECT first_name, last_name, email, phone_number 
+     FROM consumerregistration 
+     WHERE consumer_id = ?`,
+    [consumer_id]
+  );
+
+  return {
+    consumer,
+    period: {
+      start: startDate.toISOString().split('T')[0],
+      end: endDate.toISOString().split('T')[0]
+    },
+    billingHistory,
+    totals,
+    generatedAt: new Date().toISOString()
+  };
+}
+// Add this to your server.js or create a new file (subscriptionCron.js)
 
 
 
+// subscriptionCron.js
 
 
+// Daily at 7 AM
+// cron.schedule('0 7 * * *', async () => {
+//   console.log('Running daily subscription processing...');
+//   try {
+//     await processSubscriptions('Daily');
+//     console.log('Daily subscriptions processed successfully');
+//   } catch (error) {
+//     console.error('Error processing daily subscriptions:', error);
+//   }
+// });
 
+// // Alternate Days at 7 AM
+// cron.schedule('0 7 * * *', async () => {
+//   const today = moment().date();
+//   if (today % 2 === 0) { // Process every even day
+//     console.log('Running alternate day subscription processing...');
+//     try {
+//       await processSubscriptions('Alternate Days');
+//       console.log('Alternate day subscriptions processed successfully');
+//     } catch (error) {
+//       console.error('Error processing alternate day subscriptions:', error);
+//     }
+//   }
+// });
 
+// // Weekly on Sundays at 7 AM
+// cron.schedule('0 7 * * 0', async () => {
+//   console.log('Running weekly subscription processing...');
+//   try {
+//     await processSubscriptions('Weekly');
+//     console.log('Weekly subscriptions processed successfully');
+//   } catch (error) {
+//     console.error('Error processing weekly subscriptions:', error);
+//   }
+// });
 
+// // Monthly on 1st at 7 AM
+// cron.schedule('0 7 1 * *', async () => {
+//   console.log('Running monthly subscription processing...');
+//   try {
+//     await processSubscriptions('Monthly');
+//     console.log('Monthly subscriptions processed successfully');
+//   } catch (error) {
+//     console.error('Error processing monthly subscriptions:', error);
+//   }
+// });
+// Daily Subscription Processing
+app.post('/api/process-subscriptions/daily', async (req, res) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
+    // Get all active daily subscriptions
+    const subscriptions = await queryDatabase(
+      `SELECT s.subscription_id, s.consumer_id, s.product_id, 
+              s.product_name, s.quantity, s.price,
+              cr.first_name, cr.last_name
+       FROM subscriptions s
+       JOIN consumerregistration cr ON s.consumer_id = cr.consumer_id
+       WHERE s.subscription_type = 'Daily' 
+       AND s.status = 'Active'`
+    );
 
+    if (subscriptions.length === 0) {
+      return res.json({ success: true, message: "No daily subscriptions to process" });
+    }
 
+    const processedSubscriptions = [];
+    
+    for (const sub of subscriptions) {
+      const amount = sub.price * sub.quantity;
+      const subscriptionFee = 5 * sub.quantity;
+      const total = amount + subscriptionFee;
 
+      // Check wallet balance
+      const [wallet] = await queryDatabase(
+        `SELECT balance FROM wallet_transactions 
+         WHERE consumer_id = ? 
+         ORDER BY transaction_date DESC LIMIT 1`,
+        [sub.consumer_id]
+      );
 
+      const currentBalance = wallet?.balance || 0;
 
+      if (currentBalance < total) {
+        await queryDatabase(
+          `INSERT INTO subscription_logs 
+           (subscription_id, consumer_id, amount, status, message)
+           VALUES (?, ?, ?, 'Failed', 'Insufficient funds')`,
+          [sub.subscription_id, sub.consumer_id, total]
+        );
+        continue;
+      }
 
+      // Deduct from wallet
+      await queryDatabase(
+        `INSERT INTO wallet_transactions 
+         (consumer_id, transaction_type, amount, description, payment_method)
+         VALUES (?, 'Debit', ?, ?, 'Subscription')`,
+        [sub.consumer_id, total, `${sub.product_name} (Daily Subscription)`]
+      );
+
+      // Get the transaction ID
+      const [transaction] = await queryDatabase(
+        `SELECT transaction_id FROM wallet_transactions 
+         WHERE consumer_id = ? 
+         ORDER BY transaction_date DESC LIMIT 1`,
+        [sub.consumer_id]
+      );
+
+      // Record payment in billing history
+      await queryDatabase(
+        `INSERT INTO billing_history 
+         (consumer_id, subscription_type, amount, billing_date, description, transaction_id)
+         VALUES (?, 'Daily', ?, ?, ?, ?)`,
+        [sub.consumer_id, total, today, `${sub.product_name} (Daily Subscription)`, transaction.transaction_id]
+      );
+
+      // Record successful delivery
+      await queryDatabase(
+        `INSERT INTO delivery_logs 
+         (consumer_id, delivery_date, amount, status, transaction_id)
+         VALUES (?, ?, ?, 'Completed', ?)`,
+        [sub.consumer_id, today, total, transaction.transaction_id]
+      );
+
+      // Log successful processing
+      await queryDatabase(
+        `INSERT INTO subscription_logs 
+         (subscription_id, consumer_id, amount, status, message, transaction_id)
+         VALUES (?, ?, ?, 'Completed', 'Payment processed successfully', ?)`,
+        [sub.subscription_id, sub.consumer_id, total, transaction.transaction_id]
+      );
+
+      processedSubscriptions.push({
+        subscription_id: sub.subscription_id,
+        consumer_id: sub.consumer_id,
+        amount: total,
+        transaction_id: transaction.transaction_id
+      });
+    }
+
+    res.json({ 
+      success: true, 
+      message: "Daily subscriptions processed successfully",
+      processed: processedSubscriptions
+    });
+
+  } catch (error) {
+    console.error("Error processing daily subscriptions:", error);
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to process subscriptions",
+      details: error.message
+    });
+  }
+});
+
+// Similar endpoints for other types (Alternate Days, Weekly, Monthly)
+// ... (same pattern as above with appropriate descriptions)
+async function processSubscriptions(type) {
+  try {
+    const response = await axios.post(
+      `http://localhost:5000/api/process-subscriptions/${type.toLowerCase().replace(' ', '-')}`,
+      {},
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.CRON_SECRET}`
+        }
+      }
+    );
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+}
+
+// Similarly for other subscription types
+// ...
 
 
 
@@ -6205,63 +5964,7 @@ app.put("/api/farmerprofile/:farmer_id/:section",
 );
     
 
-// app.put("/api/farmerprofile/:farmer_id/personal", 
-//   auth.authenticate,
-//   auth.farmerOnly,
-//   async (req, res) => {
-//     try {
-//       const { farmer_id } = req.params;
-      
-//       // Verify authorization - ensure the farmer is updating their own profile
-//       if (farmer_id !== req.user.farmer_id) {
-//         return res.status(403).json({ 
-//           success: false,
-//           error: "Unauthorized update attempt" 
-//         });
-//       }
 
-//       const { dob, gender, contact_no, aadhaar_no, residential_address, 
-//               bank_account_no, ifsc_code, upi_id } = req.body;
-
-//       // First check if personal details exist for this farmer
-//       const [existing] = await queryDatabase(
-//         "SELECT 1 FROM personaldetails WHERE farmer_id = ?",
-//         [farmer_id]
-//       );
-
-//       if (existing) {
-//         // Update existing record
-//         await queryDatabase(
-//           `UPDATE personaldetails SET
-//             dob = ?, gender = ?, contact_no = ?, aadhaar_no = ?,
-//             residential_address = ?, bank_account_no = ?, ifsc_code = ?, upi_id = ?
-//           WHERE farmer_id = ?`,
-//           [dob, gender, contact_no, aadhaar_no, residential_address,
-//            bank_account_no, ifsc_code, upi_id, farmer_id]
-//         );
-//       } else {
-//         // Insert new record
-//         await queryDatabase(
-//           `INSERT INTO personaldetails 
-//           (farmer_id, dob, gender, contact_no, aadhaar_no, 
-//            residential_address, bank_account_no, ifsc_code, upi_id)
-//           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-//           [farmer_id, dob, gender, contact_no, aadhaar_no,
-//            residential_address, bank_account_no, ifsc_code, upi_id]
-//         );
-//       }
-
-//       res.json({ success: true, message: "Personal details updated" });
-//     } catch (error) {
-//       console.error("Error updating personal details:", error);
-//       res.status(500).json({ 
-//         success: false, 
-//         error: "Failed to update personal details",
-//         details: error.message 
-//       });
-//     }
-//   }
-// );
 // Update the personal details update endpoint
 app.put("/api/farmerprofile/:farmer_id/personal", 
   auth.authenticate,
@@ -6473,213 +6176,6 @@ app.post("/api/verify-payment", authenticateToken, async (req, res) => {
 
 
 
-// Create Order Endpoint
-// Create Razorpay order
-// Create Razorpay order
-// app.post("/api/razorpay/create-order", authenticateToken, async (req, res) => {
-//   try {
-//     const { amount, order_id } = req.body;
-    
-//     if (!amount || isNaN(amount)) {
-//       return res.status(400).json({ 
-//         error: "Invalid amount",
-//         receivedAmount: amount 
-//       });
-//     }
-
-//     const options = {
-//       amount: Math.round(amount * 100), // Razorpay expects paise
-//       currency: 'INR',
-//       receipt: order_id || `receipt_${Date.now()}`,
-//       payment_capture: 1 // Auto-capture payment
-//     };
-
-//     console.log("Creating Razorpay order with options:", options);
-    
-//     const razorpayOrder = await razorpay.orders.create(options);
-    
-//     res.json({
-//       success: true,
-//       order: {
-//         id: razorpayOrder.id,
-//         amount: razorpayOrder.amount,
-//         currency: razorpayOrder.currency,
-//         status: razorpayOrder.status
-//       }
-//     });
-
-//   } catch (error) {
-//     console.error("Razorpay order creation error:", error);
-//     res.status(500).json({
-//       error: "Failed to create Razorpay order",
-//       details: error.error?.description || error.message,
-//       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-//     });
-//   }
-// });
-
-// // Verify Payment and Save to Database
-// // Then in your verification endpoint:
-// app.post("/api/razorpay/verify", authenticateToken, async (req, res) => {
-//   try {
-//     const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = req.body;
-
-//     // Create HMAC SHA256 hash
-//     const hmac = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET);
-//     hmac.update(`${razorpay_order_id}|${razorpay_payment_id}`);
-//     const generatedSignature = hmac.digest('hex');
-
-//     if (generatedSignature !== razorpay_signature) {
-//       return res.status(400).json({
-//         success: false,
-//         error: "Invalid signature"
-//       });
-//     }
-
-//       // Update order status
-//       await queryDatabase(
-//         `UPDATE placeorder 
-//          SET payment_status = 'Paid',
-//              payment_method = 'razorpay'
-//          WHERE order_id = ?`,
-//         [order_id]
-//       );
-  
-//       // Record payment
-//       await queryDatabase(
-//         `INSERT INTO payments (
-//           payment_id, order_id, razorpay_order_id,
-//           razorpay_payment_id, razorpay_signature,
-//           amount, status
-//         ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-//         [
-//           `pay_${Date.now()}`,
-//           order_id,
-//           razorpay_order_id,
-//           razorpay_payment_id,
-//           razorpay_signature,
-//           amount,
-//           'captured'
-//         ]
-//       );
-  
-//       res.json({ 
-//         success: true,
-//         message: "Payment verified successfully"
-//       });
-//     } 
-//    catch (error) {
-//     console.error("Verification error:", error);
-//     res.status(500).json({
-//       success: false,
-//       error: "Verification failed",
-//       details: error.message
-//     });
-//   }
-// });
-
-// Create order endpoint
-// app.post("/api/razorpay/create-order", authenticateToken, async (req, res) => {
-//   try {
-//     const { amount } = req.body;
-    
-//     const options = {
-//       amount: Math.round(amount * 100), // Razorpay expects paise
-//       currency: 'INR',
-//       receipt: `order_${Date.now()}`,
-//       payment_capture: 1 // Auto-capture payment
-//     };
-
-//     const order = await razorpay.orders.create(options);
-    
-//     res.json({
-//       success: true,
-//       order: {
-//         id: order.id,
-//         amount: order.amount,
-//         currency: order.currency
-//       }
-//     });
-//   } catch (error) {
-//     console.error("Order creation error:", error);
-//     res.status(500).json({ 
-//       error: "Failed to create Razorpay order",
-//       details: error.error?.description || error.message 
-//     });
-//   }
-// });
-
-// // Verify payment endpoint
-// app.post("/api/razorpay/verify", authenticateToken, async (req, res) => {
-//   try {
-//     const { 
-//       razorpay_payment_id, 
-//       razorpay_order_id, 
-//       razorpay_signature,
-     
-//     } = req.body;
-
-//     // Verify signature
-//     const hmac = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET ||'dwcSRSRah7Y4eBZUzL8MmcYD');
-//     hmac.update(`${razorpay_order_id}|${razorpay_payment_id}`);
-//     const generatedSignature = hmac.digest('hex');
-
-//      // Verify signature matches
-//      if (generatedSignature !== razorpay_signature) {
-//       console.error('Signature mismatch', {
-//         generated: generatedSignature,
-//         received: razorpay_signature,
-//         order_id: req.body.order_id
-//       });
-//       return res.status(400).json({
-//         success: false,
-//         error: "Invalid signature - possible tampering",
-       
-//       });
-//     }
-
-//     // Update order status
-//     await queryDatabase(
-//       `UPDATE placeorder 
-//        SET payment_status = 'Paid',
-//            payment_method = 'razorpay'
-//        WHERE order_id = ?`,
-//       [order_id]
-//     );
-
-//     // Record payment
-//     await queryDatabase(
-//       `INSERT INTO payments (
-//         payment_id, order_id, razorpay_order_id,
-//         razorpay_payment_id, razorpay_signature,
-//         amount, status
-//       ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-//       [
-//         `pay_${Date.now()}`,
-//         order_id,
-//         razorpay_order_id,
-//         razorpay_payment_id,
-//         razorpay_signature,
-//         amount,
-//         'captured'
-//       ]
-//     );
-
-//     res.json({ 
-//       success: true,
-//       message: "Payment verified successfully"
-//     });
-//   } catch (error) {
-//     console.error("Verification error:", error);
-//     res.status(500).json({
-//       success: false,
-//       error: "Verification failed",
-//       details: error.message
-//     });
-//   }
-// });
-// Razorpay Order Creation Endpoint
-
 // Razorpay Order Creation Endpoint
 app.post('/api/razorpay/create-order', authenticateToken, async (req, res) => {
   try {
@@ -6776,13 +6272,13 @@ app.post("/api/place-order", verifyToken, async (req, res) => {
     const { consumer_id, name, mobile_number, email, produce_name, quantity, amount, 
             is_self_delivery, payment_method, address, pincode, recipient_name, recipient_phone } = req.body;
 
-    // Validate required fields
-    if (!address || !pincode) {
-      return res.status(400).json({ 
-        success: false,
-        error: "Address and pincode are required" 
-      });
-    }
+    // // Validate required fields
+    // if (!address || !pincode) {
+    //   return res.status(400).json({ 
+    //     success: false,
+    //     error: "Address and pincode are required" 
+    //   });
+    // }
 
     // Insert order - trigger will handle order_id generation
     const result = await queryDatabase(

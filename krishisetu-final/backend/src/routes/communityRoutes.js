@@ -428,7 +428,54 @@ router.get('/:communityId/member-by-consumer/:consumerId',  async (req, res) => 
 });
 
 
+router.delete('/:communityId/clear-orders/:memberId', async (req, res) => {
+  try {
+    const { communityId, memberId } = req.params;
+    console.log(`Attempting to clear orders for community ${communityId} member ${memberId}`); // Add logging
+    
+       // Use queryDatabase instead of db.query
+       const result = await queryDatabase(
+        'DELETE FROM orders WHERE community_id = ? AND member_id = ?',
+        [communityId, memberId]
+      );
 
+      // Clear from frozen_orders table
+    const frozenResult = await queryDatabase(
+      'DELETE FROM frozen_orders WHERE community_id = ? AND member_id = ?',
+      [communityId, memberId]
+    );
+    
+    console.log(`Cleared ${result} order items`); // Add logging
+    res.json({ success: true, deletedCount: result });
+  } catch (error) {
+    console.error("Error clearing orders:", error);
+    res.status(500).json({ 
+      error: 'Failed to clear orders',
+      details: error.message 
+    });
+  }
+});
+
+
+
+router.get('/:communityId/member/:memberId/has-confirmed-order', async (req, res) => {
+  try {
+    const { communityId, memberId } = req.params;
+    
+    const confirmedOrder = await Order.findOne({
+      where: {
+        community_id: communityId,
+        member_id: memberId,
+        status: 'confirmed'
+      }
+    });
+    
+    res.json({ hasConfirmedOrder: !!confirmedOrder });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to check confirmed order' });
+  }
+});
 
 
 module.exports = router;

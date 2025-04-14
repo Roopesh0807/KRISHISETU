@@ -315,84 +315,234 @@ const Subscribe = () => {
       setIsLoading(false);
     }
   };
+// Add these new methods to your Subscribe component
 
-  const generateBill = async (plan) => {
-    try {
-      setIsLoading(true);
-      
-      // First get the bill details
-      const billResponse = await fetch(
-        `http://localhost:5000/api/bills/${consumer.consumer_id}/${plan}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
+const generateCombinedBill = async () => {
+  try {
+    setIsLoading(true);
+    
+    // Get date range (last 30 days by default)
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(endDate.getDate() - 30);
+    
+    const formattedStart = startDate.toISOString().split('T')[0];
+    const formattedEnd = endDate.toISOString().split('T')[0];
+    
+    // First get the bill details
+    const billResponse = await fetch(
+      `http://localhost:5000/api/subscriptions/combined-bill/${consumer.consumer_id}?start_date=${formattedStart}&end_date=${formattedEnd}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
-      );
-      
-      if (!billResponse.ok) {
-        const errorData = await billResponse.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to generate bill');
       }
-      
-      const { bill } = await billResponse.json();
-      
-      // Then process payment
-      const paymentResponse = await fetch(
-        `http://localhost:5000/api/bills/pay/${consumer.consumer_id}/${plan}`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-      
-      if (!paymentResponse.ok) {
-        const errorData = await paymentResponse.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Payment failed');
-      }
-      
-      const paymentResult = await paymentResponse.json();
-      
-      // Update wallet balance
-      setWalletBalance(paymentResult.newBalance);
-      
-      // Set the bill with payment information
-      setShowBill({
-        ...bill,
-        transactionId: paymentResult.transactionId,
-        paymentStatus: 'Completed'
-      });
-      
-      // Refresh wallet data
-      await fetchWalletData();
-      
-      showSuccess(`Bill generated and payment processed for ${plan} plan`);
-    } catch (error) {
-      console.error('Bill generation error:', error);
-      showSuccess(error.message || 'Failed to generate bill');
-      
-      // If payment failed but we have bill data, show it
-      if (error.message.includes('Failed to generate bill')) {
-        const localBill = {
-          plan,
-          items: subscriptions[plan],
-          subtotal: subscriptions[plan].reduce((sum, item) => sum + (item.price * item.quantity), 0),
-          subscriptionFee: subscriptions[plan].reduce((sum, item) => sum + (5 * item.quantity), 0),
-          total: 0,
-          message: "Could not generate bill. Please try again later."
-        };
-        localBill.total = localBill.subtotal + localBill.subscriptionFee;
-        setShowBill(localBill);
-      }
-    } finally {
-      setIsLoading(false);
+    );
+    
+    if (!billResponse.ok) {
+      const errorData = await billResponse.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to generate combined bill');
     }
-  };
+    
+    const billData = await billResponse.json();
+    
+    // Then download the PDF
+    const pdfResponse = await fetch(
+      `http://localhost:5000/api/subscriptions/combined-bill-pdf/${consumer.consumer_id}?start_date=${formattedStart}&end_date=${formattedEnd}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }
+    );
+    
+    if (!pdfResponse.ok) {
+      throw new Error('Failed to generate PDF');
+    }
+    
+    // Create blob from response
+    const blob = await pdfResponse.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `combined_subscription_bill_${formattedStart}_to_${formattedEnd}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    
+    showSuccess('Combined PDF bill downloaded successfully');
+  } catch (error) {
+    console.error('Combined bill error:', error);
+    showSuccess(`Error: ${error.message}`);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
+
+  // const generateBill = async (plan) => {
+  //   try {
+  //     setIsLoading(true);
+      
+  //     // First get the bill details
+  //     const billResponse = await fetch(
+  //       `http://localhost:5000/api/bills/${consumer.consumer_id}/${plan}`,
+  //       {
+  //         headers: {
+  //           'Authorization': `Bearer ${token}`,
+  //           'Content-Type': 'application/json'
+  //         }
+  //       }
+  //     );
+      
+  //     if (!billResponse.ok) {
+  //       const errorData = await billResponse.json().catch(() => ({}));
+  //       throw new Error(errorData.error || 'Failed to generate bill');
+  //     }
+      
+  //     const { bill } = await billResponse.json();
+      
+  //     // Then process payment
+  //     const paymentResponse = await fetch(
+  //       `http://localhost:5000/api/bills/pay/${consumer.consumer_id}/${plan}`,
+  //       {
+  //         method: 'POST',
+  //         headers: {
+  //           'Authorization': `Bearer ${token}`,
+  //           'Content-Type': 'application/json'
+  //         }
+  //       }
+  //     );
+      
+  //     if (!paymentResponse.ok) {
+  //       const errorData = await paymentResponse.json().catch(() => ({}));
+  //       throw new Error(errorData.error || 'Payment failed');
+  //     }
+      
+  //     const paymentResult = await paymentResponse.json();
+      
+  //     // Update wallet balance
+  //     setWalletBalance(paymentResult.newBalance);
+      
+  //     // Set the bill with payment information
+  //     setShowBill({
+  //       ...bill,
+  //       transactionId: paymentResult.transactionId,
+  //       paymentStatus: 'Completed'
+  //     });
+      
+  //     // Refresh wallet data
+  //     await fetchWalletData();
+      
+  //     showSuccess(`Bill generated and payment processed for ${plan} plan`);
+  //   } catch (error) {
+  //     console.error('Bill generation error:', error);
+  //     showSuccess(error.message || 'Failed to generate bill');
+      
+  //     // If payment failed but we have bill data, show it
+  //     if (error.message.includes('Failed to generate bill')) {
+  //       const localBill = {
+  //         plan,
+  //         items: subscriptions[plan],
+  //         subtotal: subscriptions[plan].reduce((sum, item) => sum + (item.price * item.quantity), 0),
+  //         subscriptionFee: subscriptions[plan].reduce((sum, item) => sum + (5 * item.quantity), 0),
+  //         total: 0,
+  //         message: "Could not generate bill. Please try again later."
+  //       };
+  //       localBill.total = localBill.subtotal + localBill.subscriptionFee;
+  //       setShowBill(localBill);
+  //     }
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
+// Updated generateBill function in Subscribe.js
+const generateBill = async (plan) => {
+  try {
+    setIsLoading(true);
+    
+    // First get the bill details without payment
+    const billResponse = await fetch(
+      `http://localhost:5000/api/bills/${consumer.consumer_id}/${plan}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    
+    if (!billResponse.ok) {
+      const errorData = await billResponse.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to generate bill');
+    }
+    
+    const { bill } = await billResponse.json();
+    
+    // Show bill without processing payment
+    setShowBill(bill);
+    
+  } catch (error) {
+    console.error('Bill generation error:', error);
+    showSuccess(error.message || 'Failed to generate bill');
+    
+    // Fallback bill display
+    const localBill = {
+      plan,
+      items: subscriptions[plan],
+      subtotal: subscriptions[plan].reduce((sum, item) => sum + (item.price * item.quantity), 0),
+      subscriptionFee: subscriptions[plan].reduce((sum, item) => sum + (5 * item.quantity), 0),
+      total: 0,
+      message: "Could not generate bill. Please try again later."
+    };
+    localBill.total = localBill.subtotal + localBill.subscriptionFee;
+    setShowBill(localBill);
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+// Add a new function for processing payment
+const processPayment = async (plan) => {
+  try {
+    setIsLoading(true);
+    const response = await fetch(
+      `http://localhost:5000/api/bills/pay/${consumer.consumer_id}/${plan}`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Payment failed');
+    }
+    
+    const result = await response.json();
+    setWalletBalance(result.newBalance);
+    await fetchWalletData();
+    showSuccess(`Payment processed successfully for ${plan} plan`);
+    
+    // Update the bill with payment info
+    setShowBill(prev => ({
+      ...prev,
+      transactionId: result.transactionId,
+      paymentStatus: 'Completed'
+    }));
+    
+  } catch (error) {
+    console.error('Payment error:', error);
+    showSuccess(error.message || 'Failed to process payment');
+  } finally {
+    setIsLoading(false);
+  }
+};
   const downloadPDF = async (plan) => {
     try {
       setIsLoading(true);
@@ -624,7 +774,13 @@ const Subscribe = () => {
           </div>
         </div>
       </div>
-
+      // Add this button to your JSX
+<button 
+  className="combined-bill-btn"
+  onClick={generateCombinedBill}
+>
+  <FaFilePdf /> Download Combined Bill (Last 30 Days)
+</button>
       <div className="subscription-plans">
         <h2 className="section-title">
           <span>Your Subscription Plans</span>
@@ -959,10 +1115,18 @@ const Subscribe = () => {
                   <button 
                     className="download-pdf"
                     onClick={() => downloadPDF(showBill.plan)}
-                    disabled={!showBill.items || showBill.items.length === 0}
+                    
                   >
                     <FaFilePdf /> Download PDF Bill
                   </button>
+                  {showBill.paymentStatus !== 'Completed' && (
+          <button 
+            className="pay-now"
+            onClick={() => processPayment(showBill.plan)}
+          >
+            Pay Now
+          </button>
+        )}
                   <button 
                     className="close-bill"
                     onClick={() => setShowBill(null)}

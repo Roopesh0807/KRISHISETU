@@ -1227,6 +1227,48 @@ function OrderPage() {
     };
   }, [communityId, consumer]);
 
+
+
+  // Add this useEffect to listen for order confirmation
+useEffect(() => {
+  const checkForConfirmedOrder = async () => {
+    try {
+      const memberIdResponse = await fetch(
+        `http://localhost:5000/api/community/${communityId}/member-by-consumer/${consumer.consumer_id}`, {
+          headers: { 
+            'Authorization': `Bearer ${consumer.token}`
+          },
+        }
+      );
+      
+      if (!memberIdResponse.ok) return;
+      const memberIdData = await memberIdResponse.json();
+      const memberId = memberIdData.memberId;
+
+      const response = await fetch(
+        `http://localhost:5000/api/community/${communityId}/member/${memberId}/has-confirmed-order`,
+        {
+          headers: {
+            'Authorization': `Bearer ${consumer.token}`
+          }
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.hasConfirmedOrder) {
+          setYourOrders([]);
+        }
+      }
+    } catch (error) {
+      console.error("Error checking confirmed order:", error);
+    }
+  };
+
+  // Check periodically (every 30 seconds) if order was confirmed
+  const interval = setInterval(checkForConfirmedOrder, 30000);
+  return () => clearInterval(interval);
+}, [communityId, consumer]);
   // Fetch discount when frozen
   useEffect(() => {
     const fetchDiscount = async () => {
