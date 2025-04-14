@@ -252,6 +252,10 @@ const Subscribe = () => {
     }
   };
 
+
+
+
+  
   const handleModify = async (subscription_id, newQuantity) => {
     if (!canModify) {
       showSuccess('Modifications are paused until 7 AM');
@@ -458,14 +462,20 @@ const generateCombinedBill = async () => {
   //     setIsLoading(false);
   //   }
   // };
-// Updated generateBill function in Subscribe.js
+
+
+
+
+
+// ... (keep all the imports and initial code the same until the generateBill function)
+
 const generateBill = async (plan) => {
   try {
     setIsLoading(true);
     
     // First get the bill details without payment
     const billResponse = await fetch(
-      `http://localhost:5000/api/bills/${consumer.consumer_id}/${plan}`,
+      `http://localhost:5000/api/bills/${consumer.consumer_id}/${plan.toLowerCase()}`,
       {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -481,8 +491,21 @@ const generateBill = async (plan) => {
     
     const { bill } = await billResponse.json();
     
+    // Ensure all amounts are numbers
+    const processedBill = {
+      ...bill,
+      items: bill.items.map(item => ({
+        ...item,
+        price: parseFloat(item.price),
+        total: parseFloat(item.price) * parseInt(item.quantity)
+      })),
+      subtotal: parseFloat(bill.subtotal),
+      subscriptionFee: parseFloat(bill.subscriptionFee),
+      total: parseFloat(bill.total)
+    };
+    
     // Show bill without processing payment
-    setShowBill(bill);
+    setShowBill(processedBill);
     
   } catch (error) {
     console.error('Bill generation error:', error);
@@ -491,9 +514,13 @@ const generateBill = async (plan) => {
     // Fallback bill display
     const localBill = {
       plan,
-      items: subscriptions[plan],
-      subtotal: subscriptions[plan].reduce((sum, item) => sum + (item.price * item.quantity), 0),
-      subscriptionFee: subscriptions[plan].reduce((sum, item) => sum + (5 * item.quantity), 0),
+      items: subscriptions[plan].map(item => ({
+        ...item,
+        price: parseFloat(item.price),
+        total: parseFloat(item.price) * parseInt(item.quantity)
+      })),
+      subtotal: subscriptions[plan].reduce((sum, item) => sum + (parseFloat(item.price) * parseInt(item.quantity)), 0),
+      subscriptionFee: subscriptions[plan].reduce((sum, item) => sum + (5 * parseInt(item.quantity)), 0),
       total: 0,
       message: "Could not generate bill. Please try again later."
     };
@@ -503,6 +530,8 @@ const generateBill = async (plan) => {
     setIsLoading(false);
   }
 };
+
+
 
 // Add a new function for processing payment
 const processPayment = async (plan) => {
@@ -543,41 +572,46 @@ const processPayment = async (plan) => {
     setIsLoading(false);
   }
 };
-  const downloadPDF = async (plan) => {
-    try {
-      setIsLoading(true);
-      const response = await fetch(
-        `http://localhost:5000/api/bills/pdf/${consumer.consumer_id}/${plan}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+const downloadPDF = async (plan) => {
+  try {
+    setIsLoading(true);
+    // First generate the bill
+    const billResponse = await fetch(
+      `http://localhost:5000/api/bills/${consumer.consumer_id}/${plan}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
-      );
-      
-      if (!response.ok) {
-        throw new Error('Failed to generate PDF');
       }
-      
-      // Create blob from response
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `subscription_bill_${plan}_${new Date().toISOString().split('T')[0]}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-      
-      showSuccess('PDF bill downloaded successfully');
-    } catch (error) {
-      console.error('PDF download error:', error);
-      showSuccess(`Error: ${error.message}`);
-    } finally {
-      setIsLoading(false);
+    );
+    
+    if (!billResponse.ok) {
+      throw new Error('Failed to generate bill');
     }
-  };
+    
+    const { bill } = await billResponse.json();
+    
+    // Then create PDF on client side using a library like jsPDF
+    const { jsPDF } = await import('jspdf');
+    const doc = new jsPDF();
+    
+    // Add bill content to PDF
+    doc.text(`${plan} Subscription Bill`, 10, 10);
+    doc.text(`Customer: ${consumer.first_name} ${consumer.last_name}`, 10, 20);
+    // ... add more content as needed
+    
+    // Save the PDF
+    doc.save(`subscription_bill_${plan}_${new Date().toISOString().split('T')[0]}.pdf`);
+    
+    showSuccess('PDF bill generated successfully');
+  } catch (error) {
+    console.error('PDF generation error:', error);
+    showSuccess(`Error: ${error.message}`);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const redirectToProducts = (plan) => {
     if (walletBalance < 100) {
