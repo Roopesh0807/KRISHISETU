@@ -1,10 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons";
 import { io } from 'socket.io-client';
 import FarmerChatWindow from "./FarmerChatWindow";
 import "./FarmerChatList.css";
+import {
+  faListAlt,
+  faShoppingCart
+} from '@fortawesome/free-solid-svg-icons';
+
 
 const FarmerChatList = () => {
   const { farmerId } = useParams();
@@ -637,6 +642,18 @@ const fetchSessions = useCallback(async () => {
             </div>
         </div>
         
+        {/* Add the new action buttons here */}
+        <div className="action-buttons">
+  <Link to="/farmer-orders" className="action-button">
+    <FontAwesomeIcon icon={faListAlt} />
+    <span>View Orders</span>
+  </Link>
+  {/* <Link to="/view-cart" className="action-button">
+    <FontAwesomeIcon icon={faShoppingCart} />
+    <span>View Cart</span>
+  </Link> */}
+</div>
+
         <div className="search-bar">
           <input
             type="text"

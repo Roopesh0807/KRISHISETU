@@ -1297,9 +1297,9 @@
 
 // export default ConsumerChatList;
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSpinner } from "@fortawesome/free-solid-svg-icons";
+import { faSpinner, faListAlt, faShoppingCart } from "@fortawesome/free-solid-svg-icons";
 import { io } from 'socket.io-client';
 import ConsumerChatWindow from "./ConsumerChatWindow";
 import "./ConsumerChatList.css";
@@ -1774,6 +1774,16 @@ const ConsumerChatList = () => {
           </div>
         </div>
         
+        <div className="action-buttons">
+  <Link to="/consumer-orders" className="action-button">
+    <FontAwesomeIcon icon={faListAlt} />
+    <span>View Orders</span>
+  </Link>
+  <Link to="/view-cart" className="action-button">
+    <FontAwesomeIcon icon={faShoppingCart} />
+    <span>View Cart</span>
+  </Link>
+</div>
         <div className="search-bar">
           <input
             type="text"
