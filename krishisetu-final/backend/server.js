@@ -3321,7 +3321,7 @@ app.get("/api/produces", async (req, res) => {
 
 // Add new produce
 app.post("/api/produces", async (req, res) => {
-  const { farmer_id, farmer_name, produce_name, availability, price_per_kg, produce_type, market_type, email, minimum_quantity } = req.body;
+  const { farmer_id, farmer_name, produce_name, availability, price_per_kg, produce_type, market_type, email, minimum_quantity,minimum_price} = req.body;
   
   try {
     // For Bargaining Market, ensure minimum_quantity is provided
@@ -3331,8 +3331,8 @@ app.post("/api/produces", async (req, res) => {
 
     const query = `
       INSERT INTO add_produce 
-      (farmer_id, farmer_name, produce_name, availability, price_per_kg, produce_type, market_type, email, minimum_quantity)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (farmer_id, farmer_name, produce_name, availability, price_per_kg, produce_type, market_type, email, minimum_quantity,minimum_price)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ? )
     `;
     await queryDatabase(query, [
       farmer_id, 
@@ -3343,7 +3343,8 @@ app.post("/api/produces", async (req, res) => {
       produce_type, 
       market_type, 
       email,
-      market_type === 'Bargaining Market' ? minimum_quantity : null
+      market_type === 'Bargaining Market' ? minimum_quantity : null,
+      market_type === 'Bargaining Market' ? minimum_price : null
     ]);
     res.json({ success: true });
   } catch (error) {
@@ -3359,12 +3360,12 @@ app.post("/api/produces", async (req, res) => {
 // Update produce
 app.put("/api/produces/:product_id", async (req, res) => {
   const { product_id } = req.params;
-  const { produce_name, availability, price_per_kg, produce_type, minimum_quantity } = req.body;
+  const { produce_name, availability, price_per_kg, produce_type, minimum_quantity, minimum_price } = req.body;
   
   try {
     const query = `
       UPDATE add_produce 
-      SET produce_name = ?, availability = ?, price_per_kg = ?, produce_type = ?, minimum_quantity = ?
+      SET produce_name = ?, availability = ?, price_per_kg = ?, produce_type = ?, minimum_quantity = ?, minimum_price = ?
       WHERE product_id = ?
     `;
     await queryDatabase(query, [
@@ -3372,7 +3373,8 @@ app.put("/api/produces/:product_id", async (req, res) => {
       availability, 
       price_per_kg, 
       produce_type, 
-      minimum_quantity || null, // Handle case where minimum_quantity might be undefined
+      minimum_quantity || null, 
+      minimum_price || null,// Handle case where minimum_quantity might be undefined
       product_id
     ]);
     res.json({ success: true });

@@ -421,7 +421,8 @@ const AddProduce = () => {
     price_per_kg: '',
     produce_type: 'Standard',
     market_type: '',
-    minimum_quantity: '' // New field for minimum quantity
+    minimum_quantity: '',// New field for minimum quantity
+    minimum_price:'' 
   });
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -537,6 +538,29 @@ const AddProduce = () => {
         setError('Minimum quantity must be greater than 0');
         return;
       }
+
+
+       // Validation for minimum price
+       if (!newProduce.minimum_price) {
+        setError('Minimum price is required for Bargaining Market');
+        return;
+      }
+      
+      if (isNaN(newProduce.minimum_price)) {
+        setError('Minimum price must be a valid number');
+        return;
+      }
+      
+      if (parseFloat(newProduce.minimum_price) <= 0) {
+        setError('Minimum price must be greater than 0');
+        return;
+      }
+
+      if (parseFloat(newProduce.minimum_price) >= parseFloat(newProduce.price_per_kg)) {
+        setError('Minimum price must be less than the regular price');
+        return;
+      }
+    
     }
 
     if (!farmer?.farmer_id) {
@@ -558,7 +582,8 @@ const AddProduce = () => {
         ...(selectedMarket === 'Bargaining Market' && {
           minimum_quantity: selectedMarket === 'Bargaining Market' 
           ? parseFloat(newProduce.minimum_quantity) 
-          : null
+          : null,
+          minimum_price: parseFloat(newProduce.minimum_price)
         })
       };
 
@@ -614,7 +639,8 @@ const AddProduce = () => {
     setNewProduce({
       ...produce,
       id: produce.product_id,
-      minimum_quantity: produce.minimum_quantity || '' // Set min_quantity if it exists
+      minimum_quantity: produce.minimum_quantity || '',
+      minimum_price: produce.minimum_price || '' // Set minimum_price if it exists
     });
     setIsFormVisible(true);
   };
@@ -674,7 +700,7 @@ const AddProduce = () => {
           disabled={isLoading}
         >
           <img src={BSimg} alt="Bargaining Logo" />
-          Bargaining System
+          Bargaining Market
         </button>
       </div>
 
@@ -760,6 +786,7 @@ const AddProduce = () => {
                 
                 {/* Conditionally render Minimum Quantity field for Bargaining Market */}
                 {selectedMarket === 'Bargaining Market' && (
+                  <>
                   <div>
                     <label>Minimum Quantity (kg):</label>
                     <input
@@ -774,6 +801,23 @@ const AddProduce = () => {
                       disabled={isLoading}
                     />
                   </div>
+                  <div>
+                  <label>Minimum Price (per kg):</label>
+                  <input
+                    type="number"
+                    name="minimum_price"
+                    value={newProduce.minimum_price}
+                    onChange={handleFormChange}
+                    placeholder="Enter minimum acceptable price"
+                    min="0.01"
+                    step="0.01"
+                    max={newProduce.price_per_kg ? newProduce.price_per_kg - 0.01 : ''}
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+              </>
+                  
                 )}
                 
                 <button 
@@ -796,7 +840,13 @@ const AddProduce = () => {
                   <th>Type</th>
                   <th>Availability (kg)</th>
                   <th>Price per KG</th>
-                  {selectedMarket === 'Bargaining Market' && <th>Min Quantity</th>}
+                  {selectedMarket === 'Bargaining Market' && 
+                  (
+                  <>
+                  <th>Min Quantity</th>
+                  <th>Min Price</th>
+                  </>
+                  )}
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -808,7 +858,10 @@ const AddProduce = () => {
                     <td>{produce.availability} kg</td>
                     <td>₹{produce.price_per_kg}</td>
                     {selectedMarket === 'Bargaining Market' && (
-                      <td>{produce.minimum_quantity || 'N/A'} kg</td>
+                  <>
+                    <td>{produce.minimum_quantity || 'N/A'} kg</td>
+                    <td>₹{produce.minimum_price || 'N/A'}</td>
+                  </>
                     )}
                     <td>
                       <button

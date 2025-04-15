@@ -1234,3 +1234,7 @@ ALTER TABLE placeorder ADD COLUMN is_community ENUM('yes', 'no') DEFAULT 'no';
 ALTER TABLE add_produce ADD COLUMN minimum_quantity INT NOT NULL;
 ALTER TABLE add_produce 
 MODIFY COLUMN minimum_quantity INT NULL CHECK (minimum_quantity IS NULL OR minimum_quantity >= 0);
+
+
+ALTER TABLE add_produce
+ADD COLUMN minimum_price DECIMAL(10,2) NULL CHECK (minimum_price >= 0);
