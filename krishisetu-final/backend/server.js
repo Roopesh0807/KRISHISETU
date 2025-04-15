@@ -7299,6 +7299,62 @@ module.exports = router;
 // });
 
 
+
+
+// Get consumer's address from profile
+router.get('/address/:consumer_id', authMiddleware, async (req, res) => {
+  try {
+    const { consumer_id } = req.params;
+    
+    // Verify the requesting user matches the consumer_id
+    if (req.user.userId !== consumer_id && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Unauthorized access' });
+    }
+
+    const [profile] = await db.query(`
+      SELECT 
+        address,
+        city,
+        state,
+        pincode
+      FROM consumerprofile 
+      WHERE consumer_id = ?
+    `, [consumer_id]);
+
+    if (!profile || profile.length === 0) {
+      return res.json({
+        success: true,
+        addresses: []
+      });
+    }
+
+    // Format the single address as an array with one item
+    const addressData = profile[0];
+    const addresses = [{
+      id: 'primary', // Since we only have one address in profile
+      address_line1: addressData.address || '',
+      address_line2: '',
+      city: addressData.city || '',
+      state: addressData.state || '',
+      pincode: addressData.pincode || '',
+      is_default: true
+    }];
+
+    res.json({
+      success: true,
+      addresses
+    });
+
+  } catch (error) {
+    console.error('Error fetching address:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to fetch address',
+      error: error.message
+    });
+  }
+});
+
 app.get('/api/bargain/farmers/:farmerId/sessions', authenticate, farmerOnly, async (req, res) => {
   try {
     const farmerId = req.params.farmerId;
