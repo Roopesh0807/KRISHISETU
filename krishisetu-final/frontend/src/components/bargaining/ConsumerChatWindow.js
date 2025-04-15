@@ -922,390 +922,781 @@ useEffect(() => {
   console.log('Has farmer counter offer:', hasFarmerCounterOffer);
 }, [hasFarmerCounterOffer]);
 
-  if (loading) {
-    return (
-      <div className="loading-container">
-        <FontAwesomeIcon icon={faSpinner} spin size="2x" />
-        <p>Loading bargain session...</p>
-      </div>
-    );
-  }
+//   if (loading) {
+//     return (
+//       <div className="loading-container">
+//         <FontAwesomeIcon icon={faSpinner} spin size="2x" />
+//         <p>Loading bargain session...</p>
+//       </div>
+//     );
+//   }
 
-  return (
-    <div className="bargain-chat-container">
-      {/* Bargain Initiation Popup */}
-      {isBargainPopupOpen && selectedFarmer && (
-  <div className="bargain-popup-overlay">
-    <div className="bargain-popup-container">
-      <div className="bargain-popup-content">
-        {/* Popup Header */}
-        <div className="popup-header">
-          <h3>
-            <FontAwesomeIcon icon={faHandshake} /> Initiate Bargain with {selectedFarmer.farmer_name}
-          </h3>
-          <button 
-            onClick={() => navigate(-1)} 
-            className="popup-close-btn"
-            aria-label="Close popup"
-          >
-            <FontAwesomeIcon icon={faTimes} />
-          </button>
-        </div>
+//   return (
+//     <div className="bargain-chat-container">
+//       {/* Bargain Initiation Popup */}
+//       {isBargainPopupOpen && selectedFarmer && (
+//   <div className="bargain-popup-overlay">
+//     <div className="bargain-popup-container">
+//       <div className="bargain-popup-content">
+//         {/* Popup Header */}
+//         <div className="popup-header">
+//           <h3>
+//             <FontAwesomeIcon icon={faHandshake} /> Initiate Bargain with {selectedFarmer.farmer_name}
+//           </h3>
+//           <button 
+//             onClick={() => navigate(-1)} 
+//             className="popup-close-btn"
+//             aria-label="Close popup"
+//           >
+//             <FontAwesomeIcon icon={faTimes} />
+//           </button>
+//         </div>
 
-        {/* Product Selection */}
-        <div className="popup-section">
-          <label className="popup-label">Select Product</label>
-          <select
-            className="popup-select"
-            value={selectedProduct?.produce_name || ''}
-            onChange={(e) => {
-              const product = selectedFarmer.products.find(
-                p => p.produce_name === e.target.value
-              );
-              setSelectedProduct(product || null);
-              if (product) {
-                setCurrentPrice(product.price_per_kg);
-                setSelectedQuantity('10');
-              }
-            }}
-          >
-            <option value="">-- Select a product --</option>
-            {selectedFarmer.products?.map(product => (
-              <option 
-                key={product.product_id} 
-                value={product.produce_name}
-                data-price={product.price_per_kg}
-              >
-                {product.produce_name} (₹{product.price_per_kg}/kg)
-              </option>
-            ))}
-          </select>
-        </div>
+//         {/* Product Selection */}
+//         <div className="popup-section">
+//           <label className="popup-label">Select Product</label>
+//           <select
+//             className="popup-select"
+//             value={selectedProduct?.produce_name || ''}
+//             onChange={(e) => {
+//               const product = selectedFarmer.products.find(
+//                 p => p.produce_name === e.target.value
+//               );
+//               setSelectedProduct(product || null);
+//               if (product) {
+//                 setCurrentPrice(product.price_per_kg);
+//                 setSelectedQuantity('10');
+//               }
+//             }}
+//           >
+//             <option value="">-- Select a product --</option>
+//             {selectedFarmer.products?.map(product => (
+//               <option 
+//                 key={product.product_id} 
+//                 value={product.produce_name}
+//                 data-price={product.price_per_kg}
+//               >
+//                 {product.produce_name} (₹{product.price_per_kg}/kg)
+//               </option>
+//             ))}
+//           </select>
+//         </div>
 
-        {/* Product Details */}
-        {selectedProduct && (
-          <>
-            <div className="popup-section product-details">
-              <div className="detail-row">
-                <span className="detail-label">Category:</span>
-                <span className="detail-value">{selectedProduct.produce_type}</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Availability:</span>
-                <span className="detail-value">{selectedProduct.availability} kg</span>
-              </div>
-            </div>
+//         {/* Product Details */}
+//         {selectedProduct && (
+//           <>
+//             <div className="popup-section product-details">
+//               <div className="detail-row">
+//                 <span className="detail-label">Category:</span>
+//                 <span className="detail-value">{selectedProduct.produce_type}</span>
+//               </div>
+//               <div className="detail-row">
+//                 <span className="detail-label">Availability:</span>
+//                 <span className="detail-value">{selectedProduct.availability} kg</span>
+//               </div>
+//             </div>
 
-            {/* Quantity Selection */}
-            <div className="popup-section">
-              <label className="popup-label">Quantity (kg)</label>
-              <div className="quantity-input-container">
-                <input
-                  type="number"
-                  className="popup-input"
-                  min={selectedProduct?.minimum_quantity || 10} 
-                  max={selectedProduct.availability}
-                  value={selectedQuantity}
-                  onChange={(e) => {
-                    const minQty = selectedProduct.minimum_quantity || 10;
-                    const val = Math.min(
-                      selectedProduct?.availability || 0,
-                      Math.max(minQty, e.target.value ? parseFloat(e.target.value) : minQty)
-                    );
-                    setSelectedQuantity(val);
-                  }}
-                  placeholder="Enter quantity"
-                />
-                <div className="quantity-range">
-                  <span>Min: {selectedProduct.minimum_quantity || 10} kg</span>
-                  <span>Max: {selectedProduct.availability} kg</span>
-                </div>
-              </div>
-            </div>
+//             {/* Quantity Selection */}
+//             <div className="popup-section">
+//               <label className="popup-label">Quantity (kg)</label>
+//               <div className="quantity-input-container">
+//                 <input
+//                   type="number"
+//                   className="popup-input"
+//                   min={selectedProduct?.minimum_quantity || 10} 
+//                   max={selectedProduct.availability}
+//                   value={selectedQuantity}
+//                   onChange={(e) => {
+//                     const minQty = selectedProduct.minimum_quantity || 10;
+//                     const val = Math.min(
+//                       selectedProduct?.availability || 0,
+//                       Math.max(minQty, e.target.value ? parseFloat(e.target.value) : minQty)
+//                     );
+//                     setSelectedQuantity(val);
+//                   }}
+//                   placeholder="Enter quantity"
+//                 />
+//                 <div className="quantity-range">
+//                   <span>Min: {selectedProduct.minimum_quantity || 10} kg</span>
+//                   <span>Max: {selectedProduct.availability} kg</span>
+//                 </div>
+//               </div>
+//             </div>
 
-            {/* Price Display */}
-            <div className="price-summary">
-              <div className="price-row">
-                <span>Unit Price:</span>
-                <span>₹{selectedProduct.price_per_kg}/kg</span>
-              </div>
-              <div className="price-row total">
-                <span>Total Price:</span>
-                <span>
-                  ₹{(selectedProduct.price_per_kg * (parseFloat(selectedQuantity) || 0).toFixed(2))}
-                </span>
-              </div>
-            </div>
-          </>
-        )}
+//             {/* Price Display */}
+//             <div className="price-summary">
+//               <div className="price-row">
+//                 <span>Unit Price:</span>
+//                 <span>₹{selectedProduct.price_per_kg}/kg</span>
+//               </div>
+//               <div className="price-row total">
+//                 <span>Total Price:</span>
+//                 <span>
+//                   ₹{(selectedProduct.price_per_kg * (parseFloat(selectedQuantity) || 0).toFixed(2))}
+//                 </span>
+//               </div>
+//             </div>
+//           </>
+//         )}
 
-        {/* Error Message */}
-        {error && (
-          <div className="popup-error">
-            <FontAwesomeIcon icon={faTimesCircle} />
-            <span>{error.includes('JSON') ? 'Server error' : error}</span>
-          </div>
-        )}
+//         {/* Error Message */}
+//         {error && (
+//           <div className="popup-error">
+//             <FontAwesomeIcon icon={faTimesCircle} />
+//             <span>{error.includes('JSON') ? 'Server error' : error}</span>
+//           </div>
+//         )}
 
-        {/* Action Buttons */}
-        <div className="popup-actions">
-          <button
-            onClick={() => navigate(-1)}
-            className="popup-cancel-btn"
-          >
-            Cancel
-          </button>
+//         {/* Action Buttons */}
+//         <div className="popup-actions">
+//           <button
+//             onClick={() => navigate(-1)}
+//             className="popup-cancel-btn"
+//           >
+//             Cancel
+//           </button>
        
-       <button
-          onClick={handleBargainConfirm}
-          disabled={!selectedProduct || isLoading}
-          className={`bargain-btn ${isLoading ? 'loading' : ''}`}
+//        <button
+//           onClick={handleBargainConfirm}
+//           disabled={!selectedProduct || isLoading}
+//           className={`bargain-btn ${isLoading ? 'loading' : ''}`}
+//         >
+//           {isLoading ? (
+//             <>
+//               <FontAwesomeIcon icon={faSpinner} spin />
+//               <span>Connecting...</span>
+//             </>
+//           ) : (
+//             <>
+//               <FontAwesomeIcon icon={faHandshake} />
+//               <span>Start Bargaining</span>
+//             </>
+//           )}
+//         </button>
+//         </div>
+//       </div>
+//     </div>
+//   </div>
+// )}
+//       {/* Chat Interface */}
+//       {selectedProduct && !isBargainPopupOpen && (
+//         <div className="chat-interface animate__animated animate__fadeIn">
+
+// <button 
+//       onClick={() => navigate('/consumer-dashboard')} 
+//       className="unique-close-btn"
+//       title="Exit Chat"
+//     >
+//       <FontAwesomeIcon icon={faDoorOpen} />
+//       <span>Exit</span>
+//     </button>
+    
+//           {/* Chat Header */}
+//           <div className="chat-header">
+//             <div className="header-top">
+//               <h2>
+//                 <FontAwesomeIcon icon={faRupeeSign} /> Bargaining with {selectedFarmer?.farmer_name}
+//               </h2>
+//               <span className={`connection-status ${connectionStatus}`}>
+//                 {connectionStatus.toUpperCase()}
+//               </span>
+//             </div>
+            
+//             <div className="product-info">
+//               <p><strong>Product:</strong> {selectedProduct.produce_name}</p>
+//               <p><strong>Quantity:</strong> {selectedQuantity || quantity}kg</p>
+//               <div className="price-display">
+//   <span className="current-price">
+//     <strong>Current:</strong> ₹{currentPrice}/kg
+//   </span>
+//   <span className="base-price">
+//     <strong>Base:</strong> ₹{selectedProduct.price_per_kg}/kg
+//   </span>
+//   <span className="total-price">
+//     <strong>Total:</strong> ₹{(selectedQuantity * currentPrice).toFixed(2)}
+//   </span>
+// </div>
+//               {bargainStatus === 'accepted' && (
+//                 <p className="status-accepted">
+//                   <FontAwesomeIcon icon={faCheckCircle} /> Offer Accepted!
+//                 </p>
+//               )}
+//               {bargainStatus === 'rejected' && (
+//                 <p className="status-rejected">
+//                   <FontAwesomeIcon icon={faTimesCircle} /> Offer Declined
+//                 </p>
+//               )}
+//             </div>
+//           </div>
+
+//           {/* Chat Messages */}
+//           <div className="chat-messages">
+//             {messages.length === 0 ? (
+//               <div className="no-messages">
+//                 <p>No messages yet. Start the negotiation!</p>
+//               </div>
+//             ) : (
+//             // Update your message rendering code to this:
+// // In your message rendering component:
+// messages.map((msg, index) => {
+//   const messageType = msg.sender_role === 'consumer' ? 'consumer' :
+//                      msg.sender_role === 'farmer' ? 'farmer' : 'system';
+
+//   return (
+//     <div key={`msg-${index}`} className={`message ${messageType}`}>
+//       <div className="message-content">
+//         {messageType === 'system' && <span className="system-label">System: </span>}
+//         {msg.content || msg.message_content}
+//       </div>
+//       <div className="message-meta">
+//         <span className="sender">
+//           {messageType === 'consumer' ? 'You' : 
+//            messageType === 'farmer' ? selectedFarmer?.farmer_name : 'System'}
+//         </span>
+//         <span className="timestamp">
+//           {new Date(msg.timestamp || msg.created_at).toLocaleTimeString([], {
+//             hour: '2-digit', 
+//             minute: '2-digit'
+//           })}
+//         </span>
+//       </div>
+//     </div>
+//   );
+// })
+//             )}
+//             {isTyping && (
+//               <div className="typing-indicator">
+//                 <div className="typing-dots">
+//                   <div></div>
+//                   <div></div>
+//                   <div></div>
+//                 </div>
+//                 <span>{selectedFarmer?.farmer_name} is typing...</span>
+//               </div>
+//             )}
+//             <div ref={messagesEndRef} />
+//           </div>
+
+//           {/* Chat Controls */}
+//           {/* Chat Controls */}
+//           <div className="chat-controls">
+//   {/* Show result actions when bargain is complete */}
+//   {isBargainComplete ? (
+//   <div className="bargain-result-actions">
+//     {bargainResult === 'accepted' ? (
+//       <>
+//         <h3 className="success-message">
+//           <FontAwesomeIcon icon={faCheckCircle} /> 
+//           Bargain Accepted at ₹{currentPrice}/kg
+//         </h3>
+//         <div className="action-buttons">
+//           <button onClick={() => navigate('/consumer-dashboard')} className="dashboard-btn">
+//             <FontAwesomeIcon icon={faHome} /> Dashboard
+//           </button>
+//           <button onClick={() => navigate('/consumer-orders')} className="orders-btn">
+//             <FontAwesomeIcon icon={faClipboardList} /> Orders
+//           </button>
+//           <button onClick={() => navigate('/bargain-cart')} className="cart-btn">
+//             <FontAwesomeIcon icon={faShoppingCart} /> View Cart
+//           </button>
+//           <button 
+//             onClick={() => {
+//               setIsBargainComplete(false);
+//               setBargainStatus('pending');
+//               setShowPriceSuggestions(true);
+//             }}
+//             className="bargain-again-btn"
+//           >
+//             <FontAwesomeIcon icon={faHandshake} /> Bargain Again
+//           </button>
+//         </div>
+//       </>
+//     ) : (
+//       <>
+//         <h3 className="reject-message">
+//           <FontAwesomeIcon icon={faTimesCircle} /> 
+//           Bargain Rejected
+//         </h3>
+//         <div className="action-buttons">
+//           <button onClick={() => navigate('/consumer-dashboard')} className="dashboard-btn">
+//             <FontAwesomeIcon icon={faHome} /> Dashboard
+//           </button>
+//           <button onClick={() => navigate('/consumer-orders')} className="orders-btn">
+//             <FontAwesomeIcon icon={faClipboardList} /> Orders
+//           </button>
+//         </div>
+//       </>
+//     )}
+//   </div>
+// ) : (
+//     <>
+//       {/* Show farmer's counter offer UI when available */}
+//       {hasFarmerCounterOffer && (
+//         <div className="farmer-counter-options animate__animated animate__fadeInUp">
+//           <h4>Farmer's Offer: ₹{currentPrice}/kg</h4>
+//           <div className="response-buttons">
+//           <button 
+//   onClick={handleAcceptFarmerOffer} 
+//   className="accept-btn"
+//   disabled={freezeUI}
+// >
+//   <FontAwesomeIcon icon={faCheckCircle} /> Accept
+// </button>
+
+
+//             <button 
+//               onClick={handleRejectFarmerOffer} 
+//               className="reject-btn"
+//               disabled={freezeUI}
+//             >
+//               <FontAwesomeIcon icon={faTimesCircle} /> Reject
+//             </button>
+//             <button 
+//               onClick={() => {
+//                 setShowPriceSuggestions(true);
+//                 setHasFarmerCounterOffer(false);
+//               }} 
+//               className="counter-btn"
+//               disabled={waitingForResponse}
+//             >
+//               <FontAwesomeIcon icon={faHandshake} /> Counter Offer
+//             </button>
+//           </div>
+//         </div>
+//       )}
+
+//       {/* Show price suggestions when no active counter offer */}
+//       {showPriceSuggestions && !hasFarmerCounterOffer && !isBargainComplete && (
+//         <div className="price-suggestions">
+//           <h4>Make a Counter Offer:</h4>
+//           <div className="suggestion-buttons">
+//             {priceSuggestions
+//               .filter(suggestion => suggestion.price < currentPrice)
+//               .map((suggestion, index) => (
+//                 <button
+//                   key={`price-${index}`}
+//                   onClick={() => handlePriceSelection(suggestion.price)}
+//                   className="suggestion-btn decrease"
+//                   disabled={waitingForResponse}
+//                 >
+//                   <div className="price-change">
+//                     <FontAwesomeIcon icon={faArrowDown} />
+//                     ₹{suggestion.price}
+//                   </div>
+//                   <div className="price-label">{suggestion.label}</div>
+//                 </button>
+//               ))}
+//           </div>
+//         </div>
+//       )}
+
+//       {/* Waiting indicator */}
+//       {waitingForResponse && (
+//         <div className="waiting-indicator">
+//           <FontAwesomeIcon icon={faSpinner} spin /> Waiting for farmer...
+//         </div>
+//       )}
+//     </>
+//   )}
+// </div>
+
+//         </div>
+//       )}
+      
+//     </div>
+//   );
+// };
+
+// export default BargainChatWindow;
+
+if (loading) {
+  return (
+    <div className="ccw-loading-container">
+      <FontAwesomeIcon icon={faSpinner} spin size="2x" />
+      <p>Loading bargain session...</p>
+    </div>
+  );
+}
+
+return (
+  <div className="ccw-container">
+    {/* Bargain Initiation Popup */}
+    {isBargainPopupOpen && selectedFarmer && (
+      <div className="ccw-popup-overlay">
+        <div className="ccw-popup-container">
+          <div className="ccw-popup-content">
+            {/* Popup Header */}
+            <div className="ccw-popup-header">
+              <h3>
+                <FontAwesomeIcon icon={faHandshake} /> Initiate Bargain with {selectedFarmer.farmer_name}
+              </h3>
+              <button 
+                onClick={() => navigate(-1)} 
+                className="ccw-popup-close-btn"
+                aria-label="Close popup"
+              >
+                <FontAwesomeIcon icon={faTimes} />
+              </button>
+            </div>
+
+            {/* Product Selection */}
+            <div className="ccw-popup-section">
+              <label className="ccw-popup-label">Select Product</label>
+              <select
+                className="ccw-popup-select"
+                value={selectedProduct?.produce_name || ''}
+                onChange={(e) => {
+                  const product = selectedFarmer.products.find(
+                    p => p.produce_name === e.target.value
+                  );
+                  setSelectedProduct(product || null);
+                  if (product) {
+                    setCurrentPrice(product.price_per_kg);
+                    setSelectedQuantity('10');
+                  }
+                }}
+              >
+                <option value="">-- Select a product --</option>
+                {selectedFarmer.products?.map(product => (
+                  <option 
+                    key={product.product_id} 
+                    value={product.produce_name}
+                    data-price={product.price_per_kg}
+                  >
+                    {product.produce_name} (₹{product.price_per_kg}/kg)
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Product Details */}
+            {selectedProduct && (
+              <>
+                <div className="ccw-popup-section ccw-product-details">
+                  <div className="ccw-detail-row">
+                    <span className="ccw-detail-label">Category:</span>
+                    <span className="ccw-detail-value">{selectedProduct.produce_type}</span>
+                  </div>
+                  <div className="ccw-detail-row">
+                    <span className="ccw-detail-label">Availability:</span>
+                    <span className="ccw-detail-value">{selectedProduct.availability} kg</span>
+                  </div>
+                </div>
+
+                {/* Quantity Selection */}
+                <div className="ccw-popup-section">
+                  <label className="ccw-popup-label">Quantity (kg)</label>
+                  <div className="ccw-quantity-container">
+                    <input
+                      type="number"
+                      className="ccw-popup-input"
+                      min={selectedProduct?.minimum_quantity || 10} 
+                      max={selectedProduct.availability}
+                      value={selectedQuantity}
+                      onChange={(e) => {
+                        const minQty = selectedProduct.minimum_quantity || 10;
+                        const val = Math.min(
+                          selectedProduct?.availability || 0,
+                          Math.max(minQty, e.target.value ? parseFloat(e.target.value) : minQty)
+                        );
+                        setSelectedQuantity(val);
+                      }}
+                      placeholder="Enter quantity"
+                    />
+                    <div className="ccw-quantity-range">
+                      <span>Min: {selectedProduct.minimum_quantity || 10} kg</span>
+                      <span>Max: {selectedProduct.availability} kg</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Price Display */}
+                <div className="ccw-price-summary">
+                  <div className="ccw-price-row">
+                    <span>Unit Price:</span>
+                    <span>₹{selectedProduct.price_per_kg}/kg</span>
+                  </div>
+                  <div className="ccw-price-row ccw-total">
+                    <span>Total Price:</span>
+                    <span>
+                      ₹{(selectedProduct.price_per_kg * (parseFloat(selectedQuantity) || 0).toFixed(2))}
+                    </span>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Error Message */}
+            {error && (
+              <div className="ccw-popup-error">
+                <FontAwesomeIcon icon={faTimesCircle} />
+                <span>{error.includes('JSON') ? 'Server error' : error}</span>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="ccw-popup-actions">
+              <button
+                onClick={() => navigate(-1)}
+                className="ccw-popup-cancel-btn"
+              >
+                Cancel
+              </button>
+           
+              <button
+                onClick={handleBargainConfirm}
+                disabled={!selectedProduct || isLoading}
+                className={`ccw-bargain-btn ${isLoading ? 'loading' : ''}`}
+              >
+                {isLoading ? (
+                  <>
+                    <FontAwesomeIcon icon={faSpinner} spin />
+                    <span>Connecting...</span>
+                  </>
+                ) : (
+                  <>
+                    <FontAwesomeIcon icon={faHandshake} />
+                    <span>Start Bargaining</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Chat Interface */}
+    {selectedProduct && !isBargainPopupOpen && (
+      <div className="ccw-chat-interface">
+
+        <button 
+          onClick={() => navigate('/consumer-dashboard')} 
+          className="ccw-exit-btn"
+          title="Exit Chat"
         >
-          {isLoading ? (
-            <>
-              <FontAwesomeIcon icon={faSpinner} spin />
-              <span>Connecting...</span>
-            </>
+          <FontAwesomeIcon icon={faDoorOpen} />
+          <span>Exit</span>
+        </button>
+        
+        {/* Chat Header */}
+        <div className="ccw-chat-header">
+          <div className="ccw-header-top">
+            <h2>
+              <FontAwesomeIcon icon={faRupeeSign} /> Bargaining with {selectedFarmer?.farmer_name}
+            </h2>
+            <span className={`ccw-connection-status ${connectionStatus}`}>
+              {connectionStatus.toUpperCase()}
+            </span>
+          </div>
+          
+          <div className="ccw-product-info">
+            <p><strong>Product:</strong> {selectedProduct.produce_name}</p>
+            <p><strong>Quantity:</strong> {selectedQuantity || quantity}kg</p>
+            <div className="ccw-price-display">
+              <span className="ccw-current-price">
+                <strong>Current:</strong> ₹{currentPrice}/kg
+              </span>
+              <span className="ccw-base-price">
+                <strong>Base:</strong> ₹{selectedProduct.price_per_kg}/kg
+              </span>
+              <span className="ccw-total-price">
+                <strong>Total:</strong> ₹{(selectedQuantity * currentPrice).toFixed(2)}
+              </span>
+            </div>
+            {bargainStatus === 'accepted' && (
+              <p className="ccw-status-accepted">
+                <FontAwesomeIcon icon={faCheckCircle} /> Offer Accepted!
+              </p>
+            )}
+            {bargainStatus === 'rejected' && (
+              <p className="ccw-status-rejected">
+                <FontAwesomeIcon icon={faTimesCircle} /> Offer Declined
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Chat Messages */}
+        <div className="ccw-messages-container">
+          {messages.length === 0 ? (
+            <div className="ccw-no-messages">
+              <p>No messages yet. Start the negotiation!</p>
+            </div>
+          ) : (
+            messages.map((msg, index) => {
+              const messageType = msg.sender_role === 'consumer' ? 'consumer' :
+                                msg.sender_role === 'farmer' ? 'farmer' : 'system';
+
+              return (
+                <div key={`msg-${index}`} className={`ccw-message ${messageType}`}>
+                  <div className="ccw-message-content">
+                    {messageType === 'system' && <span className="ccw-system-label">System: </span>}
+                    {msg.content || msg.message_content}
+                  </div>
+                  <div className="ccw-message-meta">
+                    <span className="ccw-sender">
+                      {messageType === 'consumer' ? 'You' : 
+                      messageType === 'farmer' ? selectedFarmer?.farmer_name : 'System'}
+                    </span>
+                    <span className="ccw-timestamp">
+                      {new Date(msg.timestamp || msg.created_at).toLocaleTimeString([], {
+                        hour: '2-digit', 
+                        minute: '2-digit'
+                      })}
+                    </span>
+                  </div>
+                </div>
+              );
+            })
+          )}
+          {isTyping && (
+            <div className="ccw-typing-indicator">
+              <div className="ccw-typing-dots">
+                <div></div>
+                <div></div>
+                <div></div>
+              </div>
+              <span>{selectedFarmer?.farmer_name} is typing...</span>
+            </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* Chat Controls */}
+        <div className="ccw-controls-container">
+          {/* Show result actions when bargain is complete */}
+          {isBargainComplete ? (
+            <div className="ccw-result-actions">
+              {bargainResult === 'accepted' ? (
+                <>
+                  <h3 className="ccw-success-message">
+                    <FontAwesomeIcon icon={faCheckCircle} /> 
+                    Bargain Accepted at ₹{currentPrice}/kg
+                  </h3>
+                  <div className="ccw-action-buttons">
+                    <button onClick={() => navigate('/consumer-dashboard')} className="ccw-dashboard-btn">
+                      <FontAwesomeIcon icon={faHome} /> Dashboard
+                    </button>
+                    <button onClick={() => navigate('/consumer-orders')} className="ccw-orders-btn">
+                      <FontAwesomeIcon icon={faClipboardList} /> Orders
+                    </button>
+                    <button onClick={() => navigate('/bargain-cart')} className="ccw-cart-btn">
+                      <FontAwesomeIcon icon={faShoppingCart} /> View Cart
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setIsBargainComplete(false);
+                        setBargainStatus('pending');
+                        setShowPriceSuggestions(true);
+                        navigate(`/consumer-dashboard`);
+                      }}
+                      className="ccw-bargain-again-btn"
+                    >
+                      <FontAwesomeIcon icon={faHandshake} /> Bargain Again
+                    </button>
+
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h3 className="ccw-reject-message">
+                    <FontAwesomeIcon icon={faTimesCircle} /> 
+                    Bargain Rejected
+                  </h3>
+                  <div className="ccw-action-buttons">
+                    <button onClick={() => navigate('/consumer-dashboard')} className="ccw-dashboard-btn">
+                      <FontAwesomeIcon icon={faHome} /> Dashboard
+                    </button>
+                    <button onClick={() => navigate('/consumer-orders')} className="ccw-orders-btn">
+                      <FontAwesomeIcon icon={faClipboardList} /> Orders
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           ) : (
             <>
-              <FontAwesomeIcon icon={faHandshake} />
-              <span>Start Bargaining</span>
-            </>
-          )}
-        </button>
-        </div>
-      </div>
+              {/* Show farmer's counter offer UI when available */}
+              {hasFarmerCounterOffer && (
+                <div className="ccw-counter-options">
+                  <h4>Farmer's Offer: ₹{currentPrice}/kg</h4>
+                  <div className="ccw-response-buttons">
+                    <button 
+                      onClick={handleAcceptFarmerOffer} 
+                      className="ccw-accept-btn"
+                      disabled={freezeUI}
+                    >
+                      <FontAwesomeIcon icon={faCheckCircle} /> Accept
+                    </button>
+                    <button 
+                      onClick={handleRejectFarmerOffer} 
+                      className="ccw-reject-btn"
+                      disabled={freezeUI}
+                    >
+                      <FontAwesomeIcon icon={faTimesCircle} /> Reject
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setShowPriceSuggestions(true);
+                        setHasFarmerCounterOffer(false);
+                      }} 
+                      className="ccw-counter-btn"
+                      disabled={waitingForResponse}
+                    >
+                      <FontAwesomeIcon icon={faHandshake} /> Counter Offer
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Show price suggestions when no active counter offer */}
+              {showPriceSuggestions && !hasFarmerCounterOffer && !isBargainComplete && (
+  <div className="ccw-price-suggestions">
+    <div className="ccw-suggestion-header">
+      <h4>Make a Counter Offer:*</h4>
+      <button 
+        onClick={() => setShowPriceSuggestions(false)}
+        className="ccw-close-suggestions"
+        title="Close suggestions"
+      >
+        <FontAwesomeIcon icon={faTimes} />
+      </button>
+    </div>
+    <div className="ccw-suggestion-buttons">
+      {priceSuggestions
+        .filter(suggestion => suggestion.price < currentPrice)
+        .map((suggestion, index) => (
+          <button
+            key={`price-${index}`}
+            onClick={() => handlePriceSelection(suggestion.price)}
+            className="ccw-suggestion-btn ccw-decrease"
+            disabled={waitingForResponse}
+          >
+            <div className="ccw-price-change">
+              <FontAwesomeIcon icon={faArrowDown} />
+              ₹{suggestion.price}
+            </div>
+            <div className="ccw-price-label">{suggestion.label}</div>
+          </button>
+        ))}
     </div>
   </div>
 )}
-      {/* Chat Interface */}
-      {selectedProduct && !isBargainPopupOpen && (
-        <div className="chat-interface animate__animated animate__fadeIn">
 
-<button 
-      onClick={() => navigate('/consumer-dashboard')} 
-      className="unique-close-btn"
-      title="Exit Chat"
-    >
-      <FontAwesomeIcon icon={faDoorOpen} />
-      <span>Exit</span>
-    </button>
-    
-          {/* Chat Header */}
-          <div className="chat-header">
-            <div className="header-top">
-              <h2>
-                <FontAwesomeIcon icon={faRupeeSign} /> Bargaining with {selectedFarmer?.farmer_name}
-              </h2>
-              <span className={`connection-status ${connectionStatus}`}>
-                {connectionStatus.toUpperCase()}
-              </span>
-            </div>
-            
-            <div className="product-info">
-              <p><strong>Product:</strong> {selectedProduct.produce_name}</p>
-              <p><strong>Quantity:</strong> {selectedQuantity || quantity}kg</p>
-              <div className="price-display">
-  <span className="current-price">
-    <strong>Current:</strong> ₹{currentPrice}/kg
-  </span>
-  <span className="base-price">
-    <strong>Base:</strong> ₹{selectedProduct.price_per_kg}/kg
-  </span>
-  <span className="total-price">
-    <strong>Total:</strong> ₹{(selectedQuantity * currentPrice).toFixed(2)}
-  </span>
-</div>
-              {bargainStatus === 'accepted' && (
-                <p className="status-accepted">
-                  <FontAwesomeIcon icon={faCheckCircle} /> Offer Accepted!
-                </p>
-              )}
-              {bargainStatus === 'rejected' && (
-                <p className="status-rejected">
-                  <FontAwesomeIcon icon={faTimesCircle} /> Offer Declined
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* Chat Messages */}
-          <div className="chat-messages">
-            {messages.length === 0 ? (
-              <div className="no-messages">
-                <p>No messages yet. Start the negotiation!</p>
-              </div>
-            ) : (
-            // Update your message rendering code to this:
-// In your message rendering component:
-messages.map((msg, index) => {
-  const messageType = msg.sender_role === 'consumer' ? 'consumer' :
-                     msg.sender_role === 'farmer' ? 'farmer' : 'system';
-
-  return (
-    <div key={`msg-${index}`} className={`message ${messageType}`}>
-      <div className="message-content">
-        {messageType === 'system' && <span className="system-label">System: </span>}
-        {msg.content || msg.message_content}
-      </div>
-      <div className="message-meta">
-        <span className="sender">
-          {messageType === 'consumer' ? 'You' : 
-           messageType === 'farmer' ? selectedFarmer?.farmer_name : 'System'}
-        </span>
-        <span className="timestamp">
-          {new Date(msg.timestamp || msg.created_at).toLocaleTimeString([], {
-            hour: '2-digit', 
-            minute: '2-digit'
-          })}
-        </span>
-      </div>
-    </div>
-  );
-})
-            )}
-            {isTyping && (
-              <div className="typing-indicator">
-                <div className="typing-dots">
-                  <div></div>
-                  <div></div>
-                  <div></div>
+              {/* Waiting indicator */}
+              {waitingForResponse && (
+                <div className="ccw-waiting-indicator">
+                  <FontAwesomeIcon icon={faSpinner} spin /> Waiting for farmer...
                 </div>
-                <span>{selectedFarmer?.farmer_name} is typing...</span>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* Chat Controls */}
-          {/* Chat Controls */}
-          <div className="chat-controls">
-  {/* Show result actions when bargain is complete */}
-  {isBargainComplete ? (
-  <div className="bargain-result-actions">
-    {bargainResult === 'accepted' ? (
-      <>
-        <h3 className="success-message">
-          <FontAwesomeIcon icon={faCheckCircle} /> 
-          Bargain Accepted at ₹{currentPrice}/kg
-        </h3>
-        <div className="action-buttons">
-          <button onClick={() => navigate('/consumer-dashboard')} className="dashboard-btn">
-            <FontAwesomeIcon icon={faHome} /> Dashboard
-          </button>
-          <button onClick={() => navigate('/consumer-orders')} className="orders-btn">
-            <FontAwesomeIcon icon={faClipboardList} /> Orders
-          </button>
-          <button onClick={() => navigate('/bargain-cart')} className="cart-btn">
-            <FontAwesomeIcon icon={faShoppingCart} /> View Cart
-          </button>
-          <button 
-            onClick={() => {
-              setIsBargainComplete(false);
-              setBargainStatus('pending');
-              setShowPriceSuggestions(true);
-            }}
-            className="bargain-again-btn"
-          >
-            <FontAwesomeIcon icon={faHandshake} /> Bargain Again
-          </button>
+              )}
+            </>
+          )}
         </div>
-      </>
-    ) : (
-      <>
-        <h3 className="reject-message">
-          <FontAwesomeIcon icon={faTimesCircle} /> 
-          Bargain Rejected
-        </h3>
-        <div className="action-buttons">
-          <button onClick={() => navigate('/consumer-dashboard')} className="dashboard-btn">
-            <FontAwesomeIcon icon={faHome} /> Dashboard
-          </button>
-          <button onClick={() => navigate('/consumer-orders')} className="orders-btn">
-            <FontAwesomeIcon icon={faClipboardList} /> Orders
-          </button>
-        </div>
-      </>
+      </div>
     )}
   </div>
-) : (
-    <>
-      {/* Show farmer's counter offer UI when available */}
-      {hasFarmerCounterOffer && (
-        <div className="farmer-counter-options animate__animated animate__fadeInUp">
-          <h4>Farmer's Offer: ₹{currentPrice}/kg</h4>
-          <div className="response-buttons">
-          <button 
-  onClick={handleAcceptFarmerOffer} 
-  className="accept-btn"
-  disabled={freezeUI}
->
-  <FontAwesomeIcon icon={faCheckCircle} /> Accept
-</button>
-
-
-            <button 
-              onClick={handleRejectFarmerOffer} 
-              className="reject-btn"
-              disabled={freezeUI}
-            >
-              <FontAwesomeIcon icon={faTimesCircle} /> Reject
-            </button>
-            <button 
-              onClick={() => {
-                setShowPriceSuggestions(true);
-                setHasFarmerCounterOffer(false);
-              }} 
-              className="counter-btn"
-              disabled={waitingForResponse}
-            >
-              <FontAwesomeIcon icon={faHandshake} /> Counter Offer
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Show price suggestions when no active counter offer */}
-      {showPriceSuggestions && !hasFarmerCounterOffer && !isBargainComplete && (
-        <div className="price-suggestions">
-          <h4>Make a Counter Offer:</h4>
-          <div className="suggestion-buttons">
-            {priceSuggestions
-              .filter(suggestion => suggestion.price < currentPrice)
-              .map((suggestion, index) => (
-                <button
-                  key={`price-${index}`}
-                  onClick={() => handlePriceSelection(suggestion.price)}
-                  className="suggestion-btn decrease"
-                  disabled={waitingForResponse}
-                >
-                  <div className="price-change">
-                    <FontAwesomeIcon icon={faArrowDown} />
-                    ₹{suggestion.price}
-                  </div>
-                  <div className="price-label">{suggestion.label}</div>
-                </button>
-              ))}
-          </div>
-        </div>
-      )}
-
-      {/* Waiting indicator */}
-      {waitingForResponse && (
-        <div className="waiting-indicator">
-          <FontAwesomeIcon icon={faSpinner} spin /> Waiting for farmer...
-        </div>
-      )}
-    </>
-  )}
-</div>
-
-        </div>
-      )}
-      
-    </div>
-  );
+);
 };
 
 export default BargainChatWindow;
-

@@ -522,267 +522,513 @@ socket.current.on('consumerResponse', (response) => {
   //   addSystemMessage(statusMessage);
   // };
 
-  if (loading) {
-    return (
-      <div className="loading-container">
-        <FontAwesomeIcon icon={faSpinner} spin size="2x" />
-        <p>Loading bargain session...</p>
-      </div>
-    );
-  }
+//   if (loading) {
+//     return (
+//       <div className="loading-container">
+//         <FontAwesomeIcon icon={faSpinner} spin size="2x" />
+//         <p>Loading bargain session...</p>
+//       </div>
+//     );
+//   }
 
-  if (error) {
-    return (
-      <div className="error-container">
-        <h3>Error Loading Chat</h3>
-        <p>{error}</p>
-        <button onClick={() => navigate('/farmer-dashboard')} className="back-btn">
-          Back to Dashboard
-        </button>
-      </div>
-    );
-  }
+//   if (error) {
+//     return (
+//       <div className="error-container">
+//         <h3>Error Loading Chat</h3>
+//         <p>{error}</p>
+//         <button onClick={() => navigate('/farmer-dashboard')} className="back-btn">
+//           Back to Dashboard
+//         </button>
+//       </div>
+//     );
+//   }
 
-  if (!selectedProduct || !selectedConsumer) {
-    return (
-      <div className="error-container">
-        <h3>Missing Data</h3>
-        <p>Could not load product or consumer information</p>
-        <button onClick={() => navigate('/farmer/bargain')} className="back-btn">
-          Back to Bargain List
-        </button>
-      </div>
-    );
-  }
+//   if (!selectedProduct || !selectedConsumer) {
+//     return (
+//       <div className="error-container">
+//         <h3>Missing Data</h3>
+//         <p>Could not load product or consumer information</p>
+//         <button onClick={() => navigate('/farmer/bargain')} className="back-btn">
+//           Back to Bargain List
+//         </button>
+//       </div>
+//     );
+//   }
 
-  return (
-    <div className="farmer-chat-container">
-      <div className="chat-interface animate__animated animate__fadeIn">
-        <button 
-          onClick={() => navigate('/farmer-dashboard')} 
-          className="unique-close-btn"
-          title="Exit Chat"
-        >
-          <FontAwesomeIcon icon={faDoorOpen} />
-          <span>Exit</span>
-        </button>
+//   return (
+//     <div className="farmer-chat-container">
+//       <div className="chat-interface animate__animated animate__fadeIn">
+//         <button 
+//           onClick={() => navigate('/farmer-dashboard')} 
+//           className="unique-close-btn"
+//           title="Exit Chat"
+//         >
+//           <FontAwesomeIcon icon={faDoorOpen} />
+//           <span>Exit</span>
+//         </button>
         
-        {/* Chat Header */}
-        <div className="chat-header">
-          <div className="header-top">
-            <h2>
-              <FontAwesomeIcon icon={faRupeeSign} /> Bargaining with {selectedConsumer.first_name} {selectedConsumer.last_name}
-            </h2>
-            <span className={`connection-status ${connectionStatus}`}>
-              {connectionStatus.toUpperCase()}
+//         {/* Chat Header */}
+//         <div className="chat-header">
+//           <div className="header-top">
+//             <h2>
+//               <FontAwesomeIcon icon={faRupeeSign} /> Bargaining with {selectedConsumer.first_name} {selectedConsumer.last_name}
+//             </h2>
+//             <span className={`connection-status ${connectionStatus}`}>
+//               {connectionStatus.toUpperCase()}
+//             </span>
+//           </div>
+          
+//           <div className="product-info">
+//             <p><strong>Product:</strong> {selectedProduct.produce_name}</p>
+//             <p><strong>Quantity:</strong> {quantity}kg</p>
+//             <div className="price-display">
+//               <span className="current-price">
+//                 <strong>Current Offer:</strong> ₹{currentPrice}/kg
+//               </span>
+//               <span className="base-price">
+//                 <strong>Your Price:</strong> ₹{originalPrice}/kg
+//               </span>
+//               <span className="total-price">
+//                 <strong>Total:</strong> ₹{(quantity * currentPrice).toFixed(2)}
+//               </span>
+//             </div>
+//             {bargainStatus === 'accepted' && (
+//               <p className="status-accepted">
+//                 <FontAwesomeIcon icon={faCheckCircle} /> Offer Accepted!
+//               </p>
+//             )}
+//             {bargainStatus === 'rejected' && (
+//               <p className="status-rejected">
+//                 <FontAwesomeIcon icon={faTimesCircle} /> Offer Declined
+//               </p>
+//             )}
+//           </div>
+//         </div>
+
+//         {/* Chat Messages */}
+//         <div className="chat-messages">
+//           {messages.length === 0 ? (
+//             <div className="no-messages">
+//               <p>No messages yet. Waiting for consumer...</p>
+//             </div>
+//           ) : (
+//            // In the message rendering section, replace with:
+// messages.map((msg, index) => {
+//   // Determine message alignment and styling
+//   const messageType = msg.sender_role === 'farmer' ? 'farmer' :
+//                      msg.sender_role === 'consumer' ? 'consumer' : 'system';
+
+//   return (
+//     <div 
+//       key={`msg-${index}`} 
+//       className={`message ${messageType} animate__animated animate__fadeIn`}
+//       style={{ animationDelay: `${index * 0.1}s` }}
+//     >
+//       <div className="message-content">
+//         {messageType === 'system' && <span className="system-label">System: </span>}
+//         {msg.message_content || msg.content}
+//       </div>
+//       <div className="message-meta">
+//         <span className="sender">
+//           {messageType === 'farmer' ? 'You' : 
+//            messageType === 'consumer' ? `${selectedConsumer.first_name} ${selectedConsumer.last_name}` : 'System'}
+//         </span>
+//         <span className="timestamp">
+//           {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], {
+//             hour: '2-digit',
+//             minute: '2-digit'
+//           }) : 'Just now'}
+//         </span>
+//       </div>
+//     </div>
+//   );
+// })
+//           )}
+//           {isTyping && (
+//             <div className="typing-indicator">
+//               <div className="typing-dots">
+//                 <div></div>
+//                 <div></div>
+//                 <div></div>
+//               </div>
+//               <span>{selectedConsumer.first_name} is typing...</span>
+//             </div>
+//           )}
+//           <div ref={messagesEndRef} />
+//         </div>
+
+//         {/* Chat Controls */}
+//         <div className="chat-controls">
+//   {showPriceSuggestions && bargainStatus === 'pending' && (
+//     <div className="price-suggestions animate__animated animate__fadeInUp">
+//       <div className="suggestion-header">
+//         <h4>Make a Counter Offer:</h4>
+//         <button 
+//           onClick={() => setShowPriceSuggestions(false)}
+//           className="close-suggestions"
+//           title="Close suggestions"
+//         >
+//           <FontAwesomeIcon icon={faTimes} />
+//         </button>
+//       </div>
+      
+//       {priceSuggestions.length > 0 ? (
+//         <div className="suggestion-buttons-grid">
+//           {priceSuggestions.map((suggestion, index) => (
+//             <button
+//             key={`suggestion-${index}`}
+//             onClick={() => handlePriceSelection(suggestion.price)}
+//             className={`suggestion-btn ${
+//               suggestion.amount > 0 ? 'increase' : 'decrease'
+//             } animate__animated animate__fadeIn`}
+//             style={{ animationDelay: `${index * 0.1}s` }}
+//             disabled={waitingForConsumerResponse}
+//           >
+//               <div className="suggestion-icon">
+//                 <FontAwesomeIcon icon={suggestion.amount > 0 ? faArrowUp : faArrowDown} />
+//               </div>
+//               <div className="suggestion-details">
+//                 <span className="suggestion-price">₹{suggestion.price}/kg</span>
+//                 <span className="suggestion-diff">
+//                   (₹{Math.abs(suggestion.amount)} {suggestion.amount > 0 ? 'more' : 'less'})
+//                 </span>
+//               </div>
+//             </button>
+//           ))}
+//         </div>
+//       ) : (
+//         <div className="no-suggestions">
+//           <p>No valid suggestions available</p>
+//         </div>
+//       )}
+//     </div>
+//   )}
+// {!showPriceSuggestions && bargainStatus === 'pending' && (
+//   <div className="bargain-actions">
+//     <button
+//       onClick={() => {
+//         setPriceSuggestions(generatePriceSuggestions(currentPrice));
+//         setShowPriceSuggestions(true);
+//       }}
+//       className="show-suggestions-btn"
+//       disabled={waitingForConsumerResponse}
+//     >
+//       <FontAwesomeIcon icon={faHandshake} /> Make Counter Offer
+//     </button>
+    
+//     <div className="status-buttons">
+//       <button
+//         onClick={() => handleBargainStatus('accepted')}
+//         className="accept-btn"
+//         disabled={waitingForResponse || waitingForConsumerResponse}
+//       >
+//         <FontAwesomeIcon icon={faCheckCircle} /> Accept Offer
+//       </button>
+//       <button
+//         onClick={() => handleBargainStatus('rejected')}
+//         className="reject-btn"
+//         disabled={waitingForResponse || waitingForConsumerResponse}
+//       >
+//         <FontAwesomeIcon icon={faTimesCircle} /> Decline
+//       </button>
+//     </div>
+//   </div>
+// )}
+
+//           {/* {waitingForResponse && (
+//             <div className="waiting-indicator animate__animated animate__pulse animate__infinite">
+//               <FontAwesomeIcon icon={faSpinner} spin /> Waiting for consumer's response...
+//             </div>
+//           )} */}
+//           {waitingForConsumerResponse && (
+//   <div className="waiting-indicator animate__animated animate__pulse animate__infinite">
+//     <FontAwesomeIcon icon={faSpinner} spin /> Waiting for consumer to respond to your counter offer...
+//   </div>
+// )}
+
+//           {bargainStatus === 'accepted' && (
+//             <div className="accepted-actions animate__animated animate__fadeIn">
+//               <button 
+//                 className="primary-action animate__animated animate__pulse"
+//                 onClick={() => navigate('/farmer-dashboard')}
+//               >
+//                 Back to Dashboard
+//               </button>
+//               <button 
+//                 className="secondary-action"
+//                 onClick={() => navigate('/farmer-orders')}
+//               >
+//                 View Orders
+//               </button>
+//             </div>
+//           )}
+
+//           {bargainStatus === 'rejected' && (
+//             <div className="rejected-actions animate__animated animate__fadeIn">
+//               <button 
+//                 className="primary-action"
+//                 onClick={() => navigate('/farmer-dashboard')}
+//               >
+//                 Back to Dashboard
+//               </button>
+//             </div>
+//           )}
+//         </div>
+//       </div>
+//     </div>
+//   );
+// };
+
+// export default FarmerChatWindow;
+if (loading) {
+  return (
+    <div className="fcw-loading-container">
+      <FontAwesomeIcon icon={faSpinner} spin size="2x" />
+      <p>Loading bargain session...</p>
+    </div>
+  );
+}
+
+if (error) {
+  return (
+    <div className="fcw-error-container">
+      <h3>Error Loading Chat</h3>
+      <p>{error}</p>
+      <button onClick={() => navigate('/farmer-dashboard')} className="fcw-back-btn">
+        Back to Dashboard
+      </button>
+    </div>
+  );
+}
+
+if (!selectedProduct || !selectedConsumer) {
+  return (
+    <div className="fcw-error-container">
+      <h3>Missing Data</h3>
+      <p>Could not load product or consumer information</p>
+      <button onClick={() => navigate('/farmer/bargain')} className="fcw-back-btn">
+        Back to Bargain List
+      </button>
+    </div>
+  );
+}
+
+return (
+  <div className="fcw-container">
+    <div className="fcw-interface">
+      <button 
+        onClick={() => navigate('/farmer-dashboard')} 
+        className="fcw-unique-close-btn"
+        title="Exit Chat"
+      >
+        <FontAwesomeIcon icon={faDoorOpen} />
+        <span>Exit</span>
+      </button>
+      
+      {/* Chat Header */}
+      <div className="fcw-header">
+        <div className="fcw-header-top">
+          <h2>
+            <FontAwesomeIcon icon={faRupeeSign} /> Bargaining with {selectedConsumer.first_name} {selectedConsumer.last_name}
+          </h2>
+          <span className={`fcw-connection-status ${connectionStatus}`}>
+            {connectionStatus.toUpperCase()}
+          </span>
+        </div>
+        
+        <div className="fcw-product-info">
+          <p><strong>Product:</strong> {selectedProduct.produce_name}</p>
+          <p><strong>Quantity:</strong> {quantity}kg</p>
+          <div className="fcw-price-display">
+            <span className="fcw-current-price">
+              <strong>Current Offer:</strong> ₹{currentPrice}/kg
+            </span>
+            <span className="fcw-base-price">
+              <strong>Your Price:</strong> ₹{originalPrice}/kg
+            </span>
+            <span className="fcw-total-price">
+              <strong>Total:</strong> ₹{(quantity * currentPrice).toFixed(2)}
             </span>
           </div>
-          
-          {/* <div className="consumer-info">
-            <p><strong>Consumer:</strong> {selectedConsumer.first_name} {selectedConsumer.last_name}</p>
-            {selectedConsumer.phone_number && <p><strong>Phone:</strong> {selectedConsumer.phone_number}</p>}
-            {selectedConsumer.location && <p><strong>Location:</strong> {selectedConsumer.location}</p>}
-          </div> */}
-          
-          <div className="product-info">
-            <p><strong>Product:</strong> {selectedProduct.produce_name}</p>
-            <p><strong>Quantity:</strong> {quantity}kg</p>
-            <div className="price-display">
-              <span className="current-price">
-                <strong>Current Offer:</strong> ₹{currentPrice}/kg
-              </span>
-              <span className="base-price">
-                <strong>Your Price:</strong> ₹{originalPrice}/kg
-              </span>
-              <span className="total-price">
-                <strong>Total:</strong> ₹{(quantity * currentPrice).toFixed(2)}
-              </span>
+          {bargainStatus === 'accepted' && (
+            <p className="fcw-status-accepted">
+              <FontAwesomeIcon icon={faCheckCircle} /> Offer Accepted!
+            </p>
+          )}
+          {bargainStatus === 'rejected' && (
+            <p className="fcw-status-rejected">
+              <FontAwesomeIcon icon={faTimesCircle} /> Offer Declined
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Chat Messages */}
+      <div className="fcw-messages-container">
+        {messages.length === 0 ? (
+          <div className="fcw-no-messages">
+            <p>No messages yet. Waiting for consumer...</p>
+          </div>
+        ) : (
+          messages.map((msg, index) => {
+            const messageType = msg.sender_role === 'farmer' ? 'farmer' :
+                             msg.sender_role === 'consumer' ? 'consumer' : 'system';
+
+            return (
+              <div 
+                key={`msg-${index}`} 
+                className={`fcw-message ${messageType}`}
+                style={{ animationDelay: `${index * 0.1}s` }}
+              >
+                <div className="fcw-message-content">
+                  {messageType === 'system' && <span className="fcw-system-label">System: </span>}
+                  {msg.message_content || msg.content}
+                </div>
+                <div className="fcw-message-meta">
+                  <span className="fcw-sender">
+                    {messageType === 'farmer' ? 'You' : 
+                     messageType === 'consumer' ? `${selectedConsumer.first_name} ${selectedConsumer.last_name}` : 'System'}
+                  </span>
+                  <span className="fcw-timestamp">
+                    {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    }) : 'Just now'}
+                  </span>
+                </div>
+              </div>
+            );
+          })
+        )}
+        {isTyping && (
+          <div className="fcw-typing-indicator">
+            <div className="fcw-typing-dots">
+              <div></div>
+              <div></div>
+              <div></div>
             </div>
-            {bargainStatus === 'accepted' && (
-              <p className="status-accepted">
-                <FontAwesomeIcon icon={faCheckCircle} /> Offer Accepted!
-              </p>
-            )}
-            {bargainStatus === 'rejected' && (
-              <p className="status-rejected">
-                <FontAwesomeIcon icon={faTimesCircle} /> Offer Declined
-              </p>
+            <span>{selectedConsumer.first_name} is typing...</span>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Chat Controls */}
+      <div className="fcw-controls">
+        {showPriceSuggestions && bargainStatus === 'pending' && (
+          <div className="fcw-price-suggestions">
+            <div className="fcw-suggestion-header">
+              <h4>Make a Counter Offer:</h4>
+              <button 
+                onClick={() => setShowPriceSuggestions(false)}
+                className="fcw-close-suggestions"
+                title="Close suggestions"
+              >
+                <FontAwesomeIcon icon={faTimes} />
+              </button>
+            </div>
+            
+            {priceSuggestions.length > 0 ? (
+              <div className="fcw-suggestion-buttons-grid">
+                {priceSuggestions.map((suggestion, index) => (
+                  <button
+                    key={`suggestion-${index}`}
+                    onClick={() => handlePriceSelection(suggestion.price)}
+                    className={`fcw-suggestion-btn ${
+                      suggestion.amount > 0 ? 'increase' : 'decrease'
+                    }`}
+                    style={{ animationDelay: `${index * 0.1}s` }}
+                    disabled={waitingForConsumerResponse}
+                  >
+                    <div className="fcw-suggestion-icon">
+                      <FontAwesomeIcon icon={suggestion.amount > 0 ? faArrowUp : faArrowDown} />
+                    </div>
+                    <div className="fcw-suggestion-details">
+                      <span className="fcw-suggestion-price">₹{suggestion.price}/kg</span>
+                      <span className="fcw-suggestion-diff">
+                        (₹{Math.abs(suggestion.amount)} {suggestion.amount > 0 ? 'more' : 'less'})
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="fcw-no-suggestions">
+                <p>No valid suggestions available</p>
+              </div>
             )}
           </div>
-        </div>
+        )}
 
-        {/* Chat Messages */}
-        <div className="chat-messages">
-          {messages.length === 0 ? (
-            <div className="no-messages">
-              <p>No messages yet. Waiting for consumer...</p>
-            </div>
-          ) : (
-           // In the message rendering section, replace with:
-messages.map((msg, index) => {
-  // Determine message alignment and styling
-  const messageType = msg.sender_role === 'farmer' ? 'farmer' :
-                     msg.sender_role === 'consumer' ? 'consumer' : 'system';
-
-  return (
-    <div 
-      key={`msg-${index}`} 
-      className={`message ${messageType} animate__animated animate__fadeIn`}
-      style={{ animationDelay: `${index * 0.1}s` }}
-    >
-      <div className="message-content">
-        {messageType === 'system' && <span className="system-label">System: </span>}
-        {msg.message_content || msg.content}
-      </div>
-      <div className="message-meta">
-        <span className="sender">
-          {messageType === 'farmer' ? 'You' : 
-           messageType === 'consumer' ? `${selectedConsumer.first_name} ${selectedConsumer.last_name}` : 'System'}
-        </span>
-        <span className="timestamp">
-          {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit'
-          }) : 'Just now'}
-        </span>
-      </div>
-    </div>
-  );
-})
-          )}
-          {isTyping && (
-            <div className="typing-indicator">
-              <div className="typing-dots">
-                <div></div>
-                <div></div>
-                <div></div>
-              </div>
-              <span>{selectedConsumer.first_name} is typing...</span>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Chat Controls */}
-        <div className="chat-controls">
-  {showPriceSuggestions && bargainStatus === 'pending' && (
-    <div className="price-suggestions animate__animated animate__fadeInUp">
-      <div className="suggestion-header">
-        <h4>Make a Counter Offer:</h4>
-        <button 
-          onClick={() => setShowPriceSuggestions(false)}
-          className="close-suggestions"
-          title="Close suggestions"
-        >
-          <FontAwesomeIcon icon={faTimes} />
-        </button>
-      </div>
-      
-      {priceSuggestions.length > 0 ? (
-        <div className="suggestion-buttons-grid">
-          {priceSuggestions.map((suggestion, index) => (
+        {!showPriceSuggestions && bargainStatus === 'pending' && (
+          <div className="fcw-bargain-actions">
             <button
-            key={`suggestion-${index}`}
-            onClick={() => handlePriceSelection(suggestion.price)}
-            className={`suggestion-btn ${
-              suggestion.amount > 0 ? 'increase' : 'decrease'
-            } animate__animated animate__fadeIn`}
-            style={{ animationDelay: `${index * 0.1}s` }}
-            disabled={waitingForConsumerResponse}
-          >
-              <div className="suggestion-icon">
-                <FontAwesomeIcon icon={suggestion.amount > 0 ? faArrowUp : faArrowDown} />
-              </div>
-              <div className="suggestion-details">
-                <span className="suggestion-price">₹{suggestion.price}/kg</span>
-                <span className="suggestion-diff">
-                  (₹{Math.abs(suggestion.amount)} {suggestion.amount > 0 ? 'more' : 'less'})
-                </span>
-              </div>
+              onClick={() => {
+                setPriceSuggestions(generatePriceSuggestions(currentPrice));
+                setShowPriceSuggestions(true);
+              }}
+              className="fcw-show-suggestions-btn"
+              disabled={waitingForConsumerResponse}
+            >
+              <FontAwesomeIcon icon={faHandshake} /> Make Counter Offer
             </button>
-          ))}
-        </div>
-      ) : (
-        <div className="no-suggestions">
-          <p>No valid suggestions available</p>
-        </div>
-      )}
-    </div>
-  )}
-{!showPriceSuggestions && bargainStatus === 'pending' && (
-  <div className="bargain-actions">
-    <button
-      onClick={() => {
-        setPriceSuggestions(generatePriceSuggestions(currentPrice));
-        setShowPriceSuggestions(true);
-      }}
-      className="show-suggestions-btn"
-      disabled={waitingForConsumerResponse}
-    >
-      <FontAwesomeIcon icon={faHandshake} /> Make Counter Offer
-    </button>
-    
-    <div className="status-buttons">
-      <button
-        onClick={() => handleBargainStatus('accepted')}
-        className="accept-btn"
-        disabled={waitingForResponse || waitingForConsumerResponse}
-      >
-        <FontAwesomeIcon icon={faCheckCircle} /> Accept Offer
-      </button>
-      <button
-        onClick={() => handleBargainStatus('rejected')}
-        className="reject-btn"
-        disabled={waitingForResponse || waitingForConsumerResponse}
-      >
-        <FontAwesomeIcon icon={faTimesCircle} /> Decline
-      </button>
-    </div>
-  </div>
-)}
-
-          {/* {waitingForResponse && (
-            <div className="waiting-indicator animate__animated animate__pulse animate__infinite">
-              <FontAwesomeIcon icon={faSpinner} spin /> Waiting for consumer's response...
-            </div>
-          )} */}
-          {waitingForConsumerResponse && (
-  <div className="waiting-indicator animate__animated animate__pulse animate__infinite">
-    <FontAwesomeIcon icon={faSpinner} spin /> Waiting for consumer to respond to your counter offer...
-  </div>
-)}
-
-          {bargainStatus === 'accepted' && (
-            <div className="accepted-actions animate__animated animate__fadeIn">
-              <button 
-                className="primary-action animate__animated animate__pulse"
-                onClick={() => navigate('/farmer-dashboard')}
+            
+            <div className="fcw-status-buttons">
+              <button
+                onClick={() => handleBargainStatus('accepted')}
+                className="fcw-accept-btn"
+                disabled={waitingForResponse || waitingForConsumerResponse}
               >
-                Back to Dashboard
+                <FontAwesomeIcon icon={faCheckCircle} /> Accept Offer
               </button>
-              <button 
-                className="secondary-action"
-                onClick={() => navigate('/farmer-orders')}
+              <button
+                onClick={() => handleBargainStatus('rejected')}
+                className="fcw-reject-btn"
+                disabled={waitingForResponse || waitingForConsumerResponse}
               >
-                View Orders
+                <FontAwesomeIcon icon={faTimesCircle} /> Decline
               </button>
             </div>
-          )}
+          </div>
+        )}
 
-          {bargainStatus === 'rejected' && (
-            <div className="rejected-actions animate__animated animate__fadeIn">
-              <button 
-                className="primary-action"
-                onClick={() => navigate('/farmer-dashboard')}
-              >
-                Back to Dashboard
-              </button>
-            </div>
-          )}
-        </div>
+        {waitingForConsumerResponse && (
+          <div className="fcw-waiting-indicator">
+            <FontAwesomeIcon icon={faSpinner} spin /> Waiting for consumer to respond to your counter offer...
+          </div>
+        )}
+
+        {bargainStatus === 'accepted' && (
+          <div className="fcw-accepted-actions">
+            <button 
+              className="fcw-primary-action"
+              onClick={() => navigate('/farmer-dashboard')}
+            >
+              Back to Dashboard
+            </button>
+            <button 
+              className="fcw-secondary-action"
+              onClick={() => navigate('/farmer-orders')}
+            >
+              View Orders
+            </button>
+          </div>
+        )}
+
+        {bargainStatus === 'rejected' && (
+          <div className="fcw-rejected-actions">
+            <button 
+              className="fcw-primary-action"
+              onClick={() => navigate('/farmer-dashboard')}
+            >
+              Back to Dashboard
+            </button>
+          </div>
+        )}
       </div>
     </div>
-  );
+  </div>
+);
 };
 
 export default FarmerChatWindow;
