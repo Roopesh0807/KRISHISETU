@@ -588,17 +588,21 @@ exports.getMemberOrders = async (req, res) => {
 
     // Get orders for this member in this community
     const query = `
-      SELECT 
-        o.order_id,
-        o.product_id,
-        o.quantity,
-        o.price,
-        o.payment_method,
-        o.created_at
-      FROM orders o
-      WHERE o.community_id = ? AND o.member_id = ?
-      ORDER BY o.created_at DESC
-    `;
+    SELECT 
+      o.order_id,
+      o.product_id,
+      p.product_name,
+      p.category,
+      p.buy_type,
+      o.quantity,
+      o.price,
+      o.payment_method,
+      o.created_at
+    FROM orders o
+    JOIN products p ON o.product_id = p.product_id
+    WHERE o.community_id = ? AND o.member_id = ?
+    ORDER BY o.created_at DESC
+  `;
 
     const orders = await queryDatabase(query, [communityId, memberId]);
     res.status(200).json(orders);
