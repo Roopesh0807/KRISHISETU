@@ -259,6 +259,13 @@ const ConsumerRegister = () => {
               {loading ? "Registering..." : "Register"}
             </button>
           </form>
+          <p></p>
+          <p>
+            Already have an account?{" "}
+            <button onClick={() => navigate("/consumer-login")} className="link-button">
+              Login here
+            </button>
+          </p>
         </div>
       </main>
 

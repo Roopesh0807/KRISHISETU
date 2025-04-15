@@ -1,0 +1,107 @@
+/* consumerbargainorders.css */
+
+.consumer-orders-container {
+    padding: 20px;
+    margin-top: 70px;
+    font-family: Arial, sans-serif;
+  }
+  
+  .orders-header {
+    font-size: 1.5rem;
+    color: #333;
+    margin-bottom: 15px;
+  }
+  
+  .orders-count {
+    font-size: 1rem;
+    color: #555;
+    margin-bottom: 20px;
+  }
+  
+  .loading-spinner, .error-message, .auth-warning {
+    color: #fff;
+    background-color: #f44336;
+    padding: 15px;
+    text-align: center;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    font-size: 1rem;
+  }
+  
+  .loading-spinner {
+    background-color: #ff9800;
+  }
+  
+  .auth-warning {
+    background-color: #2196f3;
+  }
+  
+  .orders-table-container {
+    overflow-x: auto;
+  }
+  
+  .orders-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+  }
+  
+  .orders-table th,
+  .orders-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  .orders-table th {
+    background-color: #f2f2f2;
+    color: #333;
+  }
+  
+  .orders-table td {
+    color: #555;
+  }
+  
+  .orders-table td.status-pending {
+    color: #ff9800;
+  }
+  
+  .orders-table td.status-accepted {
+    color: #4caf50;
+  }
+  
+  .orders-table td.status-rejected {
+    color: #f44336;
+  }
+  
+  .orders-table td.status-closed {
+    color: #2196f3;
+  }
+  
+  .status-badge {
+    padding: 4px 10px;
+    border-radius: 15px;
+    font-weight: bold;
+    text-transform: capitalize;
+  }
+  
+  .no-orders {
+    text-align: center;
+    font-size: 1.2rem;
+    color: #888;
+  }
+  
+  @media (max-width: 768px) {
+    .orders-table th, .orders-table td {
+      padding: 8px;
+    }
+  
+    .orders-header {
+      font-size: 1.3rem;
+    }
+  
+    .orders-table {
+      font-size: 0.9rem;
+    }
+  }
+  

@@ -15,6 +15,7 @@ const path = require("path");
 const multer = require("multer");
 const fs = require("fs");
 const cron = require('node-cron');
+// const { checkFarmerConsistency } = require('./src/middlewares/cartMiddleware');
 
 const axios = require('axios');
 const moment = require('moment');
@@ -2281,480 +2282,488 @@ app.get('/api/wallet/transactions/:consumer_id', authenticateToken, async (req, 
 });
 
 
-//bill generation
-// Add these endpoints to your server.js
+// //bill generation
+// // Add these endpoints to your server.js
 
-// Generate bill for a subscription plan
+// // Generate bill for a subscription plan
  
-app.get('/api/bills/:consumer_id/:plan', authenticateToken, async (req, res) => {
-  console.log('BACKEND 1: Request received', req.params); // Backend Debug 1
-  try {
-    const { consumer_id, plan } = req.params;
-    console.log('BACKEND 2: Authenticated user:', req.user); // Backend Debug 2
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Normalize to midnight
+// app.get('/api/bills/:consumer_id/:plan', authenticateToken, async (req, res) => {
+//   console.log('BACKEND 1: Request received', req.params); // Backend Debug 1
+//   try {
+//     const { consumer_id, plan } = req.params;
+//     console.log('BACKEND 2: Authenticated user:', req.user); // Backend Debug 2
+//     const today = new Date();
+//     today.setHours(0, 0, 0, 0); // Normalize to midnight
     
-    // Verify the requested consumer_id matches the authenticated user
-    if (consumer_id !== req.user.consumer_id) {
-      return res.status(403).json({
-        success: false,
-        message: 'Unauthorized access to billing information'
-      });
-    }
+//     // Verify the requested consumer_id matches the authenticated user
+//     if (consumer_id !== req.user.consumer_id) {
+//       return res.status(403).json({
+//         success: false,
+//         message: 'Unauthorized access to billing information'
+//       });
+//     }
 
-    // Validate plan type
-    const validPlans = ['Daily', 'Alternate Days', 'Weekly', 'Monthly'];
-    if (!validPlans.includes(plan)) {
-      return res.status(400).json({ 
-        success: false,
-        error: "Invalid subscription plan" 
-      });
-    }
+//     // Validate plan type
+//     const validPlans = ['Daily', 'Alternate Days', 'Weekly', 'Monthly'];
+//     if (!validPlans.includes(plan)) {
+//       return res.status(400).json({ 
+//         success: false,
+//         error: "Invalid subscription plan" 
+//       });
+//     }
 
-    // Get all active subscriptions for this plan
-    const subscriptions = await queryDatabase(
-      `SELECT * FROM subscriptions 
-       WHERE consumer_id = ? AND subscription_type = ? AND status = 'Active'`,
-      [consumer_id, plan]
-    );
+//     // Get all active subscriptions for this plan
+//     const subscriptions = await queryDatabase(
+//       `SELECT * FROM subscriptions 
+//        WHERE consumer_id = ? AND subscription_type = ? AND status = 'Active'`,
+//       [consumer_id, plan]
+//     );
 
-    if (subscriptions.length === 0) {
-      return res.status(404).json({ 
-        success: false,
-        error: "No active subscriptions found for this plan" 
-      });
-    }
+//     if (subscriptions.length === 0) {
+//       return res.status(404).json({ 
+//         success: false,
+//         error: "No active subscriptions found for this plan" 
+//       });
+//     }
 
-    // Calculate billing period based on plan type
-    let billingPeriod = {
-      start: '',
-      end: '',
-      nextBillingDate: ''
-    };
+//     // Calculate billing period based on plan type
+//     let billingPeriod = {
+//       start: '',
+//       end: '',
+//       nextBillingDate: ''
+//     };
     
-    const startDate = new Date(subscriptions[0].start_date);
-    startDate.setHours(0, 0, 0, 0);
+//     const startDate = new Date(subscriptions[0].start_date);
+//     startDate.setHours(0, 0, 0, 0);
     
-    if (plan === 'Daily') {
-      billingPeriod = {
-        start: today.toISOString().split('T')[0],
-        end: today.toISOString().split('T')[0],
-        nextBillingDate: new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-      };
-    } 
-    else if (plan === 'Alternate Days') {
-      const daysDiff = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
+//     if (plan === 'Daily') {
+//       billingPeriod = {
+//         start: today.toISOString().split('T')[0],
+//         end: today.toISOString().split('T')[0],
+//         nextBillingDate: new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+//       };
+//     } 
+//     else if (plan === 'Alternate Days') {
+//       const daysDiff = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
       
-      if (daysDiff % 2 === 0) {
-        billingPeriod = {
-          start: today.toISOString().split('T')[0],
-          end: today.toISOString().split('T')[0],
-          nextBillingDate: new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-        };
-      } else {
-        return res.status(400).json({ 
-          success: false,
-          error: "Today is not a billing day for Alternate Days plan" 
-        });
-      }
-    } 
-    else if (plan === 'Weekly') {
-      const startDayOfWeek = startDate.getDay(); // 0 (Sunday) to 6 (Saturday)
-      const todayDayOfWeek = today.getDay();
+//       if (daysDiff % 2 === 0) {
+//         billingPeriod = {
+//           start: today.toISOString().split('T')[0],
+//           end: today.toISOString().split('T')[0],
+//           nextBillingDate: new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+//         };
+//       } else {
+//         return res.status(400).json({ 
+//           success: false,
+//           error: "Today is not a billing day for Alternate Days plan" 
+//         });
+//       }
+//     } 
+//     else if (plan === 'Weekly') {
+//       const startDayOfWeek = startDate.getDay(); // 0 (Sunday) to 6 (Saturday)
+//       const todayDayOfWeek = today.getDay();
       
-      if (startDayOfWeek === todayDayOfWeek) {
-        const weekStart = new Date(today);
-        weekStart.setDate(today.getDate() - today.getDay()); // Start of week (Sunday)
+//       if (startDayOfWeek === todayDayOfWeek) {
+//         const weekStart = new Date(today);
+//         weekStart.setDate(today.getDate() - today.getDay()); // Start of week (Sunday)
         
-        billingPeriod = {
-          start: weekStart.toISOString().split('T')[0],
-          end: today.toISOString().split('T')[0],
-          nextBillingDate: new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-        };
-      } else {
-        return res.status(400).json({ 
-          success: false,
-          error: "Today is not the billing day for Weekly plan" 
-        });
-      }
-    } 
-    else if (plan === 'Monthly') {
-      const startDateDay = startDate.getDate();
-      const todayDate = today.getDate();
-      const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+//         billingPeriod = {
+//           start: weekStart.toISOString().split('T')[0],
+//           end: today.toISOString().split('T')[0],
+//           nextBillingDate: new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+//         };
+//       } else {
+//         return res.status(400).json({ 
+//           success: false,
+//           error: "Today is not the billing day for Weekly plan" 
+//         });
+//       }
+//     } 
+//     else if (plan === 'Monthly') {
+//       const startDateDay = startDate.getDate();
+//       const todayDate = today.getDate();
+//       const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
       
-      // Check if today is the billing day or the last day of month (for short months)
-      if (todayDate === startDateDay || 
-          (todayDate === lastDayOfMonth && startDateDay > lastDayOfMonth)) {
-        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+//       // Check if today is the billing day or the last day of month (for short months)
+//       if (todayDate === startDateDay || 
+//           (todayDate === lastDayOfMonth && startDateDay > lastDayOfMonth)) {
+//         const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
         
-        billingPeriod = {
-          start: monthStart.toISOString().split('T')[0],
-          end: today.toISOString().split('T')[0],
-          nextBillingDate: new Date(today.getFullYear(), today.getMonth() + 1, 
-                                   Math.min(startDateDay, lastDayOfMonth)).toISOString().split('T')[0]
-        };
-      } else {
-        return res.status(400).json({ 
-          success: false,
-          error: "Today is not the billing day for Monthly plan" 
-        });
-      }
-    }
+//         billingPeriod = {
+//           start: monthStart.toISOString().split('T')[0],
+//           end: today.toISOString().split('T')[0],
+//           nextBillingDate: new Date(today.getFullYear(), today.getMonth() + 1, 
+//                                    Math.min(startDateDay, lastDayOfMonth)).toISOString().split('T')[0]
+//         };
+//       } else {
+//         return res.status(400).json({ 
+//           success: false,
+//           error: "Today is not the billing day for Monthly plan" 
+//         });
+//       }
+//     }
 
-    // Calculate bill amounts
-    const subtotal = subscriptions.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const subscriptionFee = subscriptions.reduce((sum, item) => sum + (5 * item.quantity), 0); // ₹5 per item fee
-    const total = subtotal + subscriptionFee;
+//     // Calculate bill amounts
+//     const subtotal = subscriptions.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+//     const subscriptionFee = subscriptions.reduce((sum, item) => sum + (5 * item.quantity), 0); // ₹5 per item fee
+//     const total = subtotal + subscriptionFee;
 
-    // Get billing history for this plan
-    const billingHistory = await queryDatabase(
-      `SELECT 
-        bh.billing_id,
-        bh.amount,
-        DATE_FORMAT(bh.billing_date, '%Y-%m-%d') as billing_date,
-        wt.transaction_id,
-        DATE_FORMAT(wt.transaction_date, '%Y-%m-%d %H:%i:%s') as payment_date,
-        bh.description
-       FROM billing_history bh
-       JOIN wallet_transactions wt ON bh.transaction_id = wt.transaction_id
-       WHERE bh.consumer_id = ? AND bh.subscription_type = ?
-       ORDER BY bh.billing_date DESC
-       LIMIT 10`,
-      [consumer_id, plan]
-    );
+//     // Get billing history for this plan
+//     const billingHistory = await queryDatabase(
+//       `SELECT 
+//         bh.billing_id,
+//         bh.amount,
+//         DATE_FORMAT(bh.billing_date, '%Y-%m-%d') as billing_date,
+//         wt.transaction_id,
+//         DATE_FORMAT(wt.transaction_date, '%Y-%m-%d %H:%i:%s') as payment_date,
+//         bh.description
+//        FROM billing_history bh
+//        JOIN wallet_transactions wt ON bh.transaction_id = wt.transaction_id
+//        WHERE bh.consumer_id = ? AND bh.subscription_type = ?
+//        ORDER BY bh.billing_date DESC
+//        LIMIT 10`,
+//       [consumer_id, plan]
+//     );
 
-    // Create bill object
-    const bill = {
-      plan,
-      billingPeriod,
-      items: subscriptions.map(item => ({
-        subscription_id: item.subscription_id,
-        product_name: item.product_name,
-        quantity: item.quantity,
-        price: item.price,
-        total: item.price * item.quantity
-      })),
-      subtotal,
-      subscriptionFee,
-      total,
-      generatedAt: new Date().toISOString(),
-      billingHistory
-    };
+//     // Create bill object
+//     const bill = {
+//       plan,
+//       billingPeriod,
+//       items: subscriptions.map(item => ({
+//         subscription_id: item.subscription_id,
+//         product_name: item.product_name,
+//         quantity: item.quantity,
+//         price: item.price,
+//         total: item.price * item.quantity
+//       })),
+//       subtotal,
+//       subscriptionFee,
+//       total,
+//       generatedAt: new Date().toISOString(),
+//       billingHistory
+//     };
 
-    res.json({ 
-      success: true, 
-      bill 
-    });
-  } catch (error) {
-    console.error("Error generating bill:", error);
-    res.status(500).json({ 
-      success: false,
-      error: "Failed to generate bill" 
-    });
-  }
-});
+//     res.json({ 
+//       success: true, 
+//       bill 
+//     });
+//   } catch (error) {
+//     console.error("Error generating bill:", error);
+//     res.status(500).json({ 
+//       success: false,
+//       error: "Failed to generate bill" 
+//     });
+//   }
+// });
 
-// Process payment for a subscription plan
-app.post('/api/bills/pay/:consumer_id/:plan', authenticateToken, async (req, res) => {
-  try {
-    const { consumer_id, plan } = req.params;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+// // Process payment for a subscription plan
+// app.post('/api/bills/pay/:consumer_id/:plan', authenticateToken, async (req, res) => {
+//   try {
+//     const { consumer_id, plan } = req.params;
+//     const today = new Date();
+//     today.setHours(0, 0, 0, 0);
     
-    // Verify authorization
-    if (consumer_id !== req.user.consumer_id) {
-      return res.status(403).json({
-        success: false,
-        message: 'Unauthorized payment attempt'
-      });
-    }
+//     // Verify authorization
+//     if (consumer_id !== req.user.consumer_id) {
+//       return res.status(403).json({
+//         success: false,
+//         message: 'Unauthorized payment attempt'
+//       });
+//     }
 
-    // First generate the bill to get the amount
-    const billResponse = await queryDatabase(
-      `SELECT 
-        s.subscription_id,
-        s.product_name,
-        s.quantity,
-        s.price,
-        (s.price * s.quantity) as item_total,
-        (5 * s.quantity) as fee
-       FROM subscriptions s
-       WHERE s.consumer_id = ? AND s.subscription_type = ? AND s.status = 'Active'`,
-      [consumer_id, plan]
-    );
+//     // First generate the bill to get the amount
+//     const billResponse = await queryDatabase(
+//       `SELECT 
+//         s.subscription_id,
+//         s.product_name,
+//         s.quantity,
+//         s.price,
+//         (s.price * s.quantity) as item_total,
+//         (5 * s.quantity) as fee
+//        FROM subscriptions s
+//        WHERE s.consumer_id = ? AND s.subscription_type = ? AND s.status = 'Active'`,
+//       [consumer_id, plan]
+//     );
 
-    if (billResponse.length === 0) {
-      return res.status(404).json({ 
-        success: false,
-        error: "No active subscriptions found for this plan" 
-      });
-    }
+//     if (billResponse.length === 0) {
+//       return res.status(404).json({ 
+//         success: false,
+//         error: "No active subscriptions found for this plan" 
+//       });
+//     }
 
-    // Calculate totals
-    const subtotal = billResponse.reduce((sum, item) => sum + item.item_total, 0);
-    const subscriptionFee = billResponse.reduce((sum, item) => sum + item.fee, 0);
-    const total = subtotal + subscriptionFee;
+//     // Calculate totals
+//     const subtotal = billResponse.reduce((sum, item) => sum + item.item_total, 0);
+//     const subscriptionFee = billResponse.reduce((sum, item) => sum + item.fee, 0);
+//     const total = subtotal + subscriptionFee;
 
-    // Get current wallet balance
-    const walletBalance = await queryDatabase(
-      `SELECT balance FROM wallet_transactions 
-       WHERE consumer_id = ? 
-       ORDER BY transaction_date DESC LIMIT 1`,
-      [consumer_id]
-    );
-    const currentBalance = walletBalance[0]?.balance || 0;
+//     // Get current wallet balance
+//     const walletBalance = await queryDatabase(
+//       `SELECT balance FROM wallet_transactions 
+//        WHERE consumer_id = ? 
+//        ORDER BY transaction_date DESC LIMIT 1`,
+//       [consumer_id]
+//     );
+//     const currentBalance = walletBalance[0]?.balance || 0;
 
-    if (currentBalance < total) {
-      return res.status(400).json({ 
-        success: false,
-        error: "Insufficient wallet balance",
-        required: total,
-        current: currentBalance
-      });
-    }
+//     if (currentBalance < total) {
+//       return res.status(400).json({ 
+//         success: false,
+//         error: "Insufficient wallet balance",
+//         required: total,
+//         current: currentBalance
+//       });
+//     }
 
-    // Deduct from wallet
-    const paymentDescription = `Subscription payment for ${plan} plan`;
-    const paymentResult = await queryDatabase(
-      `INSERT INTO wallet_transactions 
-       (consumer_id, transaction_type, amount, description, payment_method) 
-       VALUES (?, 'Debit', ?, ?, 'Subscription Payment')`,
-      [consumer_id, total, paymentDescription]
-    );
+//     // Deduct from wallet
+//     const paymentDescription = `Subscription payment for ${plan} plan`;
+//     const paymentResult = await queryDatabase(
+//       `INSERT INTO wallet_transactions 
+//        (consumer_id, transaction_type, amount, description, payment_method) 
+//        VALUES (?, 'Debit', ?, ?, 'Subscription Payment')`,
+//       [consumer_id, total, paymentDescription]
+//     );
 
-    // Record the payment in billing history
-    await queryDatabase(
-      `INSERT INTO billing_history 
-       (consumer_id, subscription_type, amount, billing_date, transaction_id, description) 
-       VALUES (?, ?, ?, ?, NULL, ?)`,
-      [consumer_id, plan, total, today, paymentResult.insertId, paymentDescription]
-    );
+//     // Record the payment in billing history
+//     await queryDatabase(
+//       `INSERT INTO billing_history 
+//        (consumer_id, subscription_type, amount, billing_date, transaction_id, description) 
+//        VALUES (?, ?, ?, ?, NULL, ?)`,
+//       [consumer_id, plan, total, today, paymentResult.insertId, paymentDescription]
+//     );
 
-    // Log the delivery
-    await queryDatabase(
-      `INSERT INTO delivery_logs 
-       (consumer_id, delivery_date, amount, transaction_id, status) 
-       VALUES (?, ?, ?, NULL, 'Completed')`,
-      [consumer_id, today, total, paymentResult.insertId]
-    );
+//     // Log the delivery
+//     await queryDatabase(
+//       `INSERT INTO delivery_logs 
+//        (consumer_id, delivery_date, amount, transaction_id, status) 
+//        VALUES (?, ?, ?, NULL, 'Completed')`,
+//       [consumer_id, today, total, paymentResult.insertId]
+//     );
 
-    // Get the updated balance
-    const updatedBalance = await queryDatabase(
-      `SELECT balance FROM wallet_transactions 
-       WHERE transaction_id = ?`,
-      [paymentResult.insertId]
-    );
+//     // Get the updated balance
+//     const updatedBalance = await queryDatabase(
+//       `SELECT balance FROM wallet_transactions 
+//        WHERE transaction_id = ?`,
+//       [paymentResult.insertId]
+//     );
 
-    res.json({ 
-      success: true,
-      message: "Payment processed successfully",
-      amount: total,
-      newBalance: updatedBalance[0].balance,
-      transactionId: paymentResult.insertId
-    });
+//     res.json({ 
+//       success: true,
+//       message: "Payment processed successfully",
+//       amount: total,
+//       newBalance: updatedBalance[0].balance,
+//       transactionId: paymentResult.insertId
+//     });
     
-  } catch (error) {
-    console.error("Error processing payment:", error);
-    res.status(500).json({ 
-      success: false,
-      error: "Failed to process payment" 
-    });
-  }
-});
+//   } catch (error) {
+//     console.error("Error processing payment:", error);
+//     res.status(500).json({ 
+//       success: false,
+//       error: "Failed to process payment" 
+//     });
+//   }
+// });
 
 
-// Get billing history
-app.get('/api/bills/history/:consumer_id', verifyToken, async (req, res) => {
-  try {
-    const { consumer_id } = req.params;
+// // Get billing history
+// app.get('/api/bills/history/:consumer_id', verifyToken, async (req, res) => {
+//   try {
+//     const { consumer_id } = req.params;
     
-    const history = await queryDatabase(
-      `SELECT 
-        bh.billing_id,
-        bh.subscription_type as plan,
-        bh.amount,
-        DATE_FORMAT(bh.billing_date, '%Y-%m-%d') as billing_date,
-        wt.transaction_id,
-        DATE_FORMAT(wt.transaction_date, '%Y-%m-%d %H:%i:%s') as payment_date,
-        bh.description
-       FROM billing_history bh
-       JOIN wallet_transactions wt ON bh.transaction_id = wt.transaction_id
-       WHERE bh.consumer_id = ?
-       ORDER BY bh.billing_date DESC`,
-      [consumer_id]
-    );
+//     const history = await queryDatabase(
+//       `SELECT 
+//         bh.billing_id,
+//         bh.subscription_type as plan,
+//         bh.amount,
+//         DATE_FORMAT(bh.billing_date, '%Y-%m-%d') as billing_date,
+//         wt.transaction_id,
+//         DATE_FORMAT(wt.transaction_date, '%Y-%m-%d %H:%i:%s') as payment_date,
+//         bh.description
+//        FROM billing_history bh
+//        JOIN wallet_transactions wt ON bh.transaction_id = wt.transaction_id
+//        WHERE bh.consumer_id = ?
+//        ORDER BY bh.billing_date DESC`,
+//       [consumer_id]
+//     );
 
-    res.json({ success: true, history });
-  } catch (error) {
-    console.error("Error fetching billing history:", error);
-    res.status(500).json({ error: "Failed to fetch billing history" });
-  }
-});
+//     res.json({ success: true, history });
+//   } catch (error) {
+//     console.error("Error fetching billing history:", error);
+//     res.status(500).json({ error: "Failed to fetch billing history" });
+//   }
+// });
 
-// Generate PDF bill
-app.get('/api/bills/pdf/:consumer_id/:plan', authenticateToken, async (req, res) => {
-  try {
-    const { consumer_id, plan } = req.params;
-    const today = new Date();
+// // Generate PDF bill
+// app.get('/api/bills/pdf/:consumer_id/:plan', authenticateToken, async (req, res) => {
+//   try {
+//     const { consumer_id, plan } = req.params;
+//     const today = new Date();
     
-    // Verify the requested consumer_id matches the authenticated user
-    if (consumer_id !== req.user.consumer_id) {
-      return res.status(403).json({
-        success: false,
-        message: 'Unauthorized access to billing information'
-      });
-    }
+//     // Verify the requested consumer_id matches the authenticated user
+//     if (consumer_id !== req.user.consumer_id) {
+//       return res.status(403).json({
+//         success: false,
+//         message: 'Unauthorized access to billing information'
+//       });
+//     }
 
-    // Get current bill
-    const currentBill = await queryDatabase(
-      `SELECT 
-        s.subscription_id,
-        s.product_name,
-        s.quantity,
-        s.price,
-        (s.price * s.quantity) as item_total,
-        (5 * s.quantity) as fee
-       FROM subscriptions s
-       WHERE s.consumer_id = ? AND s.subscription_type = ? AND s.status = 'Active'`,
-      [consumer_id, plan]
-    );
+//     // Get current bill
+//     const currentBill = await queryDatabase(
+//       `SELECT 
+//         s.subscription_id,
+//         s.product_name,
+//         s.quantity,
+//         s.price,
+//         (s.price * s.quantity) as item_total,
+//         (5 * s.quantity) as fee
+//        FROM subscriptions s
+//        WHERE s.consumer_id = ? AND s.subscription_type = ? AND s.status = 'Active'`,
+//       [consumer_id, plan]
+//     );
 
-    if (currentBill.length === 0) {
-      return res.status(404).json({ 
-        success: false,
-        error: "No active subscriptions found for this plan" 
-      });
-    }
+//     if (currentBill.length === 0) {
+//       return res.status(404).json({ 
+//         success: false,
+//         error: "No active subscriptions found for this plan" 
+//       });
+//     }
 
-    // Get billing history
-    const billingHistory = await queryDatabase(
-      `SELECT 
-        bh.billing_id,
-        bh.amount,
-        DATE_FORMAT(bh.billing_date, '%Y-%m-%d') as billing_date,
-        wt.transaction_id,
-        DATE_FORMAT(wt.transaction_date, '%Y-%m-%d %H:%i:%s') as payment_date,
-        bh.description
-       FROM billing_history bh
-       JOIN wallet_transactions wt ON bh.transaction_id = wt.transaction_id
-       WHERE bh.consumer_id = ? AND bh.subscription_type = ?
-       ORDER BY bh.billing_date DESC
-       LIMIT 10`,
-      [consumer_id, plan]
-    );
+//     // Get billing history
+//     const billingHistory = await queryDatabase(
+//       `SELECT 
+//         bh.billing_id,
+//         bh.amount,
+//         DATE_FORMAT(bh.billing_date, '%Y-%m-%d') as billing_date,
+//         wt.transaction_id,
+//         DATE_FORMAT(wt.transaction_date, '%Y-%m-%d %H:%i:%s') as payment_date,
+//         bh.description
+//        FROM billing_history bh
+//        JOIN wallet_transactions wt ON bh.transaction_id = wt.transaction_id
+//        WHERE bh.consumer_id = ? AND bh.subscription_type = ?
+//        ORDER BY bh.billing_date DESC
+//        LIMIT 10`,
+//       [consumer_id, plan]
+//     );
 
-    // Calculate totals for current bill
-    const subtotal = currentBill.reduce((sum, item) => sum + item.item_total, 0);
-    const subscriptionFee = currentBill.reduce((sum, item) => sum + item.fee, 0);
-    const total = subtotal + subscriptionFee;
+//     // Calculate totals for current bill
+//     const subtotal = currentBill.reduce((sum, item) => sum + item.item_total, 0);
+//     const subscriptionFee = currentBill.reduce((sum, item) => sum + item.fee, 0);
+//     const total = subtotal + subscriptionFee;
 
-    // Generate PDF
-    const PDFDocument = require('pdfkit');
-    const fs = require('fs');
-    const path = require('path');
+//     // Generate PDF
+//     const PDFDocument = require('pdfkit');
+//     const fs = require('fs');
+//     const path = require('path');
     
-    const doc = new PDFDocument();
-    const fileName = `subscription_bill_${plan}_${today.toISOString().split('T')[0]}.pdf`;
-    const filePath = path.join(__dirname, 'temp', fileName);
+//     const doc = new PDFDocument();
+//     const fileName = `subscription_bill_${plan}_${today.toISOString().split('T')[0]}.pdf`;
+//     const filePath = path.join(__dirname, 'temp', fileName);
     
-    // Ensure temp directory exists
-    if (!fs.existsSync(path.join(__dirname, 'temp'))) {
-      fs.mkdirSync(path.join(__dirname, 'temp'));
-    }
+//     // Ensure temp directory exists
+//     if (!fs.existsSync(path.join(__dirname, 'temp'))) {
+//       fs.mkdirSync(path.join(__dirname, 'temp'));
+//     }
     
-    const writeStream = fs.createWriteStream(filePath);
-    doc.pipe(writeStream);
+//     const writeStream = fs.createWriteStream(filePath);
+//     doc.pipe(writeStream);
     
-    // PDF Content
-    doc.fontSize(20).text(`${plan} Subscription Bill`, { align: 'center' });
-    doc.moveDown();
+//     // PDF Content
+//     doc.fontSize(20).text(`${plan} Subscription Bill`, { align: 'center' });
+//     doc.moveDown();
     
-    // Consumer info
-    const consumer = await queryDatabase(
-      "SELECT first_name, last_name, address FROM consumerregistration WHERE consumer_id = ?",
-      [consumer_id]
-    );
+//     // Consumer info
+//     const consumer = await queryDatabase(
+//       "SELECT first_name, last_name, address FROM consumerregistration WHERE consumer_id = ?",
+//       [consumer_id]
+//     );
     
-    if (consumer.length > 0) {
-      doc.fontSize(12)
-         .text(`Consumer: ${consumer[0].first_name} ${consumer[0].last_name}`)
-         .text(`Address: ${consumer[0].address}`)
-         .text(`Date: ${today.toLocaleDateString()}`)
-         .moveDown();
-    }
+//     if (consumer.length > 0) {
+//       doc.fontSize(12)
+//          .text(`Consumer: ${consumer[0].first_name} ${consumer[0].last_name}`)
+//          .text(`Address: ${consumer[0].address}`)
+//          .text(`Date: ${today.toLocaleDateString()}`)
+//          .moveDown();
+//     }
     
-    // Current Bill Section
-    doc.fontSize(14).text('Current Bill Details', { underline: true });
-    doc.moveDown(0.5);
+//     // Current Bill Section
+//     doc.fontSize(14).text('Current Bill Details', { underline: true });
+//     doc.moveDown(0.5);
     
-    // Table header
-    doc.font('Helvetica-Bold')
-       .text('Product', 50, doc.y)
-       .text('Qty', 200, doc.y)
-       .text('Unit Price', 250, doc.y)
-       .text('Total', 350, doc.y)
-       .moveDown(0.5);
+//     // Table header
+//     doc.font('Helvetica-Bold')
+//        .text('Product', 50, doc.y)
+//        .text('Qty', 200, doc.y)
+//        .text('Unit Price', 250, doc.y)
+//        .text('Total', 350, doc.y)
+//        .moveDown(0.5);
     
-    doc.font('Helvetica');
-    // Table rows
-    currentBill.forEach(item => {
-      doc.text(item.product_name, 50, doc.y)
-         .text(item.quantity.toString(), 200, doc.y)
-         .text(`₹${item.price.toFixed(2)}`, 250, doc.y)
-         .text(`₹${item.item_total.toFixed(2)}`, 350, doc.y)
-         .moveDown(0.5);
-    });
+//     doc.font('Helvetica');
+//     // Table rows
+//     currentBill.forEach(item => {
+//       doc.text(item.product_name, 50, doc.y)
+//          .text(item.quantity.toString(), 200, doc.y)
+//          .text(`₹${item.price.toFixed(2)}`, 250, doc.y)
+//          .text(`₹${item.item_total.toFixed(2)}`, 350, doc.y)
+//          .moveDown(0.5);
+//     });
     
-    // Totals
-    doc.moveDown(0.5)
-       .text(`Subtotal: ₹${subtotal.toFixed(2)}`, { align: 'right' })
-       .text(`Subscription Fee: ₹${subscriptionFee.toFixed(2)}`, { align: 'right' })
-       .font('Helvetica-Bold')
-       .text(`Total: ₹${total.toFixed(2)}`, { align: 'right' })
-       .font('Helvetica')
-       .moveDown(2);
+//     // Totals
+//     doc.moveDown(0.5)
+//        .text(`Subtotal: ₹${subtotal.toFixed(2)}`, { align: 'right' })
+//        .text(`Subscription Fee: ₹${subscriptionFee.toFixed(2)}`, { align: 'right' })
+//        .font('Helvetica-Bold')
+//        .text(`Total: ₹${total.toFixed(2)}`, { align: 'right' })
+//        .font('Helvetica')
+//        .moveDown(2);
     
-    // Billing History Section
-    if (billingHistory.length > 0) {
-      doc.fontSize(14).text('Payment History', { underline: true });
-      doc.moveDown(0.5);
+//     // Billing History Section
+//     if (billingHistory.length > 0) {
+//       doc.fontSize(14).text('Payment History', { underline: true });
+//       doc.moveDown(0.5);
       
-      // History table header
-      doc.font('Helvetica-Bold')
-         .text('Date', 50, doc.y)
-         .text('Amount', 200, doc.y)
-         .text('Status', 350, doc.y)
-         .moveDown(0.5);
+//       // History table header
+//       doc.font('Helvetica-Bold')
+//          .text('Date', 50, doc.y)
+//          .text('Amount', 200, doc.y)
+//          .text('Status', 350, doc.y)
+//          .moveDown(0.5);
       
-      doc.font('Helvetica');
-      // History rows
-      billingHistory.forEach(item => {
-        doc.text(item.billing_date, 50, doc.y)
-           .text(`₹${item.amount.toFixed(2)}`, 200, doc.y)
-           .text('Paid', 350, doc.y)
-           .moveDown(0.5);
-      });
-    }
+//       doc.font('Helvetica');
+//       // History rows
+//       billingHistory.forEach(item => {
+//         doc.text(item.billing_date, 50, doc.y)
+//            .text(`₹${item.amount.toFixed(2)}`, 200, doc.y)
+//            .text('Paid', 350, doc.y)
+//            .moveDown(0.5);
+//       });
+//     }
     
-    doc.end();
+//     doc.end();
     
-    writeStream.on('finish', () => {
-      res.download(filePath, fileName, (err) => {
-        if (err) console.error("Error sending PDF:", err);
-        // Delete the file after download
-        fs.unlinkSync(filePath);
-      });
-    });
+//     writeStream.on('finish', () => {
+//       res.download(filePath, fileName, (err) => {
+//         if (err) console.error("Error sending PDF:", err);
+//         // Delete the file after download
+//         fs.unlinkSync(filePath);
+//       });
+//     });
     
-  } catch (error) {
-    console.error("Error generating PDF:", error);
-    res.status(500).json({ 
-      success: false,
-      error: "Failed to generate PDF bill" 
-    });
-  }
-});
+//   } catch (error) {
+//     console.error("Error generating PDF:", error);
+//     res.status(500).json({ 
+//       success: false,
+//       error: "Failed to generate PDF bill" 
+//     });
+//   }
+// });
+
+
+
+
+
+
+
+
 
 
 app.get("/api/products", async (req, res) => {
@@ -4501,465 +4510,11 @@ app.delete("/api/subscriptions/:subscription_id", verifyToken, async (req, res) 
     res.status(500).json({ error: "Failed to delete subscription" });
   }
 });
+
+
 // Add these new routes for subscription management
 
-// Daily Subscription Processing
-app.post('/api/process-subscriptions/daily', async (req, res) => {
-  try {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
 
-    // Get all active daily subscriptions
-    const subscriptions = await queryDatabase(
-      `SELECT s.subscription_id, s.consumer_id, s.product_id, 
-              s.product_name, s.quantity, s.price,
-              cr.first_name, cr.last_name
-       FROM subscriptions s
-       JOIN consumerregistration cr ON s.consumer_id = cr.consumer_id
-       WHERE s.subscription_type = 'Daily' 
-       AND s.status = 'Active'`
-    );
-
-    if (subscriptions.length === 0) {
-      return res.json({ success: true, message: "No daily subscriptions to process" });
-    }
-
-    // Process each subscription
-    for (const sub of subscriptions) {
-      const amount = sub.price * sub.quantity;
-      const subscriptionFee = 5 * sub.quantity; // ₹5 per item fee
-      const total = amount + subscriptionFee;
-
-      // Check wallet balance
-      const [wallet] = await queryDatabase(
-        `SELECT balance FROM wallet_transactions 
-         WHERE consumer_id = ? 
-         ORDER BY transaction_date DESC LIMIT 1`,
-        [sub.consumer_id]
-      );
-
-      const currentBalance = wallet?.balance || 0;
-
-      if (currentBalance < total) {
-        // Insufficient funds - skip this subscription
-        await queryDatabase(
-          `INSERT INTO subscription_logs 
-           (subscription_id, consumer_id, amount, status, message)
-           VALUES (?, ?, ?, 'Failed', 'Insufficient funds')`,
-          [sub.subscription_id, sub.consumer_id, total]
-        );
-        continue;
-      }
-
-      // Deduct from wallet
-      await queryDatabase(
-        `INSERT INTO wallet_transactions 
-         (consumer_id, transaction_type, amount, description, payment_method)
-         VALUES (?, 'Debit', ?, 'Daily subscription payment', 'Subscription')`,
-        [sub.consumer_id, total]
-      );
-
-      // Record payment in billing history
-      await queryDatabase(
-        `INSERT INTO billing_history 
-         (consumer_id, subscription_type, amount, billing_date, description)
-         VALUES (?, 'Daily', ?, ?, 'Daily subscription payment')`,
-        [sub.consumer_id, total, today]
-      );
-
-      // Record successful delivery
-      await queryDatabase(
-        `INSERT INTO delivery_logs 
-         (consumer_id, delivery_date, amount, status)
-         VALUES (?, ?, ?, 'Completed')`,
-        [sub.consumer_id, today, total]
-      );
-
-      // Log successful processing
-      await queryDatabase(
-        `INSERT INTO subscription_logs 
-         (subscription_id, consumer_id, amount, status, message)
-         VALUES (?, ?, ?, 'Completed', 'Payment processed successfully')`,
-        [sub.subscription_id, sub.consumer_id, total]
-      );
-    }
-
-    res.json({ 
-      success: true, 
-      message: "Daily subscriptions processed successfully",
-      processed: subscriptions.length
-    });
-
-  } catch (error) {
-    console.error("Error processing daily subscriptions:", error);
-    res.status(500).json({ 
-      success: false,
-      error: "Failed to process subscriptions",
-      details: error.message
-    });
-  }
-});
-
-// Similar endpoints for other subscription types (Alternate Days, Weekly, Monthly)
-// ... (implement similar logic for other subscription types)
-
-// Combined Bill Generation
-app.get('/api/subscriptions/combined-bill/:consumer_id', async (req, res) => {
-  try {
-    const { consumer_id } = req.params;
-    const { start_date, end_date } = req.query;
-
-    // Validate dates
-    const startDate = start_date ? new Date(start_date) : new Date();
-    startDate.setHours(0, 0, 0, 0);
-    
-    const endDate = end_date ? new Date(end_date) : new Date();
-    endDate.setHours(23, 59, 59, 999);
-
-    // Get all billing history for the period
-    const billingHistory = await queryDatabase(
-      `SELECT 
-        bh.billing_id,
-        bh.subscription_type,
-        bh.amount,
-        bh.billing_date,
-        bh.description,
-        wt.transaction_id,
-        wt.transaction_date
-       FROM billing_history bh
-       JOIN wallet_transactions wt ON bh.transaction_id = wt.transaction_id
-       WHERE bh.consumer_id = ?
-       AND bh.billing_date BETWEEN ? AND ?
-       ORDER BY bh.billing_date DESC`,
-      [consumer_id, startDate, endDate]
-    );
-
-    // Calculate totals
-    const totals = billingHistory.reduce((acc, item) => {
-      if (!acc[item.subscription_type]) {
-        acc[item.subscription_type] = 0;
-      }
-      acc[item.subscription_type] += item.amount;
-      acc.total += item.amount;
-      return acc;
-    }, { total: 0 });
-
-    // Get consumer details
-    const [consumer] = await queryDatabase(
-      `SELECT first_name, last_name, email, phone_number 
-       FROM consumerregistration 
-       WHERE consumer_id = ?`,
-      [consumer_id]
-    );
-
-    res.json({
-      success: true,
-      consumer,
-      period: {
-        start: startDate.toISOString().split('T')[0],
-        end: endDate.toISOString().split('T')[0]
-      },
-      billingHistory,
-      totals,
-      generatedAt: new Date().toISOString()
-    });
-
-  } catch (error) {
-    console.error("Error generating combined bill:", error);
-    res.status(500).json({ 
-      success: false,
-      error: "Failed to generate combined bill"
-    });
-  }
-});
-
-// PDF Generation for Combined Bill
-// Updated Combined Bill PDF Generation
-// app.get('/api/subscriptions/combined-bill-pdf/:consumer_id', async (req, res) => {
-//   try {
-//     const { consumer_id } = req.params;
-//     const { start_date, end_date } = req.query;
-
-//     // First get the bill data
-//     const billData = await getCombinedBillData(consumer_id, start_date, end_date);
-
-//     // Generate PDF
-//     const PDFDocument = require('pdfkit');
-//     const doc = new PDFDocument();
-    
-//     // Set response headers
-//     res.setHeader('Content-Type', 'application/pdf');
-//     res.setHeader('Content-Disposition', `attachment; filename=combined_bill_${consumer_id}_${new Date().toISOString().split('T')[0]}.pdf`);
-    
-//     // Pipe PDF to response
-//     doc.pipe(res);
-    
-//     // PDF Content
-//     doc.fontSize(20).text('Combined Subscription Bill', { align: 'center' });
-//     doc.moveDown();
-    
-//     // Consumer info
-//     doc.fontSize(12)
-//        .text(`Consumer: ${billData.consumer.first_name} ${billData.consumer.last_name}`)
-//        .text(`Period: ${billData.period.start} to ${billData.period.end}`)
-//        .text(`Generated on: ${new Date().toLocaleDateString()}`)
-//        .moveDown();
-    
-//     // Bill summary
-//     doc.fontSize(14).text('Bill Summary', { underline: true });
-//     doc.moveDown(0.5);
-    
-//     // Table header
-//     doc.font('Helvetica-Bold')
-//        .text('Date', 50, doc.y)
-//        .text('Type', 150, doc.y)
-//        .text('Description', 250, doc.y)
-//        .text('Amount', 450, doc.y)
-//        .moveDown(0.5);
-    
-//     doc.font('Helvetica');
-//     // Table rows
-//     billData.billingHistory.forEach(item => {
-//       doc.text(new Date(item.billing_date).toLocaleDateString(), 50, doc.y)
-//          .text(item.subscription_type, 150, doc.y)
-//          .text(item.description, 250, doc.y)
-//          .text(`₹${item.amount.toFixed(2)}`, 450, doc.y)
-//          .moveDown(0.5);
-//     });
-    
-//     // Total
-//     doc.moveDown();
-//     doc.font('Helvetica-Bold')
-//        .text('Total Amount:', 350, doc.y)
-//        .text(`₹${billData.totals.total.toFixed(2)}`, 450, doc.y);
-    
-//     doc.end();
-    
-//   } catch (error) {
-//     console.error("Error generating PDF:", error);
-//     res.status(500).json({ 
-//       success: false,
-//       error: "Failed to generate PDF bill" 
-//     });
-//   }
-// });
-// Combined Bill PDF Generation
-app.get('/api/subscriptions/combined-bill-pdf/:consumer_id', async (req, res) => {
-  try {
-    const { consumer_id } = req.params;
-    const { start_date, end_date } = req.query;
-
-    // Get consumer details
-    const [consumer] = await queryDatabase(
-      `SELECT first_name, last_name FROM consumerregistration 
-       WHERE consumer_id = ?`,
-      [consumer_id]
-    );
-
-    // Get billing history
-    const billingHistory = await queryDatabase(
-      `SELECT bh.*, wt.transaction_date 
-       FROM billing_history bh
-       JOIN wallet_transactions wt ON bh.transaction_id = wt.transaction_id
-       WHERE bh.consumer_id = ?
-       AND bh.billing_date BETWEEN ? AND ?
-       ORDER BY bh.billing_date DESC`,
-      [consumer_id, start_date || '1970-01-01', end_date || new Date().toISOString()]
-    );
-
-    // Calculate totals
-    const totals = billingHistory.reduce((acc, item) => {
-      if (!acc[item.subscription_type]) {
-        acc[item.subscription_type] = 0;
-      }
-      acc[item.subscription_type] += item.amount;
-      acc.total = (acc.total || 0) + item.amount;
-      return acc;
-    }, {});
-
-    // Generate PDF
-    const PDFDocument = require('pdfkit');
-    const doc = new PDFDocument();
-    
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=subscription_bill_${consumer_id}.pdf`);
-    
-    doc.pipe(res);
-
-    // Header
-    doc.fontSize(20).text('Subscription Bill Summary', { align: 'center' });
-    doc.moveDown();
-    
-    // Consumer Info
-    doc.fontSize(12)
-       .text(`Customer: ${consumer.first_name} ${consumer.last_name}`)
-       .text(`Customer ID: ${consumer_id}`)
-       .text(`Generated on: ${new Date().toLocaleDateString()}`)
-       .moveDown();
-
-    // Bill Summary
-    doc.fontSize(16).text('Billing Summary', { underline: true });
-    doc.moveDown(0.5);
-    
-    doc.font('Helvetica-Bold')
-       .text('Subscription Type', 50, doc.y)
-       .text('Amount', 350, doc.y)
-       .moveDown(0.5);
-    
-    doc.font('Helvetica');
-    for (const [type, amount] of Object.entries(totals)) {
-      if (type !== 'total') {
-        doc.text(type, 50, doc.y)
-           .text(`₹${amount.toFixed(2)}`, 350, doc.y)
-           .moveDown(0.5);
-      }
-    }
-    
-    // Total
-    doc.moveDown();
-    doc.font('Helvetica-Bold')
-       .text('Total Amount:', 300, doc.y)
-       .text(`₹${totals.total.toFixed(2)}`, 350, doc.y)
-       .moveDown();
-
-    // Transaction Details
-    doc.addPage();
-    doc.fontSize(16).text('Transaction Details', { underline: true });
-    doc.moveDown(0.5);
-    
-    doc.font('Helvetica-Bold')
-       .text('Date', 50, doc.y)
-       .text('Type', 150, doc.y)
-       .text('Description', 250, doc.y)
-       .text('Amount', 450, doc.y)
-       .moveDown(0.5);
-    
-    doc.font('Helvetica');
-    billingHistory.forEach(item => {
-      doc.text(new Date(item.billing_date).toLocaleDateString(), 50, doc.y)
-         .text(item.subscription_type, 150, doc.y)
-         .text(item.description, 250, doc.y)
-         .text(`₹${item.amount.toFixed(2)}`, 450, doc.y)
-         .moveDown(0.5);
-    });
-
-    doc.end();
-  } catch (error) {
-    console.error("Error generating PDF:", error);
-    res.status(500).json({ 
-      success: false,
-      error: "Failed to generate PDF bill" 
-    });
-  }
-});
-async function getCombinedBillData(consumer_id, start_date, end_date) {
-  // Validate dates
-  const startDate = start_date ? new Date(start_date) : new Date();
-  startDate.setHours(0, 0, 0, 0);
-  
-  const endDate = end_date ? new Date(end_date) : new Date();
-  endDate.setHours(23, 59, 59, 999);
-
-  // Get all billing history for the period
-  const billingHistory = await queryDatabase(
-    `SELECT 
-      bh.billing_id,
-      bh.subscription_type,
-      bh.amount,
-      bh.billing_date,
-      bh.description,
-      wt.transaction_id,
-      wt.transaction_date
-     FROM billing_history bh
-     JOIN wallet_transactions wt ON bh.transaction_id = wt.transaction_id
-     WHERE bh.consumer_id = ?
-     AND bh.billing_date BETWEEN ? AND ?
-     ORDER BY bh.billing_date DESC`,
-    [consumer_id, startDate, endDate]
-  );
-
-  // Calculate totals
-  const totals = billingHistory.reduce((acc, item) => {
-    if (!acc[item.subscription_type]) {
-      acc[item.subscription_type] = 0;
-    }
-    acc[item.subscription_type] += item.amount;
-    acc.total += item.amount;
-    return acc;
-  }, { total: 0 });
-
-  // Get consumer details
-  const [consumer] = await queryDatabase(
-    `SELECT first_name, last_name, email, phone_number 
-     FROM consumerregistration 
-     WHERE consumer_id = ?`,
-    [consumer_id]
-  );
-
-  return {
-    consumer,
-    period: {
-      start: startDate.toISOString().split('T')[0],
-      end: endDate.toISOString().split('T')[0]
-    },
-    billingHistory,
-    totals,
-    generatedAt: new Date().toISOString()
-  };
-}
-// Add this to your server.js or create a new file (subscriptionCron.js)
-
-
-
-// subscriptionCron.js
-
-
-// Daily at 7 AM
-// cron.schedule('0 7 * * *', async () => {
-//   console.log('Running daily subscription processing...');
-//   try {
-//     await processSubscriptions('Daily');
-//     console.log('Daily subscriptions processed successfully');
-//   } catch (error) {
-//     console.error('Error processing daily subscriptions:', error);
-//   }
-// });
-
-// // Alternate Days at 7 AM
-// cron.schedule('0 7 * * *', async () => {
-//   const today = moment().date();
-//   if (today % 2 === 0) { // Process every even day
-//     console.log('Running alternate day subscription processing...');
-//     try {
-//       await processSubscriptions('Alternate Days');
-//       console.log('Alternate day subscriptions processed successfully');
-//     } catch (error) {
-//       console.error('Error processing alternate day subscriptions:', error);
-//     }
-//   }
-// });
-
-// // Weekly on Sundays at 7 AM
-// cron.schedule('0 7 * * 0', async () => {
-//   console.log('Running weekly subscription processing...');
-//   try {
-//     await processSubscriptions('Weekly');
-//     console.log('Weekly subscriptions processed successfully');
-//   } catch (error) {
-//     console.error('Error processing weekly subscriptions:', error);
-//   }
-// });
-
-// // Monthly on 1st at 7 AM
-// cron.schedule('0 7 1 * *', async () => {
-//   console.log('Running monthly subscription processing...');
-//   try {
-//     await processSubscriptions('Monthly');
-//     console.log('Monthly subscriptions processed successfully');
-//   } catch (error) {
-//     console.error('Error processing monthly subscriptions:', error);
-//   }
-// });
 // Daily Subscription Processing
 app.post('/api/process-subscriptions/daily', async (req, res) => {
   try {
@@ -4984,8 +4539,8 @@ app.post('/api/process-subscriptions/daily', async (req, res) => {
     const processedSubscriptions = [];
     
     for (const sub of subscriptions) {
-      const amount = sub.price * sub.quantity;
-      const subscriptionFee = 5 * sub.quantity;
+      const amount = parseFloat(sub.price) * parseInt(sub.quantity);
+      const subscriptionFee = 5 * parseInt(sub.quantity);
       const total = amount + subscriptionFee;
 
       // Check wallet balance
@@ -5072,28 +4627,877 @@ app.post('/api/process-subscriptions/daily', async (req, res) => {
   }
 });
 
-// Similar endpoints for other types (Alternate Days, Weekly, Monthly)
-// ... (same pattern as above with appropriate descriptions)
-async function processSubscriptions(type) {
+// Alternate Days Subscription Processing
+app.post('/api/process-subscriptions/alternate-days', async (req, res) => {
   try {
-    const response = await axios.post(
-      `http://localhost:5000/api/process-subscriptions/${type.toLowerCase().replace(' ', '-')}`,
-      {},
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.CRON_SECRET}`
-        }
-      }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dayOfMonth = today.getDate();
+
+    // Only process on even days
+    if (dayOfMonth % 2 !== 0) {
+      return res.json({ 
+        success: true, 
+        message: "Not an alternate day - skipping processing" 
+      });
+    }
+
+    // Get all active alternate day subscriptions
+    const subscriptions = await queryDatabase(
+      `SELECT s.subscription_id, s.consumer_id, s.product_id, 
+              s.product_name, s.quantity, s.price,
+              cr.first_name, cr.last_name
+       FROM subscriptions s
+       JOIN consumerregistration cr ON s.consumer_id = cr.consumer_id
+       WHERE s.subscription_type = 'Alternate Days' 
+       AND s.status = 'Active'`
     );
-    return response.data;
+
+    if (subscriptions.length === 0) {
+      return res.json({ success: true, message: "No alternate day subscriptions to process" });
+    }
+
+    const processedSubscriptions = [];
+    
+    for (const sub of subscriptions) {
+      const amount = parseFloat(sub.price) * parseInt(sub.quantity);
+      const subscriptionFee = 5 * parseInt(sub.quantity);
+      const total = amount + subscriptionFee;
+
+      // Check wallet balance
+      const [wallet] = await queryDatabase(
+        `SELECT balance FROM wallet_transactions 
+         WHERE consumer_id = ? 
+         ORDER BY transaction_date DESC LIMIT 1`,
+        [sub.consumer_id]
+      );
+
+      const currentBalance = wallet?.balance || 0;
+
+      if (currentBalance < total) {
+        await queryDatabase(
+          `INSERT INTO subscription_logs 
+           (subscription_id, consumer_id, amount, status, message)
+           VALUES (?, ?, ?, 'Failed', 'Insufficient funds')`,
+          [sub.subscription_id, sub.consumer_id, total]
+        );
+        continue;
+      }
+
+      // Deduct from wallet
+      await queryDatabase(
+        `INSERT INTO wallet_transactions 
+         (consumer_id, transaction_type, amount, description, payment_method)
+         VALUES (?, 'Debit', ?, ?, 'Subscription')`,
+        [sub.consumer_id, total, `${sub.product_name} (Alternate Days Subscription)`]
+      );
+
+      // Get the transaction ID
+      const [transaction] = await queryDatabase(
+        `SELECT transaction_id FROM wallet_transactions 
+         WHERE consumer_id = ? 
+         ORDER BY transaction_date DESC LIMIT 1`,
+        [sub.consumer_id]
+      );
+
+      // Record payment in billing history
+      await queryDatabase(
+        `INSERT INTO billing_history 
+         (consumer_id, subscription_type, amount, billing_date, description, transaction_id)
+         VALUES (?, 'Alternate Days', ?, ?, ?, ?)`,
+        [sub.consumer_id, total, today, `${sub.product_name} (Alternate Days Subscription)`, transaction.transaction_id]
+      );
+
+      // Record successful delivery
+      await queryDatabase(
+        `INSERT INTO delivery_logs 
+         (consumer_id, delivery_date, amount, status, transaction_id)
+         VALUES (?, ?, ?, 'Completed', ?)`,
+        [sub.consumer_id, today, total, transaction.transaction_id]
+      );
+
+      // Log successful processing
+      await queryDatabase(
+        `INSERT INTO subscription_logs 
+         (subscription_id, consumer_id, amount, status, message, transaction_id)
+         VALUES (?, ?, ?, 'Completed', 'Payment processed successfully', ?)`,
+        [sub.subscription_id, sub.consumer_id, total, transaction.transaction_id]
+      );
+
+      processedSubscriptions.push({
+        subscription_id: sub.subscription_id,
+        consumer_id: sub.consumer_id,
+        amount: total,
+        transaction_id: transaction.transaction_id
+      });
+    }
+
+    res.json({ 
+      success: true, 
+      message: "Alternate day subscriptions processed successfully",
+      processed: processedSubscriptions
+    });
+
   } catch (error) {
-    throw error;
+    console.error("Error processing alternate day subscriptions:", error);
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to process subscriptions",
+      details: error.message
+    });
   }
+});
+
+// Weekly Subscription Processing
+app.post('/api/process-subscriptions/weekly', async (req, res) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Only process on Sundays (day 0)
+    if (today.getDay() !== 0) {
+      return res.json({ 
+        success: true, 
+        message: "Not a Sunday - skipping weekly processing" 
+      });
+    }
+
+    // Get all active weekly subscriptions
+    const subscriptions = await queryDatabase(
+      `SELECT s.subscription_id, s.consumer_id, s.product_id, 
+              s.product_name, s.quantity, s.price,
+              cr.first_name, cr.last_name
+       FROM subscriptions s
+       JOIN consumerregistration cr ON s.consumer_id = cr.consumer_id
+       WHERE s.subscription_type = 'Weekly' 
+       AND s.status = 'Active'`
+    );
+
+    if (subscriptions.length === 0) {
+      return res.json({ success: true, message: "No weekly subscriptions to process" });
+    }
+
+    const processedSubscriptions = [];
+    
+    for (const sub of subscriptions) {
+      const amount = parseFloat(sub.price) * parseInt(sub.quantity);
+      const subscriptionFee = 5 * parseInt(sub.quantity);
+      const total = amount + subscriptionFee;
+
+      // Check wallet balance
+      const [wallet] = await queryDatabase(
+        `SELECT balance FROM wallet_transactions 
+         WHERE consumer_id = ? 
+         ORDER BY transaction_date DESC LIMIT 1`,
+        [sub.consumer_id]
+      );
+
+      const currentBalance = wallet?.balance || 0;
+
+      if (currentBalance < total) {
+        await queryDatabase(
+          `INSERT INTO subscription_logs 
+           (subscription_id, consumer_id, amount, status, message)
+           VALUES (?, ?, ?, 'Failed', 'Insufficient funds')`,
+          [sub.subscription_id, sub.consumer_id, total]
+        );
+        continue;
+      }
+
+      // Deduct from wallet
+      await queryDatabase(
+        `INSERT INTO wallet_transactions 
+         (consumer_id, transaction_type, amount, description, payment_method)
+         VALUES (?, 'Debit', ?, ?, 'Subscription')`,
+        [sub.consumer_id, total, `${sub.product_name} (Weekly Subscription)`]
+      );
+
+      // Get the transaction ID
+      const [transaction] = await queryDatabase(
+        `SELECT transaction_id FROM wallet_transactions 
+         WHERE consumer_id = ? 
+         ORDER BY transaction_date DESC LIMIT 1`,
+        [sub.consumer_id]
+      );
+
+      // Record payment in billing history
+      await queryDatabase(
+        `INSERT INTO billing_history 
+         (consumer_id, subscription_type, amount, billing_date, description, transaction_id)
+         VALUES (?, 'Weekly', ?, ?, ?, ?)`,
+        [sub.consumer_id, total, today, `${sub.product_name} (Weekly Subscription)`, transaction.transaction_id]
+      );
+
+      // Record successful delivery
+      await queryDatabase(
+        `INSERT INTO delivery_logs 
+         (consumer_id, delivery_date, amount, status, transaction_id)
+         VALUES (?, ?, ?, 'Completed', ?)`,
+        [sub.consumer_id, today, total, transaction.transaction_id]
+      );
+
+      // Log successful processing
+      await queryDatabase(
+        `INSERT INTO subscription_logs 
+         (subscription_id, consumer_id, amount, status, message, transaction_id)
+         VALUES (?, ?, ?, 'Completed', 'Payment processed successfully', ?)`,
+        [sub.subscription_id, sub.consumer_id, total, transaction.transaction_id]
+      );
+
+      processedSubscriptions.push({
+        subscription_id: sub.subscription_id,
+        consumer_id: sub.consumer_id,
+        amount: total,
+        transaction_id: transaction.transaction_id
+      });
+    }
+
+    res.json({ 
+      success: true, 
+      message: "Weekly subscriptions processed successfully",
+      processed: processedSubscriptions
+    });
+
+  } catch (error) {
+    console.error("Error processing weekly subscriptions:", error);
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to process subscriptions",
+      details: error.message
+    });
+  }
+});
+
+// Monthly Subscription Processing
+app.post('/api/process-subscriptions/monthly', async (req, res) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Only process on the 1st of the month
+    if (today.getDate() !== 1) {
+      return res.json({ 
+        success: true, 
+        message: "Not the first of the month - skipping monthly processing" 
+      });
+    }
+
+    // Get all active monthly subscriptions
+    const subscriptions = await queryDatabase(
+      `SELECT s.subscription_id, s.consumer_id, s.product_id, 
+              s.product_name, s.quantity, s.price,
+              cr.first_name, cr.last_name
+       FROM subscriptions s
+       JOIN consumerregistration cr ON s.consumer_id = cr.consumer_id
+       WHERE s.subscription_type = 'Monthly' 
+       AND s.status = 'Active'`
+    );
+
+    if (subscriptions.length === 0) {
+      return res.json({ success: true, message: "No monthly subscriptions to process" });
+    }
+
+    const processedSubscriptions = [];
+    
+    for (const sub of subscriptions) {
+      const amount = parseFloat(sub.price) * parseInt(sub.quantity);
+      const subscriptionFee = 5 * parseInt(sub.quantity);
+      const total = amount + subscriptionFee;
+
+      // Check wallet balance
+      const [wallet] = await queryDatabase(
+        `SELECT balance FROM wallet_transactions 
+         WHERE consumer_id = ? 
+         ORDER BY transaction_date DESC LIMIT 1`,
+        [sub.consumer_id]
+      );
+
+      const currentBalance = wallet?.balance || 0;
+
+      if (currentBalance < total) {
+        await queryDatabase(
+          `INSERT INTO subscription_logs 
+           (subscription_id, consumer_id, amount, status, message)
+           VALUES (?, ?, ?, 'Failed', 'Insufficient funds')`,
+          [sub.subscription_id, sub.consumer_id, total]
+        );
+        continue;
+      }
+
+      // Deduct from wallet
+      await queryDatabase(
+        `INSERT INTO wallet_transactions 
+         (consumer_id, transaction_type, amount, description, payment_method)
+         VALUES (?, 'Debit', ?, ?, 'Subscription')`,
+        [sub.consumer_id, total, `${sub.product_name} (Monthly Subscription)`]
+      );
+
+      // Get the transaction ID
+      const [transaction] = await queryDatabase(
+        `SELECT transaction_id FROM wallet_transactions 
+         WHERE consumer_id = ? 
+         ORDER BY transaction_date DESC LIMIT 1`,
+        [sub.consumer_id]
+      );
+
+      // Record payment in billing history
+      await queryDatabase(
+        `INSERT INTO billing_history 
+         (consumer_id, subscription_type, amount, billing_date, description, transaction_id)
+         VALUES (?, 'Monthly', ?, ?, ?, ?)`,
+        [sub.consumer_id, total, today, `${sub.product_name} (Monthly Subscription)`, transaction.transaction_id]
+      );
+
+      // Record successful delivery
+      await queryDatabase(
+        `INSERT INTO delivery_logs 
+         (consumer_id, delivery_date, amount, status, transaction_id)
+         VALUES (?, ?, ?, 'Completed', ?)`,
+        [sub.consumer_id, today, total, transaction.transaction_id]
+      );
+
+      // Log successful processing
+      await queryDatabase(
+        `INSERT INTO subscription_logs 
+         (subscription_id, consumer_id, amount, status, message, transaction_id)
+         VALUES (?, ?, ?, 'Completed', 'Payment processed successfully', ?)`,
+        [sub.subscription_id, sub.consumer_id, total, transaction.transaction_id]
+      );
+
+      processedSubscriptions.push({
+        subscription_id: sub.subscription_id,
+        consumer_id: sub.consumer_id,
+        amount: total,
+        transaction_id: transaction.transaction_id
+      });
+    }
+
+    res.json({ 
+      success: true, 
+      message: "Monthly subscriptions processed successfully",
+      processed: processedSubscriptions
+    });
+
+  } catch (error) {
+    console.error("Error processing monthly subscriptions:", error);
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to process subscriptions",
+      details: error.message
+    });
+  }
+});
+
+// Combined Bill Generation
+app.get('/api/subscriptions/combined-bill/:consumer_id', async (req, res) => {
+  try {
+    const { consumer_id } = req.params;
+    const { start_date, end_date } = req.query;
+
+    // Validate dates
+    const startDate = start_date ? new Date(start_date) : new Date();
+    startDate.setHours(0, 0, 0, 0);
+    
+    const endDate = end_date ? new Date(end_date) : new Date();
+    endDate.setHours(23, 59, 59, 999);
+
+    // Get all billing history for the period
+    const billingHistory = await queryDatabase(
+      `SELECT 
+        bh.billing_id,
+        bh.subscription_type,
+        bh.amount,
+        bh.billing_date,
+        bh.description,
+        wt.transaction_id,
+        wt.transaction_date
+       FROM billing_history bh
+       JOIN wallet_transactions wt ON bh.transaction_id = wt.transaction_id
+       WHERE bh.consumer_id = ?
+       AND bh.billing_date BETWEEN ? AND ?
+       ORDER BY bh.billing_date DESC`,
+      [consumer_id, startDate, endDate]
+    );
+
+    // Calculate totals
+    const totals = billingHistory.reduce((acc, item) => {
+      if (!acc[item.subscription_type]) {
+        acc[item.subscription_type] = 0;
+      }
+      acc[item.subscription_type] += parseFloat(item.amount);
+      acc.total = (acc.total || 0) + parseFloat(item.amount);
+      return acc;
+    }, {});
+
+    // Get consumer details
+    const [consumer] = await queryDatabase(
+      `SELECT first_name, last_name, email, phone_number 
+       FROM consumerregistration 
+       WHERE consumer_id = ?`,
+      [consumer_id]
+    );
+
+    res.json({
+      success: true,
+      consumer,
+      period: {
+        start: startDate.toISOString().split('T')[0],
+        end: endDate.toISOString().split('T')[0]
+      },
+      billingHistory: billingHistory.map(item => ({
+        ...item,
+        amount: parseFloat(item.amount)
+      })),
+      totals,
+      generatedAt: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error("Error generating combined bill:", error);
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to generate combined bill"
+    });
+  }
+});
+
+// Combined Bill PDF Generation
+app.get('/api/subscriptions/combined-bill-pdf/:consumer_id', async (req, res) => {
+  try {
+    const { consumer_id } = req.params;
+    const { start_date, end_date } = req.query;
+
+    // Get consumer details
+    const [consumer] = await queryDatabase(
+      `SELECT first_name, last_name FROM consumerregistration 
+       WHERE consumer_id = ?`,
+      [consumer_id]
+    );
+
+    // Get billing history
+    const billingHistory = await queryDatabase(
+      `SELECT bh.*, wt.transaction_date 
+       FROM billing_history bh
+       JOIN wallet_transactions wt ON bh.transaction_id = wt.transaction_id
+       WHERE bh.consumer_id = ?
+       AND bh.billing_date BETWEEN ? AND ?
+       ORDER BY bh.billing_date DESC`,
+      [consumer_id, start_date || '1970-01-01', end_date || new Date().toISOString()]
+    );
+
+    // Calculate totals
+    const totals = billingHistory.reduce((acc, item) => {
+      if (!acc[item.subscription_type]) {
+        acc[item.subscription_type] = 0;
+      }
+      acc[item.subscription_type] += parseFloat(item.amount);
+      acc.total = (acc.total || 0) + parseFloat(item.amount);
+      return acc;
+    }, {});
+
+    // Generate PDF
+    const PDFDocument = require('pdfkit');
+    const doc = new PDFDocument();
+    
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=subscription_bill_${consumer_id}.pdf`);
+    
+    doc.pipe(res);
+
+    // Header
+    doc.fontSize(20).text('Subscription Bill Summary', { align: 'center' });
+    doc.moveDown();
+    
+    // Consumer Info
+    doc.fontSize(12)
+       .text(`Customer: ${consumer.first_name} ${consumer.last_name}`)
+       .text(`Customer ID: ${consumer_id}`)
+       .text(`Generated on: ${new Date().toLocaleDateString()}`)
+       .moveDown();
+
+    // Bill Summary
+    doc.fontSize(16).text('Billing Summary', { underline: true });
+    doc.moveDown(0.5);
+    
+    doc.font('Helvetica-Bold')
+       .text('Subscription Type', 50, doc.y)
+       .text('Amount', 350, doc.y)
+       .moveDown(0.5);
+    
+    doc.font('Helvetica');
+    for (const [type, amount] of Object.entries(totals)) {
+      if (type !== 'total') {
+        doc.text(type, 50, doc.y)
+           .text(`₹${parseFloat(amount).toFixed(2)}`, 350, doc.y)
+           .moveDown(0.5);
+      }
+    }
+    
+    // Total
+    doc.moveDown();
+    doc.font('Helvetica-Bold')
+       .text('Total Amount:', 300, doc.y)
+       .text(`₹${parseFloat(totals.total).toFixed(2)}`, 350, doc.y)
+       .moveDown();
+
+    // Transaction Details
+    doc.addPage();
+    doc.fontSize(16).text('Transaction Details', { underline: true });
+    doc.moveDown(0.5);
+    
+    doc.font('Helvetica-Bold')
+       .text('Date', 50, doc.y)
+       .text('Type', 150, doc.y)
+       .text('Description', 250, doc.y)
+       .text('Amount', 450, doc.y)
+       .moveDown(0.5);
+    
+    doc.font('Helvetica');
+    billingHistory.forEach(item => {
+      doc.text(new Date(item.billing_date).toLocaleDateString(), 50, doc.y)
+         .text(item.subscription_type, 150, doc.y)
+         .text(item.description, 250, doc.y)
+         .text(`₹${parseFloat(item.amount).toFixed(2)}`, 450, doc.y)
+         .moveDown(0.5);
+    });
+
+    doc.end();
+  } catch (error) {
+    console.error("Error generating PDF:", error);
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to generate PDF bill" 
+    });
+  }
+});
+
+// Helper function to get combined bill data
+async function getCombinedBillData(consumer_id, start_date, end_date) {
+  // Validate dates
+  const startDate = start_date ? new Date(start_date) : new Date();
+  startDate.setHours(0, 0, 0, 0);
+  
+  const endDate = end_date ? new Date(end_date) : new Date();
+  endDate.setHours(23, 59, 59, 999);
+
+  // Get all billing history for the period
+  const billingHistory = await queryDatabase(
+    `SELECT 
+      bh.billing_id,
+      bh.subscription_type,
+      bh.amount,
+      bh.billing_date,
+      bh.description,
+      wt.transaction_id,
+      wt.transaction_date
+     FROM billing_history bh
+     JOIN wallet_transactions wt ON bh.transaction_id = wt.transaction_id
+     WHERE bh.consumer_id = ?
+     AND bh.billing_date BETWEEN ? AND ?
+     ORDER BY bh.billing_date DESC`,
+    [consumer_id, startDate, endDate]
+  );
+
+  // Calculate totals
+  const totals = billingHistory.reduce((acc, item) => {
+    if (!acc[item.subscription_type]) {
+      acc[item.subscription_type] = 0;
+    }
+    acc[item.subscription_type] += parseFloat(item.amount);
+    acc.total = (acc.total || 0) + parseFloat(item.amount);
+    return acc;
+  }, {});
+
+  // Get consumer details
+  const [consumer] = await queryDatabase(
+    `SELECT first_name, last_name, email, phone_number 
+     FROM consumerregistration 
+     WHERE consumer_id = ?`,
+    [consumer_id]
+  );
+
+  return {
+    consumer,
+    period: {
+      start: startDate.toISOString().split('T')[0],
+      end: endDate.toISOString().split('T')[0]
+    },
+    billingHistory: billingHistory.map(item => ({
+      ...item,
+      amount: parseFloat(item.amount)
+    })),
+    totals,
+    generatedAt: new Date().toISOString()
+  };
 }
 
-// Similarly for other subscription types
-// ...
+
+// Add this to your server.js
+
+// Get bill for a specific subscription type
+app.get('/api/bills/:consumer_id/:subscription_type', async (req, res) => {
+  try {
+    const { consumer_id, subscription_type } = req.params;
+    const today = new Date();
+    
+    // Get all active subscriptions of this type
+    const subscriptions = await queryDatabase(
+      `SELECT s.subscription_id, s.product_id, s.product_name, 
+              s.quantity, s.price, s.start_date
+       FROM subscriptions s
+       WHERE s.consumer_id = ?
+       AND s.subscription_type = ?
+       AND s.status = 'Active'`,
+      [consumer_id, subscription_type]
+    );
+
+    if (subscriptions.length === 0) {
+      return res.status(404).json({ 
+        success: false,
+        error: `No active ${subscription_type} subscriptions found`
+      });
+    }
+
+    // Calculate bill amounts
+    const items = subscriptions.map(sub => ({
+      ...sub,
+      price: parseFloat(sub.price),
+      quantity: parseInt(sub.quantity),
+      total: parseFloat(sub.price) * parseInt(sub.quantity)
+    }));
+
+    const subtotal = items.reduce((sum, item) => sum + item.total, 0);
+    const subscriptionFee = items.reduce((sum, item) => sum + (5 * item.quantity), 0);
+    const total = subtotal + subscriptionFee;
+
+    // Get consumer details
+    const [consumer] = await queryDatabase(
+      `SELECT first_name, last_name FROM consumerregistration 
+       WHERE consumer_id = ?`,
+      [consumer_id]
+    );
+
+    res.json({
+      success: true,
+      bill: {
+        plan: subscription_type,
+        consumer,
+        items,
+        subtotal,
+        subscriptionFee,
+        total,
+        billingDate: today.toISOString().split('T')[0],
+        nextBillingDate: getNextBillingDate(subscription_type, today)
+      }
+    });
+
+  } catch (error) {
+    console.error("Error generating bill:", error);
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to generate bill"
+    });
+  }
+});
+
+// Helper function to calculate next billing date
+function getNextBillingDate(subscriptionType, currentDate) {
+  const date = new Date(currentDate);
+  
+  switch(subscriptionType) {
+    case 'Daily':
+      date.setDate(date.getDate() + 1);
+      break;
+    case 'Alternate Days':
+      date.setDate(date.getDate() + 2);
+      break;
+    case 'Weekly':
+      date.setDate(date.getDate() + 7);
+      break;
+    case 'Monthly':
+      date.setMonth(date.getMonth() + 1);
+      break;
+    default:
+      date.setDate(date.getDate() + 1);
+  }
+  
+  return date.toISOString().split('T')[0];
+}
+
+
+// Process payment for a subscription bill
+app.post('/api/bills/pay/:consumer_id/:subscription_type', async (req, res) => {
+  try {
+    const { consumer_id, subscription_type } = req.params;
+    const today = new Date();
+    
+    // Get all active subscriptions of this type
+    const subscriptions = await queryDatabase(
+      `SELECT s.subscription_id, s.product_id, s.product_name, 
+              s.quantity, s.price
+       FROM subscriptions s
+       WHERE s.consumer_id = ?
+       AND s.subscription_type = ?
+       AND s.status = 'Active'`,
+      [consumer_id, subscription_type]
+    );
+
+    if (subscriptions.length === 0) {
+      return res.status(404).json({ 
+        success: false,
+        error: `No active ${subscription_type} subscriptions found`
+      });
+    }
+
+    // Calculate total amount
+    const subtotal = subscriptions.reduce((sum, sub) => 
+      sum + (parseFloat(sub.price) * parseInt(sub.quantity)), 0);
+    const subscriptionFee = subscriptions.reduce((sum, sub) => 
+      sum + (5 * parseInt(sub.quantity)), 0);
+    const total = subtotal + subscriptionFee;
+
+    // Check wallet balance
+    const [wallet] = await queryDatabase(
+      `SELECT balance FROM wallet_transactions 
+       WHERE consumer_id = ? 
+       ORDER BY transaction_date DESC LIMIT 1`,
+      [consumer_id]
+    );
+
+    const currentBalance = wallet?.balance || 0;
+
+    if (currentBalance < total) {
+      return res.status(400).json({ 
+        success: false,
+        error: "Insufficient funds"
+      });
+    }
+
+    // Deduct from wallet
+    await queryDatabase(
+      `INSERT INTO wallet_transactions 
+       (consumer_id, transaction_type, amount, description, payment_method)
+       VALUES (?, 'Debit', ?, ?, 'Subscription')`,
+      [consumer_id, total, `${subscription_type} Subscription Payment`, 'Wallet']
+    );
+
+    // Get the transaction ID
+    const [transaction] = await queryDatabase(
+      `SELECT transaction_id FROM wallet_transactions 
+       WHERE consumer_id = ? 
+       ORDER BY transaction_date DESC LIMIT 1`,
+      [consumer_id]
+    );
+
+    // Record payment in billing history
+    await queryDatabase(
+      `INSERT INTO billing_history 
+       (consumer_id, subscription_type, amount, billing_date, description, transaction_id)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [consumer_id, subscription_type, total, today, `${subscription_type} Subscription Payment`, transaction.transaction_id]
+    );
+
+    res.json({
+      success: true,
+      message: "Payment processed successfully",
+      transactionId: transaction.transaction_id,
+      newBalance: currentBalance - total
+    });
+
+  } catch (error) {
+    console.error("Error processing payment:", error);
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to process payment"
+    });
+  }
+});
+
+
+
+
+// Individual Subscription PDF Generation
+app.get('/api/bills/pdf/:consumer_id/:subscription_type', async (req, res) => {
+  try {
+    const { consumer_id, subscription_type } = req.params;
+    
+    // Get the bill data first
+    const billResponse = await fetch(`http://localhost:5000/api/bills/${consumer_id}/${subscription_type}`);
+    if (!billResponse.ok) {
+      throw new Error('Failed to get bill data');
+    }
+    
+    const { bill } = await billResponse.json();
+    
+    // Generate PDF
+    const PDFDocument = require('pdfkit');
+    const doc = new PDFDocument();
+    
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=${subscription_type}_bill_${consumer_id}.pdf`);
+    
+    doc.pipe(res);
+
+    // Header
+    doc.fontSize(20).text(`${subscription_type} Subscription Bill`, { align: 'center' });
+    doc.moveDown();
+    
+    // Consumer Info
+    doc.fontSize(12)
+       .text(`Customer: ${bill.consumer.first_name} ${bill.consumer.last_name}`)
+       .text(`Customer ID: ${consumer_id}`)
+       .text(`Billing Date: ${bill.billingDate}`)
+       .text(`Next Billing Date: ${bill.nextBillingDate}`)
+       .moveDown();
+
+    // Bill Items
+    doc.fontSize(16).text('Items', { underline: true });
+    doc.moveDown(0.5);
+    
+    doc.font('Helvetica-Bold')
+       .text('Product', 50, doc.y)
+       .text('Qty', 200, doc.y)
+       .text('Unit Price', 250, doc.y)
+       .text('Total', 350, doc.y)
+       .moveDown(0.5);
+    
+    doc.font('Helvetica');
+    bill.items.forEach(item => {
+      doc.text(item.product_name, 50, doc.y)
+         .text(item.quantity.toString(), 200, doc.y)
+         .text(`₹${item.price.toFixed(2)}`, 250, doc.y)
+         .text(`₹${item.total.toFixed(2)}`, 350, doc.y)
+         .moveDown(0.5);
+    });
+    
+    // Totals
+    doc.moveDown();
+    doc.font('Helvetica-Bold')
+       .text('Subtotal:', 300, doc.y)
+       .text(`₹${bill.subtotal.toFixed(2)}`, 350, doc.y)
+       .moveDown(0.5);
+    
+    doc.font('Helvetica-Bold')
+       .text('Subscription Fee:', 300, doc.y)
+       .text(`₹${bill.subscriptionFee.toFixed(2)}`, 350, doc.y)
+       .moveDown(0.5);
+    
+    doc.font('Helvetica-Bold')
+       .text('Total Amount:', 300, doc.y)
+       .text(`₹${bill.total.toFixed(2)}`, 350, doc.y);
+
+    doc.end();
+  } catch (error) {
+    console.error("Error generating PDF:", error);
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to generate PDF bill" 
+    });
+  }
+});
+
+
+
 
 
 
@@ -5295,17 +5699,15 @@ app.post('/api/bargain/:bargainId/messages', authenticate, async (req, res) => {
     const { bargainId } = req.params;
     const { sender_role, sender_id, message_content, price_suggestion, message_type } = req.body;
 
-    // Validate required fields
     if (!bargainId || isNaN(bargainId)) {
       return res.status(400).json({ error: 'Invalid bargain ID' });
     }
+
     if (!sender_role || !sender_id || !message_content || !message_type) {
-      return res.status(400).json({ 
-        error: 'Missing required fields' 
-      });
+      return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Insert message (without product_id)
+    // Step 1: Insert the message
     const result = await queryDatabase(`
       INSERT INTO bargain_messages (
         bargain_id,
@@ -5316,6 +5718,37 @@ app.post('/api/bargain/:bargainId/messages', authenticate, async (req, res) => {
         message_type
       ) VALUES (?, ?, ?, ?, ?, ?)
     `, [bargainId, sender_role, sender_id, message_content, price_suggestion || null, message_type]);
+
+    // Step 2: On 'accept', insert product_name and category
+    if (message_type === 'accept') {
+      const [sessionProduct] = await queryDatabase(`
+        SELECT product_id
+        FROM bargain_session_products
+        WHERE bargain_id = ?
+        LIMIT 1
+      `, [bargainId]);
+
+      if (sessionProduct) {
+        const productId = sessionProduct.product_id;
+
+        const [product] = await queryDatabase(`
+          SELECT produce_name AS product_name, produce_type
+          FROM add_produce
+          WHERE product_id = ?
+          LIMIT 1
+        `, [productId]);
+
+        if (product) {
+          const { product_name, produce_type } = product;
+
+          await queryDatabase(`
+            UPDATE bargain_orders
+            SET product_name = ?, product_category = ?
+            WHERE bargain_id = ?
+          `, [product_name, produce_type, bargainId]);
+        }
+      }
+    }
 
     res.status(201).json({
       message_id: result.insertId,
@@ -5330,10 +5763,412 @@ app.post('/api/bargain/:bargainId/messages', authenticate, async (req, res) => {
 
   } catch (err) {
     console.error('Error saving message:', err);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to save message',
-      details: err.sqlMessage || err.message 
+      details: err.sqlMessage || err.message
     });
+  }
+});
+
+// server.js or your routes file
+app.get('/api/farmer/:farmerId/bargain-orders', authenticate, async (req, res) => {
+  const { farmerId } = req.params;
+
+  try {
+    const query = `
+      SELECT 
+        bo.order_id,
+        bo.bargain_id,
+        bo.consumer_id,
+        cr.first_name AS consumer_name,
+        bo.farmer_id,
+        bo.farmer_name,
+        bo.product_id,
+        bo.product_name,
+        bo.product_category,
+        bo.quantity,
+        bo.original_price,
+        bo.final_price,
+        bo.total_amount,
+        bo.status,
+        bo.created_at,
+        bo.updated_at
+      FROM bargain_orders bo
+      JOIN consumerregistration cr ON bo.consumer_id = cr.consumer_id
+      WHERE bo.farmer_id = ?
+      ORDER BY bo.order_id DESC
+    `;
+
+    // Use queryDatabase instead of connection.query
+    const rows = await queryDatabase(query, [farmerId]);
+    
+    console.log('Database rows returned:', rows); // Debug log
+    
+    // Ensure we're sending an array
+    if (!Array.isArray(rows)) {
+      console.error('Expected array but got:', typeof rows);
+      return res.status(500).json({ message: 'Data format error' });
+    }
+    
+    res.json(rows);
+  } catch (err) {
+    console.error('Error fetching farmer orders:', err);
+    res.status(500).json({ message: 'Failed to fetch orders' });
+  }
+});
+
+// Get all bargain orders for a specific consumer
+app.get('/api/consumer/:consumerId/bargain-orders', authenticate, async (req, res) => {
+  const { consumerId } = req.params;
+
+  try {
+    const query = `
+      SELECT 
+        bo.order_id,
+        bo.bargain_id,
+        bo.consumer_id,
+        bo.consumer_name,
+        bo.farmer_id,
+        fr.first_name AS farmer_name,
+        bo.product_id,
+        bo.product_name,
+        bo.product_category,
+        bo.quantity,
+        bo.original_price,
+        bo.final_price,
+        bo.total_amount,
+        bo.status,
+        bo.created_at,
+        bo.updated_at
+      FROM bargain_orders bo
+      JOIN farmerregistration fr ON bo.farmer_id = fr.farmer_id
+      WHERE bo.consumer_id = ?
+      ORDER BY bo.created_at DESC
+    `;
+
+    const rows = await queryDatabase(query, [consumerId]);
+    
+    console.log(`Fetched ${rows.length} orders for consumer ${consumerId}`);
+    
+    res.json(rows);
+  } catch (err) {
+    console.error('Error fetching consumer orders:', err);
+    res.status(500).json({ message: 'Failed to fetch orders' });
+  }
+});
+// Middleware to ensure the farmer in the request matches the logged-in user
+const addAcceptedBargainToCart = async (req, res) => {
+  try {
+    const { bargain_id } = req.body;
+    
+    // 1. Get the accepted bargain details
+    const bargain = await Bargain.findOne({
+      where: { id: bargain_id, status: 'accepted' },
+      include: [
+        { model: Product, attributes: ['id', 'produce_name', 'produce_type', 'farmer_id'] },
+        { model: User, as: 'Consumer', attributes: ['id'] }
+      ]
+    });
+
+    if (!bargain) {
+      return res.status(404).json({ message: "Accepted bargain not found" });
+    }
+
+    // 2. Verify the requesting user is either the farmer or consumer involved
+    const isFarmer = req.user.role === 'farmer' && req.user._id === bargain.Product.farmer_id;
+    const isConsumer = req.user.role === 'consumer' && req.user._id === bargain.Consumer.id;
+    
+    if (!isFarmer && !isConsumer) {
+      return res.status(403).json({ message: "Not authorized to add this to cart" });
+    }
+
+    const consumer_id = bargain.Consumer.id;
+    const farmer_id = bargain.Product.farmer_id;
+
+    // 3. Check if cart has items from another farmer
+    const existingCartItems = await Cart.findAll({ 
+      where: { consumer_id } 
+    });
+
+    if (existingCartItems.length > 0) {
+      const differentFarmerItem = existingCartItems.find(item => item.farmer_id !== farmer_id);
+      if (differentFarmerItem) {
+        return res.status(400).json({
+          message: "Cannot add item - cart contains products from another farmer",
+          current_farmer_id: differentFarmerItem.farmer_id
+        });
+      }
+    }
+
+    // 4. Add to cart
+    const cartItem = await Cart.create({
+      consumer_id,
+      farmer_id,
+      product_id: bargain.Product.id,
+      product_name: bargain.Product.produce_name,
+      product_category: bargain.Product.produce_type,
+      quantity: bargain.agreed_quantity,
+      price_per_kg: bargain.agreed_price,
+      total_price: (bargain.agreed_price * bargain.agreed_quantity).toFixed(2),
+      bargain_id: bargain.id
+    });
+
+    res.status(201).json(cartItem);
+  } catch (error) {
+    console.error("Error adding accepted bargain to cart:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// // Middleware to validate cart operations for consumers only
+// const validateConsumerCart = async (req, res, next) => {
+//   if (req.user.role !== 'consumer') {
+//     return res.status(403).json({ message: "Only consumers can manage cart items" });
+//   }
+//   next();
+// };
+// GET /api/cart - Fetch cart items with required fields
+app.post('/api/cart/add-to-cart', async (req, res) => {
+  try {
+    const {
+      consumer_id,
+      farmer_id,
+      product_id,
+      product_name,
+      product_category,
+      quantity,
+      price_per_kg,
+      bargain_id
+    } = req.body;
+
+    const total_price = quantity * price_per_kg;
+
+    const sql = `
+      INSERT INTO cart (
+        consumer_id,
+        farmer_id,
+        product_id,
+        product_name,
+        product_category,
+        quantity,
+        price_per_kg,
+        total_price,
+        bargain_id
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+
+    await queryDatabase(sql, [
+      consumer_id,
+      farmer_id,
+      product_id,
+      product_name,
+      product_category,
+      quantity,
+      price_per_kg,
+      total_price,
+      bargain_id
+    ]);
+
+    res.status(200).json({ message: 'Item added to cart successfully' });
+  } catch (error) {
+    console.error('Error adding to cart:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+// GET: /cart/:consumerId
+app.post('/api/cart/:consumerId', async (req, res) => {
+  const consumerId = req.params.consumerId;
+  const {
+    bargain_id,
+    product_id,
+    product_name,
+    product_category,
+    price_per_kg,
+    quantity,
+    total_price,
+    farmer_id,
+    consumer_id
+  } = req.body;
+
+  try {
+    // First check if this bargain already exists in cart
+    const checkSql = `SELECT * FROM cart WHERE consumer_id = ? AND bargain_id = ?`;
+    const existingItem = await queryDatabase(checkSql, [consumerId, bargain_id]);
+
+    if (existingItem.length > 0) {
+      // Update existing entry
+      const updateSql = `
+        UPDATE cart SET
+          product_id = ?,
+          product_name = ?,
+          product_category = ?,
+          price_per_kg = ?,
+          quantity = ?,
+          total_price = ?,
+          farmer_id = ?,
+          updated_at = NOW()
+        WHERE consumer_id = ? AND bargain_id = ?
+      `;
+      
+      await queryDatabase(updateSql, [
+        product_id || null,
+        product_name,
+        product_category,
+        price_per_kg,
+        quantity,
+        total_price,
+        farmer_id,
+        consumerId,
+        bargain_id
+      ]);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Cart item updated successfully'
+      });
+    } else {
+      // Insert new entry
+      const insertSql = `
+        INSERT INTO cart 
+        (consumer_id, farmer_id, product_id, product_name, product_category, 
+         quantity, price_per_kg, total_price, bargain_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `;
+      
+      await queryDatabase(insertSql, [
+        consumerId,
+        farmer_id,
+        product_id || null,
+        product_name,
+        product_category,
+        quantity,
+        price_per_kg,
+        total_price,
+        bargain_id
+      ]);
+
+      return res.status(201).json({
+        success: true,
+        message: 'Item added to cart successfully'
+      });
+    }
+  } catch (error) {
+    console.error('Error updating cart:', error);
+    res.status(500).json({ 
+      error: 'Internal Server Error',
+      details: error.message
+    });
+  }
+});
+app.get('/api/cart/:consumerId', async (req, res) => {
+  const consumerId = req.params.consumerId;
+
+  try {
+    const sql = `
+      SELECT 
+        product_name,
+        product_category,
+        price_per_kg,
+        total_price,
+        quantity,
+        consumer_id,
+        farmer_id
+      FROM cart 
+      WHERE consumer_id = ?
+    `;
+    
+    const cartItems = await queryDatabase(sql, [consumerId]);
+    
+    res.status(200).json({
+      success: true,
+      data: cartItems,
+      count: cartItems.length
+    });
+  } catch (error) {
+    console.error('Error fetching cart:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Internal Server Error'
+    });
+  }
+});
+// DELETE /api/cart/:consumerId/:cartId
+// DELETE /api/cart/remove-items
+app.delete('/api/cart/remove-items', async (req, res) => {
+  try {
+    const { consumerId, cartIds } = req.body;
+    
+    if (!Array.isArray(cartIds) || cartIds.length === 0) {
+      return res.status(400).json({ error: 'Invalid cart IDs' });
+    }
+
+    // Delete all specified cart items that belong to this consumer
+    const placeholders = cartIds.map(() => '?').join(',');
+    const query = `
+      DELETE FROM cart 
+      WHERE cart_id IN (${placeholders}) 
+      AND consumer_id = ?
+    `;
+    
+    const result = await queryDatabase(query, [...cartIds, consumerId]);
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'No matching cart items found' });
+    }
+    
+    res.json({ 
+      success: true,
+      deletedCount: result.affectedRows
+    });
+  } catch (error) {
+    console.error('Error deleting cart items:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+// Trigger endpoint (called when bargain is accepted)
+app.post('/api/cart/add-from-bargain', authMiddleware, async (req, res) => {
+  try {
+    const { bargain_id } = req.body;
+    
+    // Get the accepted bargain
+    const bargain = await BargainOrder.findOne({
+      where: { 
+        bargain_id,
+        status: 'accepted'
+      }
+    });
+
+    if (!bargain) {
+      return res.status(400).json({ error: "Bargain not found or not accepted" });
+    }
+
+    // Check if already in cart
+    const existing = await Cart.findOne({
+      where: { bargain_id }
+    });
+
+    if (existing) {
+      return res.json({ message: "Item already in cart" });
+    }
+
+    // Add to cart
+    await Cart.create({
+      consumer_id: bargain.consumer_id,
+      farmer_id: bargain.farmer_id,
+      product_id: bargain.product_id,
+      product_name: bargain.product_name,
+      product_category: bargain.product_category,
+      quantity: bargain.quantity,
+      price_per_kg: bargain.final_price,
+      total_price: bargain.total_amount,
+      bargain_id: bargain.bargain_id
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Add from bargain error:', error);
+    res.status(500).json({ error: "Failed to add to cart" });
   }
 });
 // Send new message

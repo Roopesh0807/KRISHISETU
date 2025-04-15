@@ -402,3 +402,62 @@
     margin-top: 3px;
   }
 }
+
+/* Add these styles to your existing CSS file */
+
+.action-buttons {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+  padding: 0 15px;
+}
+
+.action-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 15px;
+  background-color: #4CAF50;
+  color: white;
+  text-decoration: none;
+  border-radius: 5px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+  flex: 1;
+  justify-content: center;
+}
+
+.action-button:hover {
+  background-color: #45a049;
+}
+
+.action-button span {
+  font-size: 14px;
+}
+
+.action-button svg {
+  font-size: 16px;
+}
+
+/* If you want different colors for each button */
+.action-button:nth-child(1) {
+  background-color: #2196F3; /* Blue for Orders */
+}
+
+.action-button:nth-child(1):hover {
+  background-color: #0b7dda;
+}
+
+.action-button:nth-child(2) {
+  background-color: #ff9800; /* Orange for Cart */
+}
+
+.action-button:nth-child(2):hover {
+  background-color: #e68a00;
+}
+
+/* Adjust search bar margin if needed */
+.search-bar {
+  margin-top: 0;
+  padding: 0 15px;
+}

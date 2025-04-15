@@ -449,7 +449,7 @@ const ConsumerLogin = () => {
               />
             </div>
 
-            <div className="form-group remember-me">
+            {/* <div className="form-group remember-me">
               <input
                 type="checkbox"
                 name="rememberMe"
@@ -458,7 +458,7 @@ const ConsumerLogin = () => {
                 onChange={handleChange}
               />
               <label htmlFor="rememberMe">Remember me</label>
-            </div>
+            </div> */}
 
             <button 
               type="submit" 
@@ -484,12 +484,12 @@ const ConsumerLogin = () => {
                 Register here
               </button>
             </p>
-            <button 
+            {/* <button 
               onClick={() => navigate("/forgot-password")} 
               className="link-button"
             >
               Forgot password?
-            </button>
+            </button> */}
             
           </div>
         </div>
