@@ -1238,3 +1238,211 @@ MODIFY COLUMN minimum_quantity INT NULL CHECK (minimum_quantity IS NULL OR minim
 
 ALTER TABLE add_produce
 ADD COLUMN minimum_price DECIMAL(10,2) NULL CHECK (minimum_price >= 0);
+
+
+CREATE TABLE bargain_orders (
+  order_id INT(11) NOT NULL AUTO_INCREMENT,
+  bargain_id INT(11) NOT NULL,
+  consumer_id VARCHAR(15) NOT NULL,
+  consumer_name VARCHAR(100) NOT NULL,
+  farmer_id VARCHAR(15) NOT NULL,
+  farmer_name VARCHAR(100) NOT NULL,
+  product_id VARCHAR(10) NOT NULL,
+  product_name VARCHAR(100) NOT NULL,
+  product_category VARCHAR(100) NOT NULL,
+  quantity DECIMAL(10,2) NOT NULL,
+  original_price DECIMAL(10,2) NOT NULL,
+  final_price DECIMAL(10,2) NOT NULL,
+  total_amount DECIMAL(10,2) NOT NULL,
+  status ENUM('accepted', 'rejected', 'pending_payment', 'completed', 'cancelled') NOT NULL DEFAULT 'accepted',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (order_id)
+);
+DELIMITER //
+CREATE TRIGGER insert_bargain_order_after_accept_or_reject 
+AFTER INSERT ON bargain_messages FOR EACH ROW
+BEGIN
+  DECLARE farmerName VARCHAR(100);
+  DECLARE consumerName VARCHAR(100);
+  DECLARE farmerId VARCHAR(20);
+  DECLARE consumerId VARCHAR(20);
+  DECLARE final_price DECIMAL(10,2);
+  DECLARE quantity DECIMAL(10,2);
+  DECLARE productId VARCHAR(10);
+  DECLARE productName VARCHAR(100);
+  DECLARE productCategory VARCHAR(100);
+  DECLARE originalPrice DECIMAL(10,2);
+  DECLARE totalAmount DECIMAL(10,2);
+  DECLARE orderStatus VARCHAR(20);
+
+  -- Handle both accept and reject cases
+  IF NEW.message_type = 'accept' OR NEW.message_type = 'reject' THEN
+    -- Set status based on message type
+    IF NEW.message_type = 'accept' THEN
+      SET orderStatus = 'accepted';
+    ELSE
+      SET orderStatus = 'rejected';
+    END IF;
+
+    -- Get farmer details
+    SELECT fr.first_name, bs.farmer_id
+    INTO farmerName, farmerId
+    FROM bargain_sessions bs
+    JOIN farmerregistration fr ON bs.farmer_id = fr.farmer_id
+    WHERE bs.bargain_id = NEW.bargain_id;
+
+    -- Get consumer details
+    SELECT cr.first_name, bs.consumer_id
+    INTO consumerName, consumerId
+    FROM bargain_sessions bs
+    JOIN consumerregistration cr ON bs.consumer_id = cr.consumer_id
+    WHERE bs.bargain_id = NEW.bargain_id;
+
+    -- Get product details
+    SELECT bsp.product_id, ap.produce_name, ap.produce_type, bsp.original_price, bsp.quantity
+    INTO productId, productName, productCategory, originalPrice, quantity
+    FROM bargain_session_products bsp
+    JOIN add_produce ap ON bsp.product_id = ap.product_id
+    WHERE bsp.bargain_id = NEW.bargain_id
+    LIMIT 1;
+
+    -- Set final price (last offered price)
+    SET final_price = NEW.price_suggestion;
+    SET totalAmount = final_price * quantity;
+
+    -- Insert into bargain_orders
+    INSERT INTO bargain_orders (
+      bargain_id,
+      consumer_id,
+      consumer_name,
+      farmer_id,
+      farmer_name,
+      product_id,
+      product_name,
+      product_category,
+      quantity,
+      original_price,
+      final_price,
+      total_amount,
+      status
+    ) VALUES (
+      NEW.bargain_id,
+      consumerId,
+      consumerName,
+      farmerId,
+      farmerName,
+      productId,
+      productName,
+      productCategory,
+      quantity,
+      originalPrice,
+      final_price,
+      totalAmount,
+      orderStatus
+    );
+  END IF;
+END//
+DELIMITER ;
+
+CREATE TABLE cart (
+    cart_id INT AUTO_INCREMENT PRIMARY KEY,
+    consumer_id VARCHAR(20) NOT NULL COMMENT 'e.g., KRST01CS011 (from consumer_registration)',
+    farmer_id VARCHAR(20) NOT NULL COMMENT 'e.g., KRST01FR005 (from farmer_registration)',
+    product_id VARCHAR(20) NOT NULL COMMENT 'References products table',
+    product_name VARCHAR(100) NOT NULL,
+    product_category VARCHAR(50) NOT NULL,
+    quantity DECIMAL(10,2) NOT NULL,
+    price_per_kg DECIMAL(10,2) NOT NULL COMMENT 'Final bargained price',
+    total_price DECIMAL(10,2) NOT NULL COMMENT 'price_per_kg * quantity',
+    bargain_id INT COMMENT 'Optional: If from a bargain',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (consumer_id) REFERENCES consumerregistration(consumer_id),
+    FOREIGN KEY (farmer_id) REFERENCES farmerregistration(farmer_id),
+    FOREIGN KEY (product_id) REFERENCES add_produce(product_id),
+    CONSTRAINT unique_cart_item UNIQUE (consumer_id, product_id, bargain_id)
+);
+
+DELIMITER $$
+
+CREATE TRIGGER add_to_cart_after_accept_message
+AFTER INSERT ON bargain_messages
+FOR EACH ROW
+BEGIN
+  DECLARE consumerId VARCHAR(20);
+  DECLARE farmerId VARCHAR(20);
+  DECLARE productId VARCHAR(20);
+  DECLARE productName VARCHAR(100);
+  DECLARE productCategory VARCHAR(50);
+  DECLARE quantity DECIMAL(10,2);
+  DECLARE pricePerKg DECIMAL(10,2);
+  DECLARE totalPrice DECIMAL(10,2);
+
+  IF NEW.message_type = 'accept' THEN
+
+    -- Fetch all relevant details for cart
+    SELECT 
+      bs.consumer_id,
+      bs.farmer_id,
+      bsp.product_id,
+      ap.produce_name,
+      ap.produce_type,
+      bsp.quantity,
+      NEW.price_suggestion
+    INTO 
+      consumerId,
+      farmerId,
+      productId,
+      productName,
+      productCategory,
+      quantity,
+      pricePerKg
+    FROM bargain_sessions bs
+    JOIN bargain_session_products bsp ON bs.bargain_id = bsp.bargain_id
+    JOIN add_produce ap ON bsp.product_id = ap.product_id
+    WHERE bs.bargain_id = NEW.bargain_id
+    LIMIT 1;
+
+    SET totalPrice = quantity * pricePerKg;
+
+    -- Insert into cart
+    INSERT INTO cart (
+      consumer_id,
+      farmer_id,
+      product_id,
+      product_name,
+      product_category,
+      quantity,
+      price_per_kg,
+      total_price,
+      bargain_id
+    ) VALUES (
+      consumerId,
+      farmerId,
+      productId,
+      productName,
+      productCategory,
+      quantity,
+      pricePerKg,
+      totalPrice,
+      NEW.bargain_id
+    );
+
+  END IF;
+END$$
+
+DELIMITER ;
+
+CREATE TABLE bargain_system_notifications (
+    notification_id INT(11) NOT NULL AUTO_INCREMENT,
+    bargain_id INT(11) NOT NULL,
+    notification_type VARCHAR(50) NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (notification_id),
+    KEY (bargain_id),
+    CONSTRAINT fk_bargain_notification
+        FOREIGN KEY (bargain_id) REFERENCES bargain_sessions(bargain_id)
+        ON DELETE CASCADE
+);

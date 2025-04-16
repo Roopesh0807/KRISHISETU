@@ -351,7 +351,6 @@ import { useAuth } from '../../context/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faSpinner, 
-  faShoppingCart, 
   faMapMarkerAlt,
   faCreditCard,
   faMoneyBillWave,
