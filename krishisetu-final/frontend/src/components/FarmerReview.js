@@ -17,7 +17,7 @@ const FarmerReview = () => {
                 // Enhanced farmer authentication check
                 if (!farmer || (!farmer.farmer_id && !farmer.id) || !farmer.token) {
                     console.warn("Farmer not properly authenticated", farmer);
-                    setError("Please log in as a farmer");
+                    //setError("Please log in as a farmer");
                     setIsLoading(false);
                     
                     // Check if we have partial farmer data (might need refresh)
