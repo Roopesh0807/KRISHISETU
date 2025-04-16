@@ -700,7 +700,7 @@ useEffect(() => {
 
       {/* Bargaining Market Section */}
       <div className="ks-bargaining-section">
-        <h2 className="ks-section-title">Farmer Bargaining Marketplace</h2>
+        <h2 className="ks-section-title">Bargaining Marketplace</h2>
         <div className="ks-farmer-search-container">
           <input
             type="text"

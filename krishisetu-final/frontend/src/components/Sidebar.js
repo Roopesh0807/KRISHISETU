@@ -53,13 +53,13 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             {isOpen && 'View Profile'}
           </button> */}
           
-          <button
+          {/* <button
             onClick={() => navigateWithFarmerId('/order-review')}
             className={isActive('/order-review') ? 'active' : ''}
           >
             <i className="fas fa-clipboard-list"></i>
             {isOpen && 'Order Review'}
-          </button>
+          </button> */}
 
           <button
             onClick={() => navigateWithFarmerId('/farmers/my-reviews')}
