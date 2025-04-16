@@ -64,6 +64,9 @@ const Subscribe = () => {
   });
   const [canModify, setCanModify] = useState(true);
 
+
+  
+
   // Carousel images data
   const carouselImages = [
     { img: slide1, title: "No Delivery Charges", desc: "Enjoy free delivery on all your subscription orders" },
@@ -572,6 +575,9 @@ const processPayment = async (plan) => {
     setIsLoading(false);
   }
 };
+
+
+
 const downloadPDF = async (plan) => {
   try {
     setIsLoading(true);
@@ -592,14 +598,49 @@ const downloadPDF = async (plan) => {
     
     const { bill } = await billResponse.json();
     
-    // Then create PDF on client side using a library like jsPDF
+    // Then create PDF on client side using jsPDF
     const { jsPDF } = await import('jspdf');
     const doc = new jsPDF();
     
     // Add bill content to PDF
-    doc.text(`${plan} Subscription Bill`, 10, 10);
-    doc.text(`Customer: ${consumer.first_name} ${consumer.last_name}`, 10, 20);
-    // ... add more content as needed
+    doc.setFontSize(16);
+    doc.text(`${plan} SUBSCRIPTION BILL`, 105, 10, { align: 'center' });
+    
+    // Consumer Info
+    doc.setFontSize(12);
+    doc.text(`Consumer: ${consumer.first_name} ${consumer.last_name} (ID: ${consumer.consumer_id})`, 14, 20);
+    doc.text(`Billing Date: ${bill.billingDate}`, 14, 30);
+    doc.text(`Next Billing Date: ${bill.nextBillingDate}`, 14, 40);
+    
+    // Table header
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.text('Product', 14, 60);
+    doc.text('Qty', 80, 60);
+    doc.text('Price', 120, 60);
+    doc.text('Amount', 160, 60);
+    doc.setFont(undefined, 'normal');
+    
+    // Table rows
+    let y = 70;
+    bill.items.forEach(item => {
+      doc.text(item.product_name, 14, y);
+      doc.text(item.quantity.toString(), 80, y);
+      doc.text(`₹${item.price.toFixed(2)}`, 120, y);
+      doc.text(`₹${item.total.toFixed(2)}`, 160, y);
+      y += 10;
+    });
+    
+    // Totals
+    doc.setFont(undefined, 'bold');
+    doc.text('Subtotal:', 120, y + 10);
+    doc.text(`₹${bill.subtotal.toFixed(2)}`, 160, y + 10);
+    
+    doc.text('Subscription Fee:', 120, y + 20);
+    doc.text(`₹${bill.subscriptionFee.toFixed(2)}`, 160, y + 20);
+    
+    doc.text('Total:', 120, y + 30);
+    doc.text(`₹${bill.total.toFixed(2)}`, 160, y + 30);
     
     // Save the PDF
     doc.save(`subscription_bill_${plan}_${new Date().toISOString().split('T')[0]}.pdf`);
@@ -612,6 +653,15 @@ const downloadPDF = async (plan) => {
     setIsLoading(false);
   }
 };
+
+
+
+
+
+
+
+
+
 
   const redirectToProducts = (plan) => {
     if (walletBalance < 100) {
@@ -808,7 +858,7 @@ const downloadPDF = async (plan) => {
           </div>
         </div>
       </div>
-      // Add this button to your JSX
+    
 <button 
   className="combined-bill-btn"
   onClick={generateCombinedBill}
