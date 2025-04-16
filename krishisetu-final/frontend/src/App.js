@@ -36,6 +36,7 @@ import Notifications from "./components/Notifications";
 import Feeds from "./components/Feeds";
 import OrderPage from "./components/OrderPage";
 import Chatbot from "./components/Chatbot";
+import HelpFarmers from "./components/HelpFarmers"
 
 //bargaining
 import ConsumerChatList from './components/bargaining/ConsumerChatList';
@@ -85,6 +86,8 @@ const Main = () => {
     if (
       path.startsWith("/farmer/") ||
       path.startsWith("/farmer-dashboard") ||
+      path.startsWith("/farmers/my-reviews") ||
+      path.startsWith("/helpfarmers/") ||
       path.startsWith("/add-produce") ||
       path.startsWith("/profile") ||
       path.startsWith("/help") ||
@@ -183,6 +186,7 @@ const Main = () => {
           <Route path="/farmer/:farmer_id/profile" element={<Profile />} />
           <Route path="/consumerprofile/:consumer_id" element={<ConsumerProfile />} />
 
+          <Route path="/HelpFarmers" element={<HelpFarmers />} />
           <Route path="/farmers/my-reviews" element={<FarmerReviews />} />
           <Route path="/view-profile" element={<ViewProfile />} />
           <Route path="/notifications" element={<Notifications />} />
