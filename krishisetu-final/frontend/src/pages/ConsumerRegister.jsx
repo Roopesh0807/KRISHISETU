@@ -104,7 +104,7 @@ const ConsumerRegister = () => {
         consumerId: data.consumer_id,
       });
       
-      setTimeout(() => navigate("/consumer-login"), 15000);
+      setTimeout(() => navigate("/consumer-login"), 2000);
     } catch (error) {
       console.error("Registration Error:", error);
       setError(error.message || "Error connecting to server");
