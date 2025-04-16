@@ -5,6 +5,7 @@ import { faSpinner, faListAlt, faShoppingCart } from "@fortawesome/free-solid-sv
 import { io } from 'socket.io-client';
 import ConsumerChatWindow from "./ConsumerChatWindow";
 import "./ConsumerChatList.css";
+import axios from "axios";
 
 const ConsumerChatList = () => {
   const { consumerId } = useParams();
@@ -17,6 +18,7 @@ const ConsumerChatList = () => {
   const [connectionStatus, setConnectionStatus] = useState("connecting");
   const [newMessages, setNewMessages] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
+  const [farmerProfilePhotos, setFarmerProfilePhotos] = useState({});
 
   // Helper functions to extract info from message content
   const extractProductName = (content) => {
@@ -36,8 +38,39 @@ const ConsumerChatList = () => {
     const match = content.match(/₹(\d+)/);
     return match ? parseInt(match[1], 10) : 0;
   };
+const fetchFarmerProfilePhoto = useCallback(async (farmerId) => {
+  try {
+    const token = getToken();
+    if (!token) return null;
 
-  // Get token from consumer's localStorage with validation
+    const response = await axios.get(
+      `http://localhost:5000/api/farmerprofile/${farmerId}/personal`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (response.data?.profile_photo) {
+      const photoUrl = response.data.profile_photo.startsWith('http')
+        ? response.data.profile_photo
+        : `http://localhost:5000${response.data.profile_photo}`;
+      
+      setFarmerProfilePhotos(prev => ({
+        ...prev,
+        [farmerId]: photoUrl
+      }));
+      
+      return photoUrl;
+    }
+    return null;
+  } catch (error) {
+    console.error(`Error fetching profile photo for farmer ${farmerId}:`, error);
+    return null;
+  }
+}, []);
+ // Get token from consumer's localStorage with validation
   const getToken = () => {
     try {
       const consumerData = localStorage.getItem("consumer");
@@ -67,7 +100,6 @@ const ConsumerChatList = () => {
     }
   };
 
-  // Helper function to normalize session data
   const normalizeSession = (session) => {
     if (!session) {
       console.error("Attempted to normalize undefined session");
@@ -78,6 +110,7 @@ const ConsumerChatList = () => {
       bargain_id: '',
       farmer_id: '',
       farmer_name: 'Unknown Farmer',
+      farmer_profile_photo: null, // Add this field
       product_name: 'Unknown Product',
       quantity: 0,
       current_price: 0,
@@ -106,7 +139,34 @@ const ConsumerChatList = () => {
   
     return normalized;
   };
-
+  const groupSessionsByFarmer = (sessions) => {
+    const grouped = {};
+    
+    sessions.forEach(session => {
+      if (!grouped[session.farmer_id]) {
+        grouped[session.farmer_id] = {
+          farmer_id: session.farmer_id,
+          farmer_name: session.farmer_name,
+          farmer_profile_photo: farmerProfilePhotos[session.farmer_id] || null,
+          sessions: [],
+          unread_count: 0,
+          last_updated: session.updated_at
+        };
+      }
+      
+      grouped[session.farmer_id].sessions.push(session);
+      grouped[session.farmer_id].unread_count += session.unread_count || 0;
+      
+      if (new Date(session.updated_at) > new Date(grouped[session.farmer_id].last_updated)) {
+        grouped[session.farmer_id].last_updated = session.updated_at;
+      }
+    });
+    
+    return Object.values(grouped).map(group => ({
+      ...group,
+      sessions: group.sessions.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
+    })).sort((a, b) => new Date(b.last_updated) - new Date(a.last_updated));
+  };
   const fetchSessions = useCallback(async () => {
     try {
       const token = getToken();
@@ -396,7 +456,10 @@ const ConsumerChatList = () => {
     });
   };
 
-  const handleSessionSelect = (session) => {
+  const handleSessionSelect = (group) => {
+    // If we're passing the whole group, get the latest session
+    const session = Array.isArray(group?.sessions) ? group.sessions[0] : group;
+    
     if (!validateSession(session)) {
       console.error("Invalid session data:", session);
       return;
@@ -407,8 +470,10 @@ const ConsumerChatList = () => {
       first_name: session.farmer_name.split(' ')[0],
       last_name: session.farmer_name.split(' ').slice(1).join(' ') || '',
       phone_number: session.farmer_phone || 'Not available',
-      location: session.farmer_location || 'Not specified'
+      location: session.farmer_location || 'Not specified',
+      profile_photo: group.farmer_profile_photo || null // Add this
     };
+  
   
     const productData = {
       produce_name: session.product_name,
@@ -419,22 +484,26 @@ const ConsumerChatList = () => {
     };
   
     // Navigate to chat window with state
-    navigate(`/consumer/bargain/${session.bargain_id}`, {
+    navigate(`/bargain/${session.bargain_id}`, {
       state: {
         farmer: farmerData,
         product: productData,
-        initialPrice: session.current_price
+        initialPrice: session.current_price,
+        allSessions: group.sessions || [session] // Pass all sessions if available
       }
     });
   
-    // Clear any new messages for this session
+    // Clear any new messages for all sessions in this group
     setNewMessages(prev => {
       const updated = { ...prev };
-      delete updated[session.bargain_id];
+      if (group.sessions) {
+        group.sessions.forEach(s => delete updated[s.bargain_id]);
+      } else {
+        delete updated[session.bargain_id];
+      }
       return updated;
     });
   };
-
   const formatTime = (timestamp) => {
     if (!timestamp) return "";
     const date = new Date(timestamp);
@@ -455,31 +524,45 @@ const ConsumerChatList = () => {
     }
   };
 
-  const filteredSessions = bargainSessions
-    .filter(session => {
-      const isValid = validateSession(session);
-      if (!isValid) {
-        console.warn("Invalid session filtered out:", session);
-      }
-      return isValid;
-    })
-    .filter(session => {
-      try {
-        const search = searchTerm.toLowerCase();
-        return (
-          session.farmer_name.toLowerCase().includes(search) ||
-          session.product_name.toLowerCase().includes(search)
-        );
-      } catch (error) {
-        console.error("Error filtering session:", error, session);
-        return false;
-      }
-    });
+  const filteredSessions = groupSessionsByFarmer(
+    bargainSessions
+      .filter(session => validateSession(session))
+      .filter(session => {
+        try {
+          const search = searchTerm.toLowerCase();
+          return (
+            session.farmer_name.toLowerCase().includes(search) ||
+            session.product_name.toLowerCase().includes(search)
+          );
+        } catch (error) {
+          console.error("Error filtering session:", error, session);
+          return false;
+        }
+      })
+  );
 
   useEffect(() => {
     console.log("Current bargain sessions:", bargainSessions);
   }, [bargainSessions]);
 
+  useEffect(() => {
+    const fetchData = async () => {
+      await fetchSessions();
+      
+      // After sessions are loaded, fetch profile photos for each unique farmer
+      const uniqueFarmerIds = [...new Set(bargainSessions.map(s => s.farmer_id))];
+      uniqueFarmerIds.forEach(farmerId => {
+        if (!farmerProfilePhotos[farmerId]) {
+          fetchFarmerProfilePhoto(farmerId);
+        }
+      });
+    };
+  
+    fetchData();
+    const interval = setInterval(fetchData, 10000);
+    return () => clearInterval(interval);
+  }, [fetchSessions, fetchFarmerProfilePhoto, bargainSessions, farmerProfilePhotos]);
+   
   if (loading) {
     return (
       <div className="loading-container">
@@ -535,46 +618,64 @@ const ConsumerChatList = () => {
               )}
             </div>
           ) : (
-            filteredSessions.map((session) => (
-              <div
-                key={`session-${session.bargain_id}`}
-                className={`session-card ${consumerId === session.bargain_id ? "active" : ""}`}
-                onClick={() => handleSessionSelect(session)}
-              >
-                <div className="farmer-avatar">
-                  {session.farmer_name.charAt(0).toUpperCase()}
-                </div>
-                
-                <div className="session-content">
-                  <div className="session-header">
-                    <h3>{session.farmer_name}</h3>
-                    <span className="session-time">
-                      {formatDate(session.updated_at)}
-                    </span>
+            filteredSessions.map((group) => {
+              const latestSession = group.sessions[0];
+              const productCount = group.sessions.length;
+              
+              return (
+                <div
+                  key={`farmer-${group.farmer_id}`}
+                  className={`session-card ${consumerId === latestSession.bargain_id ? "active" : ""}`}
+                  onClick={() => handleSessionSelect(group)}
+                >
+                  {group.farmer_profile_photo ? (
+                    <img 
+                      src={group.farmer_profile_photo} 
+                      alt="Farmer" 
+                      className="farmer-avatar-image"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = '';
+                        e.target.className = 'farmer-avatar';
+                        e.target.textContent = group.farmer_name.charAt(0).toUpperCase();
+                      }}
+                    />
+                  ) : (
+                    <div className="farmer-avatar">
+                      {group.farmer_name.charAt(0).toUpperCase()}
+                    </div>
+                  )} 
+                  <div className="session-content">
+                    <div className="session-header">
+                      <h3>{group.farmer_name}</h3>
+                      <span className="session-time">
+                        {formatDate(group.last_updated)}
+                      </span>
+                    </div>
+                    
+                    <div className="session-preview">
+                      <p className="message-preview">
+                        {productCount > 1 
+                          ? `${productCount} active bargains` 
+                          : latestSession.product_name}
+                      </p>
+                      
+                      {group.unread_count > 0 && (
+                        <div className="unread-badge">
+                          {group.unread_count}
+                        </div>
+                      )}
+                    </div>
                   </div>
                   
-                  <div className="session-preview">
-                    <p className="message-preview">
-                      {session.last_message?.content || "You received a bargain message"}
-                    </p>
-
-                    <span className="session-time">
-                      {formatDate(session.last_message?.timestamp || session.updated_at)}
-                    </span>
-                  </div>
+                  {group.unread_count > 0 && (
+                    <div className="unread-badge">
+                      {group.unread_count}
+                    </div>
+                  )}
                 </div>
-                
-                {newMessages[session.bargain_id] && (
-                  <div className="unread-badge">
-                    {newMessages[session.bargain_id]}
-                  </div>
-                )}
-                
-                {session.status === 'pending' && (
-                  <div className="status-indicator pending" />
-                )}
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>
