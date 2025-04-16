@@ -627,3 +627,22 @@ body {
     font-size: 0.7rem;
   }
 }
+.ks-farmer-rating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ks-star-filled {
+  color: #FFD700; /* Gold color for filled stars */
+}
+
+.ks-star {
+  color: #ccc; /* Gray color for empty stars */
+}
+
+.ks-rating-value {
+  margin-left: 4px;
+  font-size: 0.9em;
+  color: #666;
+}

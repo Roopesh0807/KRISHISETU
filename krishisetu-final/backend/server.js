@@ -442,7 +442,21 @@ app.delete("/api/farmerprofile/:farmer_id/photo", verifyToken, async (req, res) 
     res.status(500).json({ success: false, message: "Error removing photo", error: err.message });
   }
 });
-
+// In your backend routes
+router.get('/api/farmer/:farmer_id/profile-photo', authMiddleware, async (req, res) => {
+  try {
+    const farmer = await FarmerProfile.findOne({ farmer_id: req.params.farmer_id });
+    if (!farmer || !farmer.personal.profile_photo) {
+      return res.status(404).json({ message: 'Profile photo not found' });
+    }
+    
+    res.json({
+      profile_photo: farmer.personal.profile_photo
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching profile photo' });
+  }
+});
 // Update the file removal endpoint (around line 250)
 app.delete("/api/farmerprofile/:farmer_id/remove-file", 
   auth.authenticate,
@@ -7166,6 +7180,26 @@ app.get("/api/farmer-notifications/:farmerId", verifyToken, async (req, res) => 
   }
 });
 
+// GET /api/reviews/average/:farmerId
+// GET average rating for a farmer
+app.get('/api/average/:farmerId', async (req, res) => {
+  const { farmerId } = req.params;
+  try {
+    const [rows] = await db.query(
+      'SELECT AVG(rating) AS average_rating FROM reviews WHERE farmer_id = ?',
+      [farmerId]
+    );
+    const average_rating = rows[0].average_rating || 0;
+    res.json({ average_rating });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Error fetching average rating' });
+  }
+});
+
+
+
+// app.use('/api/reviews', require('./routes/reviews'));
 
 app.post('/api/razorpay-webhook', express.json(), (req, res) => {
   // Verify the payment signature

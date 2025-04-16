@@ -197,10 +197,27 @@ const ConsumerDashboard = () => {
   
         const data = await response.json();
   
-        // Fetch bargaining market products for each farmer
-        const farmersWithBargainingProducts = await Promise.all(
+        // Fetch ratings and products for each farmer
+        const farmersWithData = await Promise.all(
           data.map(async (farmer) => {
             try {
+              // Fetch ratings
+              const ratingsResponse = await fetch(
+                `http://localhost:5000/reviews/${farmer.farmer_id}`,
+                {
+                  headers: {
+                    "Authorization": `Bearer ${consumer?.token}`,
+                  },
+                }
+              );
+              const ratingsData = await ratingsResponse.json();
+              
+              // Calculate average rating
+              const averageRating = ratingsData.length > 0 
+                ? ratingsData.reduce((sum, review) => sum + parseFloat(review.rating), 0) / ratingsData.length
+                : 0;
+  
+              // Fetch products
               const productsResponse = await fetch(
                 `http://localhost:5000/api/produces?farmer_id=${farmer.farmer_id}&market_type=Bargaining Market`,
                 {
@@ -211,23 +228,24 @@ const ConsumerDashboard = () => {
               );
               
               const productsData = await productsResponse.json();
+              
               return {
                 ...farmer,
                 products: productsData,
-                average_rating: farmer.average_rating || 0
+                average_rating: parseFloat(averageRating.toFixed(1)) // Round to 1 decimal place
               };
             } catch (error) {
-              console.error(`Error fetching products for farmer ${farmer.farmer_id}:`, error);
+              console.error(`Error fetching data for farmer ${farmer.farmer_id}:`, error);
               return {
                 ...farmer,
                 products: [],
-                average_rating: farmer.average_rating || 0
+                average_rating: 0
               };
             }
           })
         );
   
-        setFarmers(farmersWithBargainingProducts);
+        setFarmers(farmersWithData);
       } catch (error) {
         console.error("Error fetching farmers:", error);
         alert("Failed to load farmers. Please refresh the page.");
@@ -729,8 +747,9 @@ useEffect(() => {
             <div className="ks-farmer-meta">
               <span className="ks-farmer-id">ID: {farmer.farmer_id}</span>
               <span className="ks-farmer-rating">
-                {renderRatingStars(farmer.ratings || 0)}
-              </span>
+          {renderRatingStars(farmer.average_rating || 0)}
+          <span className="ks-rating-value">({farmer.average_rating?.toFixed(1) || 0})</span>
+        </span>
             </div>
           </div>
         </div>
