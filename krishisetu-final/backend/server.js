@@ -15,6 +15,9 @@ const path = require("path");
 const multer = require("multer");
 const fs = require("fs");
 const cron = require('node-cron');
+
+
+const schedule = require('node-cron');
 // const { checkFarmerConsistency } = require('./src/middlewares/cartMiddleware');
 
 const axios = require('axios');
@@ -5061,11 +5064,21 @@ app.get('/api/subscriptions/combined-bill/:consumer_id', async (req, res) => {
   }
 });
 
-// Combined Bill PDF Generation
+
+
+
+
+
+//  combined bill
+
 app.get('/api/subscriptions/combined-bill-pdf/:consumer_id', async (req, res) => {
   try {
     const { consumer_id } = req.params;
     const { start_date, end_date } = req.query;
+    const today = new Date();
+    const pageWidth = 595.28; // A4 width in points
+    const margin = 50;
+    const contentWidth = pageWidth - (margin * 2);
 
     // Get consumer details
     const [consumer] = await queryDatabase(
@@ -5074,92 +5087,146 @@ app.get('/api/subscriptions/combined-bill-pdf/:consumer_id', async (req, res) =>
       [consumer_id]
     );
 
-    // Get billing history
-    const billingHistory = await queryDatabase(
-      `SELECT bh.*, wt.transaction_date 
+    // Get billing details
+    const billingDetails = await queryDatabase(
+      `SELECT 
+        s.product_name,
+        s.quantity,
+        s.price,
+        bh.subscription_type
        FROM billing_history bh
-       JOIN wallet_transactions wt ON bh.transaction_id = wt.transaction_id
+       JOIN subscriptions s ON bh.consumer_id = s.consumer_id 
+         AND bh.subscription_type = s.subscription_type
        WHERE bh.consumer_id = ?
        AND bh.billing_date BETWEEN ? AND ?
-       ORDER BY bh.billing_date DESC`,
-      [consumer_id, start_date || '1970-01-01', end_date || new Date().toISOString()]
+       ORDER BY bh.subscription_type, s.product_name`,
+      [consumer_id, start_date || '1970-01-01', end_date || today.toISOString()]
     );
 
-    // Calculate totals
-    const totals = billingHistory.reduce((acc, item) => {
-      if (!acc[item.subscription_type]) {
-        acc[item.subscription_type] = 0;
+    // Organize data
+    const subscriptionGroups = {};
+    let grandTotal = 0;
+
+    billingDetails.forEach(item => {
+      const type = item.subscription_type;
+      if (!subscriptionGroups[type]) {
+        subscriptionGroups[type] = {
+          items: [],
+          subtotal: 0,
+          fee: 0,
+          total: 0
+        };
       }
-      acc[item.subscription_type] += parseFloat(item.amount);
-      acc.total = (acc.total || 0) + parseFloat(item.amount);
-      return acc;
-    }, {});
+      
+      const itemTotal = parseFloat(item.price) * parseInt(item.quantity);
+      const fee = 5 * parseInt(item.quantity);
+      
+      subscriptionGroups[type].items.push({
+        product_name: item.product_name,
+        quantity: item.quantity,
+        price: parseFloat(item.price),
+        total: itemTotal
+      });
+      
+      subscriptionGroups[type].subtotal += itemTotal;
+      subscriptionGroups[type].fee += fee;
+      subscriptionGroups[type].total += (itemTotal + fee);
+      grandTotal += (itemTotal + fee);
+    });
 
     // Generate PDF
     const PDFDocument = require('pdfkit');
-    const doc = new PDFDocument();
+    const doc = new PDFDocument({ margin: margin, size: 'A4' });
     
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=subscription_bill_${consumer_id}.pdf`);
-    
+    res.setHeader('Content-Disposition', `attachment; filename=Subscription_Bill_${consumer_id}.pdf`);
     doc.pipe(res);
 
     // Header
-    doc.fontSize(20).text('Subscription Bill Summary', { align: 'center' });
-    doc.moveDown();
-    
-    // Consumer Info
-    doc.fontSize(12)
-       .text(`Customer: ${consumer.first_name} ${consumer.last_name}`)
-       .text(`Customer ID: ${consumer_id}`)
-       .text(`Generated on: ${new Date().toLocaleDateString()}`)
-       .moveDown();
-
-    // Bill Summary
-    doc.fontSize(16).text('Billing Summary', { underline: true });
-    doc.moveDown(0.5);
-    
-    doc.font('Helvetica-Bold')
-       .text('Subscription Type', 50, doc.y)
-       .text('Amount', 350, doc.y)
+    doc.fontSize(18)
+       .font('Helvetica-Bold')
+       .text('SUBSCRIPTION BILL', { align: 'center' })
        .moveDown(0.5);
-    
-    doc.font('Helvetica');
-    for (const [type, amount] of Object.entries(totals)) {
-      if (type !== 'total') {
-        doc.text(type, 50, doc.y)
-           .text(`₹${parseFloat(amount).toFixed(2)}`, 350, doc.y)
-           .moveDown(0.5);
-      }
-    }
-    
-    // Total
-    doc.moveDown();
-    doc.font('Helvetica-Bold')
-       .text('Total Amount:', 300, doc.y)
-       .text(`₹${parseFloat(totals.total).toFixed(2)}`, 350, doc.y)
-       .moveDown();
 
-    // Transaction Details
-    doc.addPage();
-    doc.fontSize(16).text('Transaction Details', { underline: true });
-    doc.moveDown(0.5);
-    
-    doc.font('Helvetica-Bold')
-       .text('Date', 50, doc.y)
-       .text('Type', 150, doc.y)
-       .text('Description', 250, doc.y)
-       .text('Amount', 450, doc.y)
-       .moveDown(0.5);
-    
-    doc.font('Helvetica');
-    billingHistory.forEach(item => {
-      doc.text(new Date(item.billing_date).toLocaleDateString(), 50, doc.y)
-         .text(item.subscription_type, 150, doc.y)
-         .text(item.description, 250, doc.y)
-         .text(`₹${parseFloat(item.amount).toFixed(2)}`, 450, doc.y)
+    // Customer Info
+    doc.fontSize(10)
+       .font('Helvetica')
+       .text(`Customer: ${consumer.first_name} ${consumer.last_name}`, margin, 100)
+       .text(`ID: ${consumer_id}`, margin, 115)
+       .text(`Period: ${start_date} to ${end_date}`, margin, 130)
+       .text(`Generated: ${today.toISOString().split('T')[0]}`, margin, 145)
+       .moveDown(2);
+
+    // Process each subscription type
+    Object.entries(subscriptionGroups).forEach(([type, group]) => {
+      // Section Header
+      doc.fontSize(12)
+         .font('Helvetica-Bold')
+         .text(`${type.toUpperCase()}`, margin, doc.y)
          .moveDown(0.5);
+
+      // Table Setup
+      const tableTop = doc.y;
+      const col1 = margin;          // Product (150px)
+      const col2 = col1 + 150;      // Qty (50px)
+      const col3 = col2 + 50;       // Price (80px)
+      const col4 = col3 + 80;       // Amount (80px)
+
+      // Table Header
+      doc.font('Helvetica-Bold')
+         .text('PRODUCT', col1, tableTop)
+         .text('QTY', col2, tableTop)
+         .text('PRICE', col3, tableTop)
+         .text('AMOUNT', col4, tableTop)
+         .moveDown(0.5);
+
+      // Horizontal line under header
+      doc.moveTo(margin, doc.y - 5)
+         .lineTo(pageWidth - margin, doc.y - 5)
+         .lineWidth(0.5)
+         .strokeColor('#333333')
+         .stroke();
+
+      // Table Rows
+      doc.font('Helvetica');
+      let y = tableTop + 25;
+      group.items.forEach(item => {
+        doc.text(item.product_name, col1, y)
+           .text(item.quantity.toString(), col2, y)
+           .text(`₹${item.price.toFixed(2)}`, col3, y)
+           .text(`₹${item.total.toFixed(2)}`, col4, y);
+        y += 20;
+      });
+
+      // Section Totals
+      doc.font('Helvetica-Bold')
+         .text('Subtotal:', col3 - 10, y + 10)
+         .text(`₹${group.subtotal.toFixed(2)}`, col4, y + 10)
+         .text('Subscription Fee:', col3 - 10, y + 30)
+         .text(`₹${group.fee.toFixed(2)}`, col4, y + 30)
+         .text('Total:', col3 - 10, y + 50)
+         .text(`₹${group.total.toFixed(2)}`, col4, y + 50);
+
+      // Section separator line
+      doc.moveTo(margin, y + 70)
+         .lineTo(pageWidth - margin, y + 70)
+         .lineWidth(0.5)
+         .strokeColor('#cccccc')
+         .stroke()
+         .moveDown(2);
     });
+
+    // Grand Total
+    doc.fontSize(14)
+       .font('Helvetica-Bold')
+       .text('GRAND TOTAL:', contentWidth - 150, doc.y)
+       .text(`₹${grandTotal.toFixed(2)}`, contentWidth - 50, doc.y)
+       .moveDown(2);
+
+    // Footer
+    doc.fontSize(8)
+       .text('Thank you for your business!', { align: 'center' })
+       .text('For queries contact: support@freshmilk.com | Phone: 1800-123-4567', { align: 'center' });
 
     doc.end();
   } catch (error) {
@@ -5170,6 +5237,586 @@ app.get('/api/subscriptions/combined-bill-pdf/:consumer_id', async (req, res) =>
     });
   }
 });
+
+
+
+
+
+
+// ✅ Auto-Debit Cron Job
+const autoDebitSubscriptions = async () => {
+  console.log("🔁 Auto-debit cron running at", new Date().toLocaleString());
+
+  const now = new Date();
+  const currentDay = now.getDay();
+  const isAlternateDay = now.getDate() % 2 === 0;
+  const todayStr = now.toISOString().split('T')[0];
+
+  try {
+    const subscriptions = await queryDatabase(`
+      SELECT s.*, cr.first_name, cr.last_name 
+      FROM subscriptions s
+      JOIN consumerregistration cr ON s.consumer_id = cr.consumer_id
+      WHERE s.status = 'Active'
+    `);
+
+    // 🧠 Group Weekly subscriptions
+    const weeklyGrouped = {};
+    subscriptions.forEach(sub => {
+      if (sub.subscription_type === 'Weekly') {
+        const fee = 5 * sub.quantity;
+        const amount = sub.price * sub.quantity + fee;
+        if (!weeklyGrouped[sub.consumer_id]) {
+          weeklyGrouped[sub.consumer_id] = { total: 0, items: [] };
+        }
+        weeklyGrouped[sub.consumer_id].total += amount;
+        weeklyGrouped[sub.consumer_id].items.push(sub);
+      }
+    });
+
+    for (const sub of subscriptions) {
+      const { consumer_id, subscription_type, price, quantity, subscription_id } = sub;
+      const subscriptionFee = 5 * quantity;
+      const grandTotal = (price * quantity) + subscriptionFee;
+
+      let shouldDebit = false;
+
+      const [alreadyBilled] = await queryDatabase(`
+        SELECT 1 FROM billing_history 
+        WHERE consumer_id = ? AND subscription_type = ? AND billing_date = ?
+      `, [consumer_id, subscription_type, todayStr]);
+
+      if (alreadyBilled) continue;
+
+      const nowCopy = new Date();
+
+      // ✅ Daily and Alternate Days
+      if (subscription_type === 'Daily') {
+        shouldDebit = true;
+      } else if (subscription_type === 'Alternate Days') {
+        shouldDebit = isAlternateDay;
+      }
+
+      // ✅ Weekly (grouped)
+      if (subscription_type === 'Weekly') {
+        const monday = new Date(nowCopy);
+        monday.setDate(monday.getDate() - monday.getDay());
+        const mondayStr = monday.toISOString().split('T')[0];
+
+        const [weeklyBilled] = await queryDatabase(`
+          SELECT 1 FROM billing_history 
+          WHERE consumer_id = ? AND subscription_type = 'Weekly' AND billing_date >= ?
+        `, [consumer_id, mondayStr]);
+
+        if (!weeklyBilled && weeklyGrouped[consumer_id]) {
+          const totalAmount = weeklyGrouped[consumer_id].total;
+
+          // Check balance
+          const [latestTxn] = await queryDatabase(`
+            SELECT balance FROM wallet_transactions 
+            WHERE consumer_id = ? ORDER BY transaction_date DESC LIMIT 1
+          `, [consumer_id]);
+
+          const balance = latestTxn?.balance ?? 0;
+
+          if (balance < totalAmount) {
+            console.warn(`❌ Insufficient balance for ${consumer_id} (Weekly). Need ₹${totalAmount}, has ₹${balance}`);
+            continue;
+          }
+
+          // Insert wallet debit
+          await queryDatabase(`
+            INSERT INTO wallet_transactions 
+            (consumer_id, transaction_type, amount, description, payment_method)
+            VALUES (?, 'Debit', ?, ?, 'Auto-Debit')
+          `, [
+            consumer_id,
+            totalAmount,
+            `Auto debit for Weekly subscriptions`
+          ]);
+
+          const [txn] = await queryDatabase(`
+            SELECT transaction_id FROM wallet_transactions 
+            WHERE consumer_id = ? ORDER BY transaction_date DESC LIMIT 1
+          `, [consumer_id]);
+
+          if (!txn?.transaction_id) continue;
+
+          // Insert billing
+          await queryDatabase(`
+            INSERT INTO billing_history 
+            (consumer_id, subscription_type, amount, billing_date, transaction_id, description)
+            VALUES (?, ?, ?, ?, ?, ?)
+          `, [
+            consumer_id,
+            'Weekly',
+            totalAmount,
+            todayStr,
+            txn.transaction_id,
+            `Auto billing for all Weekly subscriptions`
+          ]);
+
+          console.log(`✅ Debited ₹${totalAmount} from ${consumer_id} (Weekly)`);
+        }
+
+        continue; // Skip rest of loop for weekly
+      }
+
+      // ✅ Monthly
+      if (subscription_type === 'Monthly') {
+        const firstDay = `${nowCopy.getFullYear()}-${String(nowCopy.getMonth() + 1).padStart(2, '0')}-01`;
+
+        const [monthlyBill] = await queryDatabase(`
+          SELECT 1 FROM billing_history 
+          WHERE consumer_id = ? AND subscription_type = 'Monthly' AND billing_date >= ?
+        `, [consumer_id, firstDay]);
+
+        shouldDebit = !monthlyBill;
+      }
+
+      if (!shouldDebit) {
+        console.log(`⏩ Skipping ${consumer_id} (${subscription_type}) - not due`);
+        continue;
+      }
+
+      // Check balance
+      const [latestTxn] = await queryDatabase(`
+        SELECT balance FROM wallet_transactions 
+        WHERE consumer_id = ? ORDER BY transaction_date DESC LIMIT 1
+      `, [consumer_id]);
+
+      const balance = latestTxn?.balance ?? 0;
+
+      if (balance < grandTotal) {
+        console.warn(`❌ Insufficient balance for ${consumer_id}. Need ₹${grandTotal}, has ₹${balance}`);
+        continue;
+      }
+
+      // Insert wallet debit
+      await queryDatabase(`
+        INSERT INTO wallet_transactions 
+        (consumer_id, transaction_type, amount, description, payment_method)
+        VALUES (?, 'Debit', ?, ?, 'Auto-Debit')
+      `, [
+        consumer_id,
+        grandTotal,
+        `Auto debit for ${subscription_type} subscription (${subscription_id})`
+      ]);
+
+      const [txn] = await queryDatabase(`
+        SELECT transaction_id FROM wallet_transactions 
+        WHERE consumer_id = ? ORDER BY transaction_date DESC LIMIT 1
+      `, [consumer_id]);
+
+      if (!txn?.transaction_id) continue;
+
+      await queryDatabase(`
+        INSERT INTO billing_history 
+        (consumer_id, subscription_type, amount, billing_date, transaction_id, description)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `, [
+        consumer_id,
+        subscription_type,
+        grandTotal,
+        todayStr,
+        txn.transaction_id,
+        `Auto billing for ${subscription_type} plan (Subscription ID: ${subscription_id})`
+      ]);
+
+      console.log(`✅ Debited ₹${grandTotal} from ${consumer_id} (${subscription_type})`);
+    }
+
+  } catch (err) {
+    console.error("❌ Error in auto-debit:", err.message);
+  }
+};
+
+// 🔥 Run once at startup
+autoDebitSubscriptions();
+
+// 🔁 Run every 10 minutes
+schedule.schedule('*/10 * * * *', autoDebitSubscriptions);
+
+
+
+
+
+// for (const sub of subscriptions) {
+//   const {
+//     consumer_id,
+//     subscription_type,
+//     price,
+//     quantity,
+//     subscription_id,
+//     start_date
+//   } = sub;
+
+//   const subscriptionFee = 5 * quantity;
+//   const grandTotal = (price * quantity) + subscriptionFee;
+//   const todayStr = now.toISOString().split('T')[0];
+//   const start = new Date(start_date);
+//   const daysSinceStart = Math.floor((now - start) / (1000 * 60 * 60 * 24));
+//   let shouldDebit = false;
+
+//   // ✅ Check real-time debit condition based on type
+//   if (subscription_type === 'Daily') {
+//     shouldDebit = daysSinceStart >= 0;
+//   } else if (subscription_type === 'Alternate Days') {
+//     shouldDebit = daysSinceStart >= 0 && daysSinceStart % 2 === 0;
+//   } else if (subscription_type === 'Weekly') {
+//     shouldDebit = daysSinceStart >= 0 && daysSinceStart % 7 === 0;
+//   } else if (subscription_type === 'Monthly') {
+//     shouldDebit =
+//       now.getDate() === start.getDate() && now.getTime() >= start.getTime();
+//   }
+
+//   if (!shouldDebit) {
+//     console.log(`⏩ Skipping ${consumer_id} (${subscription_type}) — Not due today`);
+//     continue;
+//   }
+
+//   const [alreadyBilled] = await queryDatabase(`
+//     SELECT 1 FROM billing_history 
+//     WHERE consumer_id = ? AND subscription_type = ? AND billing_date = ?
+//   `, [consumer_id, subscription_type, todayStr]);
+
+//   if (alreadyBilled) {
+//     console.log(`⏩ Already billed ${consumer_id} (${subscription_type}) today`);
+//     continue;
+//   }
+
+//   // ✅ Check wallet balance
+//   const [latestTxn] = await queryDatabase(`
+//     SELECT balance FROM wallet_transactions 
+//     WHERE consumer_id = ? ORDER BY transaction_date DESC LIMIT 1
+//   `, [consumer_id]);
+
+//   const balance = latestTxn?.balance ?? 0;
+
+//   if (balance < grandTotal) {
+//     console.warn(`❌ Insufficient balance for ${consumer_id} (${subscription_type}). Need ₹${grandTotal}, has ₹${balance}`);
+//     continue;
+//   }
+
+//   // ✅ Insert debit transaction
+//   await queryDatabase(`
+//     INSERT INTO wallet_transactions 
+//     (consumer_id, transaction_type, amount, description, payment_method)
+//     VALUES (?, 'Debit', ?, ?, 'Auto-Debit')
+//   `, [
+//     consumer_id,
+//     grandTotal,
+//     `Auto debit for ${subscription_type} plan (Subscription ID: ${subscription_id})`
+//   ]);
+
+//   const [txn] = await queryDatabase(`
+//     SELECT transaction_id FROM wallet_transactions 
+//     WHERE consumer_id = ? ORDER BY transaction_date DESC LIMIT 1
+//   `, [consumer_id]);
+
+//   if (!txn?.transaction_id) continue;
+
+//   // ✅ Insert into billing history
+//   await queryDatabase(`
+//     INSERT INTO billing_history 
+//     (consumer_id, subscription_type, amount, billing_date, transaction_id, description)
+//     VALUES (?, ?, ?, ?, ?, ?)
+//   `, [
+//     consumer_id,
+//     subscription_type,
+//     grandTotal,
+//     todayStr,
+//     txn.transaction_id,
+//     `Auto billing for ${subscription_type} plan (Subscription ID: ${subscription_id})`
+//   ]);
+
+//   console.log(`✅ ₹${grandTotal} debited from ${consumer_id} (${subscription_type})`);
+
+//   // ✅ Optional: Emit frontend update via DB or polling trigger (see frontend below)
+// }
+
+
+
+
+
+
+
+// // 🔁 Auto-Debit Function
+// const autoDebitSubscriptions = async () => {
+//   console.log("🔁 Auto-debit running at", new Date().toLocaleString());
+
+//   const now = new Date();
+//   const todayStr = now.toISOString().split('T')[0];
+
+//   try {
+//     const subscriptions = await queryDatabase(`
+//       SELECT s.*, cr.first_name, cr.last_name 
+//       FROM subscriptions s
+//       JOIN consumerregistration cr ON s.consumer_id = cr.consumer_id
+//       WHERE s.status = 'Active'
+//     `);
+
+//     for (const sub of subscriptions) {
+//       const {
+//         consumer_id,
+//         subscription_id,
+//         subscription_type,
+//         start_date,
+//         price,
+//         quantity
+//       } = sub;
+
+//       const grandTotal = (price * quantity) + (5 * quantity);
+
+//       const start = new Date(start_date);
+//       const daysSinceStart = Math.floor((now - start) / (1000 * 60 * 60 * 24));
+//       let shouldDebit = false;
+
+//       switch (subscription_type) {
+//         case 'Daily':
+//           shouldDebit = daysSinceStart >= 0;
+//           break;
+//         case 'Alternate Days':
+//           shouldDebit = daysSinceStart % 2 === 0 && daysSinceStart >= 0;
+//           break;
+//         case 'Weekly':
+//           shouldDebit = daysSinceStart % 7 === 0 && daysSinceStart >= 0;
+//           break;
+//         case 'Monthly':
+//           shouldDebit =
+//             now.getDate() === start.getDate() &&
+//             now.getTime() >= start.getTime();
+//           break;
+//       }
+
+//       if (!shouldDebit) continue;
+
+//       const [alreadyBilled] = await queryDatabase(`
+//         SELECT 1 FROM billing_history 
+//         WHERE consumer_id = ? AND subscription_id = ? AND billing_date = ?
+//       `, [consumer_id, subscription_id, todayStr]);
+
+//       if (alreadyBilled) continue;
+
+//       const [latestTxn] = await queryDatabase(`
+//         SELECT balance FROM wallet_transactions 
+//         WHERE consumer_id = ? ORDER BY transaction_date DESC LIMIT 1
+//       `, [consumer_id]);
+
+//       const balance = latestTxn?.balance ?? 0;
+//       if (balance < grandTotal) {
+//         console.warn(`❌ Insufficient balance for ${consumer_id}`);
+//         continue;
+//       }
+
+//       await queryDatabase(`
+//         INSERT INTO wallet_transactions 
+//         (consumer_id, transaction_type, amount, description, payment_method)
+//         VALUES (?, 'Debit', ?, ?, 'Auto-Debit')
+//       `, [
+//         consumer_id,
+//         grandTotal,
+//         `Auto debit for ${subscription_type} plan (Subscription ID: ${subscription_id})`
+//       ]);
+
+//       const [txn] = await queryDatabase(`
+//         SELECT transaction_id FROM wallet_transactions 
+//         WHERE consumer_id = ? ORDER BY transaction_date DESC LIMIT 1
+//       `, [consumer_id]);
+
+//       if (!txn?.transaction_id) continue;
+
+//       await queryDatabase(`
+//         INSERT INTO billing_history 
+//         (consumer_id, subscription_id, subscription_type, amount, billing_date, transaction_id, description)
+//         VALUES (?, ?, ?, ?, ?, ?, ?)
+//       `, [
+//         consumer_id,
+//         subscription_id,
+//         subscription_type,
+//         grandTotal,
+//         todayStr,
+//         txn.transaction_id,
+//         `Auto billing for ${subscription_type} plan`
+//       ]);
+
+//       console.log(`✅ ₹${grandTotal} debited from ${consumer_id} (${subscription_type})`);
+//     }
+//   } catch (err) {
+//     console.error("❌ Auto-debit error:", err.message);
+//   }
+// };
+
+// // ✅ Pure JavaScript scheduler — Runs every day at 7:00 AM
+// function scheduleAutoDebitAt7AM() {
+//   const now = new Date();
+//   const next7AM = new Date();
+
+//   next7AM.setHours(7, 0, 0, 0);
+
+//   if (now > next7AM) {
+//     next7AM.setDate(next7AM.getDate() + 1);
+//   }
+
+//   const delay = next7AM - now;
+//   console.log(`⏳ Auto-debit scheduled to run in ${Math.floor(delay / 1000)} seconds`);
+
+//   setTimeout(() => {
+//     autoDebitSubscriptions(); // Run once at 7 AM
+//     setInterval(autoDebitSubscriptions, 24 * 60 * 60 * 1000); // Then every 24h
+//   }, delay);
+// }
+
+// scheduleAutoDebitAt7AM(); // Start the scheduler
+
+
+
+// Helper function
+
+
+// // 🔁 Auto-Debit Function
+// const autoDebitSubscriptions = async () => {
+//   console.log("🔁 Auto-debit running at", new Date().toLocaleString());
+
+//   const now = new Date();
+//   const todayStr = now.toISOString().split('T')[0];
+
+//   try {
+//     const subscriptions = await queryDatabase(`
+//       SELECT s.*, cr.first_name, cr.last_name 
+//       FROM subscriptions s
+//       JOIN consumerregistration cr ON s.consumer_id = cr.consumer_id
+//       WHERE s.status = 'Active'
+//     `);
+
+//     for (const sub of subscriptions) {
+//       const {
+//         consumer_id,
+//         subscription_id,
+//         subscription_type,
+//         start_date,
+//         price,
+//         quantity
+//       } = sub;
+
+//       const grandTotal = (price * quantity) + (5 * quantity);
+//       const start = new Date(start_date);
+//       const daysSinceStart = Math.floor((now - start) / (1000 * 60 * 60 * 24));
+//       let shouldDebit = false;
+
+//       switch (subscription_type) {
+//         case 'Daily':
+//           shouldDebit = daysSinceStart >= 0;
+//           break;
+//         case 'Alternate Days':
+//           shouldDebit = daysSinceStart % 2 === 0 && daysSinceStart >= 0;
+//           break;
+//         case 'Weekly':
+//           shouldDebit = daysSinceStart % 7 === 0 && daysSinceStart >= 0;
+//           break;
+//         case 'Monthly':
+//           shouldDebit =
+//             now.getDate() === start.getDate() &&
+//             now.getTime() >= start.getTime();
+//           break;
+//       }
+
+//       if (!shouldDebit) continue;
+
+//       const [alreadyBilled] = await queryDatabase(`
+//         SELECT 1 FROM billing_history 
+//         WHERE consumer_id = ? AND subscription_id = ? AND billing_date = ?
+//       `, [consumer_id, subscription_id, todayStr]);
+
+//       if (alreadyBilled) continue;
+
+//       const [latestTxn] = await queryDatabase(`
+//         SELECT balance FROM wallet_transactions 
+//         WHERE consumer_id = ? ORDER BY transaction_date DESC LIMIT 1
+//       `, [consumer_id]);
+
+//       const balance = latestTxn?.balance ?? 0;
+//       if (balance < grandTotal) {
+//         console.warn(`❌ Insufficient balance for ${consumer_id}`);
+//         continue;
+//       }
+
+//       await queryDatabase(`
+//         INSERT INTO wallet_transactions 
+//         (consumer_id, transaction_type, amount, description, payment_method)
+//         VALUES (?, 'Debit', ?, ?, 'Auto-Debit')
+//       `, [
+//         consumer_id,
+//         grandTotal,
+//         `Auto debit for ${subscription_type} plan (Subscription ID: ${subscription_id})`
+//       ]);
+
+//       const [txn] = await queryDatabase(`
+//         SELECT transaction_id FROM wallet_transactions 
+//         WHERE consumer_id = ? ORDER BY transaction_date DESC LIMIT 1
+//       `, [consumer_id]);
+
+//       if (!txn?.transaction_id) continue;
+
+//       await queryDatabase(`
+//         INSERT INTO billing_history 
+//         (consumer_id, subscription_id, subscription_type, amount, billing_date, transaction_id, description)
+//         VALUES (?, ?, ?, ?, ?, ?, ?)
+//       `, [
+//         consumer_id,
+//         subscription_id,
+//         subscription_type,
+//         grandTotal,
+//         todayStr,
+//         txn.transaction_id,
+//         `Auto billing for ${subscription_type} plan`
+//       ]);
+
+//       console.log(`✅ ₹${grandTotal} debited from ${consumer_id} (${subscription_type})`);
+//     }
+//   } catch (err) {
+//     console.error("❌ Auto-debit error:", err.message);
+//   }
+// };
+
+// // ✅ Scheduler for 5:00 PM
+// function scheduleAutoDebitAt5PM() {
+//   const now = new Date();
+//   const next5PM = new Date();
+
+//   next5PM.setHours(17, 0, 0, 0); // 17:00 == 5:00 PM
+
+//   if (now > next5PM) {
+//     next5PM.setDate(next5PM.getDate() + 1);
+//   }
+
+//   const delay = next5PM - now;
+//   console.log(`⏳ Auto-debit scheduled to run in ${Math.floor(delay / 1000)} seconds`);
+
+//   setTimeout(() => {
+//     autoDebitSubscriptions(); // Run once at 5 PM
+//     setInterval(autoDebitSubscriptions, 24 * 60 * 60 * 1000); // Then every 24 hours
+//   }, delay);
+// }
+
+// scheduleAutoDebitAt5PM(); // Start scheduler
+
+// // 🌐 Start Express server
+// app.listen(5000, () => {
+//   console.log('🚀 Server running at http://localhost:5000');
+// });
+
+
+
+
+
+
+
+
+
+
+
+
 
 // Helper function to get combined bill data
 async function getCombinedBillData(consumer_id, start_date, end_date) {
