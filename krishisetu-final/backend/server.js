@@ -443,7 +443,7 @@ app.delete("/api/farmerprofile/:farmer_id/photo", verifyToken, async (req, res) 
   }
 });
 // In your backend routes
-router.get('/api/farmer/:farmer_id/profile-photo', authMiddleware, async (req, res) => {
+router.get('/api/farmer/:farmer_id/profile-photo', verifyToken, async (req, res) => {
   try {
     const farmer = await FarmerProfile.findOne({ farmer_id: req.params.farmer_id });
     if (!farmer || !farmer.personal.profile_photo) {
@@ -1584,67 +1584,108 @@ app.post("/api/save-address", async (req, res) => {
     });
   }
 });
-
-
-app.get('/api/bargain/sessions/consumer/:consumerId', authenticate, async (req, res) => {
+app.get('/api/bargain/consumers/:consumerId/sessions', authenticate, async (req, res) => {
   try {
     const { consumerId } = req.params;
 
-    // Get all bargain sessions initiated by this consumer
-    const query = `
+    if (!/^[A-Z0-9]{8,12}$/.test(consumerId)) {
+      return res.status(400).json({ error: "Invalid consumer ID format" });
+    }
+
+    const sessions = await queryDatabase(
+      `
       SELECT 
         bs.bargain_id,
         bs.farmer_id,
-        CONCAT(f.first_name, ' ', f.last_name) AS farmer_name,
-        UPPER(SUBSTRING(f.first_name, 1, 1)) AS farmer_initials,
-        bm.created_at AS last_message_time,
-        bs.updated_at,
+        fr.first_name,
+        fr.last_name,
+        fr.phone_number AS farmer_phone,
+        ap.produce_name,
+        ap.produce_type,
+        ap.price_per_kg,
+        ap.availability,
+        ap.market_type,
+        bsp.product_id,
+        bsp.quantity,
+        bsp.current_offer AS current_price,
+        bsp.original_price AS initial_price,
         bs.status,
-        bs.created_at
+        bs.updated_at,
+        (
+          SELECT 
+            CASE 
+              WHEN bm.message_type = 'suggestion' THEN CONCAT('Suggested ₹', FORMAT(bm.price_suggestion, 2))
+              WHEN bm.message_type = 'accept' THEN 'Accepted the offer'
+              WHEN bm.message_type = 'reject' THEN 'Rejected the offer'
+              WHEN bm.message_type = 'finalize' THEN 'Finalized the deal'
+              ELSE NULL
+            END
+          FROM bargain_messages bm
+          WHERE bm.bargain_id = bs.bargain_id
+          ORDER BY bm.created_at DESC
+          LIMIT 1
+        ) as last_message_content,
+        (
+          SELECT bm.created_at
+          FROM bargain_messages bm
+          WHERE bm.bargain_id = bs.bargain_id
+          ORDER BY bm.created_at DESC
+          LIMIT 1
+        ) as last_message_timestamp
       FROM bargain_sessions bs
-      LEFT JOIN farmerregistration f ON bs.farmer_id = f.farmer_id
-      LEFT JOIN (
-        SELECT bargain_id, message, created_at
-        FROM bargain_messages
-        WHERE (bargain_id, created_at) IN (
-          SELECT bargain_id, MAX(created_at)
-          FROM bargain_messages
-          GROUP BY bargain_id
-        )
-      ) bm ON bs.bargain_id = bm.bargain_id
+      JOIN farmerregistration fr ON bs.farmer_id = fr.farmer_id
+      JOIN bargain_session_products bsp ON bs.bargain_id = bsp.bargain_id
+      JOIN add_produce ap ON bsp.product_id = ap.product_id
       WHERE bs.consumer_id = ?
-        AND bs.initiator = 'consumer' 
-      ORDER BY 
-        CASE 
-          WHEN bm.created_at IS NULL THEN bs.updated_at 
-          ELSE bm.created_at 
-        END DESC
-    `;
+        AND bsp.product_id IS NOT NULL
+      ORDER BY bs.updated_at DESC
+      `,
+      [consumerId]
+    );
 
-    const sessions = await queryDatabase(query, [consumerId]);
+    const transformedSessions = sessions.map(session => {
+      const productDetails = {
+        product_id: session.product_id,
+        produce_name: session.produce_name,
+        produce_type: session.produce_type,
+        price_per_kg: session.price_per_kg,
+        availability: session.availability,
+        market_type: session.market_type
+      };
 
-    const formattedSessions = sessions.map(session => ({
-      bargain_id: session.bargain_id,
-      farmer_id: session.farmer_id,
-      farmer_name: session.farmer_name,
-      farmer_initials: session.farmer_initials || 
-                      (session.farmer_name ? session.farmer_name.charAt(0).toUpperCase() : 'F'),
-      last_message_time: session.last_message_time || session.updated_at,
-      updated_at: session.updated_at,
-      status: session.status || 'pending',
-      created_at: session.created_at
-    }));
+      return {
+        bargain_id: session.bargain_id,
+        farmer_id: session.farmer_id,
+        farmer_name: `${session.first_name} ${session.last_name}`,
+        farmer_phone: session.farmer_phone,
+        product_name: session.produce_name,
+        product_id: session.product_id,
+        product_details: productDetails,
+        quantity: session.quantity,
+        current_price: session.current_price,
+        initial_price: session.initial_price,
+        status: session.status,
+        updated_at: session.updated_at,
+        last_message: session.last_message_content ? {
+          content: session.last_message_content,
+          timestamp: session.last_message_timestamp
+        } : null,
+        unread_count: 0 // Optional
+      };
+    });
 
-    res.json(formattedSessions);
-  } catch (error) {
-    console.error('Error fetching consumer bargain sessions:', error);
+    console.log("✅ Consumer Sessions:", transformedSessions);
+    res.status(200).json(transformedSessions);
+
+  } catch (err) {
+    console.error("💥 Error fetching consumer sessions:", err);
     res.status(500).json({ 
-      success: false,
-      message: 'Failed to fetch bargain sessions',
-      error: error.message 
+      error: "Failed to fetch consumer sessions",
+      details: err.message
     });
   }
 });
+
 
 app.put("/api/update-address", async (req, res) => {
   console.log("PUT /api/update-address hit"); // Debug log
@@ -6445,8 +6486,6 @@ app.post("/api/updatepersonaldetails", async (req, res) => {
 
   }
 });
-
-
 app.get("/api/farmerprofile/:farmer_id", 
   auth.authenticate,
   auth.farmerOnly,
@@ -6540,7 +6579,6 @@ app.get("/api/farmerprofile/:farmer_id",
     }
   }
 );
-
 // Update Farmer Profile
 app.put("/api/farmerprofile/:farmer_id", 
   auth.authenticate,
@@ -6590,7 +6628,6 @@ app.put("/api/farmerprofile/:farmer_id",
     }
   }
 );
-
 app.put("/api/farmerprofile/:farmer_id/:section", 
   auth.authenticate,
   auth.farmerOnly,
@@ -6736,9 +6773,6 @@ app.put("/api/farmerprofile/:farmer_id/:section",
     }
   }
 );
-    
-
-
 // Update the personal details update endpoint
 app.put("/api/farmerprofile/:farmer_id/personal", 
   auth.authenticate,
@@ -6812,8 +6846,6 @@ app.put("/api/farmerprofile/:farmer_id/personal",
     }
   }
 );
-
-
 // Update farm details
 app.post("/api/updatefarmdetails", async (req, res) => {
   try {
@@ -6848,7 +6880,6 @@ app.post("/api/updatefarmdetails", async (req, res) => {
 
   }
 });
-
 // ✅ Update Farm Details
 app.put("/api/farmerprofile/:farmer_id/farm", 
   auth.authenticate,
@@ -6908,6 +6939,38 @@ app.put("/api/farmerprofile/:farmer_id/farm",
   }
 );
 
+app.get('/api/farmerprofile/:farmer_id/personal', authenticateToken, async (req, res) => {
+  try {
+    const { farmer_id } = req.params;
+    const [personalDetails] = await queryDatabase('SELECT * FROM personaldetails WHERE farmer_id = ?', [farmer_id]);
+    
+    if (!personalDetails) {
+      return res.status(404).json({ message: 'Personal details not found' });
+    }
+    
+    res.json(personalDetails);
+  } catch (error) {
+    console.error('Error fetching personal details:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get farmer farm details
+app.get('/api/farmerprofile/:farmer_id/farm', authenticateToken, async (req, res) => {
+  try {
+    const { farmer_id } = req.params;
+    const [farmDetails] = await queryDatabase('SELECT * FROM farmdetails WHERE farmer_id = ?', [farmer_id]);
+    
+    if (!farmDetails) {
+      return res.status(404).json({ message: 'Farm details not found' });
+    }
+    
+    res.json(farmDetails);
+  } catch (error) {
+    console.error('Error fetching farm details:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
 // Add this endpoint for payment verification
 app.post("/api/verify-payment", authenticateToken, async (req, res) => {
