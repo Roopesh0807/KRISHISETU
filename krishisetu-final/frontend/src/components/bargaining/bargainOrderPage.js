@@ -1,356 +1,12 @@
-// import React, { useEffect, useState } from 'react';
-// import axios from 'axios';
-// import { useAuth } from '../../context/AuthContext';
-// import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-// import { 
-//   faSpinner, 
-//   faShoppingCart, 
-//   faMapMarkerAlt,
-//   faCreditCard,
-//   faMoneyBillWave,
-//   faExclamationTriangle,
-//   faTruck
-// } from '@fortawesome/free-solid-svg-icons';
-// import "./bargainCart.css";
-
-// const OrderPage = () => {
-//   const { consumer, token } = useAuth();
-//   const [cartItems, setCartItems] = useState([]);
-//   const [loading, setLoading] = useState(true);
-//   const [error, setError] = useState(null);
-//   const [totalItems, setTotalItems] = useState(0);
-//   const [grandTotal, setGrandTotal] = useState(0);
-//   const [deliveryCharge, setDeliveryCharge] = useState(0);
-//   const [addresses, setAddresses] = useState([]);
-//   const [selectedAddress, setSelectedAddress] = useState('');
-//   const [paymentMethod, setPaymentMethod] = useState('cash');
-
-//   // Calculate delivery charges
-//   const calculateDeliveryCharge = (totalKg) => {
-//     const baseCharge = 100;
-//     const additionalCharge = totalKg > 10 ? (totalKg - 10) * 5 : 0;
-//     return baseCharge + additionalCharge;
-//   };
-
-//   const processCartItems = (items) => {
-//     if (!Array.isArray(items)) {
-//       throw new Error('Invalid cart data: expected array');
-//     }
-
-//     const itemMap = new Map();
-//     let itemCount = 0;
-//     let runningTotal = 0;
-
-//     items.forEach(item => {
-//       const productName = item.product_name?.trim() || 'Unknown Product';
-//       const price = Number(item.price_per_kg) || 0;
-//       const quantity = Number(item.quantity) || 0;
-//       const total = Number(item.total_price) || price * quantity;
-//       const key = `${productName}-${price}-${item.farmer_id}`;
-
-//       if (itemMap.has(key)) {
-//         const existing = itemMap.get(key);
-//         const newQuantity = existing.quantity + quantity;
-//         const newTotal = existing.total_price + total;
-        
-//         itemMap.set(key, {
-//           ...existing,
-//           quantity: newQuantity,
-//           total_price: newTotal,
-//           bargain_ids: [...existing.bargain_ids, item.bargain_id || ''],
-//           cart_ids: [...existing.cart_ids, item.cart_id || '']
-//         });
-//       } else {
-//         itemMap.set(key, {
-//           farmer_id: item.farmer_id || '',
-//           product_name: productName,
-//           product_category: item.product_category?.trim() || 'Uncategorized',
-//           price_per_kg: price,
-//           quantity: quantity,
-//           total_price: total,
-//           bargain_ids: [item.bargain_id || ''],
-//           cart_ids: [item.cart_id || '']
-//         });
-//       }
-
-//       itemCount += quantity;
-//       runningTotal += total;
-//     });
-
-//     setTotalItems(itemCount);
-//     setGrandTotal(runningTotal);
-//     setDeliveryCharge(calculateDeliveryCharge(itemCount));
-//     return Array.from(itemMap.values());
-//   };
-
-//   const fetchCart = async () => {
-//     if (!consumer?.consumer_id || !token) {
-//       setError('Please login to view your cart');
-//       setLoading(false);
-//       return;
-//     }
-
-//     try {
-//       setLoading(true);
-//       setError(null);
-      
-//       // Fetch cart items
-//       const cartResponse = await axios.get(
-//         `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/cart/${consumer.consumer_id}`,
-//         { headers: { 'Authorization': `Bearer ${token}` } }
-//       );
-      
-//       // Fetch addresses
-//       const addressResponse = await axios.get(
-//         `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/address/${consumer.consumer_id}`,
-//         { headers: { 'Authorization': `Bearer ${token}` } }
-//       );
-
-//       const receivedData = Array.isArray(cartResponse.data) 
-//         ? cartResponse.data 
-//         : cartResponse.data?.data || [];
-
-//       const processedItems = processCartItems(receivedData);
-//       setCartItems(processedItems);
-//       setAddresses(addressResponse.data?.addresses || []);
-      
-//       if (addressResponse.data?.addresses?.length > 0) {
-//         setSelectedAddress(addressResponse.data.addresses[0].id);
-//       }
-//     } catch (error) {
-//       console.error('Error fetching data:', error);
-//       setError(error.response?.data?.message || error.message || 'Failed to load data');
-//       setCartItems([]);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   const placeOrder = async () => {
-//     if (!selectedAddress) {
-//       setError('Please select a delivery address');
-//       return;
-//     }
-
-//     try {
-//       const orderData = {
-//         consumer_id: consumer.consumer_id,
-//         address_id: selectedAddress,
-//         payment_method: paymentMethod,
-//         items: cartItems.map(item => ({
-//           product_name: item.product_name,
-//           product_category: item.product_category,
-//           price_per_kg: item.price_per_kg,
-//           quantity: item.quantity,
-//           farmer_id: item.farmer_id,
-//           bargain_ids: item.bargain_ids
-//         })),
-//         delivery_charge: deliveryCharge,
-//         total_amount: grandTotal + deliveryCharge
-//       };
-
-//       const response = await axios.post(
-//         `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/orders`,
-//         orderData,
-//         { headers: { 'Authorization': `Bearer ${token}` } }
-//       );
-
-//       if (response.data.success) {
-//         alert('Order placed successfully!');
-//         // Optionally redirect to order confirmation page
-//       }
-//     } catch (error) {
-//       console.error('Error placing order:', error);
-//       setError(error.response?.data?.message || 'Failed to place order');
-//     }
-//   };
-
-//   useEffect(() => {
-//     fetchCart();
-//   }, [consumer?.consumer_id, token]);
-
-//   if (loading) {
-//     return (
-//       <div className="text-center py-12">
-//         <FontAwesomeIcon icon={faSpinner} spin size="2x" className="text-blue-500" />
-//         <p className="mt-4 text-gray-600">Loading your order details...</p>
-//       </div>
-//     );
-//   }
-
-//   if (error) {
-//     return (
-//       <div className="max-w-4xl mx-auto px-4 py-8">
-//         <div className="bg-red-50 border-l-4 border-red-500 p-4">
-//           <div className="flex items-center">
-//             <FontAwesomeIcon icon={faExclamationTriangle} className="text-red-500 mr-2" />
-//             <h3 className="text-red-800 font-medium">{error}</h3>
-//           </div>
-//           <button 
-//             onClick={fetchCart}
-//             className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-//           >
-//             Retry
-//           </button>
-//         </div>
-//       </div>
-//     );
-//   }
-
-//   return (
-//     <div className="bargain-order-container max-w-6xl mx-auto px-4 py-8">
-//       <h1 className="text-3xl font-bold mb-8">Order Summary</h1>
-      
-//       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-//         {/* Left Column - Delivery and Payment */}
-//         <div className="lg:col-span-2 space-y-6">
-//           {/* Delivery Address Section */}
-//           <div className="bargain-order-section bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-//             <h2 className="text-xl font-semibold mb-4 flex items-center">
-//               <FontAwesomeIcon icon={faMapMarkerAlt} className="text-green-600 mr-2" />
-//               Delivery Address
-//             </h2>
-            
-//             {addresses.length > 0 ? (
-//               <div className="space-y-4">
-//                 <select
-//                   className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500"
-//                   value={selectedAddress}
-//                   onChange={(e) => setSelectedAddress(e.target.value)}
-//                 >
-//                   {addresses.map(address => (
-//                     <option key={address.id} value={address.id}>
-//                       {address.address_line1}, {address.city}, {address.state} - {address.pincode}
-//                     </option>
-//                   ))}
-//                 </select>
-//                 <button className="text-green-600 hover:text-green-800 text-sm font-medium">
-//                   + Add New Address
-//                 </button>
-//               </div>
-//             ) : (
-//               <div className="text-center py-4">
-//                 <p className="text-gray-500 mb-4">No addresses found</p>
-//                 <button className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
-//                   Add Delivery Address
-//                 </button>
-//               </div>
-//             )}
-//           </div>
-
-//           {/* Payment Method Section */}
-//           <div className="bargain-order-section bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-//             <h2 className="text-xl font-semibold mb-4 flex items-center">
-//               <FontAwesomeIcon icon={faCreditCard} className="text-blue-600 mr-2" />
-//               Payment Method
-//             </h2>
-            
-//             <div className="space-y-3">
-//               <div 
-//                 className={`p-4 border rounded-md cursor-pointer ${paymentMethod === 'cash' ? 'border-blue-500 bg-blue-50' : 'border-gray-300'}`}
-//                 onClick={() => setPaymentMethod('cash')}
-//               >
-//                 <div className="flex items-center">
-//                   <FontAwesomeIcon icon={faMoneyBillWave} className="text-green-600 mr-3" />
-//                   <div>
-//                     <h3 className="font-medium">Cash on Delivery</h3>
-//                     <p className="text-sm text-gray-500">Pay when you receive your order</p>
-//                   </div>
-//                 </div>
-//               </div>
-              
-//               <div 
-//                 className={`p-4 border rounded-md cursor-pointer ${paymentMethod === 'online' ? 'border-blue-500 bg-blue-50' : 'border-gray-300'}`}
-//                 onClick={() => setPaymentMethod('online')}
-//               >
-//                 <div className="flex items-center">
-//                   <FontAwesomeIcon icon={faCreditCard} className="text-blue-600 mr-3" />
-//                   <div>
-//                     <h3 className="font-medium">Online Payment</h3>
-//                     <p className="text-sm text-gray-500">Pay securely with UPI, Card, or Net Banking</p>
-//                   </div>
-//                 </div>
-//               </div>
-//             </div>
-//           </div>
-
-//           {/* Delivery Information */}
-//           <div className="bargain-order-section bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-//             <h2 className="text-xl font-semibold mb-4 flex items-center">
-//               <FontAwesomeIcon icon={faTruck} className="text-orange-500 mr-2" />
-//               Delivery Information
-//             </h2>
-            
-//             <div className="space-y-2">
-//               <div className="flex justify-between">
-//                 <span className="text-gray-600">Total Weight:</span>
-//                 <span className="font-medium">{totalItems} kg</span>
-//               </div>
-//               <div className="flex justify-between">
-//                 <span className="text-gray-600">Delivery Charges:</span>
-//                 <span className="font-medium">₹{deliveryCharge.toFixed(2)}</span>
-//               </div>
-//               <div className="text-sm text-gray-500">
-//                 {totalItems > 10 ? (
-//                   <span>₹100 for first 10kg + ₹5/kg for additional {totalItems - 10}kg</span>
-//                 ) : (
-//                   <span>Flat ₹100 for up to 10kg</span>
-//                 )}
-//               </div>
-//             </div>
-//           </div>
-//         </div>
-
-//         {/* Right Column - Order Summary */}
-//         <div className="bargain-order-summary bg-white rounded-lg shadow-sm p-6 border border-gray-200 h-fit sticky top-4">
-//           <h2 className="text-xl font-semibold mb-4">Your Order</h2>
-          
-//           <div className="space-y-4 mb-6">
-//             {cartItems.map((item) => (
-//               <div key={`${item.product_name}-${item.price_per_kg}-${item.farmer_id}`} className="flex justify-between">
-//                 <div>
-//                   <h3 className="font-medium">{item.product_name}</h3>
-//                   <p className="text-sm text-gray-500">{item.quantity} kg × ₹{item.price_per_kg.toFixed(2)}</p>
-//                 </div>
-//                 <span className="font-medium">₹{item.total_price.toFixed(2)}</span>
-//               </div>
-//             ))}
-//           </div>
-
-//           <div className="border-t border-gray-200 pt-4 space-y-3">
-//             <div className="flex justify-between">
-//               <span className="text-gray-600">Subtotal:</span>
-//               <span className="font-medium">₹{grandTotal.toFixed(2)}</span>
-//             </div>
-//             <div className="flex justify-between">
-//               <span className="text-gray-600">Delivery:</span>
-//               <span className="font-medium">₹{deliveryCharge.toFixed(2)}</span>
-//             </div>
-//             <div className="flex justify-between text-lg font-bold pt-2">
-//               <span>Total:</span>
-//               <span>₹{(grandTotal + deliveryCharge).toFixed(2)}</span>
-//             </div>
-//           </div>
-
-//           <button 
-//             className="w-full mt-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
-//             onClick={placeOrder}
-//           >
-//             Place Order
-//           </button>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default OrderPage;
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faSpinner, 
+  faTractor,
+  faBasketShopping,
+  faLeaf,
   faMapMarkerAlt,
   faCreditCard,
   faMoneyBillWave,
@@ -359,7 +15,7 @@ import {
   faUser,
   faEdit
 } from '@fortawesome/free-solid-svg-icons';
-import "./bargainCart.css";
+import "./bargainOrderPage.css";
 
 const OrderPage = () => {
   const { consumer, token } = useAuth();
@@ -802,17 +458,28 @@ const OrderPage = () => {
       setError('Please add a delivery address');
       return;
     }
-
+  
     try {
+      // Extract pincode from address (optional improvement)
+      let pincode = newAddress?.pincode || '';
+      if (!pincode && consumerProfile.address) {
+        const match = consumerProfile.address.match(/- (\d{6})$/);
+        pincode = match ? match[1] : '';
+      }
+  
       const orderData = {
         consumer_id: consumer.consumer_id,
         name: consumerProfile.name,
         mobile_number: consumerProfile.mobile_number,
         email: consumerProfile.email,
         address: consumerProfile.address,
-        pincode: newAddress.pincode,
-        payment_method: 'cash',
-        payment_status: 'Pending',
+        pincode: pincode,
+        payment_method: paymentMethod === 'online' ? 'razorpay' : 'cash-on-delivery',
+        payment_status: paymentMethod === 'online' ? 'Paid' : 'Pending',
+        produce_name: cartItems.map(item => item.product_name).join(", "), // for backend
+        quantity: cartItems.reduce((total, item) => total + item.quantity, 0),
+        amount: grandTotal + deliveryCharge, // total_amount in simplified form
+        delivery_charge: deliveryCharge, // if needed by backend
         items: cartItems.map(item => ({
           product_name: item.product_name,
           product_category: item.product_category,
@@ -820,17 +487,20 @@ const OrderPage = () => {
           quantity: item.quantity,
           farmer_id: item.farmer_id,
           bargain_ids: item.bargain_ids
-        })),
-        delivery_charge: deliveryCharge,
-        total_amount: grandTotal + deliveryCharge
+        }))
       };
-
+  
       const response = await axios.post(
-        `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/orders`,
+        `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/place-order`,
         orderData,
-        { headers: { 'Authorization': `Bearer ${token}` } }
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        }
       );
-
+  
       if (response.data.success) {
         setShowSuccessPopup(true);
         localStorage.removeItem(`cart_${consumer.consumer_id}`);
@@ -843,6 +513,7 @@ const OrderPage = () => {
       setError(error.response?.data?.message || 'Failed to place order');
     }
   };
+  
 
   const handlePlaceOrder = () => {
     if (paymentMethod === 'online') {
@@ -858,24 +529,24 @@ const OrderPage = () => {
 
   if (loading) {
     return (
-      <div className="text-center py-12">
-        <FontAwesomeIcon icon={faSpinner} spin size="2x" className="text-blue-500" />
-        <p className="mt-4 text-gray-600">Loading your order details...</p>
+      <div className="order-loading">
+        <FontAwesomeIcon icon={faSpinner} spin size="2x" className="loading-icon" />
+        <p className="loading-text">Loading your farm fresh order...</p>
       </div>
     );
   }
 
   if (error && !showAddressPopup) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="bg-red-50 border-l-4 border-red-500 p-4">
-          <div className="flex items-center">
-            <FontAwesomeIcon icon={faExclamationTriangle} className="text-red-500 mr-2" />
-            <h3 className="text-red-800 font-medium">{error}</h3>
+      <div className="order-error-container">
+        <div className="order-error-alert">
+          <div className="error-icon-container">
+            <FontAwesomeIcon icon={faExclamationTriangle} className="error-icon" />
+            <h3 className="error-message">{error}</h3>
           </div>
           <button 
             onClick={fetchCart}
-            className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            className="retry-button"
           >
             Retry
           </button>
@@ -885,61 +556,70 @@ const OrderPage = () => {
   }
 
   const SuccessPopup = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-lg p-8 max-w-md text-center">
-        <div className="text-green-500 text-5xl mb-4">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+    <div className="success-popup-overlay">
+      <div className="success-popup">
+        <div className="success-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
           </svg>
         </div>
-        <h3 className="text-2xl font-bold mb-2">Order Placed Successfully!</h3>
-        <p className="text-gray-600 mb-6">Thank you for your order. {paymentMethod === 'online' ? 'Your payment has been processed successfully.' : 'Your order will be delivered soon.'}</p>
-        <p className="text-gray-500 text-sm">You will be redirected shortly...</p>
+        <h3 className="success-title">Order Placed Successfully!</h3>
+        <p className="success-message">Thank you for supporting local farmers. {paymentMethod === 'online' ? 'Your payment has been processed successfully.' : 'Your fresh produce will be delivered soon.'}</p>
+        <div className="success-farmer-icon">
+          <FontAwesomeIcon icon={faTractor} />
+        </div>
+        <p className="success-redirect">You will be redirected shortly...</p>
       </div>
     </div>
   );
 
   return (
-    <div className="bargain-order-container max-w-6xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Order Summary</h1>
+    <div className="order-page-container">
+      <div className="order-header">
+        <div className="header-icon">
+          <FontAwesomeIcon icon={faBasketShopping} />
+        </div>
+        <h1 className="order-title">Farm Fresh Order Summary</h1>
+        <div className="header-decoration">
+          <FontAwesomeIcon icon={faLeaf} />
+        </div>
+      </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="order-content-grid">
         {/* Left Column - Delivery and Payment */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="order-details-section">
           {/* Delivery Address Section */}
-          <div className="bargain-order-section bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-            <h2 className="text-xl font-semibold mb-4 flex items-center">
-              <FontAwesomeIcon icon={faMapMarkerAlt} className="text-green-600 mr-2" />
-              Delivery Address
-            </h2>
+          <div className="order-card address-card">
+            <div className="card-header">
+              <FontAwesomeIcon icon={faMapMarkerAlt} className="card-icon address-icon" />
+              <h2 className="card-title">Delivery Address</h2>
+            </div>
             
             {consumerProfile?.address ? (
-              <div className="space-y-4">
-                <div className="p-4 border border-gray-300 rounded-md">
-                  <div className="flex items-start">
-                    <div className="flex-shrink-0 mr-3 text-gray-500">
-                      <FontAwesomeIcon icon={faUser} />
-                    </div>
-                    <div>
-                      <h3 className="font-medium">{consumerProfile?.name || "Loading..."}</h3>
-                      <p className="text-gray-600">{consumerProfile?.mobile_number || "Loading..."}</p>
-                      <p className="mt-1">{consumerProfile.address}</p>
-                    </div>
+              <div className="address-content">
+                <div className="address-display">
+                  <div className="user-icon-container">
+                    <FontAwesomeIcon icon={faUser} className="user-icon" />
+                  </div>
+                  <div className="address-details">
+                    <h3 className="user-name">{consumerProfile?.name || "Loading..."}</h3>
+                    <p className="user-contact">{consumerProfile?.mobile_number || "Loading..."}</p>
+                    <p className="user-address">{consumerProfile.address}</p>
                   </div>
                 </div>
                 <button 
-                  className="text-green-600 hover:text-green-800 text-sm font-medium flex items-center"
+                  className="edit-address-button"
                   onClick={handleModifyAddress}
                 >
-                  <FontAwesomeIcon icon={faEdit} className="mr-1" />
+                  <FontAwesomeIcon icon={faEdit} className="button-icon" />
                   {consumerProfile?.address ? "Update Address" : "Add Address"}
                 </button>
               </div>
             ) : (
-              <div className="text-center py-4">
-                <p className="text-gray-500 mb-4">No address found</p>
+              <div className="no-address">
+                <p className="no-address-message">No farm delivery address found</p>
                 <button 
-                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                  className="add-address-button"
                   onClick={() => setShowAddressPopup(true)}
                 >
                   Add Delivery Address
@@ -949,53 +629,45 @@ const OrderPage = () => {
           </div>
 
           {/* Payment Method Section */}
-          <div className="bargain-order-section bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-            <h2 className="text-xl font-semibold mb-4 flex items-center">
-              <FontAwesomeIcon icon={faCreditCard} className="text-blue-600 mr-2" />
-              Payment Method
-            </h2>
+          <div className="order-card payment-card">
+            <div className="card-header">
+              <FontAwesomeIcon icon={faCreditCard} className="card-icon payment-icon" />
+              <h2 className="card-title">Payment Method</h2>
+            </div>
             
-            <div className="space-y-3">
-              <label className="block">
-                <div 
-                  className={`p-4 border rounded-md cursor-pointer ${paymentMethod === 'cash' ? 'border-blue-500 bg-blue-50' : 'border-gray-300'}`}
-                >
-                  <div className="flex items-center">
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="cash"
-                      checked={paymentMethod === 'cash'}
-                      onChange={() => setPaymentMethod('cash')}
-                      className="mr-3"
-                    />
-                    <FontAwesomeIcon icon={faMoneyBillWave} className="text-green-600 mr-3" />
-                    <div>
-                      <h3 className="font-medium">Cash on Delivery</h3>
-                      <p className="text-sm text-gray-500">Pay when you receive your order</p>
-                    </div>
+            <div className="payment-options">
+              <label className="payment-option">
+                <div className={`payment-option-content ${paymentMethod === 'cash' ? 'selected' : ''}`}>
+                  <input
+                    type="radio"
+                    name="payment"
+                    value="cash"
+                    checked={paymentMethod === 'cash'}
+                    onChange={() => setPaymentMethod('cash')}
+                    className="payment-radio"
+                  />
+                  <FontAwesomeIcon icon={faMoneyBillWave} className="payment-method-icon cash-icon" />
+                  <div className="payment-method-details">
+                    <h3 className="payment-method-name">Cash on Delivery</h3>
+                    <p className="payment-method-description">Pay when you receive your fresh produce</p>
                   </div>
                 </div>
               </label>
               
-              <label className="block">
-                <div 
-                  className={`p-4 border rounded-md cursor-pointer ${paymentMethod === 'online' ? 'border-blue-500 bg-blue-50' : 'border-gray-300'}`}
-                >
-                  <div className="flex items-center">
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="online"
-                      checked={paymentMethod === 'online'}
-                      onChange={() => setPaymentMethod('online')}
-                      className="mr-3"
-                    />
-                    <FontAwesomeIcon icon={faCreditCard} className="text-blue-600 mr-3" />
-                    <div>
-                      <h3 className="font-medium">Online Payment</h3>
-                      <p className="text-sm text-gray-500">Pay securely with UPI, Card, or Net Banking</p>
-                    </div>
+              <label className="payment-option">
+                <div className={`payment-option-content ${paymentMethod === 'online' ? 'selected' : ''}`}>
+                  <input
+                    type="radio"
+                    name="payment"
+                    value="online"
+                    checked={paymentMethod === 'online'}
+                    onChange={() => setPaymentMethod('online')}
+                    className="payment-radio"
+                  />
+                  <FontAwesomeIcon icon={faCreditCard} className="payment-method-icon online-icon" />
+                  <div className="payment-method-details">
+                    <h3 className="payment-method-name">Online Payment</h3>
+                    <p className="payment-method-description">Pay securely with UPI, Card, or Net Banking</p>
                   </div>
                 </div>
               </label>
@@ -1003,22 +675,22 @@ const OrderPage = () => {
           </div>
 
           {/* Delivery Information */}
-          <div className="bargain-order-section bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-            <h2 className="text-xl font-semibold mb-4 flex items-center">
-              <FontAwesomeIcon icon={faTruck} className="text-orange-500 mr-2" />
-              Delivery Information
-            </h2>
+          <div className="order-card delivery-card">
+            <div className="card-header">
+              <FontAwesomeIcon icon={faTruck} className="card-icon delivery-icon" />
+              <h2 className="card-title">Delivery Information</h2>
+            </div>
             
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Total Weight:</span>
-                <span className="font-medium">{totalItems} kg</span>
+            <div className="delivery-details">
+              <div className="delivery-row">
+                <span className="delivery-label">Total Weight:</span>
+                <span className="delivery-value">{totalItems} kg</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Delivery Charges:</span>
-                <span className="font-medium">₹{deliveryCharge.toFixed(2)}</span>
+              <div className="delivery-row">
+                <span className="delivery-label">Delivery Charges:</span>
+                <span className="delivery-value">₹{deliveryCharge.toFixed(2)}</span>
               </div>
-              <div className="text-sm text-gray-500">
+              <div className="delivery-note">
                 {totalItems > 10 ? (
                   <span>₹100 for first 10kg + ₹5/kg for additional {totalItems - 10}kg</span>
                 ) : (
@@ -1030,126 +702,131 @@ const OrderPage = () => {
         </div>
 
         {/* Right Column - Order Summary */}
-        <div className="bargain-order-summary bg-white rounded-lg shadow-sm p-6 border border-gray-200 h-fit sticky top-4">
-          <h2 className="text-xl font-semibold mb-4">Your Order</h2>
-          
-          <div className="space-y-4 mb-6">
-            {cartItems.map((item) => (
-              <div key={`${item.product_name}-${item.price_per_kg}-${item.farmer_id}`} className="flex justify-between">
-                <div>
-                  <h3 className="font-medium">{item.product_name}</h3>
-                  <p className="text-sm text-gray-500">{item.quantity} kg × ₹{item.price_per_kg.toFixed(2)}</p>
+        <div className="order-summary-section">
+          <div className="order-summary-card">
+            <div className="summary-header">
+              <FontAwesomeIcon icon={faLeaf} className="summary-icon" />
+              <h2 className="summary-title">Your Farm Order</h2>
+            </div>
+            
+            <div className="order-items-list">
+              {cartItems.map((item) => (
+                <div key={`${item.product_name}-${item.price_per_kg}-${item.farmer_id}`} className="order-item">
+                  <div className="item-details">
+                    <h3 className="item-name">{item.product_name}</h3>
+                    <p className="item-quantity">{item.quantity} kg × ₹{item.price_per_kg.toFixed(2)}</p>
+                  </div>
+                  <span className="item-price">₹{item.total_price.toFixed(2)}</span>
                 </div>
-                <span className="font-medium">₹{item.total_price.toFixed(2)}</span>
+              ))}
+            </div>
+
+            <div className="order-totals">
+              <div className="total-row">
+                <span className="total-label">Subtotal:</span>
+                <span className="total-value">₹{grandTotal.toFixed(2)}</span>
               </div>
-            ))}
-          </div>
+              <div className="total-row">
+                <span className="total-label">Delivery:</span>
+                <span className="total-value">₹{deliveryCharge.toFixed(2)}</span>
+              </div>
+              <div className="grand-total-row">
+                <span className="grand-total-label">Total:</span>
+                <span className="grand-total-value">₹{(grandTotal + deliveryCharge).toFixed(2)}</span>
+              </div>
+            </div>
 
-          <div className="border-t border-gray-200 pt-4 space-y-3">
-            <div className="flex justify-between">
-              <span className="text-gray-600">Subtotal:</span>
-              <span className="font-medium">₹{grandTotal.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Delivery:</span>
-              <span className="font-medium">₹{deliveryCharge.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-lg font-bold pt-2">
-              <span>Total:</span>
-              <span>₹{(grandTotal + deliveryCharge).toFixed(2)}</span>
-            </div>
+            <button 
+              className="place-order-button"
+              onClick={handlePlaceOrder}
+              disabled={!consumerProfile?.address}
+            >
+              {paymentMethod === 'online' ? `Pay ₹${(grandTotal + deliveryCharge).toFixed(2)}` : 'Place Order (Cash on Delivery)'}
+            </button>
           </div>
-
-          <button 
-            className="w-full mt-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
-            onClick={handlePlaceOrder}
-            disabled={!consumerProfile?.address}
-          >
-            {paymentMethod === 'online' ? `Pay ₹${(grandTotal + deliveryCharge).toFixed(2)}` : 'Place Order (Cash on Delivery)'}
-          </button>
         </div>
       </div>
 
       {/* Address Popup */}
       {showAddressPopup && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
-            <h3 className="text-xl font-semibold mb-4">
-              {consumerProfile?.address ? "Update Address" : "Add New Address"}
+        <div className="address-popup-overlay">
+          <div className="address-popup">
+            <h3 className="popup-title">
+              {consumerProfile?.address ? "Update Farm Delivery Address" : "Add New Farm Delivery Address"}
             </h3>
             
             {error && (
-              <div className="mb-4 p-2 bg-red-100 text-red-700 rounded text-sm">
+              <div className="popup-error">
                 {error}
               </div>
             )}
 
-            <div className="space-y-4">
+            <div className="address-form">
               {/* Pincode Field */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Pincode *</label>
+              <div className="form-group">
+                <label className="form-label">Pincode *</label>
                 <input
                   type="text"
                   placeholder="Enter 6-digit pincode"
                   value={newAddress.pincode}
                   onChange={handlePincodeChange}
                   maxLength="6"
-                  className="w-full p-2 border border-gray-300 rounded-md"
+                  className="form-input"
                 />
               </div>
               
               {/* City Field */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">City *</label>
+              <div className="form-group">
+                <label className="form-label">City *</label>
                 <input 
                   type="text" 
                   placeholder="City" 
                   value={newAddress.city} 
                   readOnly 
-                  className="w-full p-2 border border-gray-300 rounded-md bg-gray-100"
+                  className="form-input readonly"
                 />
               </div>
               
               {/* State Field */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">State *</label>
+              <div className="form-group">
+                <label className="form-label">State *</label>
                 <input 
                   type="text" 
                   placeholder="State" 
                   value={newAddress.state} 
                   readOnly 
-                  className="w-full p-2 border border-gray-300 rounded-md bg-gray-100"
+                  className="form-input readonly"
                 />
               </div>
               
               {/* Street Address Field */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Street Address *</label>
+              <div className="form-group">
+                <label className="form-label">Street Address *</label>
                 <input
                   type="text"
-                  placeholder="House no, Building, Street"
+                  placeholder="Farm name, Building, Street"
                   value={newAddress.street}
                   onChange={(e) => setNewAddress(prev => ({ ...prev, street: e.target.value }))}
-                  className="w-full p-2 border border-gray-300 rounded-md"
+                  className="form-input"
                 />
               </div>
               
               {/* Landmark Field */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Landmark (Optional)</label>
+              <div className="form-group">
+                <label className="form-label">Landmark (Optional)</label>
                 <input
                   type="text"
-                  placeholder="Nearby landmark"
+                  placeholder="Nearby landmark (market, temple, etc.)"
                   value={newAddress.landmark}
                   onChange={(e) => setNewAddress(prev => ({ ...prev, landmark: e.target.value }))}
-                  className="w-full p-2 border border-gray-300 rounded-md"
+                  className="form-input"
                 />
               </div>
             </div>
             
-            <div className="flex justify-end space-x-3 mt-6">
+            <div className="popup-buttons">
               <button 
-                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+                className="cancel-button"
                 onClick={() => {
                   setShowAddressPopup(false);
                   setError(null);
@@ -1158,7 +835,7 @@ const OrderPage = () => {
                 Cancel
               </button>
               <button 
-                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                className="save-button"
                 onClick={handleAddAddress}
               >
                 {consumerProfile?.address ? "Update Address" : "Save Address"}

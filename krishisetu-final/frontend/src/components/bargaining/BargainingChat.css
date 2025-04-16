@@ -33,7 +33,7 @@
   flex: 0 0 30%;
   padding: 1.5rem;
   background: linear-gradient(135deg, var(--sky-blue), var(--light-green));
-  backdrop-filter: blur(8px);
+  /* backdrop-filter: blur(8px); */
   border-right: 1px solid rgba(255, 255, 255, 0.3);
   overflow-y: auto;
   border-radius: 20px;
