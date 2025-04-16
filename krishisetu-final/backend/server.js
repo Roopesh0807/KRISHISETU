@@ -556,6 +556,47 @@ app.post("/api/farmerprofile/:farmer_id/upload-file",
   }
 );
 
+// Public contact form submission endpoint
+app.post('/api/contact', async (req, res) => {
+  const { name, email, phone, message } = req.body;
+
+  // Basic validation
+  if (!name || !email || !message) {
+    return res.status(400).json({ 
+      success: false,
+      message: 'Name, email, and message are required' 
+    });
+  }
+
+  try {
+    const query = `
+      INSERT INTO contact_us (name, email, phone, message) 
+      VALUES (?, ?, ?, ?)
+    `;
+    const values = [name, email, phone, message];
+
+    const result = await queryDatabase(query, values);
+    
+    res.status(201).json({
+      success: true,
+      message: 'Contact form submitted successfully',
+      data: {
+        id: result.insertId,
+        name,
+        email,
+        phone,
+        message
+      }
+    });
+  } catch (error) {
+    console.error('Database error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Error saving contact form data',
+      error: error.message 
+    });
+  }
+});
 
 
 app.use((req, res, next) => {
@@ -7508,6 +7549,9 @@ router.put('/update-address', authMiddleware, async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
+
+
+
 
 
 app.get('/api/bargain/farmers/:farmerId/sessions', authenticate, farmerOnly, async (req, res) => {
