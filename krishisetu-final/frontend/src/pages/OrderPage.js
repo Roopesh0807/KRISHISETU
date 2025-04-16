@@ -199,19 +199,25 @@ function OrderPage() {
         const images = {};
         
         for (const item of yourOrders) {
+          // First check what keys exist in the item
+          console.log("Order item keys:", Object.keys(item));
+          
+          // Get the product name - try different possible keys
+          const productName = item.product_name || item.name || item.productName || 'default';
+          
           // If image already exists in order item, use that
           if (item.imageUrl) {
             images[item.product_id] = item.imageUrl;
             continue;
           }
-
+    
           // Otherwise fetch from Pexels API
           try {
             const response = await fetch(
-              `https://api.pexels.com/v1/search?query=${encodeURIComponent(item.product_name)}&per_page=1`,
+              `https://api.pexels.com/v1/search?query=${encodeURIComponent(productName)}&per_page=1`,
               {
                 headers: {
-                  Authorization: 'uONxxczjZM1uaDw2jsGQPV70vtBfQbuyHcKeJ0aaCwsK0xxbo5HDpamR' // Replace with your actual key
+                  Authorization: 'uONxxczjZM1uaDw2jsGQPV70vtBfQbuyHcKeJ0aaCwsK0xxbo5HDpamR'
                 }
               }
             );
@@ -221,11 +227,11 @@ function OrderPage() {
             const data = await response.json();
             images[item.product_id] = data.photos[0]?.src?.medium || '/images/default-produce.jpg';
           } catch (err) {
-            console.error(`Error fetching image for ${item.product_name}:`, err);
+            console.error(`Error fetching image for ${productName}:`, err);
             images[item.product_id] = '/images/default-produce.jpg';
           }
         }
-
+    
         setProductImages(images);
       } catch (error) {
         console.error("Error fetching product images:", error);
@@ -508,7 +514,7 @@ useEffect(() => {
                   />
                 </div>
                 <div className="order-item-details">
-                  <h3>{order.product_name}</h3>
+                <h3>{order.product_name || order.name || 'Product'}</h3>
                   <div className="product-meta">
                     <span className="product-type">
                       {order.category} • {order.buy_type === 'organic' ? 'Organic' : 'Standard'}
