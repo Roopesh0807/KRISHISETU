@@ -6986,20 +6986,95 @@ app.post('/api/razorpay/verify', authenticateToken, async (req, res) => {
     });
   }
 });
+// app.post("/api/place-order", verifyToken, async (req, res) => {
+//   try {
+//     const { consumer_id, name, mobile_number, email, produce_name, quantity, amount, 
+//             is_self_delivery, payment_method, address, pincode, recipient_name, recipient_phone } = req.body;
+
+//     // // Validate required fields
+//     // if (!address || !pincode) {
+//     //   return res.status(400).json({ 
+//     //     success: false,
+//     //     error: "Address and pincode are required" 
+//     //   });
+//     // }
+
+//     // Insert order - trigger will handle order_id generation
+//     const result = await queryDatabase(
+//       `INSERT INTO placeorder (
+//         consumer_id, name, mobile_number, email,
+//         produce_name, quantity, amount,
+//         is_self_delivery, payment_method,
+//         address, pincode, recipient_name, recipient_phone
+//       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+//       [
+//         consumer_id, name, mobile_number, email,
+//         produce_name, quantity, amount,
+//         is_self_delivery || false, 
+//         payment_method || 'cash-on-delivery',
+//         address, pincode, 
+//         recipient_name || null, 
+//         recipient_phone || null
+//       ]
+//     );
+
+//     // Get the complete order with generated order_id
+//     const [order] = await queryDatabase(
+//       `SELECT * FROM placeorder WHERE id = ?`,
+//       [result.insertId]
+//     );
+
+//     if (!order || !order.order_id) {
+//       console.error("Order creation failed - no order_id generated:", order);
+//       // Fallback: Generate order_id manually if trigger failed
+//       const fallbackOrderId = `ORD${Date.now().toString().slice(-6)}`;
+//       await queryDatabase(
+//         `UPDATE placeorder SET order_id = ? WHERE id = ?`,
+//         [fallbackOrderId, result.insertId]
+//       );
+//       order.order_id = fallbackOrderId;
+//     }
+
+//     res.json({
+//       success: true,
+//       order_id: order.order_id,
+//       message: "Order placed successfully",
+//       order_data: order // Return complete order data for debugging
+//     });
+
+//   } catch (error) {
+//     console.error("Order placement error:", error);
+//     res.status(500).json({
+//       success: false,
+//       error: "Failed to place order",
+//       details: error.message,
+//       sqlError: error.code,
+//       receivedData: req.body
+//     });
+//   }
+// });
+
 app.post("/api/place-order", verifyToken, async (req, res) => {
   try {
-    const { consumer_id, name, mobile_number, email, produce_name, quantity, amount, 
-            is_self_delivery, payment_method, address, pincode, recipient_name, recipient_phone } = req.body;
+    const {
+      consumer_id, name, mobile_number, email,
+      produce_name, product_name, // Accept both
+      quantity, amount, is_self_delivery,
+      payment_method, address, pincode,
+      recipient_name, recipient_phone
+    } = req.body;
 
-    // // Validate required fields
-    // if (!address || !pincode) {
-    //   return res.status(400).json({ 
-    //     success: false,
-    //     error: "Address and pincode are required" 
-    //   });
-    // }
+    // Pick product name from either field
+    const finalProductName = produce_name || product_name;
 
-    // Insert order - trigger will handle order_id generation
+    if (!finalProductName) {
+      return res.status(400).json({
+        success: false,
+        error: "Product name is required (produce_name or product_name)"
+      });
+    }
+
+    // Insert into placeorder table
     const result = await queryDatabase(
       `INSERT INTO placeorder (
         consumer_id, name, mobile_number, email,
@@ -7009,37 +7084,60 @@ app.post("/api/place-order", verifyToken, async (req, res) => {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         consumer_id, name, mobile_number, email,
-        produce_name, quantity, amount,
-        is_self_delivery || false, 
+        finalProductName, quantity, amount,
+        is_self_delivery || false,
         payment_method || 'cash-on-delivery',
-        address, pincode, 
-        recipient_name || null, 
+        address, pincode,
+        recipient_name || null,
         recipient_phone || null
       ]
     );
 
-    // Get the complete order with generated order_id
+    // Get the full order including generated order_id
     const [order] = await queryDatabase(
       `SELECT * FROM placeorder WHERE id = ?`,
       [result.insertId]
     );
 
-    if (!order || !order.order_id) {
-      console.error("Order creation failed - no order_id generated:", order);
-      // Fallback: Generate order_id manually if trigger failed
-      const fallbackOrderId = `ORD${Date.now().toString().slice(-6)}`;
+    // After fallback order_id generation or successful fetch
+if (!order || !order.order_id) {
+  console.error("Order creation failed - no order_id generated:", order);
+  const fallbackOrderId = `ORD${Date.now().toString().slice(-6)}`;
+  await queryDatabase(
+    `UPDATE placeorder SET order_id = ? WHERE id = ?`,
+    [fallbackOrderId, result.insertId]
+  );
+  order.order_id = fallbackOrderId;
+}
+
+// ✅ Farmer Notification Trigger Here
+if (req.body.items && Array.isArray(req.body.items)) {
+  const farmerNotified = new Set();
+
+  for (const item of req.body.items) {
+    const { farmer_id, product_name, quantity } = item;
+    
+    if (farmer_id && !farmerNotified.has(farmer_id)) {
+      farmerNotified.add(farmer_id);
+
       await queryDatabase(
-        `UPDATE placeorder SET order_id = ? WHERE id = ?`,
-        [fallbackOrderId, result.insertId]
+        `INSERT INTO farmer_notifications (farmer_id, order_id, message, is_read, created_at) VALUES (?, ?, ?, ?, NOW())`,
+        [
+          farmer_id,
+          order.order_id,
+          `New order placed for ${product_name} - ${quantity}kg. Please prepare for delivery.`,
+          false
+        ]
       );
-      order.order_id = fallbackOrderId;
     }
+  }
+}
 
     res.json({
       success: true,
       order_id: order.order_id,
       message: "Order placed successfully",
-      order_data: order // Return complete order data for debugging
+      order_data: order
     });
 
   } catch (error) {
@@ -7053,6 +7151,22 @@ app.post("/api/place-order", verifyToken, async (req, res) => {
     });
   }
 });
+
+app.get("/api/farmer-notifications/:farmerId", verifyToken, async (req, res) => {
+  const { farmerId } = req.params;
+
+  try {
+    const notifications = await queryDatabase(
+      `SELECT * FROM farmer_notifications WHERE farmer_id = ? ORDER BY created_at DESC`,
+      [farmerId]
+    );
+    res.json({ success: true, notifications });
+  } catch (err) {
+    res.status(500).json({ success: false, error: "Failed to fetch notifications" });
+  }
+});
+
+
 app.post('/api/razorpay-webhook', express.json(), (req, res) => {
   // Verify the payment signature
   
