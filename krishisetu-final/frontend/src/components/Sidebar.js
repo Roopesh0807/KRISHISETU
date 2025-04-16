@@ -53,13 +53,13 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             {isOpen && 'View Profile'}
           </button> */}
           
-          <button
+          {/* <button
             onClick={() => navigateWithFarmerId('/order-review')}
             className={isActive('/order-review') ? 'active' : ''}
           >
             <i className="fas fa-clipboard-list"></i>
             {isOpen && 'Order Review'}
-          </button>
+          </button> */}
 
           <button
             onClick={() => navigateWithFarmerId('/farmers/my-reviews')}
@@ -96,8 +96,8 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
           </button>
 
           <button
-            onClick={() => navigate('/Contact')}
-            className={isActive('/Contact') ? 'active' : ''}
+            onClick={() => navigate('/helpfarmers')}
+            className={isActive('/helpfarmers') ? 'active' : ''}
             title="Help and Support"
           >
             <i className="fas fa-question-circle"></i>

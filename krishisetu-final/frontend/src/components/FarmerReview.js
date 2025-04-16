@@ -11,32 +11,31 @@ const FarmerReview = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // Debug farmer authentication status
-    console.log("Current farmer auth status:", {
-        isAuthenticated: !!farmer,
-        farmerId: farmer?.farmer_id,
-        hasToken: !!farmer?.token
-    });
-
     useEffect(() => {
         const fetchReviews = async () => {
             try {
-                // 1. Validate farmer authentication
-                if (!farmer || !farmer.farmer_id || !farmer.token) {
+                // Enhanced farmer authentication check
+                if (!farmer || (!farmer.farmer_id && !farmer.id) || !farmer.token) {
                     console.warn("Farmer not properly authenticated", farmer);
-                    setError("Please log in as a farmer");
+                    //setError("Please log in as a farmer");
                     setIsLoading(false);
+                    
+                    // Check if we have partial farmer data (might need refresh)
+                    if (farmer && (farmer.farmer_id || farmer.id)) {
+                        setTimeout(() => window.location.reload(), 1000);
+                    }
                     return;
                 }
 
                 setIsLoading(true);
                 setError(null);
 
-                console.log(`Fetching reviews for farmer ID: ${farmer.farmer_id}`);
+                // Get the correct farmer ID (support both farmer_id and id)
+                const farmerId = farmer.farmer_id || farmer.id;
+                console.log(`Fetching reviews for farmer ID: ${farmerId}`);
                 
-                // 2. Make authenticated request
                 const response = await axios.get(
-                    `http://localhost:5000/reviews/${farmer.farmer_id}`,
+                    `http://localhost:5000/reviews/${farmerId}`,
                     {
                         headers: {
                             "Content-Type": "application/json",
@@ -45,12 +44,10 @@ const FarmerReview = () => {
                     }
                 );
 
-                console.log("Received reviews:", response.data);
                 setReviews(response.data || []);
             } catch (error) {
                 console.error("Failed to fetch reviews:", error);
                 
-                // Handle specific error cases
                 if (error.response?.status === 401) {
                     setError("Session expired. Please log in again.");
                     logout();
@@ -63,7 +60,9 @@ const FarmerReview = () => {
             }
         };
 
-        fetchReviews();
+        // Add slight delay to ensure AuthContext is fully initialized
+        const timer = setTimeout(fetchReviews, 100);
+        return () => clearTimeout(timer);
     }, [farmer, navigate, logout]);
 
     // Helper function to create image URLs

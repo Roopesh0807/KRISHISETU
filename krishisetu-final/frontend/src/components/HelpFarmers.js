@@ -5,7 +5,7 @@ import { MdEmail } from "react-icons/md";
 import axios from "axios";
 import "./styles.css";
 
-const ContactUs = () => {
+const HelpFarmers = () => {
   const [state, handleSubmit] = useForm("xbldnpvk");
   const [formData, setFormData] = useState({
     name: "",
@@ -14,7 +14,6 @@ const ContactUs = () => {
     message: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitSuccess, setSubmitSuccess] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -23,22 +22,22 @@ const ContactUs = () => {
   const onSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setSubmitSuccess(false);
 
-    try {
-      // Submit to Formspree
-      await handleSubmit(e);
-      
-      // Save to database
-      const response = await axios.post("http://localhost:5000/api/contact", formData);
-      
-      console.log("Message saved to database:", response.data);
-      setSubmitSuccess(true);
-      setFormData({ name: "", email: "", phone: "", message: "" });
-    } catch (error) {
-      console.error("Error:", error.response || error);
-      alert(error.response?.data?.message || "Failed to send message. Please try again.");
-    } finally {
+    await handleSubmit(e);
+
+    if (state.succeeded) {
+      try {
+        const response = await axios.post("http://localhost:5000/api/contact", formData);
+        console.log("Data saved to database:", response.data);
+        setFormData({ name: "", email: "", phone: "", message: "" });
+        alert("Message sent and saved successfully!");
+      } catch (error) {
+        console.error("Error saving data to database:", error.response || error.message);
+        alert("Message sent, but failed to save to database. Please try again.");
+      } finally {
+        setIsSubmitting(false);
+      }
+    } else {
       setIsSubmitting(false);
     }
   };
@@ -95,14 +94,8 @@ const ContactUs = () => {
         </div>
 
         <form className="ks-contact-form" onSubmit={onSubmit}>
-          {submitSuccess && (
-            <div className="ks-alert-success">
-              Thank you! Your message has been sent successfully.
-            </div>
-          )}
-
           <div className="ks-form-group">
-            <label className="ks-form-label">Your Name*</label>
+            <label className="ks-form-label">Your Name</label>
             <input
               type="text"
               name="name"
@@ -115,7 +108,7 @@ const ContactUs = () => {
           </div>
 
           <div className="ks-form-group">
-            <label className="ks-form-label">Email Address*</label>
+            <label className="ks-form-label">Email Address</label>
             <input
               type="email"
               name="email"
@@ -125,27 +118,24 @@ const ContactUs = () => {
               className="ks-form-input"
               placeholder="Enter your email"
             />
-            <ValidationError 
-              prefix="Email" 
-              field="email" 
-              errors={state.errors} 
-            />
+            <ValidationError prefix="Email" field="email" errors={state.errors} />
           </div>
 
           <div className="ks-form-group">
             <label className="ks-form-label">Phone Number</label>
             <input
-              type="tel"
+              type="text"
               name="phone"
               value={formData.phone}
               onChange={handleChange}
+              required
               className="ks-form-input"
               placeholder="Enter your phone number"
             />
           </div>
 
           <div className="ks-form-group">
-            <label className="ks-form-label">Your Message*</label>
+            <label className="ks-form-label">Your Message</label>
             <textarea
               name="message"
               value={formData.message}
@@ -155,17 +145,13 @@ const ContactUs = () => {
               placeholder="Enter your message"
               rows="5"
             />
-            <ValidationError 
-              prefix="Message" 
-              field="message" 
-              errors={state.errors} 
-            />
+            <ValidationError prefix="Message" field="message" errors={state.errors} />
           </div>
 
           <button
             type="submit"
             className="ks-submit-btn"
-            disabled={isSubmitting}
+            disabled={state.submitting || isSubmitting}
           >
             {isSubmitting ? (
               <>
@@ -181,4 +167,4 @@ const ContactUs = () => {
   );
 };
 
-export default ContactUs;
+export default HelpFarmers;
