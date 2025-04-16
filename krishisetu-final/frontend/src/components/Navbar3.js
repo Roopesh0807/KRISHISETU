@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation,useNavigate } from 'react-router-dom';
 import logo from "../assets/logo.jpg";
 import "./Navbar3.css";
 import { AuthContext } from "../context/AuthContext";
@@ -8,7 +8,7 @@ import { useCart } from "../context/CartContext";
 const Navbar3 = () => {
   const { consumer } = useContext(AuthContext);
   console.log("Navbar3 Consumer Data:", consumer); 
-
+const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(null);
   const location = useLocation();
   const { cartCount } = useCart();
@@ -40,7 +40,7 @@ useEffect(() => {
     }, []);
   return (
     <nav className="navbar3">
-      <div className="logo">
+      <div className="logo" onClick={() => navigate('/consumer-dashboard')}>
         <img src={logo} alt="Logo" />
         <span className="navbar-name">KRISHISETU</span>
       </div>
@@ -110,7 +110,7 @@ useEffect(() => {
         </li>
         <li>
           <Link
-            to="/"
+            to="/LoginPage"
             className={`navbar-link ${isHovered === 3 ? 'hover' : ''} ${isActive("/") ? 'active' : ''}`}
             onMouseEnter={() => handleMouseEnter(3)}
             onMouseLeave={handleMouseLeave}>

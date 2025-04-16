@@ -257,8 +257,6 @@
 
 // export default Dashboard;
 
-
-
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { Line } from "react-chartjs-2";
@@ -267,6 +265,7 @@ import "./../styles/FarmerDashboard.css";
 import LanguageSwitcher from "./LanguageSwitcher";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import YouTube from 'react-youtube';
 
 import {
   Chart as ChartJS,
@@ -291,6 +290,18 @@ const Dashboard = () => {
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [ordersError, setOrdersError] = useState(null);
   const navigate = useNavigate();
+
+  // YouTube video options
+  const videoOptions = {
+    height: '390',
+    width: '100%',
+    playerVars: {
+      autoplay: 0,
+    },
+  };
+
+  const youtubeUrl = "https://youtu.be/THElR3lX_0E?si=RQ_6xxy1Tzs4IGku";
+  const videoId = youtubeUrl.split('/').pop().split('?')[0];
 
   // Fetch Farmer Details
   const fetchFarmerDetails = useCallback(async () => {
@@ -485,29 +496,29 @@ const Dashboard = () => {
                 <table className="krishi-orders-table">
                   <thead>
                     <tr>
-                      <th>Order ID</th>
-                      <th>Date</th>
-                      <th>Product</th>
-                      <th>Quantity</th>
-                      <th>Amount</th>
-                      <th>Status</th>
-                      <th>Payment</th>
+                      <th className="krishi-table-header">Order ID</th>
+                      <th className="krishi-table-header">Date</th>
+                      <th className="krishi-table-header">Product</th>
+                      <th className="krishi-table-header">Quantity</th>
+                      <th className="krishi-table-header">Amount</th>
+                      <th className="krishi-table-header">Status</th>
+                      <th className="krishi-table-header">Payment</th>
                     </tr>
                   </thead>
                   <tbody>
                     {orders.map((order) => (
                       <tr key={order.orderid} className="krishi-order-item">
-                        <td>{order.orderid}</td>
-                        <td>{new Date(order.order_date).toLocaleDateString()}</td>
-                        <td>{order.produce_name}</td>
-                        <td>{order.quantity} kg</td>
-                        <td>₹{order.amount}</td>
-                        <td>
+                        <td className="krishi-table-cell">{order.orderid}</td>
+                        <td className="krishi-table-cell">{new Date(order.order_date).toLocaleDateString()}</td>
+                        <td className="krishi-table-cell">{order.produce_name}</td>
+                        <td className="krishi-table-cell">{order.quantity} kg</td>
+                        <td className="krishi-table-cell">₹{order.amount}</td>
+                        <td className="krishi-table-cell">
                           <span className={`krishi-status-badge krishi-${order.status.toLowerCase()}`}>
                             {order.status}
                           </span>
                         </td>
-                        <td>
+                        <td className="krishi-table-cell">
                           <span className={`krishi-payment-badge krishi-${order.payment_status.toLowerCase()}`}>
                             {order.payment_status}
                           </span>
@@ -523,6 +534,36 @@ const Dashboard = () => {
                 <p>No orders found</p>
               </div>
             )}
+          </div>
+
+          {/* Tutorial Video Section */}
+          <div className="krishi-tutorial-section">
+            <h3>Farmer Tutorial Guide</h3>
+            <p>Learn how to use our platform effectively</p>
+            
+            <div className="krishi-video-container">
+          <div className="krishi-youtube-video">
+            <iframe
+              width="100%"
+              height="390"
+              src={`https://www.youtube.com/embed/${videoId}`}
+              title="YouTube video player"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            ></iframe>
+          </div>
+              
+              <div className="krishi-video-tips">
+                <h4>Quick Tips:</h4>
+                <ul>
+                  <li>Upload your produce with clear images for better visibility</li>
+                  <li>Update your inventory regularly to reflect accurate stock</li>
+                  <li>Check orders daily and update status promptly</li>
+                  <li>Use the weather forecast to plan your harvest</li>
+                </ul>
+              </div>
+            </div>
           </div>
         </div>
       </div>

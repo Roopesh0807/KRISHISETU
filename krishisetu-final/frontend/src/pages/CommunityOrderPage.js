@@ -509,7 +509,7 @@ function CommunityOrderPage() {
           'Authorization': `Bearer ${consumer.token}`
         },
         body: JSON.stringify({ 
-          amount: finalAmount * 100, // Razorpay expects amount in paise
+          amount: finalAmount , // Razorpay expects amount in paise
           order_id: orderResult.order_id,
           notes: {
             internal_order_id: orderResult.order_id,

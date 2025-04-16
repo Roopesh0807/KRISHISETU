@@ -96,8 +96,8 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
           </button>
 
           <button
-            onClick={() => navigate('/Contact')}
-            className={isActive('/Contact') ? 'active' : ''}
+            onClick={() => navigate('/helpfarmers')}
+            className={isActive('/helpfarmers') ? 'active' : ''}
             title="Help and Support"
           >
             <i className="fas fa-question-circle"></i>
