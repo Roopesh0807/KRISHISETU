@@ -1,31 +1,28 @@
-/* ConsumerChatWindow.css */
-
-/* Base Styles */
-.bargain-chat-container {
+/* Consumer Chat Window (CCW) Styles */
+.ccw-container {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  max-width: 800px;
+  margin: 0 auto;
   height: 100vh;
   display: flex;
   flex-direction: column;
   background-color: #f5f7fa;
+  position: relative;
 }
 
-/* Loading Animation */
-.loading-container {
+/* Loading State */
+.ccw-loading-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100%;
+  height: 100vh;
   color: #4a6fa5;
-}
-
-.loading-container p {
-  margin-top: 1rem;
   font-size: 1.2rem;
 }
 
-/* Popup Animation */
-.bargain-popup-overlay {
+/* Bargain Popup Styles */
+.ccw-popup-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -36,533 +33,633 @@
   justify-content: center;
   align-items: center;
   z-index: 1000;
-  animation: fadeIn 0.3s ease-out;
 }
 
-.bargain-popup-container {
-  background: white;
+.ccw-popup-container {
+  background-color: white;
   border-radius: 12px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
   width: 90%;
   max-width: 500px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
   overflow: hidden;
-  transform: translateY(0);
-  transition: transform 0.3s ease;
+  animation: ccw-fadeIn 0.3s ease-out;
 }
 
-.bargain-popup-container:hover {
-  transform: translateY(-5px);
+.ccw-popup-content {
+  padding: 25px;
 }
 
-.popup-header {
-  background: linear-gradient(135deg, #4a6fa5, #3a5a80);
-  color: white;
-  padding: 1rem;
+.ccw-popup-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-}
-
-.popup-close-btn {
-  background: none;
-  border: none;
-  color: white;
-  font-size: 1.2rem;
-  cursor: pointer;
-  transition: transform 0.2s;
-}
-
-.popup-close-btn:hover {
-  transform: scale(1.2);
-}
-
-.popup-section {
-  padding: 1rem;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
   border-bottom: 1px solid #eee;
 }
 
-.popup-select, .popup-input {
-  width: 100%;
-  padding: 0.8rem;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  margin-top: 0.5rem;
-  transition: border 0.3s;
-}
-
-.popup-select:focus, .popup-input:focus {
-  border-color: #4a6fa5;
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(74, 111, 165, 0.2);
-}
-
-.price-summary {
-  padding: 1rem;
-  background: #f8f9fa;
-  border-radius: 8px;
-  margin: 1rem;
-}
-
-.price-row {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 0.5rem;
-}
-
-.price-row.total {
-  font-weight: bold;
+.ccw-popup-header h3 {
+  margin: 0;
   color: #2c3e50;
-  font-size: 1.1rem;
-}
-
-.popup-actions {
+  font-size: 1.3rem;
   display: flex;
-  justify-content: flex-end;
-  padding: 1rem;
-  gap: 1rem;
+  align-items: center;
+  gap: 10px;
 }
 
-.popup-cancel-btn, .bargain-btn {
-  padding: 0.8rem 1.5rem;
-  border-radius: 8px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.popup-cancel-btn {
-  background: white;
-  border: 1px solid #ddd;
-  color: #666;
-}
-
-.popup-cancel-btn:hover {
-  background: #f5f5f5;
-}
-
-.bargain-btn {
-  background: linear-gradient(135deg, #4a6fa5, #3a5a80);
-  color: white;
+.ccw-popup-close-btn {
+  background: none;
   border: none;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.bargain-btn:hover {
-  background: linear-gradient(135deg, #3a5a80, #2c3e50);
-  transform: translateY(-2px);
-}
-
-.bargain-btn.loading {
-  opacity: 0.8;
-}
-
-/* Chat Interface */
-.chat-interface {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  background: white;
-}
-
-.unique-close-btn {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid #ddd;
-  border-radius: 20px;
-  padding: 0.5rem 1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  font-size: 1.2rem;
+  color: #7f8c8d;
   cursor: pointer;
-  z-index: 10;
-  transition: all 0.3s;
+  transition: color 0.2s;
 }
 
-.unique-close-btn:hover {
-  background: #f5f5f5;
-  transform: scale(1.05);
+.ccw-popup-close-btn:hover {
+  color: #e74c3c;
 }
 
-.chat-header {
-  background: linear-gradient(135deg, #4a6fa5, #3a5a80);
-  color: white;
-  padding: 1rem;
+.ccw-popup-section {
+  margin-bottom: 20px;
+}
+
+.ccw-popup-label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #34495e;
+}
+
+.ccw-popup-select, 
+.ccw-popup-input {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.3s;
+}
+
+.ccw-popup-select:focus, 
+.ccw-popup-input:focus {
+  outline: none;
+  border-color: #4a6fa5;
+}
+
+.ccw-quantity-container {
   position: relative;
 }
 
-.header-top {
+.ccw-quantity-range {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 5px;
+  font-size: 0.85rem;
+  color: #7f8c8d;
+}
+
+.ccw-price-summary {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 15px;
+  margin: 20px 0;
+}
+
+.ccw-price-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.ccw-price-row.total {
+  font-weight: bold;
+  color: #2c3e50;
+  font-size: 1.1rem;
+  padding-top: 10px;
+  border-top: 1px solid #eee;
+}
+
+.ccw-popup-error {
+  color: #e74c3c;
+  background-color: #fdecea;
+  padding: 10px 15px;
+  border-radius: 8px;
+  margin: 15px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ccw-popup-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.ccw-popup-cancel-btn {
+  padding: 12px 20px;
+  background-color: #f1f2f6;
+  color: #34495e;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.ccw-popup-cancel-btn:hover {
+  background-color: #dfe4ea;
+}
+
+.ccw-bargain-btn {
+  padding: 12px 25px;
+  background-color: #4a6fa5;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background-color 0.2s;
+}
+
+.ccw-bargain-btn:hover {
+  background-color: #3a5a80;
+}
+
+.ccw-bargain-btn.loading {
+  opacity: 0.8;
+  cursor: not-allowed;
+}
+
+/* Chat Interface Styles */
+.ccw-chat-interface {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: white;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
+}
+
+.ccw-exit-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 8px 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: #7f8c8d;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s;
+}
+
+.ccw-exit-btn:hover {
+  background-color: #f1f2f6;
+  color: #e74c3c;
+}
+
+.ccw-chat-header {
+  background-color: #4a6fa5;
+  color: white;
+  padding: 20px;
+  border-radius: 0 0 15px 15px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+}
+
+.ccw-header-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 10px;
 }
 
-.connection-status {
+.ccw-header-top h2 {
+  margin: 0;
+  font-size: 1.4rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ccw-connection-status {
   font-size: 0.8rem;
-  padding: 0.3rem 0.6rem;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.2);
+  padding: 4px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
 }
 
-.connection-status.connected {
-  background: rgba(46, 204, 113, 0.2);
-  color: #2ecc71;
+.ccw-connection-status.connected {
+  background-color: #2ecc71;
 }
 
-.connection-status.connecting {
-  background: rgba(241, 196, 15, 0.2);
-  color: #f1c40f;
+.ccw-connection-status.connecting {
+  background-color: #f39c12;
 }
 
-.connection-status.disconnected, .connection-status.error {
-  background: rgba(231, 76, 60, 0.2);
-  color: #e74c3c;
+.ccw-connection-status.disconnected,
+.ccw-connection-status.error {
+  background-color: #e74c3c;
 }
 
-.product-info {
-  margin-top: 1rem;
+.ccw-product-info {
+  background-color: rgba(255, 255, 255, 0.15);
+  padding: 12px 15px;
+  border-radius: 8px;
+  margin-top: 15px;
+}
+
+.ccw-product-info p {
+  margin: 5px 0;
+  font-size: 0.95rem;
+}
+
+.ccw-price-display {
+  display: flex;
+  gap: 15px;
+  margin-top: 10px;
   font-size: 0.9rem;
 }
 
-.price-display {
-  display: flex;
-  gap: 1rem;
-  margin-top: 0.5rem;
-  flex-wrap: wrap;
+.ccw-price-display span {
+  background-color: rgba(255, 255, 255, 0.2);
+  padding: 5px 10px;
+  border-radius: 5px;
 }
 
-.current-price, .base-price, .total-price {
-  background: rgba(255, 255, 255, 0.1);
-  padding: 0.3rem 0.6rem;
-  border-radius: 8px;
-}
-
-.status-accepted {
+.ccw-status-accepted {
   color: #2ecc71;
-  margin-top: 0.5rem;
-}
-
-.status-rejected {
-  color: #e74c3c;
-  margin-top: 0.5rem;
-}
-
-/* Chat Messages */
-.chat-messages {
-  flex: 1;
-  overflow-y: auto;
-  padding: 1rem;
-  background: #f5f7fa;
+  margin: 5px 0 0;
   display: flex;
-  flex-direction: column;
-  gap: 0.8rem;
+  align-items: center;
+  gap: 5px;
 }
 
-.no-messages {
+.ccw-status-rejected {
+  color: #e74c3c;
+  margin: 5px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Messages Area */
+.ccw-messages-container {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  background-color: #f5f7fa;
+  scroll-behavior: smooth;
+}
+
+.ccw-no-messages {
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100%;
   color: #7f8c8d;
+  font-style: italic;
 }
 
-.message {
+.ccw-message {
+  margin-bottom: 15px;
   max-width: 80%;
-  padding: 0.8rem 1rem;
-  border-radius: 12px;
-  position: relative;
-  animation: fadeInUp 0.3s ease-out;
+  animation: ccw-fadeIn 0.3s ease-out;
 }
 
-.message.consumer {
-  align-self: flex-end;
-  background: #4a6fa5;
-  color: white;
-  border-bottom-right-radius: 0;
+.ccw-message.consumer {
+  margin-left: auto;
 }
 
-.message.farmer {
-  align-self: flex-start;
-  background: white;
-  color: #333;
-  border: 1px solid #ddd;
-  border-bottom-left-radius: 0;
+.ccw-message.farmer {
+  margin-right: auto;
 }
 
-.message.system {
-  align-self: center;
-  background: #f1f3f6;
-  color: #7f8c8d;
-  font-size: 0.9rem;
+.ccw-message.system {
+  margin: 15px auto;
   text-align: center;
   max-width: 90%;
 }
 
-.system-label {
+.ccw-message-content {
+  padding: 12px 15px;
+  border-radius: 18px;
+  position: relative;
+  word-wrap: break-word;
+}
+
+.ccw-message.consumer .ccw-message-content {
+  background-color: #4a6fa5;
+  color: white;
+  border-bottom-right-radius: 5px;
+}
+
+.ccw-message.farmer .ccw-message-content {
+  background-color: white;
+  color: #2c3e50;
+  border-bottom-left-radius: 5px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.ccw-message.system .ccw-message-content {
+  background-color: #f1f2f6;
+  color: #7f8c8d;
+  font-size: 0.9rem;
+  border-radius: 8px;
+}
+
+.ccw-system-label {
   font-weight: bold;
   color: #4a6fa5;
 }
 
-.message-meta {
+.ccw-message-meta {
   display: flex;
   justify-content: space-between;
-  font-size: 0.7rem;
-  margin-top: 0.3rem;
-  opacity: 0.8;
+  font-size: 0.75rem;
+  margin-top: 5px;
+  padding: 0 10px;
+  color: #7f8c8d;
 }
 
-.message.consumer .message-meta {
-  color: rgba(255, 255, 255, 0.7);
-}
-
-/* Typing Indicator */
-.typing-indicator {
+.ccw-typing-indicator {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.8rem;
-  background: white;
-  border-radius: 12px;
-  align-self: flex-start;
-  margin-top: 0.5rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  animation: fadeIn 0.3s ease-out;
+  gap: 10px;
+  margin: 10px 0 20px;
+  color: #7f8c8d;
+  font-size: 0.9rem;
 }
 
-.typing-dots {
+.ccw-typing-dots {
   display: flex;
-  gap: 0.3rem;
+  gap: 5px;
 }
 
-.typing-dots div {
+.ccw-typing-dots div {
   width: 8px;
   height: 8px;
-  background: #7f8c8d;
+  background-color: #bdc3c7;
   border-radius: 50%;
-  animation: bounce 1.4s infinite ease-in-out;
+  animation: ccw-bounce 1.4s infinite ease-in-out;
 }
 
-.typing-dots div:nth-child(1) {
+.ccw-typing-dots div:nth-child(1) {
   animation-delay: -0.32s;
 }
 
-.typing-dots div:nth-child(2) {
+.ccw-typing-dots div:nth-child(2) {
   animation-delay: -0.16s;
 }
 
 /* Chat Controls */
-.chat-controls {
-  padding: 1rem;
-  background: white;
+.ccw-controls-container {
+  padding: 15px 20px;
+  background-color: white;
   border-top: 1px solid #eee;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 -3px 10px rgba(0, 0, 0, 0.02);
 }
 
-.farmer-counter-options {
-  background: #f8f9fa;
-  padding: 1rem;
-  border-radius: 8px;
-  margin-bottom: 1rem;
-  animation: slideInUp 0.3s ease-out;
+.ccw-result-actions {
+  text-align: center;
+  padding: 15px 0;
 }
 
-.farmer-counter-options h4 {
-  margin: 0 0 1rem 0;
-  color: #2c3e50;
-}
-
-.response-buttons {
+.ccw-success-message {
+  color: #2ecc71;
+  margin-bottom: 20px;
   display: flex;
-  gap: 0.8rem;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.ccw-reject-message {
+  color: #e74c3c;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.ccw-action-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
-.response-buttons button {
-  flex: 1;
-  min-width: 120px;
-  padding: 0.8rem;
+.ccw-action-buttons button {
+  padding: 10px 15px;
+  border: none;
   border-radius: 8px;
-  font-weight: bold;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
+  gap: 8px;
+  transition: all 0.2s;
 }
 
-.accept-btn {
-  background: linear-gradient(135deg, #2ecc71, #27ae60);
+.ccw-dashboard-btn {
+  background-color: #4a6fa5;
   color: white;
-  border: none;
 }
 
-.accept-btn:hover {
-  background: linear-gradient(135deg, #27ae60, #219653);
-  transform: translateY(-2px);
-}
-
-.reject-btn {
-  background: linear-gradient(135deg, #e74c3c, #c0392b);
+.ccw-orders-btn {
+  background-color: #3498db;
   color: white;
-  border: none;
 }
 
-.reject-btn:hover {
-  background: linear-gradient(135deg, #c0392b, #a93226);
-  transform: translateY(-2px);
-}
-
-.counter-btn {
-  background: linear-gradient(135deg, #3498db, #2980b9);
+.ccw-cart-btn {
+  background-color: #2ecc71;
   color: white;
-  border: none;
 }
 
-.counter-btn:hover {
-  background: linear-gradient(135deg, #2980b9, #1a6ea8);
-  transform: translateY(-2px);
+.ccw-bargain-again-btn {
+  background-color: #f39c12;
+  color: white;
 }
 
-/* Price Suggestions */
-.price-suggestions {
-  animation: fadeIn 0.3s ease-out;
+.ccw-counter-options {
+  background-color: #f8f9fa;
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 15px;
 }
 
-.price-suggestions h4 {
-  margin: 0 0 1rem 0;
+.ccw-counter-options h4 {
+  margin: 0 0 10px;
   color: #2c3e50;
+  font-size: 1rem;
 }
 
-.suggestion-buttons {
+.ccw-response-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.ccw-accept-btn {
+  background-color: #2ecc71;
+  color: white;
+  flex: 1;
+}
+
+.ccw-reject-btn {
+  background-color: #e74c3c;
+  color: white;
+  flex: 1;
+}
+
+.ccw-counter-btn {
+  background-color: #3498db;
+  color: white;
+  flex: 1;
+}
+
+.ccw-price-suggestions {
+  background-color: white;
+  border-radius: 10px;
+  padding: 15px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+}
+
+.ccw-price-suggestions h4 {
+  margin: 0 0 15px;
+  color: #2c3e50;
+  font-size: 1rem;
+}
+
+.ccw-suggestion-buttons {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 0.8rem;
+  gap: 10px;
 }
 
-.suggestion-btn {
-  padding: 0.8rem;
-  border-radius: 8px;
-  background: white;
+.ccw-suggestion-btn {
+  background-color: white;
   border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 12px;
   cursor: pointer;
-  transition: all 0.3s;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  transition: all 0.2s;
+  text-align: center;
 }
 
-.suggestion-btn:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+.ccw-suggestion-btn:hover {
+  border-color: #4a6fa5;
+  background-color: #f8f9fa;
 }
 
-.suggestion-btn.decrease {
-  border-color: #e74c3c;
-  color: #e74c3c;
+.ccw-suggestion-btn.decrease {
+  border-left: 4px solid #e74c3c;
 }
 
-.suggestion-btn.increase {
-  border-color: #2ecc71;
-  color: #2ecc71;
-}
-
-.price-change {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
+.ccw-price-change {
   font-weight: bold;
-  font-size: 1.1rem;
-}
-
-.price-label {
-  font-size: 0.8rem;
-  margin-top: 0.3rem;
-}
-
-/* Waiting Indicator */
-.waiting-indicator {
+  color: #2c3e50;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  padding: 1rem;
+  gap: 5px;
+  margin-bottom: 5px;
+}
+
+.ccw-price-label {
+  font-size: 0.8rem;
   color: #7f8c8d;
-  animation: pulse 2s infinite;
+}
+
+.ccw-waiting-indicator {
+  text-align: center;
+  padding: 15px;
+  color: #7f8c8d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
 }
 
 /* Animations */
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+@keyframes ccw-fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+@keyframes ccw-bounce {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1); }
 }
 
-@keyframes slideInUp {
-  from {
-    transform: translateY(20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-@keyframes bounce {
-  0%, 80%, 100% {
-    transform: scale(0);
-  }
-  40% {
-    transform: scale(1);
-  }
-}
-
-@keyframes pulse {
-  0% { opacity: 0.6; }
-  50% { opacity: 1; }
-  100% { opacity: 0.6; }
-}
-
-/* Responsive Design */
+/* Responsive Adjustments */
 @media (max-width: 768px) {
-  .bargain-popup-container {
+  .ccw-popup-container {
     width: 95%;
   }
   
-  .message {
-    max-width: 90%;
-  }
-  
-  .response-buttons, .suggestion-buttons {
-    grid-template-columns: 1fr;
-  }
-  
-  .price-display {
+  .ccw-response-buttons {
     flex-direction: column;
-    gap: 0.3rem;
+  }
+  
+  .ccw-suggestion-buttons {
+    grid-template-columns: 1fr 1fr;
   }
 }
 
 @media (max-width: 480px) {
-  .popup-actions {
+  .ccw-price-display {
     flex-direction: column;
+    gap: 5px;
   }
   
-  .popup-cancel-btn, .bargain-btn {
-    width: 100%;
+  .ccw-message {
+    max-width: 90%;
   }
+}
+/* Price Suggestions Header */
+.ccw-suggestion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.ccw-suggestion-header h4 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ccw-suggestion-header h4::after {
+  content: '*';
+  color: #e74c3c;
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.ccw-close-suggestions {
+  background: none;
+  border: none;
+  color: #7f8c8d;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: color 0.2s;
+  padding: 5px;
+}
+
+.ccw-close-suggestions:hover {
+  color: #e74c3c;
 }

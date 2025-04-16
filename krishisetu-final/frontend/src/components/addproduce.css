@@ -283,3 +283,50 @@
     font-size: 14px;
   }
 }
+.addproduce-instructions {
+  max-width: 800px;
+  margin: 70px auto;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.addproduce-instructions h2 {
+  color: #2c3e50;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.instructions-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 5px;
+  margin-bottom: 20px;
+}
+
+.instructions-content ol {
+  padding-left: 20px;
+}
+
+.instructions-content li {
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+
+.close-instructions-button {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.close-instructions-button:hover {
+  background-color: #218838;
+}

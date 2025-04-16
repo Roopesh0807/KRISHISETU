@@ -1779,7 +1779,7 @@ const ConsumerChatList = () => {
     <FontAwesomeIcon icon={faListAlt} />
     <span>View Orders</span>
   </Link>
-  <Link to="/view-cart" className="action-button">
+  <Link to="/bargain-cart" className="action-button">
     <FontAwesomeIcon icon={faShoppingCart} />
     <span>View Cart</span>
   </Link>

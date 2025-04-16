@@ -421,11 +421,13 @@ const AddProduce = () => {
     price_per_kg: '',
     produce_type: 'Standard',
     market_type: '',
-    minimum_quantity: '' // New field for minimum quantity
+    minimum_quantity: '',
+    minimum_price: '' 
   });
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showInstructions, setShowInstructions] = useState(true); // New state for instructions
   
   // Get farmer from AuthContext with proper initialization
   const authContext = useContext(AuthContext);
@@ -454,7 +456,6 @@ const AddProduce = () => {
       });
     }
   }, [authContext?.farmer]);
-  
 
   const loadProduces = useCallback(async () => {
     if (!selectedMarket || !farmerDetails.id || !farmerDetails.isLoaded) return;
@@ -533,8 +534,28 @@ const AddProduce = () => {
         return;
       }
       
-      if (parseFloat(newProduce.minimum_quantity) <= 0) {
-        setError('Minimum quantity must be greater than 0');
+      if (parseFloat(newProduce.minimum_quantity) < 10) { // Changed to 10kg minimum
+        setError('Minimum quantity must be at least 10kg for Bargaining Market');
+        return;
+      }
+
+      if (!newProduce.minimum_price) {
+        setError('Minimum price is required for Bargaining Market');
+        return;
+      }
+      
+      if (isNaN(newProduce.minimum_price)) {
+        setError('Minimum price must be a valid number');
+        return;
+      }
+      
+      if (parseFloat(newProduce.minimum_price) <= 0) {
+        setError('Minimum price must be greater than 0');
+        return;
+      }
+
+      if (parseFloat(newProduce.minimum_price) >= parseFloat(newProduce.price_per_kg)) {
+        setError('Minimum price must be less than the regular price');
         return;
       }
     }
@@ -554,11 +575,9 @@ const AddProduce = () => {
         availability: parseFloat(newProduce.availability),
         price_per_kg: parseFloat(newProduce.price_per_kg),
         market_type: selectedMarket,
-        // Only include min_quantity if it's Bargaining Market
         ...(selectedMarket === 'Bargaining Market' && {
-          minimum_quantity: selectedMarket === 'Bargaining Market' 
-          ? parseFloat(newProduce.minimum_quantity) 
-          : null
+          minimum_quantity: parseFloat(newProduce.minimum_quantity),
+          minimum_price: parseFloat(newProduce.minimum_price)
         })
       };
 
@@ -573,24 +592,15 @@ const AddProduce = () => {
         await axios.put(
           `http://localhost:5000/api/produces/${newProduce.id}`,
           produceData,
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
-          }
+          config
         );
       } else {
         await axios.post(
           'http://localhost:5000/api/produces',
           produceData,
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
-          }
-      )};
+          config
+        );
+      }
 
       await loadProduces();
       setNewProduce({
@@ -599,7 +609,8 @@ const AddProduce = () => {
         price_per_kg: '',
         produce_type: 'Standard',
         market_type: selectedMarket,
-        minimum_quantity: '' // Reset min_quantity
+        minimum_quantity: '',
+        minimum_price: ''
       });
       setIsFormVisible(false);
     } catch (err) {
@@ -614,7 +625,8 @@ const AddProduce = () => {
     setNewProduce({
       ...produce,
       id: produce.product_id,
-      minimum_quantity: produce.minimum_quantity || '' // Set min_quantity if it exists
+      minimum_quantity: produce.minimum_quantity || '',
+      minimum_price: produce.minimum_price || ''
     });
     setIsFormVisible(true);
   };
@@ -624,14 +636,12 @@ const AddProduce = () => {
     
     try {
       setIsLoading(true);
-      await axios.delete(`http://localhost:5000/api/produces/${productId}`,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
+      await axios.delete(`http://localhost:5000/api/produces/${productId}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
-      );
+      });
       await loadProduces();
     } catch (err) {
       console.error('Failed to delete produce:', err);
@@ -641,6 +651,41 @@ const AddProduce = () => {
     }
   };
 
+  // Render instructions if showInstructions is true
+  if (showInstructions) {
+    return (
+      <div className="addproduce-instructions">
+        <h2>Instructions for Adding Produce</h2>
+        <div className="instructions-content">
+          <ol>
+            <li>
+              If you add the produce to <strong>KrishiSetu Market</strong>, it will be stored in the KrishiSetu market or warehouses. 
+              If you add the produce to <strong>Bargaining Market</strong>, it will be stored in the bargain marketplace in the consumer 
+              dashboard and it helps for bargaining with consumers.
+            </li>
+            <li>
+              The <strong>minimum price</strong> field is included to remove price conflicts in the bargaining system.
+            </li>
+            <li>
+              For the <strong>Bargaining Market</strong>, the minimum quantity you should add is <strong>10kg</strong>. 
+              This is because to initiate a bargain, the minimum quantity should be 10kg.
+            </li>
+            <li>
+              The minimum price should always be less than the regular price you set for the produce.
+            </li>
+          </ol>
+          <button 
+            className="close-instructions-button"
+            onClick={() => setShowInstructions(false)}
+          >
+            I Understand, Continue to Add Produce
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Regular UI when instructions are closed
   return (
     <div className="addproduce-container">
       <h1>Produces Added to the List</h1>
@@ -674,7 +719,7 @@ const AddProduce = () => {
           disabled={isLoading}
         >
           <img src={BSimg} alt="Bargaining Logo" />
-          Bargaining System
+          Bargaining Market
         </button>
       </div>
 
@@ -691,7 +736,8 @@ const AddProduce = () => {
                   price_per_kg: '',
                   produce_type: 'Standard',
                   market_type: selectedMarket,
-                  min_quantity: '' // Reset min_quantity
+                  minimum_quantity: '',
+                  minimum_price: ''
                 });
               }
             }}
@@ -758,22 +804,38 @@ const AddProduce = () => {
                   </select>
                 </div>
                 
-                {/* Conditionally render Minimum Quantity field for Bargaining Market */}
                 {selectedMarket === 'Bargaining Market' && (
-                  <div>
-                    <label>Minimum Quantity (kg):</label>
-                    <input
-                      type="number"
-                      name="minimum_quantity"
-                      value={newProduce.minimum_quantity}
-                      onChange={handleFormChange}
-                      placeholder="Enter minimum quantity for bargaining"
-                      min="0.1"
-                      step="0.1"
-                      required
-                      disabled={isLoading}
-                    />
-                  </div>
+                  <>
+                    <div>
+                      <label>Minimum Quantity (kg):</label>
+                      <input
+                        type="number"
+                        name="minimum_quantity"
+                        value={newProduce.minimum_quantity}
+                        onChange={handleFormChange}
+                        placeholder="Minimum 10kg required"
+                        min="10"
+                        step="0.1"
+                        required
+                        disabled={isLoading}
+                      />
+                    </div>
+                    <div>
+                      <label>Minimum Price (per kg):</label>
+                      <input
+                        type="number"
+                        name="minimum_price"
+                        value={newProduce.minimum_price}
+                        onChange={handleFormChange}
+                        placeholder="Enter minimum acceptable price"
+                        min="0.01"
+                        step="0.01"
+                        max={newProduce.price_per_kg ? newProduce.price_per_kg - 0.01 : ''}
+                        required
+                        disabled={isLoading}
+                      />
+                    </div>
+                  </>
                 )}
                 
                 <button 
@@ -796,7 +858,12 @@ const AddProduce = () => {
                   <th>Type</th>
                   <th>Availability (kg)</th>
                   <th>Price per KG</th>
-                  {selectedMarket === 'Bargaining Market' && <th>Min Quantity</th>}
+                  {selectedMarket === 'Bargaining Market' && (
+                    <>
+                      <th>Min Quantity</th>
+                      <th>Min Price</th>
+                    </>
+                  )}
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -808,7 +875,10 @@ const AddProduce = () => {
                     <td>{produce.availability} kg</td>
                     <td>₹{produce.price_per_kg}</td>
                     {selectedMarket === 'Bargaining Market' && (
-                      <td>{produce.minimum_quantity || 'N/A'} kg</td>
+                      <>
+                        <td>{produce.minimum_quantity || 'N/A'} kg</td>
+                        <td>₹{produce.minimum_price || 'N/A'}</td>
+                      </>
                     )}
                     <td>
                       <button
