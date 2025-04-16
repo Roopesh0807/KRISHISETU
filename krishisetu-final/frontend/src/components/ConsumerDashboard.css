@@ -25,14 +25,16 @@ body {
   color: var(--text-dark);
   margin: 0;
   padding: 0;
+  overflow-x: hidden;
 }
 
 .ks-consumer-dashboard {
   display: flex;
-  max-width: 1400px;
- margin-top: 80px;
+  max-width: 98vw;
+  margin: 80px auto 20px;
   gap: 20px;
   padding: 0 15px;
+  box-sizing: border-box;
 }
 
 /* Main Marketplace Section (70%) */
@@ -42,8 +44,8 @@ body {
   border-radius: 8px;
   box-shadow: var(--shadow-sm);
   padding: 20px;
-  min-width:1060px;
-  top: 20px;
+  min-width: 0; /* Allow flexbox to shrink */
+  position: relative;
 }
 
 /* Bargaining Marketplace Section (30%) */
@@ -52,18 +54,18 @@ body {
   background: var(--white);
   border-radius: 8px;
   box-shadow: var(--shadow-sm);
-  min-width:420px;
+  min-width: 0; /* Allow flexbox to shrink */
   padding: 20px;
   position: sticky;
-  top: 20px;
+  top: 100px;
   height: fit-content;
-  max-height: 95vh;
+  max-height: calc(100vh - 120px);
   overflow-y: auto;
 }
 
 /* Header Styles */
 .ks-section-title {
-  font-size: 1.8rem;
+  font-size: 1.5rem;
   color: var(--primary-dark-green);
   margin-bottom: 1.5rem;
   position: relative;
@@ -101,6 +103,7 @@ body {
   font-size: 1rem;
   transition: var(--transition);
   box-shadow: var(--shadow-sm);
+  box-sizing: border-box;
 }
 
 .ks-search-input:focus {
@@ -114,6 +117,7 @@ body {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+  width: 100%;
 }
 
 .ks-filter-select {
@@ -125,6 +129,8 @@ body {
   cursor: pointer;
   transition: var(--transition);
   box-shadow: var(--shadow-sm);
+  flex: 1;
+  min-width: 120px;
 }
 
 .ks-filter-select:focus {
@@ -137,6 +143,7 @@ body {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 20px;
+  width: 100%;
 }
 
 /* Product Card */
@@ -148,6 +155,9 @@ body {
   transition: var(--transition);
   border: 1px solid var(--medium-gray);
   cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .ks-product-card:hover {
@@ -161,6 +171,7 @@ body {
   height: 160px;
   overflow: hidden;
   background: var(--light-gray);
+  flex-shrink: 0;
 }
 
 .ks-product-image {
@@ -169,6 +180,7 @@ body {
   object-fit: contain;
   transition: var(--transition);
   padding: 15px;
+  box-sizing: border-box;
 }
 
 .ks-product-card:hover .ks-product-image {
@@ -189,6 +201,9 @@ body {
 
 .ks-product-details {
   padding: 15px;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .ks-product-name {
@@ -201,6 +216,7 @@ body {
   -webkit-box-orient: vertical;
   overflow: hidden;
   min-height: 40px;
+  line-height: 1.3;
 }
 
 .ks-product-meta {
@@ -216,6 +232,7 @@ body {
   font-weight: 600;
   font-size: 0.75rem;
   text-transform: capitalize;
+  white-space: nowrap;
 }
 
 .ks-product-type.organic {
@@ -235,6 +252,7 @@ body {
   color: var(--text-medium);
   font-size: 0.75rem;
   text-transform: capitalize;
+  white-space: nowrap;
 }
 
 .ks-price-container {
@@ -267,6 +285,7 @@ body {
   font-size: 0.9rem;
   transition: var(--transition);
   cursor: pointer;
+  box-sizing: border-box;
 }
 
 .ks-quantity-dropdown:focus {
@@ -278,6 +297,7 @@ body {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+  margin-top: auto;
 }
 
 .ks-action-btn {
@@ -292,6 +312,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 5px;
+  white-space: nowrap;
 }
 
 .ks-action-btn:hover {
@@ -365,6 +386,7 @@ body {
 
 .ks-farmer-basic-info {
   flex: 1;
+  min-width: 0;
 }
 
 .ks-farmer-name {
@@ -372,17 +394,23 @@ body {
   color: var(--text-dark);
   margin-bottom: 0.3rem;
   font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .ks-farmer-meta {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
 }
 
 .ks-farmer-id {
   font-size: 0.8rem;
   color: var(--text-light);
+  white-space: nowrap;
 }
 
 .ks-farmer-rating {
@@ -417,6 +445,7 @@ body {
   padding: 8px 12px;
   text-align: left;
   border-bottom: 1px solid var(--medium-gray);
+  white-space: nowrap;
 }
 
 .ks-products-table th {
@@ -450,6 +479,8 @@ body {
   background: linear-gradient(135deg, var(--primary-green), var(--primary-dark-green));
   color: white;
   box-shadow: var(--shadow-sm);
+  width: 100%;
+  justify-content: center;
 }
 
 .ks-farmer-action-btn:hover {
@@ -515,6 +546,13 @@ body {
   .ks-bargaining-section {
     position: static;
     max-height: none;
+    top: auto;
+  }
+
+  .ks-market-section,
+  .ks-bargaining-section {
+    flex: none;
+    width: 100%;
   }
 }
 
@@ -531,20 +569,61 @@ body {
   .ks-product-actions {
     grid-template-columns: 1fr;
   }
-}
 
-@media (max-width: 576px) {
+  .ks-section-title {
+    font-size: 1.3rem;
+  }
+
   .ks-search-filter-container,
   .ks-farmer-search-container {
     flex-direction: column;
   }
-  
-  .ks-filter-group,
-  .ks-farmer-filters {
-    width: 100%;
-  }
-  
+
+  .ks-search-input,
   .ks-filter-select {
     width: 100%;
+  }
+}
+
+@media (max-width: 576px) {
+  .ks-consumer-dashboard {
+    padding: 0 10px;
+    margin-top: 70px;
+  }
+
+  .ks-products-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  }
+
+  .ks-product-name {
+    font-size: 14px;
+    min-height: 36px;
+  }
+
+  .ks-product-meta {
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .ks-farmer-header {
+    flex-direction: column;
+    text-align: center;
+    padding: 10px;
+  }
+
+  .ks-farmer-avatar {
+    margin-right: 0;
+    margin-bottom: 10px;
+  }
+
+  .ks-farmer-meta {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .ks-products-table th,
+  .ks-products-table td {
+    padding: 6px 8px;
+    font-size: 0.7rem;
   }
 }

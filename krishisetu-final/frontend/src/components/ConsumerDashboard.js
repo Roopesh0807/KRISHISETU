@@ -488,10 +488,10 @@ useEffect(() => {
   //   navigate("/subscribe", { state: { product } });
   // };
 
-  const handleSubscribe = (product, e) => {
-    e.stopPropagation();
-    navigate("/subscribe", { state: { product } });
+  const handleSubscribe =  (productId) => {
+    navigate(`/productDetails/${productId}`);
   };
+
 
   const filteredProducts = products.filter((product) => {
     return (

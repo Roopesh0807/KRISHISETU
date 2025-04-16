@@ -333,11 +333,11 @@ const ProductDetails = () => {
       )}
 
       <div className="ks-product-container">
-        <div className="ks-breadcrumb">
+        {/* <div className="ks-breadcrumb">
           <Link to="/consumer-dashboard" className="ks-breadcrumb-link">
             <FaArrowLeft /> Back to Dashboard
           </Link>
-        </div>
+        </div> */}
 
         <div className="ks-product-grid">
           <div className="ks-product-gallery">
@@ -360,7 +360,7 @@ const ProductDetails = () => {
 
             <div className="ks-product-description">
               <h3 className="ks-section-title">Product Details</h3>
-              <p>{product.description || "Fresh from our organic farms"}</p>
+              <p>{product.description || "Fresh from the farms"}</p>
             </div>
 
             <div className="ks-quantity-section">
