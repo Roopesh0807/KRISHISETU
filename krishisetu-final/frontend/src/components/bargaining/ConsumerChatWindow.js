@@ -14,7 +14,11 @@ import {
   faTimesCircle,
   faHome,
   faClipboardList,
-  faShoppingCart
+  faShoppingCart,
+  faLeaf,
+  faUserTie,
+  faWeightHanging,
+  faPercentage
 } from '@fortawesome/free-solid-svg-icons';
 import './ConsumerChatWindow.css';
 
@@ -52,39 +56,38 @@ const BargainChatWindow = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [hasFarmerCounterOffer, setHasFarmerCounterOffer] = useState(false);
   const [isBargainComplete, setIsBargainComplete] = useState(false);
-  const [bargainResult, setBargainResult] = useState(null); // 'accepted' or 'rejected'
+  const [bargainResult, setBargainResult] = useState(null);
   const [freezeUI, setFreezeUI] = useState(false);
 
- // Generate price suggestions based on current price
- const generatePriceSuggestions = useCallback((basePrice) => {
-  const numericPrice = parseFloat(basePrice);
-  if (isNaN(numericPrice)) return [];
+  // Generate price suggestions based on current price
+  const generatePriceSuggestions = useCallback((basePrice) => {
+    const numericPrice = parseFloat(basePrice);
+    if (isNaN(numericPrice)) return [];
 
-  const suggestions = [];
-  const step = 1; // ₹1 increments
-  
-  // Generate decreasing offers only (no higher offers)
-  for (let i = 1; i <= 3; i++) {
-    const newPrice = numericPrice - i;
-    if (newPrice > 0) { // Only positive prices
-      suggestions.push({
-        amount: -i,
-        price: newPrice,
-        label: `₹${newPrice} (₹${i} less)`
-      });
+    const suggestions = [];
+    const step = 1; // ₹1 increments
+    
+    // Generate decreasing offers only (no higher offers)
+    for (let i = 1; i <= 3; i++) {
+      const newPrice = numericPrice - i;
+      if (newPrice > 0) { // Only positive prices
+        suggestions.push({
+          amount: -i,
+          price: newPrice,
+          label: `₹${newPrice} (₹${i} less)`
+        });
+      }
     }
-  }
 
-  // Include current price as reference
-  suggestions.push({
-    amount: 0,
-    price: numericPrice,
-    label: `Current: ₹${numericPrice}`
-  });
+    // Include current price as reference
+    suggestions.push({
+      amount: 0,
+      price: numericPrice,
+      label: `Current: ₹${numericPrice}`
+    });
 
-  return suggestions.sort((a, b) => a.price - b.price);
-}, []);
-
+    return suggestions.sort((a, b) => a.price - b.price);
+  }, []);
 
   // Fetch messages from database
   const fetchMessages = async () => {
@@ -112,6 +115,7 @@ const BargainChatWindow = () => {
       console.error('Error fetching messages:', err);
     }
   };
+
   const addToCart = async (product, price, quantity, bargainId) => {
     if (!selectedFarmer || !consumer?.consumer_id) {
       console.error('Farmer or consumer data is missing');
@@ -123,7 +127,6 @@ const BargainChatWindow = () => {
   
       const payload = {
         bargain_id: bargainId,
-        // Only include product_id if it exists
         ...(product?.product_id && { product_id: product.product_id }),
         product_name: product?.produce_name,
         product_category: product?.produce_type,
@@ -172,301 +175,213 @@ const BargainChatWindow = () => {
     }
   };
 
-useEffect(() => {
-  if (!socket.current) return;
+  useEffect(() => {
+    if (!socket.current) return;
 
-  const handleNewMessage = (data) => {
-    console.log('Farmer message received:', data);
-    
-    const message = {
-      ...data,
-      content: data.message_content || data.content,
-      sender_role: data.sender_role || 'farmer',
-      timestamp: data.created_at || new Date().toISOString()
-    };
-
-    setMessages(prev => [...prev, message]);
-    
-    // Handle farmer's counter offer
-    if (message.sender_role === 'farmer' && 
-        (message.message_type === 'counter_offer' || 
-         message.content.includes('Counter offer'))) {
+    const handleNewMessage = (data) => {
+      console.log('Farmer message received:', data);
       
-      // Extract the price (priority: price_suggestion > content regex > currentPrice)
-      const price = message.price_suggestion || 
-                   parseFloat(message.content.match(/₹(\d+)/)?.[1]) || 
-                   currentPrice;
-      
-      console.log('Updating price to:', price);
-      
-      // Update states
-      setCurrentPrice(price);
-      setHasFarmerCounterOffer(true);
-      setWaitingForResponse(false);  // This hides the waiting indicator
-      
-      // Generate new suggestions (only lower than current price)
-      const suggestions = generatePriceSuggestions(price)
-        .filter(s => s.price < price); // Only show lower offers
-      setPriceSuggestions(suggestions);
-    }
-  };
+      const message = {
+        ...data,
+        content: data.message_content || data.content,
+        sender_role: data.sender_role || 'farmer',
+        timestamp: data.created_at || new Date().toISOString()
+      };
 
-  socket.current.on('bargainMessage', handleNewMessage);
-  return () => socket.current?.off('bargainMessage', handleNewMessage);
-}, [currentPrice, generatePriceSuggestions]);
-
-
-
-
-// Replace your socket initialization with this updated version
-const initializeSocketConnection = useCallback(() => {
-  if (!bargainId || !token) {
-    console.error("Cannot initialize socket: missing bargainId or token");
-    setConnectionStatus("disconnected");
-    return;
-  }
-
-  // Clear any existing socket connection
-  if (socket.current) {
-    socket.current.removeAllListeners();
-    socket.current.disconnect();
-    socket.current = null;
-  }
-
-  const socketOptions = {
-    auth: { token },
-    query: { bargainId },
-    transports: ['websocket', 'polling'],
-    reconnection: true,
-    reconnectionAttempts: 5,
-    reconnectionDelay: 1000,
-    reconnectionDelayMax: 10000,
-    timeout: 20000,
-    secure: process.env.NODE_ENV === 'production',
-    rejectUnauthorized: false,
-    extraHeaders: {
-      Authorization: `Bearer ${token}`
-    }
-  };
-
-  socket.current = io(
-    process.env.REACT_APP_API_BASE_URL || "http://localhost:5000",
-    socketOptions
-  );
-
-  // Connection handlers
-  socket.current.on('connect', () => {
-    console.log("Socket connected with ID:", socket.current?.id);
-    setConnectionStatus("connected");
-  });
-
-  socket.current.on('connect_error', (err) => {
-    console.error("Socket connection error:", err);
-    setConnectionStatus("error");
-    
-    const maxAttempts = 5;
-    if (reconnectAttempts.current < maxAttempts) {
-      const delay = Math.min(30000, Math.pow(2, reconnectAttempts.current) * 1000);
-      reconnectAttempts.current += 1;
-      setTimeout(() => initializeSocketConnection(), delay);
-    }
-  });
-
-  socket.current.on('disconnect', (reason) => {
-    console.log("Socket disconnected:", reason);
-    setConnectionStatus("disconnected");
-    
-    if (reason === "io server disconnect") {
-      setTimeout(() => initializeSocketConnection(), 1000);
-    }
-  });
-
-  // Single unified message handler
-  socket.current.on('new_message', (message) => {
-    console.log("Received new message:", message);
-    if (message?.message_id) {
       setMessages(prev => [...prev, message]);
       
-      if (message.sender_role === 'farmer') {
-        setWaitingForResponse(false);
+      // Handle farmer's counter offer
+      if (message.sender_role === 'farmer' && 
+          (message.message_type === 'counter_offer' || 
+           message.content.includes('Counter offer'))) {
         
-        if (message.message_type === 'counter_offer') {
-          console.log("Processing farmer counter offer");
-          setHasFarmerCounterOffer(true);
-          setCurrentPrice(message.price_suggestion);
+        // Extract the price (priority: price_suggestion > content regex > currentPrice)
+        const price = message.price_suggestion || 
+                     parseFloat(message.content.match(/₹(\d+)/)?.[1]) || 
+                     currentPrice;
+        
+        console.log('Updating price to:', price);
+        
+        // Update states
+        setCurrentPrice(price);
+        setHasFarmerCounterOffer(true);
+        setWaitingForResponse(false);  // This hides the waiting indicator
+        
+        // Generate new suggestions (only lower than current price)
+        const suggestions = generatePriceSuggestions(price)
+          .filter(s => s.price < price); // Only show lower offers
+        setPriceSuggestions(suggestions);
+      }
+    };
+
+    socket.current.on('bargainMessage', handleNewMessage);
+    return () => socket.current?.off('bargainMessage', handleNewMessage);
+  }, [currentPrice, generatePriceSuggestions]);
+
+  const initializeSocketConnection = useCallback(() => {
+    if (!bargainId || !token) {
+      console.error("Cannot initialize socket: missing bargainId or token");
+      setConnectionStatus("disconnected");
+      return;
+    }
+
+    // Clear any existing socket connection
+    if (socket.current) {
+      socket.current.removeAllListeners();
+      socket.current.disconnect();
+      socket.current = null;
+    }
+
+    const socketOptions = {
+      auth: { token },
+      query: { bargainId },
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 10000,
+      timeout: 20000,
+      secure: process.env.NODE_ENV === 'production',
+      rejectUnauthorized: false,
+      extraHeaders: {
+        Authorization: `Bearer ${token}`
+      }
+    };
+
+    socket.current = io(
+      process.env.REACT_APP_API_BASE_URL || "http://localhost:5000",
+      socketOptions
+    );
+
+    // Connection handlers
+    socket.current.on('connect', () => {
+      console.log("Socket connected with ID:", socket.current?.id);
+      setConnectionStatus("connected");
+    });
+
+    socket.current.on('connect_error', (err) => {
+      console.error("Socket connection error:", err);
+      setConnectionStatus("error");
+      
+      const maxAttempts = 5;
+      if (reconnectAttempts.current < maxAttempts) {
+        const delay = Math.min(30000, Math.pow(2, reconnectAttempts.current) * 1000);
+        reconnectAttempts.current += 1;
+        setTimeout(() => initializeSocketConnection(), delay);
+      }
+    });
+
+    socket.current.on('disconnect', (reason) => {
+      console.log("Socket disconnected:", reason);
+      setConnectionStatus("disconnected");
+      
+      if (reason === "io server disconnect") {
+        setTimeout(() => initializeSocketConnection(), 1000);
+      }
+    });
+
+    // Single unified message handler
+    socket.current.on('new_message', (message) => {
+      console.log("Received new message:", message);
+      if (message?.message_id) {
+        setMessages(prev => [...prev, message]);
+        
+        if (message.sender_role === 'farmer') {
+          setWaitingForResponse(false);
           
-          const suggestions = generatePriceSuggestions(message.price_suggestion);
-          setPriceSuggestions(suggestions);
-          
-          setTimeout(() => {
-            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-          }, 100);
+          if (message.message_type === 'counter_offer') {
+            console.log("Processing farmer counter offer");
+            setHasFarmerCounterOffer(true);
+            setCurrentPrice(message.price_suggestion);
+            
+            const suggestions = generatePriceSuggestions(message.price_suggestion);
+            setPriceSuggestions(suggestions);
+            
+            setTimeout(() => {
+              messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+          }
         }
       }
-    }
-  });
+    });
 
-// Update the bargainStatusUpdate handler in initializeSocketConnection
-// Update the socket initialization in initializeSocketConnection
-// socket.current.on('bargainStatusUpdate', (data) => {
-//   const { status, currentPrice, initiatedBy } = data;
-  
-//   // Remove any duplicate handlers for bargainStatusUpdate
-  
-//   // Consumer's perspective
-//   if (initiatedBy === 'consumer') {
-//     // Consumer initiated this action
-//     if (status === 'accepted') {
-//       addSystemMessage(`✅ You accepted the offer at ₹${currentPrice}/kg`);
-//     } else if (status === 'rejected') {
-//       addSystemMessage(`❌ You rejected the offer at ₹${currentPrice}/kg`);
-//     }
-//   } else {
-//     // Farmer initiated this action
-//     if (status === 'accepted') {
-//       addSystemMessage(`🎉 ${selectedFarmer.farmer_name} accepted your offer at ₹${currentPrice}/kg`);
-//     } else if (status === 'rejected') {
-//       addSystemMessage(`😞 ${selectedFarmer.farmer_name} rejected your offer`);
-//     }
-//   }
-  
-//   setBargainStatus(status);
-//   setCurrentPrice(currentPrice);
-//   setWaitingForResponse(false);
-// });
-// Inside initializeSocketConnection
-// socket.current.on('bargainStatusUpdate', async (data) => {
-//   const { status, currentPrice, initiatedBy } = data;
-  
-//   // Handle accepted status
-//   if (status === 'accepted') {
-//     try {
-//       if (initiatedBy === 'farmer') {
-//         // Farmer accepted consumer's offer - add to cart
-//         await addToCart(selectedProduct, currentPrice, selectedQuantity);
-//         addSystemMessage(`🎉 ${selectedFarmer.farmer_name} accepted your offer at ₹${currentPrice}/kg`);
-//       } else {
-//         // Consumer accepted farmer's offer (already handled in handleAcceptFarmerOffer)
-//         addSystemMessage(`✅ You accepted the offer at ₹${currentPrice}/kg`);
-//       }
-      
-//       // Update UI state for acceptance
-//       setIsBargainComplete(true);
-//       setBargainResult('accepted');
-//     } catch (err) {
-//       addSystemMessage(`⚠️ Failed to add to cart: ${err.message}`);
-//     }
-//   }
-  
-//   // Handle rejected status
-//   if (status === 'rejected') {
-//     if (initiatedBy === 'farmer') {
-//       addSystemMessage(`😞 ${selectedFarmer.farmer_name} rejected your offer`);
-//     } else {
-//       addSystemMessage(`❌ You rejected the offer at ₹${currentPrice}/kg`);
-//     }
-    
-//     // Update UI state for rejection
-//     setIsBargainComplete(true);
-//     setBargainResult('rejected');
-//   }
+    socket.current.on('bargainStatusUpdate', async (data) => {
+      const { status, currentPrice, initiatedBy } = data;
 
-//   // Common state updates
-//   setBargainStatus(status);
-//   setCurrentPrice(currentPrice);
-//   setWaitingForResponse(false);
-//   setShowPriceSuggestions(false);
-//   setHasFarmerCounterOffer(false);
-// });
-socket.current.on('bargainStatusUpdate', async (data) => {
-  const { status, currentPrice, initiatedBy } = data;
+      // Handle accepted status
+      if (status === 'accepted') {
+        try {
+          if (initiatedBy === 'farmer') {
+            // Farmer accepted consumer's offer - add to cart
+            await addToCart(
+              selectedProduct,
+              currentPrice,
+              selectedQuantity,
+              bargainId,
+              selectedFarmer,
+              token,
+              consumer.consumer_id
+            );
 
-  // Handle accepted status
-  if (status === 'accepted') {
-    try {
-      if (initiatedBy === 'farmer') {
-        // Farmer accepted consumer's offer - add to cart
-        await addToCart(
-          selectedProduct,
-          currentPrice,
-          selectedQuantity,
-          bargainId,
-          selectedFarmer,
-          token,
-          consumer.consumer_id
-        );
+            addSystemMessage(`🎉 ${selectedFarmer.farmer_name} accepted your offer at ₹${currentPrice}/kg`);
+          } else {
+            // Consumer accepted farmer's offer (already handled in handleAcceptFarmerOffer)
+            addSystemMessage(`✅ You accepted the offer at ₹${currentPrice}/kg`);
+          }
 
-        addSystemMessage(`🎉 ${selectedFarmer.farmer_name} accepted your offer at ₹${currentPrice}/kg`);
-      } else {
-        // Consumer accepted farmer's offer (already handled in handleAcceptFarmerOffer)
-        addSystemMessage(`✅ You accepted the offer at ₹${currentPrice}/kg`);
+          // Update UI state for acceptance
+          setIsBargainComplete(true);
+          setBargainResult('accepted');
+        } catch (err) {
+          addSystemMessage(`⚠️ Failed to add to cart: ${err.message}`);
+        }
       }
 
-      // Update UI state for acceptance
-      setIsBargainComplete(true);
-      setBargainResult('accepted');
-    } catch (err) {
-      addSystemMessage(`⚠️ Failed to add to cart: ${err.message}`);
-    }
-  }
+      // Handle rejected status
+      if (status === 'rejected') {
+        if (initiatedBy === 'farmer') {
+          addSystemMessage(`😞 ${selectedFarmer.farmer_name} rejected your offer`);
+        } else {
+          addSystemMessage(`❌ You rejected the offer at ₹${currentPrice}/kg`);
+        }
 
-  // Handle rejected status
-  if (status === 'rejected') {
-    if (initiatedBy === 'farmer') {
-      addSystemMessage(`😞 ${selectedFarmer.farmer_name} rejected your offer`);
-    } else {
-      addSystemMessage(`❌ You rejected the offer at ₹${currentPrice}/kg`);
-    }
+        // Update UI state for rejection
+        setIsBargainComplete(true);
+        setBargainResult('rejected');
+      }
 
-    // Update UI state for rejection
-    setIsBargainComplete(true);
-    setBargainResult('rejected');
-  }
-
-  // Common state updates
-  setBargainStatus(status);
-  setCurrentPrice(currentPrice);
-  setWaitingForResponse(false);
-  setShowPriceSuggestions(false);
-  setHasFarmerCounterOffer(false);
-});
-
-socket.current.on('priceUpdate', (data) => {
-  if (data?.newPrice) {
-    setCurrentPrice(data.newPrice);
-    addSystemMessage(`Price updated to ₹${data.newPrice}/kg`);
-    
-    if (data.from === 'farmer') {
-      setHasFarmerCounterOffer(true);
+      // Common state updates
+      setBargainStatus(status);
+      setCurrentPrice(currentPrice);
       setWaitingForResponse(false);
-    }
-  }
-});
-  // Error handling
-  socket.current.on('error', (error) => {
-    console.error("Socket error:", error);
-    setError(error.message || "WebSocket communication error");
-  });
+      setShowPriceSuggestions(false);
+      setHasFarmerCounterOffer(false);
+    });
 
-  return () => {
-    if (socket.current) {
-      socket.current.disconnect();
-    }
-  };
-}, [bargainId, token, generatePriceSuggestions]);
+    socket.current.on('priceUpdate', (data) => {
+      if (data?.newPrice) {
+        setCurrentPrice(data.newPrice);
+        addSystemMessage(`Price updated to ₹${data.newPrice}/kg`);
+        
+        if (data.from === 'farmer') {
+          setHasFarmerCounterOffer(true);
+          setWaitingForResponse(false);
+        }
+      }
+    });
 
-// Add this useEffect to debug state changes
-useEffect(() => {
-  console.log("Messages updated:", messages);
-}, [messages]);
+    // Error handling
+    socket.current.on('error', (error) => {
+      console.error("Socket error:", error);
+      setError(error.message || "WebSocket communication error");
+    });
 
-useEffect(() => {
-  console.log("Current price updated:", currentPrice);
-}, [currentPrice]);
-
-useEffect(() => {
-  console.log("Farmer counter offer status:", hasFarmerCounterOffer);
-}, [hasFarmerCounterOffer]);
+    return () => {
+      if (socket.current) {
+        socket.current.disconnect();
+      }
+    };
+  }, [bargainId, token, generatePriceSuggestions]);
 
   // Helper function to add system messages
   const addSystemMessage = useCallback((content) => {
@@ -480,95 +395,95 @@ useEffect(() => {
     ]);
   }, []);
 
- useEffect(() => {
-  const initializeChat = async () => {
-    try {
-      setLoading(true);
-      await fetchMessages();
-      initializeSocketConnection();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  initializeChat();
-
-  return () => {
-    if (socket.current) {
-      socket.current.disconnect();
-    }
-  };
-}, [initializeSocketConnection]);
-
-// Show initial system message and price suggestions when product is selected
-useEffect(() => {
-  if (selectedProduct && !isBargainPopupOpen && messages.length === 0) {
-    const systemMessageContent = `🛒 You selected ${selectedProduct.produce_name} (${selectedQuantity}kg) at ₹${selectedProduct.price_per_kg}/kg`;
-    addSystemMessage(systemMessageContent);
-    
-    const suggestions = generatePriceSuggestions(selectedProduct.price_per_kg);
-    setPriceSuggestions(suggestions);
-    setShowPriceSuggestions(true);
-  }
-}, [selectedProduct, isBargainPopupOpen, messages.length, addSystemMessage, generatePriceSuggestions, selectedQuantity]);
-
- // Fetch bargain data
- useEffect(() => {
-  const fetchBargainData = async () => {
-    try {
-      if (!bargainId || !token) {
-        throw new Error("Missing bargain ID or authentication token");
+  useEffect(() => {
+    const initializeChat = async () => {
+      try {
+        setLoading(true);
+        await fetchMessages();
+        initializeSocketConnection();
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
       }
+    };
 
-      const response = await fetch(
-        `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/bargain/${bargainId}`, 
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
+    initializeChat();
+
+    return () => {
+      if (socket.current) {
+        socket.current.disconnect();
+      }
+    };
+  }, [initializeSocketConnection]);
+
+  // Show initial system message and price suggestions when product is selected
+  useEffect(() => {
+    if (selectedProduct && !isBargainPopupOpen && messages.length === 0) {
+      const systemMessageContent = `🛒 You selected ${selectedProduct.produce_name} (${selectedQuantity}kg) at ₹${selectedProduct.price_per_kg}/kg`;
+      addSystemMessage(systemMessageContent);
+      
+      const suggestions = generatePriceSuggestions(selectedProduct.price_per_kg);
+      setPriceSuggestions(suggestions);
+      setShowPriceSuggestions(true);
+    }
+  }, [selectedProduct, isBargainPopupOpen, messages.length, addSystemMessage, generatePriceSuggestions, selectedQuantity]);
+
+  // Fetch bargain data
+  useEffect(() => {
+    const fetchBargainData = async () => {
+      try {
+        if (!bargainId || !token) {
+          throw new Error("Missing bargain ID or authentication token");
         }
-      );
 
-      const contentType = response.headers.get('content-type');
-      const rawText = await response.text();
+        const response = await fetch(
+          `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/bargain/${bargainId}`, 
+          {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+          }
+        );
 
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
+        const contentType = response.headers.get('content-type');
+        const rawText = await response.text();
+
+        if (!response.ok) {
+          throw new Error(`Server error: ${response.status}`);
+        }
+
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error(`Expected JSON but got ${contentType}`);
+        }
+
+        const data = JSON.parse(rawText);
+
+        if (!data.success) {
+          throw new Error(data.error || "Failed to fetch bargain data");
+        }
+
+        if (data.products && data.products.length > 0) {
+          const product = data.products[0];
+          setSelectedProduct(product);
+          setCurrentPrice(product.current_offer || product.price_per_kg);
+          setQuantity(product.quantity || 1);
+          setSelectedQuantity(product.minimum_quantity || product.quantity || '10');
+        }
+        
+        setBargainStatus(data.status || 'pending');
+        
+      } catch (error) {
+        setError(error.message || "Failed to load bargain data");
       }
+    };
 
-      if (!contentType || !contentType.includes('application/json')) {
-        throw new Error(`Expected JSON but got ${contentType}`);
-      }
-
-      const data = JSON.parse(rawText);
-
-      if (!data.success) {
-        throw new Error(data.error || "Failed to fetch bargain data");
-      }
-
-      if (data.products && data.products.length > 0) {
-        const product = data.products[0];
-        setSelectedProduct(product);
-        setCurrentPrice(product.current_offer || product.price_per_kg);
-        setQuantity(product.quantity || 1);
-        setSelectedQuantity(product.minimum_quantity || product.quantity || '10');
-      }
-      
-      setBargainStatus(data.status || 'pending');
-      
-    } catch (error) {
-      setError(error.message || "Failed to load bargain data");
+    if (!initialProduct) {
+      fetchBargainData();
     }
-  };
-
-  if (!initialProduct) {
-    fetchBargainData();
-  }
-}, [bargainId, token, initialProduct]);
+  }, [bargainId, token, initialProduct]);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -680,123 +595,53 @@ useEffect(() => {
       setIsLoading(false);
     }
   };
- // Update handlePriceSelection to handle counter offers
-const handlePriceSelection = async (price) => {
-  try {
-    setShowPriceSuggestions(false);
-    setWaitingForResponse(true);
-    setCurrentPrice(price);
-    
-    const messageType = hasFarmerCounterOffer ? 'counter_offer' : 'price_offer';
-  // Update your handlePriceSelection function:
-const messageContent = `💰 ${hasFarmerCounterOffer ? 'Counter offer' : 'Offered'} ₹${price}/kg for ${selectedQuantity}kg of ${selectedProduct.produce_name}`;
-    const response = await fetch(
-      `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/bargain/${bargainId}/messages`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          sender_role: 'consumer',
-          sender_id: consumer.consumer_id,
-          message_content: messageContent,
-          price_suggestion: price,
-          message_type: messageType
-        })
+
+  const handlePriceSelection = async (price) => {
+    try {
+      setShowPriceSuggestions(false);
+      setWaitingForResponse(true);
+      setCurrentPrice(price);
+      
+      const messageType = hasFarmerCounterOffer ? 'counter_offer' : 'price_offer';
+      const messageContent = `💰 ${hasFarmerCounterOffer ? 'Counter offer' : 'Offered'} ₹${price}/kg for ${selectedQuantity}kg of ${selectedProduct.produce_name}`;
+      const response = await fetch(
+        `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/bargain/${bargainId}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            sender_role: 'consumer',
+            sender_id: consumer.consumer_id,
+            message_content: messageContent,
+            price_suggestion: price,
+            message_type: messageType
+          })
+        }
+      );
+
+      if (!response.ok) throw new Error('Failed to save message');
+
+      const newMessage = await response.json();
+      setMessages(prev => [...prev, newMessage]);
+      setHasFarmerCounterOffer(false);
+
+      if (socket.current?.connected) {
+        socket.current.emit('priceOffer', {
+          bargainId,
+          message: newMessage,
+          newPrice: price
+        });
       }
-    );
-
-    if (!response.ok) throw new Error('Failed to save message');
-
-    const newMessage = await response.json();
-    setMessages(prev => [...prev, newMessage]);
-    setHasFarmerCounterOffer(false);
-
-    if (socket.current?.connected) {
-      socket.current.emit('priceOffer', {
-        bargainId,
-        message: newMessage,
-        newPrice: price
-      });
+    } catch (err) {
+      console.error('Error handling price selection:', err);
+      setError(err.message);
+      setShowPriceSuggestions(true);
     }
-  } catch (err) {
-    console.error('Error handling price selection:', err);
-    setError(err.message);
-    setShowPriceSuggestions(true);
-  }
-};
+  };
 
-
-
-  // // Update handleAcceptFarmerOffer and handleRejectFarmerOffer
-  // const handleAcceptFarmerOffer = async () => {
-  //   try {
-  //     setWaitingForResponse(true);
-      
-  //     // First check if cart has items from other farmers
-  //     const cartCheckResponse = await fetch(
-  //       `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/cart/check`,
-  //       {
-  //         headers: {
-  //           'Authorization': `Bearer ${token}`,
-  //         },
-  //       }
-  //     );
-  
-  //     const cartCheckData = await cartCheckResponse.json();
-      
-  //     if (cartCheckData.hasItems && cartCheckData.farmerId !== selectedFarmer.farmer_id) {
-  //       throw new Error('You have items from another farmer in your cart. Please complete that order first.');
-  //     }
-  
-  //     // Save acceptance to database
-  //     const response = await fetch(
-  //       `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/bargain/${bargainId}/messages`,
-  //       {
-  //         method: 'POST',
-  //         headers: {
-  //           'Content-Type': 'application/json',
-  //           'Authorization': `Bearer ${token}`,
-  //         },
-  //         body: JSON.stringify({
-  //           sender_role: 'consumer',
-  //           sender_id: consumer.consumer_id,
-  //           message_content: `✅ You accepted the offer at ₹${currentPrice}/kg`,
-  //           message_type: 'accept',
-  //           price_suggestion: currentPrice
-  //         })
-  //       }
-  //     );
-  
-  //     if (!response.ok) throw new Error('Failed to save acceptance message');
-  
-  //     const savedMessage = await response.json();
-  //     setMessages(prev => [...prev, savedMessage]);
-      
-  //     // Emit socket event
-  //     socket.current.emit('updateBargainStatus', {
-  //       bargainId,
-  //       status: 'accepted',
-  //       currentPrice,
-  //       userId: consumer.consumer_id,
-  //       userType: 'consumer'
-  //     });
-  
-  //     // ADD TO CART
-  //     await addToCart(selectedProduct, currentPrice, selectedQuantity);
-      
-  //     setBargainStatus('accepted');
-  //     setIsBargainComplete(true);
-  //     setBargainResult('accepted');
-  //     setShowPriceSuggestions(false);
-  //     setHasFarmerCounterOffer(false);
-  //   } catch (err) {
-  //     setError(err.message);
-  //     setWaitingForResponse(false);
-  //   }
-  // };
   const handleAcceptFarmerOffer = async () => {
     try {
       setWaitingForResponse(true);
@@ -897,548 +742,151 @@ const messageContent = `💰 ${hasFarmerCounterOffer ? 'Counter offer' : 'Offere
       });
   
       setBargainStatus('rejected');
-    setIsBargainComplete(true);
-    setBargainResult('rejected');
-    setShowPriceSuggestions(false);
-    setHasFarmerCounterOffer(false);
+      setIsBargainComplete(true);
+      setBargainResult('rejected');
+      setShowPriceSuggestions(false);
+      setHasFarmerCounterOffer(false);
     } catch (err) {
       setError(err.message);
       setWaitingForResponse(false);
     }
   };
 
-  
+  if (loading) {
+    return (
+      <div className="krishi-bargain-loading">
+        <div className="krishi-loading-content">
+          <FontAwesomeIcon icon={faSpinner} spin size="2x" className="krishi-spinner" />
+          <p className="krishi-loading-text">Loading bargain session...</p>
+        </div>
+      </div>
+    );
+  }
 
-  // Add these at the bottom of your component
-useEffect(() => {
-  console.log('Current price state:', currentPrice);
-}, [currentPrice]);
-
-useEffect(() => {
-  console.log('Price suggestions:', priceSuggestions);
-}, [priceSuggestions]);
-
-useEffect(() => {
-  console.log('Has farmer counter offer:', hasFarmerCounterOffer);
-}, [hasFarmerCounterOffer]);
-
-//   if (loading) {
-//     return (
-//       <div className="loading-container">
-//         <FontAwesomeIcon icon={faSpinner} spin size="2x" />
-//         <p>Loading bargain session...</p>
-//       </div>
-//     );
-//   }
-
-//   return (
-//     <div className="bargain-chat-container">
-//       {/* Bargain Initiation Popup */}
-//       {isBargainPopupOpen && selectedFarmer && (
-//   <div className="bargain-popup-overlay">
-//     <div className="bargain-popup-container">
-//       <div className="bargain-popup-content">
-//         {/* Popup Header */}
-//         <div className="popup-header">
-//           <h3>
-//             <FontAwesomeIcon icon={faHandshake} /> Initiate Bargain with {selectedFarmer.farmer_name}
-//           </h3>
-//           <button 
-//             onClick={() => navigate(-1)} 
-//             className="popup-close-btn"
-//             aria-label="Close popup"
-//           >
-//             <FontAwesomeIcon icon={faTimes} />
-//           </button>
-//         </div>
-
-//         {/* Product Selection */}
-//         <div className="popup-section">
-//           <label className="popup-label">Select Product</label>
-//           <select
-//             className="popup-select"
-//             value={selectedProduct?.produce_name || ''}
-//             onChange={(e) => {
-//               const product = selectedFarmer.products.find(
-//                 p => p.produce_name === e.target.value
-//               );
-//               setSelectedProduct(product || null);
-//               if (product) {
-//                 setCurrentPrice(product.price_per_kg);
-//                 setSelectedQuantity('10');
-//               }
-//             }}
-//           >
-//             <option value="">-- Select a product --</option>
-//             {selectedFarmer.products?.map(product => (
-//               <option 
-//                 key={product.product_id} 
-//                 value={product.produce_name}
-//                 data-price={product.price_per_kg}
-//               >
-//                 {product.produce_name} (₹{product.price_per_kg}/kg)
-//               </option>
-//             ))}
-//           </select>
-//         </div>
-
-//         {/* Product Details */}
-//         {selectedProduct && (
-//           <>
-//             <div className="popup-section product-details">
-//               <div className="detail-row">
-//                 <span className="detail-label">Category:</span>
-//                 <span className="detail-value">{selectedProduct.produce_type}</span>
-//               </div>
-//               <div className="detail-row">
-//                 <span className="detail-label">Availability:</span>
-//                 <span className="detail-value">{selectedProduct.availability} kg</span>
-//               </div>
-//             </div>
-
-//             {/* Quantity Selection */}
-//             <div className="popup-section">
-//               <label className="popup-label">Quantity (kg)</label>
-//               <div className="quantity-input-container">
-//                 <input
-//                   type="number"
-//                   className="popup-input"
-//                   min={selectedProduct?.minimum_quantity || 10} 
-//                   max={selectedProduct.availability}
-//                   value={selectedQuantity}
-//                   onChange={(e) => {
-//                     const minQty = selectedProduct.minimum_quantity || 10;
-//                     const val = Math.min(
-//                       selectedProduct?.availability || 0,
-//                       Math.max(minQty, e.target.value ? parseFloat(e.target.value) : minQty)
-//                     );
-//                     setSelectedQuantity(val);
-//                   }}
-//                   placeholder="Enter quantity"
-//                 />
-//                 <div className="quantity-range">
-//                   <span>Min: {selectedProduct.minimum_quantity || 10} kg</span>
-//                   <span>Max: {selectedProduct.availability} kg</span>
-//                 </div>
-//               </div>
-//             </div>
-
-//             {/* Price Display */}
-//             <div className="price-summary">
-//               <div className="price-row">
-//                 <span>Unit Price:</span>
-//                 <span>₹{selectedProduct.price_per_kg}/kg</span>
-//               </div>
-//               <div className="price-row total">
-//                 <span>Total Price:</span>
-//                 <span>
-//                   ₹{(selectedProduct.price_per_kg * (parseFloat(selectedQuantity) || 0).toFixed(2))}
-//                 </span>
-//               </div>
-//             </div>
-//           </>
-//         )}
-
-//         {/* Error Message */}
-//         {error && (
-//           <div className="popup-error">
-//             <FontAwesomeIcon icon={faTimesCircle} />
-//             <span>{error.includes('JSON') ? 'Server error' : error}</span>
-//           </div>
-//         )}
-
-//         {/* Action Buttons */}
-//         <div className="popup-actions">
-//           <button
-//             onClick={() => navigate(-1)}
-//             className="popup-cancel-btn"
-//           >
-//             Cancel
-//           </button>
-       
-//        <button
-//           onClick={handleBargainConfirm}
-//           disabled={!selectedProduct || isLoading}
-//           className={`bargain-btn ${isLoading ? 'loading' : ''}`}
-//         >
-//           {isLoading ? (
-//             <>
-//               <FontAwesomeIcon icon={faSpinner} spin />
-//               <span>Connecting...</span>
-//             </>
-//           ) : (
-//             <>
-//               <FontAwesomeIcon icon={faHandshake} />
-//               <span>Start Bargaining</span>
-//             </>
-//           )}
-//         </button>
-//         </div>
-//       </div>
-//     </div>
-//   </div>
-// )}
-//       {/* Chat Interface */}
-//       {selectedProduct && !isBargainPopupOpen && (
-//         <div className="chat-interface animate__animated animate__fadeIn">
-
-// <button 
-//       onClick={() => navigate('/consumer-dashboard')} 
-//       className="unique-close-btn"
-//       title="Exit Chat"
-//     >
-//       <FontAwesomeIcon icon={faDoorOpen} />
-//       <span>Exit</span>
-//     </button>
-    
-//           {/* Chat Header */}
-//           <div className="chat-header">
-//             <div className="header-top">
-//               <h2>
-//                 <FontAwesomeIcon icon={faRupeeSign} /> Bargaining with {selectedFarmer?.farmer_name}
-//               </h2>
-//               <span className={`connection-status ${connectionStatus}`}>
-//                 {connectionStatus.toUpperCase()}
-//               </span>
-//             </div>
-            
-//             <div className="product-info">
-//               <p><strong>Product:</strong> {selectedProduct.produce_name}</p>
-//               <p><strong>Quantity:</strong> {selectedQuantity || quantity}kg</p>
-//               <div className="price-display">
-//   <span className="current-price">
-//     <strong>Current:</strong> ₹{currentPrice}/kg
-//   </span>
-//   <span className="base-price">
-//     <strong>Base:</strong> ₹{selectedProduct.price_per_kg}/kg
-//   </span>
-//   <span className="total-price">
-//     <strong>Total:</strong> ₹{(selectedQuantity * currentPrice).toFixed(2)}
-//   </span>
-// </div>
-//               {bargainStatus === 'accepted' && (
-//                 <p className="status-accepted">
-//                   <FontAwesomeIcon icon={faCheckCircle} /> Offer Accepted!
-//                 </p>
-//               )}
-//               {bargainStatus === 'rejected' && (
-//                 <p className="status-rejected">
-//                   <FontAwesomeIcon icon={faTimesCircle} /> Offer Declined
-//                 </p>
-//               )}
-//             </div>
-//           </div>
-
-//           {/* Chat Messages */}
-//           <div className="chat-messages">
-//             {messages.length === 0 ? (
-//               <div className="no-messages">
-//                 <p>No messages yet. Start the negotiation!</p>
-//               </div>
-//             ) : (
-//             // Update your message rendering code to this:
-// // In your message rendering component:
-// messages.map((msg, index) => {
-//   const messageType = msg.sender_role === 'consumer' ? 'consumer' :
-//                      msg.sender_role === 'farmer' ? 'farmer' : 'system';
-
-//   return (
-//     <div key={`msg-${index}`} className={`message ${messageType}`}>
-//       <div className="message-content">
-//         {messageType === 'system' && <span className="system-label">System: </span>}
-//         {msg.content || msg.message_content}
-//       </div>
-//       <div className="message-meta">
-//         <span className="sender">
-//           {messageType === 'consumer' ? 'You' : 
-//            messageType === 'farmer' ? selectedFarmer?.farmer_name : 'System'}
-//         </span>
-//         <span className="timestamp">
-//           {new Date(msg.timestamp || msg.created_at).toLocaleTimeString([], {
-//             hour: '2-digit', 
-//             minute: '2-digit'
-//           })}
-//         </span>
-//       </div>
-//     </div>
-//   );
-// })
-//             )}
-//             {isTyping && (
-//               <div className="typing-indicator">
-//                 <div className="typing-dots">
-//                   <div></div>
-//                   <div></div>
-//                   <div></div>
-//                 </div>
-//                 <span>{selectedFarmer?.farmer_name} is typing...</span>
-//               </div>
-//             )}
-//             <div ref={messagesEndRef} />
-//           </div>
-
-//           {/* Chat Controls */}
-//           {/* Chat Controls */}
-//           <div className="chat-controls">
-//   {/* Show result actions when bargain is complete */}
-//   {isBargainComplete ? (
-//   <div className="bargain-result-actions">
-//     {bargainResult === 'accepted' ? (
-//       <>
-//         <h3 className="success-message">
-//           <FontAwesomeIcon icon={faCheckCircle} /> 
-//           Bargain Accepted at ₹{currentPrice}/kg
-//         </h3>
-//         <div className="action-buttons">
-//           <button onClick={() => navigate('/consumer-dashboard')} className="dashboard-btn">
-//             <FontAwesomeIcon icon={faHome} /> Dashboard
-//           </button>
-//           <button onClick={() => navigate('/consumer-orders')} className="orders-btn">
-//             <FontAwesomeIcon icon={faClipboardList} /> Orders
-//           </button>
-//           <button onClick={() => navigate('/bargain-cart')} className="cart-btn">
-//             <FontAwesomeIcon icon={faShoppingCart} /> View Cart
-//           </button>
-//           <button 
-//             onClick={() => {
-//               setIsBargainComplete(false);
-//               setBargainStatus('pending');
-//               setShowPriceSuggestions(true);
-//             }}
-//             className="bargain-again-btn"
-//           >
-//             <FontAwesomeIcon icon={faHandshake} /> Bargain Again
-//           </button>
-//         </div>
-//       </>
-//     ) : (
-//       <>
-//         <h3 className="reject-message">
-//           <FontAwesomeIcon icon={faTimesCircle} /> 
-//           Bargain Rejected
-//         </h3>
-//         <div className="action-buttons">
-//           <button onClick={() => navigate('/consumer-dashboard')} className="dashboard-btn">
-//             <FontAwesomeIcon icon={faHome} /> Dashboard
-//           </button>
-//           <button onClick={() => navigate('/consumer-orders')} className="orders-btn">
-//             <FontAwesomeIcon icon={faClipboardList} /> Orders
-//           </button>
-//         </div>
-//       </>
-//     )}
-//   </div>
-// ) : (
-//     <>
-//       {/* Show farmer's counter offer UI when available */}
-//       {hasFarmerCounterOffer && (
-//         <div className="farmer-counter-options animate__animated animate__fadeInUp">
-//           <h4>Farmer's Offer: ₹{currentPrice}/kg</h4>
-//           <div className="response-buttons">
-//           <button 
-//   onClick={handleAcceptFarmerOffer} 
-//   className="accept-btn"
-//   disabled={freezeUI}
-// >
-//   <FontAwesomeIcon icon={faCheckCircle} /> Accept
-// </button>
-
-
-//             <button 
-//               onClick={handleRejectFarmerOffer} 
-//               className="reject-btn"
-//               disabled={freezeUI}
-//             >
-//               <FontAwesomeIcon icon={faTimesCircle} /> Reject
-//             </button>
-//             <button 
-//               onClick={() => {
-//                 setShowPriceSuggestions(true);
-//                 setHasFarmerCounterOffer(false);
-//               }} 
-//               className="counter-btn"
-//               disabled={waitingForResponse}
-//             >
-//               <FontAwesomeIcon icon={faHandshake} /> Counter Offer
-//             </button>
-//           </div>
-//         </div>
-//       )}
-
-//       {/* Show price suggestions when no active counter offer */}
-//       {showPriceSuggestions && !hasFarmerCounterOffer && !isBargainComplete && (
-//         <div className="price-suggestions">
-//           <h4>Make a Counter Offer:</h4>
-//           <div className="suggestion-buttons">
-//             {priceSuggestions
-//               .filter(suggestion => suggestion.price < currentPrice)
-//               .map((suggestion, index) => (
-//                 <button
-//                   key={`price-${index}`}
-//                   onClick={() => handlePriceSelection(suggestion.price)}
-//                   className="suggestion-btn decrease"
-//                   disabled={waitingForResponse}
-//                 >
-//                   <div className="price-change">
-//                     <FontAwesomeIcon icon={faArrowDown} />
-//                     ₹{suggestion.price}
-//                   </div>
-//                   <div className="price-label">{suggestion.label}</div>
-//                 </button>
-//               ))}
-//           </div>
-//         </div>
-//       )}
-
-//       {/* Waiting indicator */}
-//       {waitingForResponse && (
-//         <div className="waiting-indicator">
-//           <FontAwesomeIcon icon={faSpinner} spin /> Waiting for farmer...
-//         </div>
-//       )}
-//     </>
-//   )}
-// </div>
-
-//         </div>
-//       )}
-      
-//     </div>
-//   );
-// };
-
-// export default BargainChatWindow;
-
-if (loading) {
   return (
-    <div className="ccw-loading-container">
-      <FontAwesomeIcon icon={faSpinner} spin size="2x" />
-      <p>Loading bargain session...</p>
-    </div>
-  );
-}
-
-return (
-  <div className="ccw-container">
-    {/* Bargain Initiation Popup */}
-    {isBargainPopupOpen && selectedFarmer && (
-      <div className="ccw-popup-overlay">
-        <div className="ccw-popup-container">
-          <div className="ccw-popup-content">
-            {/* Popup Header */}
-            <div className="ccw-popup-header">
-              <h3>
-                <FontAwesomeIcon icon={faHandshake} /> Initiate Bargain with {selectedFarmer.farmer_name}
-              </h3>
+    <div className="krishi-bargain-container">
+      {/* Bargain Initiation Popup */}
+      {isBargainPopupOpen && selectedFarmer && (
+        <div className="krishi-bargain-popup-overlay">
+          <div className="krishi-bargain-popup">
+            <div className="krishi-popup-header">
+              <div className="krishi-popup-title">
+                <FontAwesomeIcon icon={faHandshake} className="krishi-popup-icon" />
+                <h3>Initiate Bargain with {selectedFarmer.farmer_name}</h3>
+              </div>
               <button 
                 onClick={() => navigate(-1)} 
-                className="ccw-popup-close-btn"
+                className="krishi-popup-close"
                 aria-label="Close popup"
               >
                 <FontAwesomeIcon icon={faTimes} />
               </button>
             </div>
 
-            {/* Product Selection */}
-            <div className="ccw-popup-section">
-              <label className="ccw-popup-label">Select Product</label>
-              <select
-                className="ccw-popup-select"
-                value={selectedProduct?.produce_name || ''}
-                onChange={(e) => {
-                  const product = selectedFarmer.products.find(
-                    p => p.produce_name === e.target.value
-                  );
-                  setSelectedProduct(product || null);
-                  if (product) {
-                    setCurrentPrice(product.price_per_kg);
-                    setSelectedQuantity('10');
-                  }
-                }}
-              >
-                <option value="">-- Select a product --</option>
-                {selectedFarmer.products?.map(product => (
-                  <option 
-                    key={product.product_id} 
-                    value={product.produce_name}
-                    data-price={product.price_per_kg}
-                  >
-                    {product.produce_name} (₹{product.price_per_kg}/kg)
-                  </option>
-                ))}
-              </select>
-            </div>
+            <div className="krishi-popup-body">
+              {/* Product Selection */}
+              <div className="krishi-form-group">
+                <label className="krishi-form-label">Select Product</label>
+                <select
+                  className="krishi-form-select"
+                  value={selectedProduct?.produce_name || ''}
+                  onChange={(e) => {
+                    const product = selectedFarmer.products.find(
+                      p => p.produce_name === e.target.value
+                    );
+                    setSelectedProduct(product || null);
+                    if (product) {
+                      setCurrentPrice(product.price_per_kg);
+                      setSelectedQuantity('10');
+                    }
+                  }}
+                >
+                  <option value="">-- Select a product --</option>
+                  {selectedFarmer.products?.map(product => (
+                    <option 
+                      key={product.product_id} 
+                      value={product.produce_name}
+                      data-price={product.price_per_kg}
+                    >
+                      {product.produce_name} (₹{product.price_per_kg}/kg)
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            {/* Product Details */}
-            {selectedProduct && (
-              <>
-                <div className="ccw-popup-section ccw-product-details">
-                  <div className="ccw-detail-row">
-                    <span className="ccw-detail-label">Category:</span>
-                    <span className="ccw-detail-value">{selectedProduct.produce_type}</span>
-                  </div>
-                  <div className="ccw-detail-row">
-                    <span className="ccw-detail-label">Availability:</span>
-                    <span className="ccw-detail-value">{selectedProduct.availability} kg</span>
-                  </div>
-                </div>
-
-                {/* Quantity Selection */}
-                <div className="ccw-popup-section">
-                  <label className="ccw-popup-label">Quantity (kg)</label>
-                  <div className="ccw-quantity-container">
-                    <input
-                      type="number"
-                      className="ccw-popup-input"
-                      min={selectedProduct?.minimum_quantity || 10} 
-                      max={selectedProduct.availability}
-                      value={selectedQuantity}
-                      onChange={(e) => {
-                        const minQty = selectedProduct.minimum_quantity || 10;
-                        const val = Math.min(
-                          selectedProduct?.availability || 0,
-                          Math.max(minQty, e.target.value ? parseFloat(e.target.value) : minQty)
-                        );
-                        setSelectedQuantity(val);
-                      }}
-                      placeholder="Enter quantity"
-                    />
-                    <div className="ccw-quantity-range">
-                      <span>Min: {selectedProduct.minimum_quantity || 10} kg</span>
-                      <span>Max: {selectedProduct.availability} kg</span>
+              {/* Product Details */}
+              {selectedProduct && (
+                <>
+                  <div className="krishi-product-details">
+                    <div className="krishi-detail-item">
+                      <FontAwesomeIcon icon={faLeaf} className="krishi-detail-icon" />
+                      <span className="krishi-detail-label">Category:</span>
+                      <span className="krishi-detail-value">{selectedProduct.produce_type}</span>
+                    </div>
+                    <div className="krishi-detail-item">
+                      <FontAwesomeIcon icon={faWeightHanging} className="krishi-detail-icon" />
+                      <span className="krishi-detail-label">Availability:</span>
+                      <span className="krishi-detail-value">{selectedProduct.availability} kg</span>
                     </div>
                   </div>
-                </div>
 
-                {/* Price Display */}
-                <div className="ccw-price-summary">
-                  <div className="ccw-price-row">
-                    <span>Unit Price:</span>
-                    <span>₹{selectedProduct.price_per_kg}/kg</span>
+                  {/* Quantity Selection */}
+                  <div className="krishi-form-group">
+                    <label className="krishi-form-label">Quantity (kg)</label>
+                    <div className="krishi-quantity-control">
+                      <input
+                        type="number"
+                        className="krishi-form-input"
+                        min={selectedProduct?.minimum_quantity || 10} 
+                        max={selectedProduct.availability}
+                        value={selectedQuantity}
+                        onChange={(e) => {
+                          const minQty = selectedProduct.minimum_quantity || 10;
+                          const val = Math.min(
+                            selectedProduct?.availability || 0,
+                            Math.max(minQty, e.target.value ? parseFloat(e.target.value) : minQty)
+                          );
+                          setSelectedQuantity(val);
+                        }}
+                        placeholder="Enter quantity"
+                      />
+                      <div className="krishi-quantity-range">
+                        <span>Min: {selectedProduct.minimum_quantity || 10} kg</span>
+                        <span>Max: {selectedProduct.availability} kg</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="ccw-price-row ccw-total">
-                    <span>Total Price:</span>
-                    <span>
-                      ₹{(selectedProduct.price_per_kg * (parseFloat(selectedQuantity) || 0).toFixed(2))}
-                    </span>
-                  </div>
-                </div>
-              </>
-            )}
 
-            {/* Error Message */}
-            {error && (
-              <div className="ccw-popup-error">
-                <FontAwesomeIcon icon={faTimesCircle} />
-                <span>{error.includes('JSON') ? 'Server error' : error}</span>
-              </div>
-            )}
+                  {/* Price Summary */}
+                  <div className="krishi-price-summary">
+                    <div className="krishi-price-row">
+                      <span>Unit Price:</span>
+                      <span>₹{selectedProduct.price_per_kg}/kg</span>
+                    </div>
+                    <div className="krishi-price-row krishi-price-total">
+                      <span>Total Price:</span>
+                      <span>
+                        ₹{(selectedProduct.price_per_kg * (parseFloat(selectedQuantity) || 0).toFixed(2))}
+                      </span>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Error Message */}
+              {error && (
+                <div className="krishi-error-message">
+                  <FontAwesomeIcon icon={faTimesCircle} />
+                  <span>{error.includes('JSON') ? 'Server error' : error}</span>
+                </div>
+              )}
+            </div>
 
             {/* Action Buttons */}
-            <div className="ccw-popup-actions">
+            <div className="krishi-popup-actions">
               <button
                 onClick={() => navigate(-1)}
-                className="ccw-popup-cancel-btn"
+                className="krishi-btn krishi-btn-secondary"
               >
                 Cancel
               </button>
@@ -1446,7 +894,7 @@ return (
               <button
                 onClick={handleBargainConfirm}
                 disabled={!selectedProduct || isLoading}
-                className={`ccw-bargain-btn ${isLoading ? 'loading' : ''}`}
+                className={`krishi-btn krishi-btn-primary ${isLoading ? 'krishi-loading' : ''}`}
               >
                 {isLoading ? (
                   <>
@@ -1463,240 +911,262 @@ return (
             </div>
           </div>
         </div>
-      </div>
-    )}
+      )}
 
-    {/* Chat Interface */}
-    {selectedProduct && !isBargainPopupOpen && (
-      <div className="ccw-chat-interface">
-
-        <button 
-          onClick={() => navigate('/consumer-dashboard')} 
-          className="ccw-exit-btn"
-          title="Exit Chat"
-        >
-          <FontAwesomeIcon icon={faDoorOpen} />
-          <span>Exit</span>
-        </button>
-        
-        {/* Chat Header */}
-        <div className="ccw-chat-header">
-          <div className="ccw-header-top">
-            <h2>
-              <FontAwesomeIcon icon={faRupeeSign} /> Bargaining with {selectedFarmer?.farmer_name}
-            </h2>
-            <span className={`ccw-connection-status ${connectionStatus}`}>
-              {connectionStatus.toUpperCase()}
-            </span>
-          </div>
-          
-          <div className="ccw-product-info">
-            <p><strong>Product:</strong> {selectedProduct.produce_name}</p>
-            <p><strong>Quantity:</strong> {selectedQuantity || quantity}kg</p>
-            <div className="ccw-price-display">
-              <span className="ccw-current-price">
-                <strong>Current:</strong> ₹{currentPrice}/kg
-              </span>
-              <span className="ccw-base-price">
-                <strong>Base:</strong> ₹{selectedProduct.price_per_kg}/kg
-              </span>
-              <span className="ccw-total-price">
-                <strong>Total:</strong> ₹{(selectedQuantity * currentPrice).toFixed(2)}
-              </span>
-            </div>
-            {bargainStatus === 'accepted' && (
-              <p className="ccw-status-accepted">
-                <FontAwesomeIcon icon={faCheckCircle} /> Offer Accepted!
-              </p>
-            )}
-            {bargainStatus === 'rejected' && (
-              <p className="ccw-status-rejected">
-                <FontAwesomeIcon icon={faTimesCircle} /> Offer Declined
-              </p>
-            )}
-          </div>
+      {/* Chat Interface */}
+      {selectedProduct && !isBargainPopupOpen && (
+  <div className="krishi-chat-interface">
+    {/* Chat Header - Moved exit button inside the header */}
+    <div className="krishi-chat-header">
+      <div className="krishi-chat-header-top">
+        <div className="krishi-chat-title">
+          <FontAwesomeIcon icon={faRupeeSign} />
+          <h2>Bargaining with {selectedFarmer?.farmer_name}</h2>
         </div>
-
-        {/* Chat Messages */}
-        <div className="ccw-messages-container">
-          {messages.length === 0 ? (
-            <div className="ccw-no-messages">
-              <p>No messages yet. Start the negotiation!</p>
-            </div>
-          ) : (
-            messages.map((msg, index) => {
-              const messageType = msg.sender_role === 'consumer' ? 'consumer' :
-                                msg.sender_role === 'farmer' ? 'farmer' : 'system';
-
-              return (
-                <div key={`msg-${index}`} className={`ccw-message ${messageType}`}>
-                  <div className="ccw-message-content">
-                    {messageType === 'system' && <span className="ccw-system-label">System: </span>}
-                    {msg.content || msg.message_content}
-                  </div>
-                  <div className="ccw-message-meta">
-                    <span className="ccw-sender">
-                      {messageType === 'consumer' ? 'You' : 
-                      messageType === 'farmer' ? selectedFarmer?.farmer_name : 'System'}
-                    </span>
-                    <span className="ccw-timestamp">
-                      {new Date(msg.timestamp || msg.created_at).toLocaleTimeString([], {
-                        hour: '2-digit', 
-                        minute: '2-digit'
-                      })}
-                    </span>
-                  </div>
-                </div>
-              );
-            })
-          )}
-          {isTyping && (
-            <div className="ccw-typing-indicator">
-              <div className="ccw-typing-dots">
-                <div></div>
-                <div></div>
-                <div></div>
-              </div>
-              <span>{selectedFarmer?.farmer_name} is typing...</span>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Chat Controls */}
-        <div className="ccw-controls-container">
-          {/* Show result actions when bargain is complete */}
-          {isBargainComplete ? (
-            <div className="ccw-result-actions">
-              {bargainResult === 'accepted' ? (
-                <>
-                  <h3 className="ccw-success-message">
-                    <FontAwesomeIcon icon={faCheckCircle} /> 
-                    Bargain Accepted at ₹{currentPrice}/kg
-                  </h3>
-                  <div className="ccw-action-buttons">
-                    <button onClick={() => navigate('/consumer-dashboard')} className="ccw-dashboard-btn">
-                      <FontAwesomeIcon icon={faHome} /> Dashboard
-                    </button>
-                    <button onClick={() => navigate('/consumer-orders')} className="ccw-orders-btn">
-                      <FontAwesomeIcon icon={faClipboardList} /> Orders
-                    </button>
-                    <button onClick={() => navigate('/bargain-cart')} className="ccw-cart-btn">
-                      <FontAwesomeIcon icon={faShoppingCart} /> View Cart
-                    </button>
-                    <button 
-                      onClick={() => {
-                        setIsBargainComplete(false);
-                        setBargainStatus('pending');
-                        setShowPriceSuggestions(true);
-                        navigate(`/consumer-dashboard`);
-                      }}
-                      className="ccw-bargain-again-btn"
-                    >
-                      <FontAwesomeIcon icon={faHandshake} /> Bargain Again
-                    </button>
-
-                  </div>
-                </>
-              ) : (
-                <>
-                  <h3 className="ccw-reject-message">
-                    <FontAwesomeIcon icon={faTimesCircle} /> 
-                    Bargain Rejected
-                  </h3>
-                  <div className="ccw-action-buttons">
-                    <button onClick={() => navigate('/consumer-dashboard')} className="ccw-dashboard-btn">
-                      <FontAwesomeIcon icon={faHome} /> Dashboard
-                    </button>
-                    <button onClick={() => navigate('/consumer-orders')} className="ccw-orders-btn">
-                      <FontAwesomeIcon icon={faClipboardList} /> Orders
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          ) : (
-            <>
-              {/* Show farmer's counter offer UI when available */}
-              {hasFarmerCounterOffer && (
-                <div className="ccw-counter-options">
-                  <h4>Farmer's Offer: ₹{currentPrice}/kg</h4>
-                  <div className="ccw-response-buttons">
-                    <button 
-                      onClick={handleAcceptFarmerOffer} 
-                      className="ccw-accept-btn"
-                      disabled={freezeUI}
-                    >
-                      <FontAwesomeIcon icon={faCheckCircle} /> Accept
-                    </button>
-                    <button 
-                      onClick={handleRejectFarmerOffer} 
-                      className="ccw-reject-btn"
-                      disabled={freezeUI}
-                    >
-                      <FontAwesomeIcon icon={faTimesCircle} /> Reject
-                    </button>
-                    <button 
-                      onClick={() => {
-                        setShowPriceSuggestions(true);
-                        setHasFarmerCounterOffer(false);
-                      }} 
-                      className="ccw-counter-btn"
-                      disabled={waitingForResponse}
-                    >
-                      <FontAwesomeIcon icon={faHandshake} /> Counter Offer
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Show price suggestions when no active counter offer */}
-              {showPriceSuggestions && !hasFarmerCounterOffer && !isBargainComplete && (
-  <div className="ccw-price-suggestions">
-    <div className="ccw-suggestion-header">
-      <h4>Make a Counter Offer:*</h4>
-      <button 
-        onClick={() => setShowPriceSuggestions(false)}
-        className="ccw-close-suggestions"
-        title="Close suggestions"
-      >
-        <FontAwesomeIcon icon={faTimes} />
-      </button>
-    </div>
-    <div className="ccw-suggestion-buttons">
-      {priceSuggestions
-        .filter(suggestion => suggestion.price < currentPrice)
-        .map((suggestion, index) => (
-          <button
-            key={`price-${index}`}
-            onClick={() => handlePriceSelection(suggestion.price)}
-            className="ccw-suggestion-btn ccw-decrease"
-            disabled={waitingForResponse}
+        <div className="krishi-header-controls">
+          <span className={`krishi-connection-status krishi-status-${connectionStatus}`}>
+            {connectionStatus.toUpperCase()}
+          </span>
+          <button 
+            onClick={() => navigate('/consumer-dashboard')} 
+            className="krishi-exit-btn"
+            title="Exit Chat"
           >
-            <div className="ccw-price-change">
-              <FontAwesomeIcon icon={faArrowDown} />
-              ₹{suggestion.price}
-            </div>
-            <div className="ccw-price-label">{suggestion.label}</div>
+            <FontAwesomeIcon icon={faDoorOpen} />
+            <span>Exit</span>
           </button>
-        ))}
-    </div>
-  </div>
-)}
-
-              {/* Waiting indicator */}
-              {waitingForResponse && (
-                <div className="ccw-waiting-indicator">
-                  <FontAwesomeIcon icon={faSpinner} spin /> Waiting for farmer...
-                </div>
-              )}
-            </>
-          )}
         </div>
       </div>
-    )}
-  </div>
-);
+            <div className="krishi-chat-product-info">
+              <div className="krishi-product-row">
+                <span className="krishi-product-label">Product:</span>
+                <span className="krishi-product-value">{selectedProduct.produce_name}</span>
+              </div>
+              <div className="krishi-product-row">
+                <span className="krishi-product-label">Quantity:</span>
+                <span className="krishi-product-value">{selectedQuantity || quantity}kg</span>
+              </div>
+              <div className="krishi-price-info">
+                <div className="krishi-price-item">
+                  <span className="krishi-price-label">Current:</span>
+                  <span className="krishi-price-value">₹{currentPrice}/kg</span>
+                </div>
+                <div className="krishi-price-item">
+                  <span className="krishi-price-label">Base:</span>
+                  <span className="krishi-price-value">₹{selectedProduct.price_per_kg}/kg</span>
+                </div>
+                <div className="krishi-price-item krishi-price-total">
+                  <span className="krishi-price-label">Total:</span>
+                  <span className="krishi-price-value">₹{(selectedQuantity * currentPrice).toFixed(2)}</span>
+                </div>
+              </div>
+              {bargainStatus === 'accepted' && (
+                <div className="krishi-status-message krishi-status-accepted">
+                  <FontAwesomeIcon icon={faCheckCircle} />
+                  <span>Offer Accepted!</span>
+                </div>
+              )}
+              {bargainStatus === 'rejected' && (
+                <div className="krishi-status-message krishi-status-rejected">
+                  <FontAwesomeIcon icon={faTimesCircle} />
+                  <span>Offer Declined</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Chat Messages */}
+          <div className="krishi-messages-container">
+            {messages.length === 0 ? (
+              <div className="krishi-no-messages">
+                <p>No messages yet. Start the negotiation!</p>
+              </div>
+            ) : (
+              messages.map((msg, index) => {
+                const messageType = msg.sender_role === 'consumer' ? 'consumer' :
+                                  msg.sender_role === 'farmer' ? 'farmer' : 'system';
+
+                return (
+                  <div key={`msg-${index}`} className={`krishi-message krishi-message-${messageType}`}>
+                    <div className="krishi-message-content">
+                      {messageType === 'system' && <span className="krishi-system-label">System: </span>}
+                      {msg.content || msg.message_content}
+                    </div>
+                    <div className="krishi-message-meta">
+                      <span className="krishi-message-sender">
+                        {messageType === 'consumer' ? 'You' : 
+                        messageType === 'farmer' ? selectedFarmer?.farmer_name : 'System'}
+                      </span>
+                      <span className="krishi-message-time">
+                        {new Date(msg.timestamp || msg.created_at).toLocaleTimeString([], {
+                          hour: '2-digit', 
+                          minute: '2-digit'
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+            {isTyping && (
+              <div className="krishi-typing-indicator">
+                <div className="krishi-typing-dots">
+                  <div></div>
+                  <div></div>
+                  <div></div>
+                </div>
+                <span>{selectedFarmer?.farmer_name} is typing...</span>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Chat Controls */}
+          <div className="krishi-chat-controls">
+            {/* Show result actions when bargain is complete */}
+            {isBargainComplete ? (
+              <div className="krishi-result-actions">
+                {bargainResult === 'accepted' ? (
+                  <>
+                    <div className="krishi-result-success">
+                      <FontAwesomeIcon icon={faCheckCircle} />
+                      <h3>Bargain Accepted at ₹{currentPrice}/kg</h3>
+                    </div>
+                    <div className="krishi-action-buttons">
+                      <button onClick={() => navigate('/consumer-dashboard')} className="krishi-action-btn krishi-btn-dashboard">
+                        <FontAwesomeIcon icon={faHome} />
+                        <span>Dashboard</span>
+                      </button>
+                      <button onClick={() => navigate('/consumer-orders')} className="krishi-action-btn krishi-btn-orders">
+                        <FontAwesomeIcon icon={faClipboardList} />
+                        <span>Orders</span>
+                      </button>
+                      <button onClick={() => navigate('/bargain-cart')} className="krishi-action-btn krishi-btn-cart">
+                        <FontAwesomeIcon icon={faShoppingCart} />
+                        <span>View Cart</span>
+                      </button>
+                      <button 
+                        onClick={() => {
+                          setIsBargainComplete(false);
+                          setBargainStatus('pending');
+                          setShowPriceSuggestions(true);
+                          navigate(`/consumer-dashboard`);
+                        }}
+                        className="krishi-action-btn krishi-btn-bargain"
+                      >
+                        <FontAwesomeIcon icon={faHandshake} />
+                        <span>Bargain Again</span>
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="krishi-result-rejected">
+                      <FontAwesomeIcon icon={faTimesCircle} />
+                      <h3>Bargain Rejected</h3>
+                    </div>
+                    <div className="krishi-action-buttons">
+                      <button onClick={() => navigate('/consumer-dashboard')} className="krishi-action-btn krishi-btn-dashboard">
+                        <FontAwesomeIcon icon={faHome} />
+                        <span>Dashboard</span>
+                      </button>
+                      <button onClick={() => navigate('/consumer-orders')} className="krishi-action-btn krishi-btn-orders">
+                        <FontAwesomeIcon icon={faClipboardList} />
+                        <span>Orders</span>
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : (
+              <>
+                {/* Show farmer's counter offer UI when available */}
+                {hasFarmerCounterOffer && (
+                  <div className="krishi-counter-offer">
+                    <div className="krishi-offer-header">
+                      <FontAwesomeIcon icon={faUserTie} />
+                      <h4>Farmer's Offer: ₹{currentPrice}/kg</h4>
+                    </div>
+                    <div className="krishi-offer-actions">
+                      <button 
+                        onClick={handleAcceptFarmerOffer} 
+                        className="krishi-offer-btn krishi-offer-accept"
+                        disabled={freezeUI}
+                      >
+                        <FontAwesomeIcon icon={faCheckCircle} />
+                        <span>Accept</span>
+                      </button>
+                      <button 
+                        onClick={handleRejectFarmerOffer} 
+                        className="krishi-offer-btn krishi-offer-reject"
+                        disabled={freezeUI}
+                      >
+                        <FontAwesomeIcon icon={faTimesCircle} />
+                        <span>Reject</span>
+                      </button>
+                      <button 
+                        onClick={() => {
+                          setShowPriceSuggestions(true);
+                          setHasFarmerCounterOffer(false);
+                        }} 
+                        className="krishi-offer-btn krishi-offer-counter"
+                        disabled={waitingForResponse}
+                      >
+                        <FontAwesomeIcon icon={faHandshake} />
+                        <span>Counter Offer</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Show price suggestions when no active counter offer */}
+                {showPriceSuggestions && !hasFarmerCounterOffer && !isBargainComplete && (
+                  <div className="krishi-price-suggestions">
+                    <div className="krishi-suggestion-header">
+                      <h4>Make a Counter Offer</h4>
+                      <button 
+                        onClick={() => setShowPriceSuggestions(false)}
+                        className="krishi-close-suggestions"
+                        title="Close suggestions"
+                      >
+                        <FontAwesomeIcon icon={faTimes} />
+                      </button>
+                    </div>
+                    <div className="krishi-suggestion-grid">
+                      {priceSuggestions
+                        .filter(suggestion => suggestion.price < currentPrice)
+                        .map((suggestion, index) => (
+                          <button
+                            key={`price-${index}`}
+                            onClick={() => handlePriceSelection(suggestion.price)}
+                            className="krishi-suggestion-btn"
+                            disabled={waitingForResponse}
+                          >
+                            <div className="krishi-suggestion-price">
+                              <FontAwesomeIcon icon={faArrowDown} />
+                              <span>₹{suggestion.price}</span>
+                            </div>
+                            <div className="krishi-suggestion-label">{suggestion.label}</div>
+                          </button>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Waiting indicator */}
+                {waitingForResponse && (
+                  <div className="krishi-waiting-indicator">
+                    <FontAwesomeIcon icon={faSpinner} spin />
+                    <span>Waiting for farmer's response...</span>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default BargainChatWindow;
