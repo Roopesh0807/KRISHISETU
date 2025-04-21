@@ -229,7 +229,7 @@ const CartPage = () => {
               `https://api.pexels.com/v1/search?query=${encodeURIComponent(item.product_name)}&per_page=1`,
               {
                 headers: {
-                  Authorization: 'YOUR_PEXELS_API_KEY' // Replace with your actual key
+                  Authorization: 'uONxxczjZM1uaDw2jsGQPV70vtBfQbuyHcKeJ0aaCwsK0xxbo5HDpamR' // Replace with your actual key
                 }
               }
             );
