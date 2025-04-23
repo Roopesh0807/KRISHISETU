@@ -1,1301 +1,3 @@
-// // // // import React, { useState, useEffect } from 'react';
-// // // // import { useParams, useNavigate } from 'react-router-dom';
-// // // // import { useAuth } from '../../context/AuthContext';
-// // // // import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-// // // // import { faSpinner, faRupeeSign } from '@fortawesome/free-solid-svg-icons';
-// // // // import './ConsumerChatList.css';
-
-// // // // const ConsumerChatList = () => {
-// // // //   const { id } = useParams();
-// // // //   const navigate = useNavigate();
-// // // //   const { consumer } = useAuth();
-// // // //   const [farmers, setFarmers] = useState([]);
-// // // //   const [loading, setLoading] = useState(true);
-// // // //   const [selectedFarmer, setSelectedFarmer] = useState(null);
-// // // //   const [searchTerm, setSearchTerm] = useState('');
-// // // //   const [error, setError] = useState(null);
-
-// // // //   useEffect(() => {
-// // // //     const fetchFarmers = async () => {
-// // // //       try {
-// // // //         setLoading(true);
-// // // //         setError(null);
-
-// // // //         if (!consumer?.token) {
-// // // //           navigate('/LoginPage');
-// // // //           return;
-// // // //         }
-
-// // // //         const response = await fetch(
-// // // //           `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/farmers`,
-// // // //           {
-// // // //             headers: {
-// // // //               'Authorization': `Bearer ${consumer.token}`,
-// // // //             },
-// // // //             credentials: 'include'
-// // // //           }
-// // // //         );
-
-// // // //         if (!response.ok) {
-// // // //           throw new Error(`Request failed with status ${response.status}`);
-// // // //         }
-
-// // // //         const data = await response.json();
-        
-// // // //         // Transform data to match your frontend structure
-// // // //         const formattedFarmers = data.map(farmer => ({
-// // // //           farmer_id: farmer.farmer_id,
-// // // //           farmer_name: farmer.name || 'Unknown Farmer',
-// // // //           location: farmer.location || 'Unknown Location',
-// // // //           rating: farmer.rating || 0,
-// // // //           products: farmer.products || [],
-// // // //           last_active: farmer.last_active || new Date().toISOString()
-// // // //         }));
-
-// // // //         setFarmers(formattedFarmers);
-// // // //       } catch (error) {
-// // // //         console.error('Fetch error:', error);
-// // // //         setError(error.message);
-        
-// // // //         if (error.message.includes('401') || error.message.includes('Authentication')) {
-// // // //           navigate('/LoginPage');
-// // // //         }
-// // // //       } finally {
-// // // //         setLoading(false);
-// // // //       }
-// // // //     };
-
-// // // //     fetchFarmers();
-// // // //   }, [consumer, navigate]);
-
-// // // //   const handleFarmerSelect = (farmer) => {
-// // // //     if (!consumer?.token) {
-// // // //       navigate('/LoginPage');
-// // // //       return;
-// // // //     }
-// // // //     setSelectedFarmer(farmer);
-// // // //     navigate(`/bargain/${bargainId}`);
-// // // //   };
-
-// // // //   const filteredFarmers = farmers.filter(farmer => {
-// // // //     const farmerName = farmer.farmer_name.toLowerCase();
-// // // //     const location = farmer.location.toLowerCase();
-// // // //     return (
-// // // //       farmerName.includes(searchTerm.toLowerCase()) ||
-// // // //       location.includes(searchTerm.toLowerCase())
-// // // //     );
-// // // //   });
-
-// // // //   const formatTime = (timestamp) => {
-// // // //     if (!timestamp) return "";
-// // // //     const date = new Date(timestamp);
-// // // //     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-// // // //   };
-
-// // // //   if (loading) return (
-// // // //     <div className="loading-container">
-// // // //       <FontAwesomeIcon icon={faSpinner} spin size="2x" />
-// // // //       <p>Loading farmers...</p>
-// // // //     </div>
-// // // //   );
-
-// // // //   if (error) return <div className="error">Error: {error}</div>;
-
-// // // //   return (
-// // // //     <div className="consumer-chat-app">
-// // // //       <div className="chat-sidebar">
-// // // //         <div className="sidebar-header">
-// // // //           <h2>Available Farmers</h2>
-// // // //         </div>
-        
-// // // //         <div className="search-bar">
-// // // //           <input
-// // // //             type="text"
-// // // //             placeholder="Search by farmer or location..."
-// // // //             value={searchTerm}
-// // // //             onChange={(e) => setSearchTerm(e.target.value)}
-// // // //           />
-// // // //         </div>
-  
-// // // //         <div className="farmer-list">
-// // // //           {filteredFarmers.length === 0 ? (
-// // // //             <div className="empty-state">
-// // // //               {searchTerm ? (
-// // // //                 <p>No matching farmers found</p>
-// // // //               ) : (
-// // // //                 <p>No farmers available</p>
-// // // //               )}
-// // // //             </div>
-// // // //           ) : (
-// // // //             filteredFarmers.map((farmer) => (
-// // // //               <div
-// // // //                 key={farmer.farmer_id}
-// // // //                 className={`farmer-card ${id === farmer.farmer_id ? "active" : ""}`}
-// // // //                 onClick={() => handleFarmerSelect(farmer)}
-// // // //               >
-// // // //                 <div className="farmer-avatar">
-// // // //                   {farmer.farmer_name.charAt(0).toUpperCase()}
-// // // //                 </div>
-                
-// // // //                 <div className="farmer-content">
-// // // //                   <div className="farmer-header">
-// // // //                     <h3>{farmer.farmer_name}</h3>
-// // // //                     <span className="farmer-location">
-// // // //                       {farmer.location}
-// // // //                     </span>
-// // // //                   </div>
-                  
-// // // //                   <div className="farmer-details">
-// // // //                     <p className="rating-info">
-// // // //                       Rating: {farmer.rating}/5
-// // // //                     </p>
-// // // //                     <p className="products-info">
-// // // //                       Products: {farmer.products.length}
-// // // //                     </p>
-// // // //                   </div>
-// // // //                 </div>
-                
-// // // //                 <div className="last-active">
-// // // //                   Active: {formatTime(farmer.last_active)}
-// // // //                 </div>
-// // // //               </div>
-// // // //             ))
-// // // //           )}
-// // // //         </div>
-// // // //       </div>
-  
-// // // //       <div className="chat-window-container">
-// // // //         {selectedFarmer ? (
-// // // //           <div className="farmer-chat-window">
-// // // //             {/* This would be replaced with your actual chat component */}
-// // // //             <div className="farmer-info">
-// // // //               <h3>Start bargaining with {selectedFarmer.farmer_name}</h3>
-// // // //               <p>Select a product to begin negotiation</p>
-// // // //             </div>
-// // // //           </div>
-// // // //         ) : (
-// // // //           <div className="empty-chat-window">
-// // // //             <div className="empty-content">
-// // // //               <h3>Select a farmer</h3>
-// // // //               <p>Choose a farmer from the sidebar to start bargaining</p>
-// // // //             </div>
-// // // //           </div>
-// // // //         )}
-// // // //       </div>
-// // // //     </div>
-// // // //   );
-// // // // };
-
-// // // // export default ConsumerChatList;
-
-// // // import React, { useState, useEffect, useRef, useCallback } from "react";
-// // // import { useParams, useNavigate } from "react-router-dom";
-// // // import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-// // // import { faRupeeSign, faSpinner } from "@fortawesome/free-solid-svg-icons";
-// // // import { io } from 'socket.io-client';
-// // // import ConsumerChatWindow from "./ConsumerChatWindow";
-// // // import "./ConsumerChatList.css";
-
-// // // const ConsumerChatList = () => {
-// // //   const { id } = useParams();
-// // //   const navigate = useNavigate();
-// // //   const [bargainSessions, setBargainSessions] = useState([]);
-// // //   const [loading, setLoading] = useState(true);
-// // //   const [selectedSession, setSelectedSession] = useState(null);
-// // //   const socket = useRef(null);
-// // //   const reconnectAttempts = useRef(0);
-// // //   const [connectionStatus, setConnectionStatus] = useState("connecting");
-// // //   const [newMessages, setNewMessages] = useState({});
-// // //   const [searchTerm, setSearchTerm] = useState("");
-
-// // //   // Get token from consumer's localStorage with validation
-// // //   const getToken = () => {
-// // //     try {
-// // //       const consumerData = localStorage.getItem("consumer");
-// // //       if (!consumerData) {
-// // //         navigate("/loginPage");
-// // //         return null;
-// // //       }
-
-// // //       const parsedData = JSON.parse(consumerData);
-// // //       if (!parsedData?.token) {
-// // //         navigate("/loginPage");
-// // //         return null;
-// // //       }
-
-// // //       // Verify token structure
-// // //       const decoded = JSON.parse(atob(parsedData.token.split('.')[1]));
-// // //       if (!decoded?.consumer_id) {
-// // //         console.error("Token missing consumer_id");
-// // //         navigate("/loginPage");
-// // //         return null;
-// // //       }
-// // //       return parsedData.token;
-// // //     } catch (e) {
-// // //       console.error("Token parsing error:", e);
-// // //       navigate("/loginPage");
-// // //       return null;
-// // //     }
-// // //   };
-
-// // //   // WebSocket connection management
-// // //   const initializeSocketConnection = useCallback(() => {
-// // //     const token = getToken();
-// // //     if (!token) return;
-
-// // //     const decodedToken = JSON.parse(atob(token.split(".")[1]));
-// // //     const consumerId = decodedToken.consumer_id;
-
-// // //     // Close existing connection if any
-// // //     if (socket.current) {
-// // //       socket.current.disconnect();
-// // //       socket.current = null;
-// // //     }
-
-// // //     socket.current = io(process.env.REACT_APP_API_BASE_URL || "http://localhost:5000", {
-// // //       auth: { token },
-// // //       query: { consumerId },
-// // //       transports: ['websocket'],
-// // //       withCredentials: true,
-// // //       extraHeaders: { Authorization: `Bearer ${token}` }
-// // //     });
-    
-// // //     // Connection events
-// // //     socket.current.on('connect', () => {
-// // //       console.log("Socket connected");
-// // //       setConnectionStatus("connected");
-// // //       reconnectAttempts.current = 0;
-// // //     });
-
-// // //     socket.current.on('connect_error', (err) => {
-// // //       console.error("Connection error:", err.message);
-// // //       setConnectionStatus("error");
-      
-// // //       const maxAttempts = 5;
-// // //       if (reconnectAttempts.current < maxAttempts) {
-// // //         const delay = Math.min(30000, (2 ** reconnectAttempts.current) * 1000);
-// // //         reconnectAttempts.current += 1;
-// // //         setTimeout(() => initializeSocketConnection(), delay);
-// // //       }
-// // //     });
-
-// // //     socket.current.on('disconnect', (reason) => {
-// // //       console.log("Socket disconnected:", reason);
-// // //       setConnectionStatus("disconnected");
-// // //     });
-
-// // //     // Application events
-// // //     socket.current.on('priceUpdate', (data) => {
-// // //       setBargainSessions(prev => 
-// // //         prev.map(session => 
-// // //           session.bargain_id === data.bargain_id 
-// // //             ? { ...session, current_price: data.newPrice } 
-// // //             : session
-// // //         )
-// // //       );
-// // //     });
-
-// // //     socket.current.on('bargainStatusUpdate', (data) => {
-// // //       setBargainSessions(prev => 
-// // //         prev.map(session => 
-// // //           session.bargain_id === data.bargain_id 
-// // //             ? { ...session, status: data.status } 
-// // //             : session
-// // //         )
-// // //       );
-// // //     });
-
-// // //     socket.current.on('newMessage', (message) => {
-// // //       setBargainSessions(prev => {
-// // //         const updated = prev.map(session => {
-// // //           if (session.bargain_id === message.bargain_id) {
-// // //             return {
-// // //               ...session,
-// // //               last_message: message,
-// // //               unread_count: (session.unread_count || 0) + 1,
-// // //               updated_at: new Date().toISOString(),
-// // //             };
-// // //           }
-// // //           return session;
-// // //         });
-// // //         return updated.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
-// // //       });
-
-// // //       setNewMessages(prev => ({
-// // //         ...prev,
-// // //         [message.bargain_id]: (prev[message.bargain_id] || 0) + 1
-// // //       }));
-// // //     });
-
-// // //     socket.current.on('error', (error) => {
-// // //       console.error("Socket error:", error);
-// // //     });
-
-// // //     return () => {
-// // //       if (socket.current) {
-// // //         socket.current.disconnect();
-// // //       }
-// // //     };
-// // //   }, [navigate]);
-
-// // //   // Fetch bargain sessions for the consumer
-// // // // Update the fetchSessions function in ConsumerChatList.js
-// // // const fetchSessions = useCallback(async () => {
-// // //   try {
-// // //     const token = getToken();
-// // //     if (!token) return;
-
-// // //     const decodedToken = JSON.parse(atob(token.split(".")[1]));
-// // //     const consumerId = decodedToken.consumer_id;
-// // //     const apiUrl = `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/bargain/sessions/consumers/${consumerId}`;
-
-// // //     const response = await fetch(apiUrl, {
-// // //       headers: {
-// // //         'Authorization': `Bearer ${token}`,
-// // //         'Accept': 'application/json',
-// // //         'Content-Type': 'application/json'
-// // //       },
-// // //       credentials: 'include'
-// // //     });
-
-// // //     if (!response.ok) {
-// // //       throw new Error(`HTTP error! status: ${response.status}`);
-// // //     }
-
-// // //     const data = await response.json();
-    
-// // //     // Transform the data to match our expected format
-// // //     const validatedSessions = Array.isArray(data) 
-// // //       ? data.map(session => ({
-// // //           bargain_id: session.bargain_id,
-// // //           farmer_id: session.farmer_id,
-// // //           farmer_name: session.farmer_name || `Farmer ${session.farmer_id}`,
-// // //           product_name: session.product_name || 'Product',
-// // //           quantity: session.quantity || 1,
-// // //           current_price: session.current_price || 0,
-// // //           initial_price: session.initial_price || session.current_price || 0,
-// // //           status: session.status || 'pending',
-// // //           created_at: session.created_at,
-// // //           updated_at: session.updated_at || session.created_at,
-// // //           last_message: session.last_message || null,
-// // //           unread_count: session.unread_count || 0
-// // //         }))
-// // //       : [];
-
-// // //     setBargainSessions(validatedSessions);
-// // //   } catch (error) {
-// // //     console.error("Error fetching sessions:", error);
-// // //     if (error.message.includes("401")) {
-// // //       navigate("/loginPage");
-// // //     }
-// // //   } finally {
-// // //     setLoading(false);
-// // //   }
-// // // }, [navigate]);
-
-// // //   // Initial fetch and periodic refresh
-// // //   useEffect(() => {
-// // //     fetchSessions();
-// // //     const interval = setInterval(fetchSessions, 10000);
-// // //     return () => clearInterval(interval);
-// // //   }, [fetchSessions]);
-
-// // //   // Initialize socket connection
-// // //   useEffect(() => {
-// // //     initializeSocketConnection();
-// // //     return () => {
-// // //       if (socket.current) {
-// // //         socket.current.disconnect();
-// // //       }
-// // //     };
-// // //   }, [initializeSocketConnection]);
-
-// // //   const handleSessionSelect = (session) => {
-// // //     setSelectedSession(session);
-// // //     navigate(`/consumer/bargain/${session.bargain_id}`);
-// // //     setNewMessages(prev => {
-// // //       const updated = { ...prev };
-// // //       delete updated[session.bargain_id];
-// // //       return updated;
-// // //     });
-// // //   };
-
-// // //   const formatTime = (timestamp) => {
-// // //     if (!timestamp) return "";
-// // //     const date = new Date(timestamp);
-// // //     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-// // //   };
-
-// // //   const formatDate = (timestamp) => {
-// // //     if (!timestamp) return "";
-// // //     const today = new Date();
-// // //     const date = new Date(timestamp);
-    
-// // //     if (date.toDateString() === today.toDateString()) {
-// // //       return formatTime(timestamp);
-// // //     } else if (date.getFullYear() === today.getFullYear()) {
-// // //       return date.toLocaleDateString([], { month: "short", day: "numeric" });
-// // //     } else {
-// // //       return date.toLocaleDateString([], { year: "numeric", month: "short", day: "numeric" });
-// // //     }
-// // //   };
-
-// // //   const filteredSessions = bargainSessions.filter(session => {
-// // //     const farmerName = session.farmer_name.toLowerCase();
-// // //     const productName = session.product_name.toLowerCase();
-// // //     return (
-// // //       farmerName.includes(searchTerm.toLowerCase()) ||
-// // //       productName.includes(searchTerm.toLowerCase())
-// // //     );
-// // //   });
-
-// // //   if (loading) {
-// // //     return (
-// // //       <div className="loading-container">
-// // //         <FontAwesomeIcon icon={faSpinner} spin size="2x" />
-// // //         <p>Loading bargain history...</p>
-// // //       </div>
-// // //     );
-// // //   }
-
-// // //   return (
-// // //     <div className="consumer-chat-app">
-// // //       {/* Sidebar */}
-// // //       <div className="chat-sidebar">
-// // //         <div className="sidebar-header">
-// // //           <h2>Bargain History</h2>
-// // //           <div className="connection-status">
-// // //             <span className={`status-dot ${connectionStatus}`} />
-// // //             {connectionStatus.charAt(0).toUpperCase() + connectionStatus.slice(1)}
-// // //           </div>
-// // //         </div>
-        
-// // //         <div className="search-bar">
-// // //           <input
-// // //             type="text"
-// // //             placeholder="Search by farmer or product..."
-// // //             value={searchTerm}
-// // //             onChange={(e) => setSearchTerm(e.target.value)}
-// // //           />
-// // //         </div>
-  
-// // //         <div className="session-list">
-// // //           {filteredSessions.length === 0 ? (
-// // //             <div className="empty-state">
-// // //               {searchTerm ? (
-// // //                 <p>No matching bargains found</p>
-// // //               ) : (
-// // //                 <p>No active bargain sessions</p>
-// // //               )}
-// // //             </div>
-// // //           ) : (
-// // //             filteredSessions.map((session) => (
-// // //               <div
-// // //                 key={session.bargain_id}
-// // //                 className={`session-card ${id === session.bargain_id ? "active" : ""}`}
-// // //                 onClick={() => handleSessionSelect(session)}
-// // //               >
-// // //                 <div className="farmer-avatar">
-// // //                   {session.farmer_name.charAt(0).toUpperCase()}
-// // //                 </div>
-                
-// // //                 <div className="session-content">
-// // //                   <div className="session-header">
-// // //                     <h3>{session.farmer_name}</h3>
-// // //                     <span className="session-time">
-// // //                       {formatDate(session.updated_at)}
-// // //                     </span>
-// // //                   </div>
-                  
-// // //                   <div className="session-details">
-// // //                     <p className="product-info">
-// // //                       <strong>{session.product_name}</strong> ({session.quantity}kg)
-// // //                     </p>
-// // //                     <p className="price-info">
-// // //                       <FontAwesomeIcon icon={faRupeeSign} />
-// // //                       {session.current_price}/kg
-// // //                     </p>
-// // //                   </div>
-                  
-// // //                   <div className="session-preview">
-// // //                     {session.last_message ? (
-// // //                       <p className="message-preview">
-// // //                         {session.last_message.sender_type === 'farmer' ? 
-// // //                           `${session.farmer_name}: ${session.last_message.message}` : 
-// // //                           `You: ${session.last_message.message}`
-// // //                         }
-// // //                       </p>
-// // //                     ) : (
-// // //                       <p className="message-preview">No messages yet</p>
-// // //                     )}
-// // //                   </div>
-// // //                 </div>
-                
-// // //                 {newMessages[session.bargain_id] && (
-// // //                   <div className="unread-badge">
-// // //                     {newMessages[session.bargain_id]}
-// // //                   </div>
-// // //                 )}
-                
-// // //                 {session.status === 'pending' && (
-// // //                   <div className="status-indicator pending" />
-// // //                 )}
-// // //                 {session.status === 'accepted' && (
-// // //                   <div className="status-indicator accepted" />
-// // //                 )}
-// // //                 {session.status === 'rejected' && (
-// // //                   <div className="status-indicator rejected" />
-// // //                 )}
-// // //               </div>
-// // //             ))
-// // //           )}
-// // //         </div>
-// // //       </div>
-  
-// // //       {/* Chat Window */}
-// // //       <div className="chat-window-container">
-// // //         {selectedSession ? (
-// // //           <ConsumerChatWindow
-// // //             bargainId={selectedSession.bargain_id}
-// // //             socket={socket.current}
-// // //             connectionStatus={connectionStatus}
-// // //             initialSession={selectedSession}
-// // //             onBack={() => {
-// // //               setSelectedSession(null);
-// // //               navigate("/consumer/bargain");
-// // //             }}
-// // //           />
-// // //         ) : (
-// // //           <div className="empty-chat-window">
-// // //             <div className="empty-content">
-// // //               <h3>Select a bargain session</h3>
-// // //               <p>Choose a conversation from the sidebar to view messages</p>
-// // //             </div>
-// // //           </div>
-// // //         )}
-// // //       </div>
-// // //     </div>
-// // //   );
-// // // };
-
-// // // export default ConsumerChatList;
-// // import React, { useState, useEffect, useRef, useCallback } from "react";
-// // import { useParams, useNavigate } from "react-router-dom";
-// // import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-// // import { faRupeeSign, faSpinner } from "@fortawesome/free-solid-svg-icons";
-// // import { io } from 'socket.io-client';
-// // import ConsumerChatWindow from "./ConsumerChatWindow";
-// // import "./ConsumerChatList.css";
-
-// // const ConsumerChatList = () => {
-// //   const { id } = useParams();
-// //   const navigate = useNavigate();
-// //   const [bargainSessions, setBargainSessions] = useState([]);
-// //   const [loading, setLoading] = useState(true);
-// //   const [selectedSession, setSelectedSession] = useState(null);
-// //   const socket = useRef(null);
-// //   const reconnectAttempts = useRef(0);
-// //   const [connectionStatus, setConnectionStatus] = useState("connecting");
-// //   const [newMessages, setNewMessages] = useState({});
-// //   const [searchTerm, setSearchTerm] = useState("");
-
-// //   // Get token from consumer's localStorage with validation
-// //   const getToken = () => {
-// //     try {
-// //       const consumerData = localStorage.getItem("consumer");
-// //       if (!consumerData) {
-// //         navigate("/loginPage");
-// //         return null;
-// //       }
-
-// //       const parsedData = JSON.parse(consumerData);
-// //       if (!parsedData?.token) {
-// //         navigate("/loginPage");
-// //         return null;
-// //       }
-
-// //       // Verify token structure
-// //       const decoded = JSON.parse(atob(parsedData.token.split('.')[1]));
-// //       if (!decoded?.consumer_id) {
-// //         console.error("Token missing consumer_id");
-// //         navigate("/loginPage");
-// //         return null;
-// //       }
-// //       return parsedData.token;
-// //     } catch (e) {
-// //       console.error("Token parsing error:", e);
-// //       navigate("/loginPage");
-// //       return null;
-// //     }
-// //   };
-
-// //   // WebSocket connection management
-// //   const initializeSocketConnection = useCallback(() => {
-// //     const token = getToken();
-// //     if (!token) return;
-
-// //     const decodedToken = JSON.parse(atob(token.split(".")[1]));
-// //     const consumerId = decodedToken.consumer_id;
-
-// //     // Close existing connection if any
-// //     if (socket.current) {
-// //       socket.current.disconnect();
-// //       socket.current = null;
-// //     }
-
-// //     socket.current = io(process.env.REACT_APP_API_BASE_URL || "http://localhost:5000", {
-// //       auth: { token },
-// //       query: { consumerId },
-// //       transports: ['websocket'],
-// //       withCredentials: true,
-// //       extraHeaders: { Authorization: `Bearer ${token}` }
-// //     });
-    
-// //     // Connection events
-// //     socket.current.on('connect', () => {
-// //       console.log("Socket connected");
-// //       setConnectionStatus("connected");
-// //       reconnectAttempts.current = 0;
-// //     });
-
-// //     socket.current.on('connect_error', (err) => {
-// //       console.error("Connection error:", err.message);
-// //       setConnectionStatus("error");
-      
-// //       const maxAttempts = 5;
-// //       if (reconnectAttempts.current < maxAttempts) {
-// //         const delay = Math.min(30000, (2 ** reconnectAttempts.current) * 1000);
-// //         reconnectAttempts.current += 1;
-// //         setTimeout(() => initializeSocketConnection(), delay);
-// //       }
-// //     });
-
-// //     socket.current.on('disconnect', (reason) => {
-// //       console.log("Socket disconnected:", reason);
-// //       setConnectionStatus("disconnected");
-// //     });
-
-// //     // Application events
-// //     socket.current.on('priceUpdate', (data) => {
-// //       setBargainSessions(prev => 
-// //         prev.map(session => 
-// //           session.bargain_id === data.bargain_id 
-// //             ? { ...session, current_price: data.newPrice } 
-// //             : session
-// //         )
-// //       );
-// //     });
-
-// //     socket.current.on('bargainStatusUpdate', (data) => {
-// //       setBargainSessions(prev => 
-// //         prev.map(session => 
-// //           session.bargain_id === data.bargain_id 
-// //             ? { ...session, status: data.status } 
-// //             : session
-// //         )
-// //       );
-// //     });
-
-// //     socket.current.on('newMessage', (message) => {
-// //       setBargainSessions(prev => {
-// //         const updated = prev.map(session => {
-// //           if (session.bargain_id === message.bargain_id) {
-// //             return {
-// //               ...session,
-// //               last_message: message,
-// //               unread_count: (session.unread_count || 0) + (message.sender_type === 'farmer' ? 1 : 0),
-// //               updated_at: new Date().toISOString(),
-// //             };
-// //           }
-// //           return session;
-// //         });
-// //         return updated.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
-// //       });
-
-// //       if (message.sender_type === 'farmer') {
-// //         setNewMessages(prev => ({
-// //           ...prev,
-// //           [message.bargain_id]: (prev[message.bargain_id] || 0) + 1
-// //         }));
-// //       }
-// //     });
-
-// //     socket.current.on('error', (error) => {
-// //       console.error("Socket error:", error);
-// //     });
-
-// //     return () => {
-// //       if (socket.current) {
-// //         socket.current.disconnect();
-// //       }
-// //     };
-// //   }, [navigate]);
-
-// //   // Fetch bargain sessions for the consumer
-// //   const fetchSessions = useCallback(async () => {
-// //     try {
-// //       const token = getToken();
-// //       if (!token) return;
-
-// //       const decodedToken = JSON.parse(atob(token.split(".")[1]));
-// //       const consumerId = decodedToken.consumer_id;
-// //       const apiUrl = `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/bargain/sessions/consumer/${consumerId}`;
-
-// //       const response = await fetch(apiUrl, {
-// //         headers: {
-// //           'Authorization': `Bearer ${token}`,
-// //           'Accept': 'application/json',
-// //           'Content-Type': 'application/json'
-// //         },
-// //         credentials: 'include'
-// //       });
-
-// //       if (!response.ok) {
-// //         throw new Error(`HTTP error! status: ${response.status}`);
-// //       }
-
-// //       const data = await response.json();
-      
-// //       // Transform the data to match frontend expectations
-// //       const validatedSessions = Array.isArray(data) 
-// //         ? data.map(session => ({
-// //             bargain_id: session.bargain_id,
-// //             farmer_id: session.farmer_id,
-// //             farmer_name: session.farmer_name || `Farmer ${session.farmer_id}`,
-// //             product_name: session.product_name || 'Product',
-// //             quantity: session.quantity || 0,
-// //             current_price: session.current_price || 0,
-// //             initial_price: session.initial_price || session.current_price || 0,
-// //             status: session.status || 'pending',
-// //             created_at: session.created_at,
-// //             updated_at: session.updated_at || session.created_at,
-// //             last_message: session.last_message || null,
-// //             unread_count: session.unread_count || 0
-// //           }))
-// //         : [];
-
-// //       setBargainSessions(validatedSessions);
-// //     } catch (error) {
-// //       console.error("Error fetching sessions:", error);
-// //       if (error.message.includes("401")) {
-// //         navigate("/loginPage");
-// //       }
-// //     } finally {
-// //       setLoading(false);
-// //     }
-// //   }, [navigate]);
-
-// //   // Initial fetch and periodic refresh
-// //   useEffect(() => {
-// //     fetchSessions();
-// //     const interval = setInterval(fetchSessions, 10000);
-// //     return () => clearInterval(interval);
-// //   }, [fetchSessions]);
-
-// //   // Initialize socket connection
-// //   useEffect(() => {
-// //     initializeSocketConnection();
-// //     return () => {
-// //       if (socket.current) {
-// //         socket.current.disconnect();
-// //       }
-// //     };
-// //   }, [initializeSocketConnection]);
-
-// //   const handleSessionSelect = (session) => {
-// //     setSelectedSession(session);
-// //     navigate(`/consumer/bargain/${session.bargain_id}`);
-// //     setNewMessages(prev => {
-// //       const updated = { ...prev };
-// //       delete updated[session.bargain_id];
-// //       return updated;
-// //     });
-// //   };
-
-// //   const formatTime = (timestamp) => {
-// //     if (!timestamp) return "";
-// //     const date = new Date(timestamp);
-// //     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-// //   };
-
-// //   const formatDate = (timestamp) => {
-// //     if (!timestamp) return "";
-// //     const today = new Date();
-// //     const date = new Date(timestamp);
-    
-// //     if (date.toDateString() === today.toDateString()) {
-// //       return formatTime(timestamp);
-// //     } else if (date.getFullYear() === today.getFullYear()) {
-// //       return date.toLocaleDateString([], { month: "short", day: "numeric" });
-// //     } else {
-// //       return date.toLocaleDateString([], { year: "numeric", month: "short", day: "numeric" });
-// //     }
-// //   };
-
-// //   const filteredSessions = bargainSessions.filter(session => {
-// //     const farmerName = session.farmer_name.toLowerCase();
-// //     const productName = session.product_name.toLowerCase();
-// //     return (
-// //       farmerName.includes(searchTerm.toLowerCase()) ||
-// //       productName.includes(searchTerm.toLowerCase())
-// //     );
-// //   });
-
-// //   if (loading) {
-// //     return (
-// //       <div className="loading-container">
-// //         <FontAwesomeIcon icon={faSpinner} spin size="2x" />
-// //         <p>Loading bargain requests...</p>
-// //       </div>
-// //     );
-// //   }
-
-// //   return (
-// //     <div className="consumer-chat-app">
-// //       {/* Sidebar */}
-// //       <div className="chat-sidebar">
-// //         <div className="sidebar-header">
-// //           <h2>Bargain History</h2>
-// //           <div className="connection-status">
-// //             <span className={`status-dot ${connectionStatus}`} />
-// //             {connectionStatus.charAt(0).toUpperCase() + connectionStatus.slice(1)}
-// //           </div>
-// //         </div>
-        
-// //         <div className="search-bar">
-// //           <input
-// //             type="text"
-// //             placeholder="Search by farmer or product..."
-// //             value={searchTerm}
-// //             onChange={(e) => setSearchTerm(e.target.value)}
-// //           />
-// //         </div>
-  
-// //         <div className="session-list">
-// //           {filteredSessions.length === 0 ? (
-// //             <div className="empty-state">
-// //               {searchTerm ? (
-// //                 <p>No matching requests found</p>
-// //               ) : (
-// //                 <p>No active bargain requests</p>
-// //               )}
-// //             </div>
-// //           ) : (
-// //             filteredSessions.map((session) => (
-// //               <div
-// //                 key={session.bargain_id}
-// //                 className={`session-card ${id === session.bargain_id ? "active" : ""}`}
-// //                 onClick={() => handleSessionSelect(session)}
-// //               >
-// //                 <div className="farmer-avatar">
-// //                   {session.farmer_name.charAt(0).toUpperCase()}
-// //                 </div>
-                
-// //                 <div className="session-content">
-// //                   <div className="session-header">
-// //                     <h3>{session.farmer_name}</h3>
-// //                     <span className="session-time">
-// //                       {formatDate(session.updated_at)}
-// //                     </span>
-// //                   </div>
-                  
-// //                   <div className="session-details">
-// //                     <p className="product-info">
-// //                       <strong>{session.product_name}</strong> ({session.quantity}kg)
-// //                     </p>
-// //                     <p className="price-info">
-// //                       <FontAwesomeIcon icon={faRupeeSign} />
-// //                       {session.current_price}/kg
-// //                     </p>
-// //                   </div>
-                  
-// //                   <div className="session-preview">
-// //                     {session.last_message ? (
-// //                       <p className="message-preview">
-// //                         {session.last_message.sender_type === 'farmer' ? 
-// //                           `${session.farmer_name}: ${session.last_message.message}` : 
-// //                           `You: ${session.last_message.message}`
-// //                         }
-// //                       </p>
-// //                     ) : (
-// //                       <p className="message-preview">No messages yet</p>
-// //                     )}
-// //                   </div>
-// //                 </div>
-                
-// //                 {newMessages[session.bargain_id] && (
-// //                   <div className="unread-badge">
-// //                     {newMessages[session.bargain_id]}
-// //                   </div>
-// //                 )}
-                
-// //                 {session.status === 'pending' && (
-// //                   <div className="status-indicator pending" />
-// //                 )}
-// //                 {session.status === 'accepted' && (
-// //                   <div className="status-indicator accepted" />
-// //                 )}
-// //                 {session.status === 'rejected' && (
-// //                   <div className="status-indicator rejected" />
-// //                 )}
-// //               </div>
-// //             ))
-// //           )}
-// //         </div>
-// //       </div>
-  
-// //       {/* Chat Window */}
-// //       <div className="chat-window-container">
-// //         {selectedSession ? (
-// //           <ConsumerChatWindow
-// //             bargainId={selectedSession.bargain_id}
-// //             socket={socket.current}
-// //             connectionStatus={connectionStatus}
-// //             initialSession={selectedSession}
-// //             onBack={() => {
-// //               setSelectedSession(null);
-// //               navigate("/consumer/bargain");
-// //             }}
-// //           />
-// //         ) : (
-// //           <div className="empty-chat-window">
-// //             <div className="empty-content">
-// //               <h3>Select a bargain request</h3>
-// //               <p>Choose a conversation from the sidebar to start bargaining</p>
-// //             </div>
-// //           </div>
-// //         )}
-// //       </div>
-// //     </div>
-// //   );
-// // };
-
-// // export default ConsumerChatList;
-// import React, { useState, useEffect, useRef, useCallback } from "react";
-// import { useParams, useNavigate } from "react-router-dom";
-// import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-// import { faSpinner } from "@fortawesome/free-solid-svg-icons";
-// import { io } from 'socket.io-client';
-// import ConsumerChatWindow from "./ConsumerChatWindow";
-// import "./ConsumerChatList.css";
-
-// const ConsumerChatList = () => {
-//   const { id } = useParams();
-//   const navigate = useNavigate();
-//   const [bargainSessions, setBargainSessions] = useState([]);
-//   const [loading, setLoading] = useState(true);
-//   const [selectedSession, setSelectedSession] = useState(null);
-//   const socket = useRef(null);
-//   const reconnectAttempts = useRef(0);
-//   const [connectionStatus, setConnectionStatus] = useState("connecting");
-//   const [newMessages, setNewMessages] = useState({});
-//   const [searchTerm, setSearchTerm] = useState("");
-
-//   // Get token from consumer's localStorage
-//   const getToken = () => {
-//     try {
-//       const consumerData = localStorage.getItem("consumer");
-//       if (!consumerData) {
-//         navigate("/loginPage");
-//         return null;
-//       }
-//       const parsedData = JSON.parse(consumerData);
-//       return parsedData?.token || null;
-//     } catch (e) {
-//       console.error("Token parsing error:", e);
-//       navigate("/loginPage");
-//       return null;
-//     }
-//   };
-
-//   // WebSocket connection management
-//   const initializeSocketConnection = useCallback(() => {
-//     const token = getToken();
-//     if (!token) return;
-
-//     const decodedToken = JSON.parse(atob(token.split(".")[1]));
-//     const consumerId = decodedToken.consumer_id;
-
-//     if (socket.current) {
-//       socket.current.disconnect();
-//       socket.current = null;
-//     }
-
-//     socket.current = io(process.env.REACT_APP_API_BASE_URL || "http://localhost:5000", {
-//       auth: { token },
-//       query: { consumerId },
-//       transports: ['websocket'],
-//       withCredentials: true,
-//       extraHeaders: { Authorization: `Bearer ${token}` }
-//     });
-    
-//     socket.current.on('connect', () => {
-//       console.log("Socket connected");
-//       setConnectionStatus("connected");
-//       reconnectAttempts.current = 0;
-//     });
-
-//     socket.current.on('connect_error', (err) => {
-//       console.error("Connection error:", err.message);
-//       setConnectionStatus("error");
-//       const maxAttempts = 5;
-//       if (reconnectAttempts.current < maxAttempts) {
-//         const delay = Math.min(30000, (2 ** reconnectAttempts.current) * 1000);
-//         reconnectAttempts.current += 1;
-//         setTimeout(() => initializeSocketConnection(), delay);
-//       }
-//     });
-
-//     socket.current.on('disconnect', (reason) => {
-//       console.log("Socket disconnected:", reason);
-//       setConnectionStatus("disconnected");
-//     });
-
-//     socket.current.on('newMessage', (message) => {
-//       setBargainSessions(prev => {
-//         const updated = prev.map(session => {
-//           if (session.bargain_id === message.bargain_id) {
-//             return {
-//               ...session,
-//               last_message: message,
-//               unread_count: (session.unread_count || 0) + (message.sender_type === 'farmer' ? 1 : 0),
-//               updated_at: new Date().toISOString(),
-//             };
-//           }
-//           return session;
-//         });
-//         return updated.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
-//       });
-
-//       if (message.sender_type === 'farmer') {
-//         setNewMessages(prev => ({
-//           ...prev,
-//           [message.bargain_id]: (prev[message.bargain_id] || 0) + 1
-//         }));
-//       }
-//     });
-
-//     return () => {
-//       if (socket.current) {
-//         socket.current.disconnect();
-//       }
-//     };
-//   }, [navigate]);
-
-//   // Fetch bargain sessions for the consumer
-//   const fetchSessions = useCallback(async () => {
-//     try {
-//       const token = getToken();
-//       if (!token) return;
-
-//       const decodedToken = JSON.parse(atob(token.split(".")[1]));
-//       const consumerId = decodedToken.consumer_id;
-//       const apiUrl = `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/bargain/sessions/consumer/${consumerId}`;
-
-//       const response = await fetch(apiUrl, {
-//         headers: {
-//           'Authorization': `Bearer ${token}`,
-//           'Accept': 'application/json',
-//           'Content-Type': 'application/json'
-//         },
-//         credentials: 'include'
-//       });
-
-//       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-
-//       const data = await response.json();
-      
-//       const validatedSessions = Array.isArray(data) 
-//         ? data.map(session => ({
-//             bargain_id: session.bargain_id,
-//             farmer_id: session.farmer_id,
-//             farmer_name: session.farmer_name,
-//             farmer_initials: session.farmer_name?.charAt(0).toUpperCase() || 'F',
-//             last_message: session.last_message || null,
-//             updated_at: session.updated_at || session.created_at,
-//             status: session.status || 'pending',
-//             unread_count: session.unread_count || 0
-//           }))
-//         : [];
-
-//       setBargainSessions(validatedSessions);
-//     } catch (error) {
-//       console.error("Error fetching sessions:", error);
-//       if (error.message.includes("401")) navigate("/loginPage");
-//     } finally {
-//       setLoading(false);
-//     }
-//   }, [navigate]);
-
-//   useEffect(() => {
-//     fetchSessions();
-//     const interval = setInterval(fetchSessions, 10000);
-//     return () => clearInterval(interval);
-//   }, [fetchSessions]);
-
-//   useEffect(() => {
-//     initializeSocketConnection();
-//     return () => {
-//       if (socket.current) {
-//         socket.current.disconnect();
-//       }
-//     };
-//   }, [initializeSocketConnection]);
-
-//   const handleSessionSelect = (session) => {
-//     setSelectedSession(session);
-//     navigate(`/consumer/bargain/${session.bargain_id}`);
-//     setNewMessages(prev => {
-//       const updated = { ...prev };
-//       delete updated[session.bargain_id];
-//       return updated;
-//     });
-//   };
-
-//   const formatTime = (timestamp) => {
-//     if (!timestamp) return "";
-//     const date = new Date(timestamp);
-//     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-//   };
-
-//   const formatDate = (timestamp) => {
-//     if (!timestamp) return "";
-//     const today = new Date();
-//     const date = new Date(timestamp);
-    
-//     if (date.toDateString() === today.toDateString()) {
-//       return formatTime(timestamp);
-//     } else if (date.getFullYear() === today.getFullYear()) {
-//       return date.toLocaleDateString([], { month: "short", day: "numeric" });
-//     } else {
-//       return date.toLocaleDateString([], { year: "numeric", month: "short", day: "numeric" });
-//     }
-//   };
-
-//   const filteredSessions = bargainSessions.filter(session => {
-//     const farmerName = session.farmer_name.toLowerCase();
-//     return farmerName.includes(searchTerm.toLowerCase());
-//   });
-
-//   if (loading) {
-//     return (
-//       <div className="loading-container">
-//         <FontAwesomeIcon icon={faSpinner} spin size="2x" />
-//         <p>Loading bargain requests...</p>
-//       </div>
-//     );
-//   }
-
-//   return (
-//     <div className="consumer-chat-app">
-//       <div className="chat-sidebar">
-//         <div className="sidebar-header">
-//           <h2>Bargain History</h2>
-//           <div className="connection-status">
-//             <span className={`status-dot ${connectionStatus}`} />
-//             {connectionStatus.charAt(0).toUpperCase() + connectionStatus.slice(1)}
-//           </div>
-//         </div>
-        
-//         <div className="search-bar">
-//           <input
-//             type="text"
-//             placeholder="Search by farmer..."
-//             value={searchTerm}
-//             onChange={(e) => setSearchTerm(e.target.value)}
-//           />
-//         </div>
-  
-//         <div className="session-list">
-//           {filteredSessions.length === 0 ? (
-//             <div className="empty-state">
-//               {searchTerm ? "No matching requests found" : "No active bargain requests"}
-//             </div>
-//           ) : (
-//             filteredSessions.map((session) => (
-//               <div
-//                 key={session.bargain_id}
-//                 className={`session-card ${id === session.bargain_id ? "active" : ""}`}
-//                 onClick={() => handleSessionSelect(session)}
-//               >
-//                 <div 
-//                   className="farmer-avatar"
-//                   style={{ backgroundColor: stringToColor(session.farmer_name) }}
-//                 >
-//                   {session.farmer_initials}
-//                 </div>
-                
-//                 <div className="session-content">
-//                   <div className="session-header">
-//                     <h3>{session.farmer_name}</h3>
-//                     <span className="session-time">
-//                       {formatDate(session.updated_at)}
-//                     </span>
-//                   </div>
-                  
-//                   <div className="session-preview">
-//                     {session.last_message ? (
-//                       <p className="message-preview">
-//                         {session.last_message.sender_type === 'farmer' ? 
-//                           `${session.last_message.message}` : 
-//                           `You: ${session.last_message.message}`
-//                         }
-//                       </p>
-//                     ) : (
-//                       <p className="message-preview">Bargain started</p>
-//                     )}
-//                   </div>
-//                 </div>
-                
-//                 {newMessages[session.bargain_id] > 0 && (
-//                   <div className="unread-badge">
-//                     {newMessages[session.bargain_id]}
-//                   </div>
-//                 )}
-                
-//                 <div className={`status-indicator ${session.status}`} />
-//               </div>
-//             ))
-//           )}
-//         </div>
-//       </div>
-  
-//       <div className="chat-window-container">
-//         {selectedSession ? (
-//           <ConsumerChatWindow
-//             bargainId={selectedSession.bargain_id}
-//             socket={socket.current}
-//             connectionStatus={connectionStatus}
-//             initialSession={selectedSession}
-//             onBack={() => {
-//               setSelectedSession(null);
-//               navigate("/consumer/bargain");
-//             }}
-//           />
-//         ) : (
-//           <div className="empty-chat-window">
-//             <div className="empty-content">
-//               <h3>Select a bargain request</h3>
-//               <p>Choose a conversation from the sidebar</p>
-//             </div>
-//           </div>
-//         )}
-//       </div>
-//     </div>
-//   );
-// };
-
-// // Helper function to generate consistent color from name
-// function stringToColor(str) {
-//   let hash = 0;
-//   for (let i = 0; i < str.length; i++) {
-//     hash = str.charCodeAt(i) + ((hash << 5) - hash);
-//   }
-//   const hue = Math.abs(hash % 360);
-//   return `hsl(${hue}, 70%, 50%)`;
-// }
-
-// export default ConsumerChatList;
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -1303,6 +5,7 @@ import { faSpinner, faListAlt, faShoppingCart } from "@fortawesome/free-solid-sv
 import { io } from 'socket.io-client';
 import ConsumerChatWindow from "./ConsumerChatWindow";
 import "./ConsumerChatList.css";
+import axios from "axios";
 
 const ConsumerChatList = () => {
   const { consumerId } = useParams();
@@ -1315,6 +18,7 @@ const ConsumerChatList = () => {
   const [connectionStatus, setConnectionStatus] = useState("connecting");
   const [newMessages, setNewMessages] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
+  const [farmerProfilePhotos, setFarmerProfilePhotos] = useState({});
 
   // Helper functions to extract info from message content
   const extractProductName = (content) => {
@@ -1334,8 +38,39 @@ const ConsumerChatList = () => {
     const match = content.match(/₹(\d+)/);
     return match ? parseInt(match[1], 10) : 0;
   };
+const fetchFarmerProfilePhoto = useCallback(async (farmerId) => {
+  try {
+    const token = getToken();
+    if (!token) return null;
 
-  // Get token from consumer's localStorage with validation
+    const response = await axios.get(
+      `http://localhost:5000/api/farmerprofile/${farmerId}/personal`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (response.data?.profile_photo) {
+      const photoUrl = response.data.profile_photo.startsWith('http')
+        ? response.data.profile_photo
+        : `http://localhost:5000${response.data.profile_photo}`;
+      
+      setFarmerProfilePhotos(prev => ({
+        ...prev,
+        [farmerId]: photoUrl
+      }));
+      
+      return photoUrl;
+    }
+    return null;
+  } catch (error) {
+    console.error(`Error fetching profile photo for farmer ${farmerId}:`, error);
+    return null;
+  }
+}, []);
+ // Get token from consumer's localStorage with validation
   const getToken = () => {
     try {
       const consumerData = localStorage.getItem("consumer");
@@ -1365,7 +100,6 @@ const ConsumerChatList = () => {
     }
   };
 
-  // Helper function to normalize session data
   const normalizeSession = (session) => {
     if (!session) {
       console.error("Attempted to normalize undefined session");
@@ -1376,6 +110,7 @@ const ConsumerChatList = () => {
       bargain_id: '',
       farmer_id: '',
       farmer_name: 'Unknown Farmer',
+      farmer_profile_photo: null, // Add this field
       product_name: 'Unknown Product',
       quantity: 0,
       current_price: 0,
@@ -1404,7 +139,34 @@ const ConsumerChatList = () => {
   
     return normalized;
   };
-
+  const groupSessionsByFarmer = (sessions) => {
+    const grouped = {};
+    
+    sessions.forEach(session => {
+      if (!grouped[session.farmer_id]) {
+        grouped[session.farmer_id] = {
+          farmer_id: session.farmer_id,
+          farmer_name: session.farmer_name,
+          farmer_profile_photo: farmerProfilePhotos[session.farmer_id] || null,
+          sessions: [],
+          unread_count: 0,
+          last_updated: session.updated_at
+        };
+      }
+      
+      grouped[session.farmer_id].sessions.push(session);
+      grouped[session.farmer_id].unread_count += session.unread_count || 0;
+      
+      if (new Date(session.updated_at) > new Date(grouped[session.farmer_id].last_updated)) {
+        grouped[session.farmer_id].last_updated = session.updated_at;
+      }
+    });
+    
+    return Object.values(grouped).map(group => ({
+      ...group,
+      sessions: group.sessions.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
+    })).sort((a, b) => new Date(b.last_updated) - new Date(a.last_updated));
+  };
   const fetchSessions = useCallback(async () => {
     try {
       const token = getToken();
@@ -1694,16 +456,54 @@ const ConsumerChatList = () => {
     });
   };
 
-  const handleSessionSelect = (session) => {
-    setSelectedSession(session);
-    navigate(`/consumer/bargain/${session.bargain_id}`);
+  const handleSessionSelect = (group) => {
+    // If we're passing the whole group, get the latest session
+    const session = Array.isArray(group?.sessions) ? group.sessions[0] : group;
+    
+    if (!validateSession(session)) {
+      console.error("Invalid session data:", session);
+      return;
+    }
+  
+    // Prepare farmer and product data for the chat window
+    const farmerData = {
+      first_name: session.farmer_name.split(' ')[0],
+      last_name: session.farmer_name.split(' ').slice(1).join(' ') || '',
+      phone_number: session.farmer_phone || 'Not available',
+      location: session.farmer_location || 'Not specified',
+      profile_photo: group.farmer_profile_photo || null // Add this
+    };
+  
+  
+    const productData = {
+      produce_name: session.product_name,
+      quantity: session.quantity,
+      price_per_kg: session.initial_price,
+      current_offer: session.current_price,
+      product_id: session.product_id || `temp-${session.bargain_id}`
+    };
+  
+    // Navigate to chat window with state
+    navigate(`/bargain/${session.bargain_id}`, {
+      state: {
+        farmer: farmerData,
+        product: productData,
+        initialPrice: session.current_price,
+        allSessions: group.sessions || [session] // Pass all sessions if available
+      }
+    });
+  
+    // Clear any new messages for all sessions in this group
     setNewMessages(prev => {
       const updated = { ...prev };
-      delete updated[session.bargain_id];
+      if (group.sessions) {
+        group.sessions.forEach(s => delete updated[s.bargain_id]);
+      } else {
+        delete updated[session.bargain_id];
+      }
       return updated;
     });
   };
-
   const formatTime = (timestamp) => {
     if (!timestamp) return "";
     const date = new Date(timestamp);
@@ -1724,31 +524,45 @@ const ConsumerChatList = () => {
     }
   };
 
-  const filteredSessions = bargainSessions
-    .filter(session => {
-      const isValid = validateSession(session);
-      if (!isValid) {
-        console.warn("Invalid session filtered out:", session);
-      }
-      return isValid;
-    })
-    .filter(session => {
-      try {
-        const search = searchTerm.toLowerCase();
-        return (
-          session.farmer_name.toLowerCase().includes(search) ||
-          session.product_name.toLowerCase().includes(search)
-        );
-      } catch (error) {
-        console.error("Error filtering session:", error, session);
-        return false;
-      }
-    });
+  const filteredSessions = groupSessionsByFarmer(
+    bargainSessions
+      .filter(session => validateSession(session))
+      .filter(session => {
+        try {
+          const search = searchTerm.toLowerCase();
+          return (
+            session.farmer_name.toLowerCase().includes(search) ||
+            session.product_name.toLowerCase().includes(search)
+          );
+        } catch (error) {
+          console.error("Error filtering session:", error, session);
+          return false;
+        }
+      })
+  );
 
   useEffect(() => {
     console.log("Current bargain sessions:", bargainSessions);
   }, [bargainSessions]);
 
+  useEffect(() => {
+    const fetchData = async () => {
+      await fetchSessions();
+      
+      // After sessions are loaded, fetch profile photos for each unique farmer
+      const uniqueFarmerIds = [...new Set(bargainSessions.map(s => s.farmer_id))];
+      uniqueFarmerIds.forEach(farmerId => {
+        if (!farmerProfilePhotos[farmerId]) {
+          fetchFarmerProfilePhoto(farmerId);
+        }
+      });
+    };
+  
+    fetchData();
+    const interval = setInterval(fetchData, 10000);
+    return () => clearInterval(interval);
+  }, [fetchSessions, fetchFarmerProfilePhoto, bargainSessions, farmerProfilePhotos]);
+   
   if (loading) {
     return (
       <div className="loading-container">
@@ -1775,15 +589,16 @@ const ConsumerChatList = () => {
         </div>
         
         <div className="action-buttons">
-  <Link to="/consumer-orders" className="action-button">
-    <FontAwesomeIcon icon={faListAlt} />
-    <span>View Orders</span>
-  </Link>
-  <Link to="/bargain-cart" className="action-button">
-    <FontAwesomeIcon icon={faShoppingCart} />
-    <span>View Cart</span>
-  </Link>
-</div>
+          <Link to="/consumer-orders" className="action-button">
+            <FontAwesomeIcon icon={faListAlt} />
+            <span>View Orders</span>
+          </Link>
+          <Link to="/bargain-cart" className="action-button">
+            <FontAwesomeIcon icon={faShoppingCart} />
+            <span>View Cart</span>
+          </Link>
+        </div>
+
         <div className="search-bar">
           <input
             type="text"
@@ -1803,46 +618,64 @@ const ConsumerChatList = () => {
               )}
             </div>
           ) : (
-            filteredSessions.map((session) => (
-              <div
-                key={`session-${session.bargain_id}`}
-                className={`session-card ${consumerId === session.bargain_id ? "active" : ""}`}
-                onClick={() => handleSessionSelect(session)}
-              >
-                <div className="farmer-avatar">
-                  {session.farmer_name.charAt(0).toUpperCase()}
-                </div>
-                
-                <div className="session-content">
-                  <div className="session-header">
-                    <h3>{session.farmer_name}</h3>
-                    <span className="session-time">
-                      {formatDate(session.updated_at)}
-                    </span>
+            filteredSessions.map((group) => {
+              const latestSession = group.sessions[0];
+              const productCount = group.sessions.length;
+              
+              return (
+                <div
+                  key={`farmer-${group.farmer_id}`}
+                  className={`session-card ${consumerId === latestSession.bargain_id ? "active" : ""}`}
+                  onClick={() => handleSessionSelect(group)}
+                >
+                  {group.farmer_profile_photo ? (
+                    <img 
+                      src={group.farmer_profile_photo} 
+                      alt="Farmer" 
+                      className="farmer-avatar-image"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = '';
+                        e.target.className = 'farmer-avatar';
+                        e.target.textContent = group.farmer_name.charAt(0).toUpperCase();
+                      }}
+                    />
+                  ) : (
+                    <div className="farmer-avatar">
+                      {group.farmer_name.charAt(0).toUpperCase()}
+                    </div>
+                  )} 
+                  <div className="session-content">
+                    <div className="session-header">
+                      <h3>{group.farmer_name}</h3>
+                      <span className="session-time">
+                        {formatDate(group.last_updated)}
+                      </span>
+                    </div>
+                    
+                    <div className="session-preview">
+                      <p className="message-preview">
+                        {productCount > 1 
+                          ? `${productCount} active bargains` 
+                          : latestSession.product_name}
+                      </p>
+                      
+                      {group.unread_count > 0 && (
+                        <div className="unread-badge">
+                          {group.unread_count}
+                        </div>
+                      )}
+                    </div>
                   </div>
                   
-                  <div className="session-preview">
-                    <p className="message-preview">
-                      {session.last_message?.content || "You received a bargain message"}
-                    </p>
-
-                    <span className="session-time">
-                      {formatDate(session.last_message?.timestamp || session.updated_at)}
-                    </span>
-                  </div>
+                  {group.unread_count > 0 && (
+                    <div className="unread-badge">
+                      {group.unread_count}
+                    </div>
+                  )}
                 </div>
-                
-                {newMessages[session.bargain_id] && (
-                  <div className="unread-badge">
-                    {newMessages[session.bargain_id]}
-                  </div>
-                )}
-                
-                {session.status === 'pending' && (
-                  <div className="status-indicator pending" />
-                )}
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>

@@ -96,6 +96,7 @@ const Main = () => {
       path.startsWith("/order-review") ||
       path.startsWith("/notifications") ||
       path.startsWith("/feeds") ||
+      path.startsWith("/farmer-orders") ||
       path.startsWith("/bargain_farmer") ||
       path.startsWith("/chat") ||
       /\/profile\/[A-Za-z0-9]+/.test(path) ||
@@ -117,6 +118,7 @@ const Main = () => {
       path.startsWith("/bargain_consumer") ||
       path.startsWith("/bargain") ||
       path.startsWith("/community-home") ||
+      path.startsWith("/consumer-orders") ||
       path === "/subscribe"
     ) {
       return <Navbar3 />;
@@ -144,7 +146,8 @@ const Main = () => {
       path.startsWith("/notifications") ||
       path.startsWith("/feeds") ||
       path.startsWith("/farmers/my-reviews") ||
-      path.startsWith("/chat")
+      path.startsWith("/chat") ||
+      path.startsWith("/farmer-orders")
     );
   };
 

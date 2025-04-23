@@ -1,7 +1,7 @@
 
 
 import React, { useState, useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import "./ProductDetails.css";
 import { useCart } from "../context/CartContext";
 import { AuthContext } from "../context/AuthContext";
@@ -12,6 +12,10 @@ import 'react-calendar/dist/Calendar.css';
 const ProductDetails = () => {
   const { product_id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [productImage, setProductImage] = useState(
+    location.state?.productImage || '/images/default-image.jpg'
+  );
   const [product, setProduct] = useState(null);
   const [error, setError] = useState(null);
   const { addToCart } = useCart();
@@ -341,14 +345,17 @@ const ProductDetails = () => {
 
         <div className="ks-product-grid">
           <div className="ks-product-gallery">
-            <div className="ks-main-image">
-              <img
-                src={getImagePath(product.product_name)}
-                alt={product.product_name}
-                className="ks-product-image"
-                onError={(e) => { e.target.src = "/images/default-image.jpg"; }} 
-              />
-            </div>
+          <div className="ks-main-image">
+  <img
+    src={productImage}
+    alt={product?.product_name}
+    className="ks-product-image"
+    onError={(e) => { 
+      e.target.src = "/images/default-image.jpg";
+      setProductImage("/images/default-image.jpg");
+    }} 
+  />
+</div>
           </div>
 
           <div className="ks-product-info">

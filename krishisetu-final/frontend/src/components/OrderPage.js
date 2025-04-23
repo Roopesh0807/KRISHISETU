@@ -20,6 +20,8 @@ const KrishiOrderPage = () => {
   const [savedRecipientAddresses, setSavedRecipientAddresses] = useState([]);
   const [selectedRecipientAddress, setSelectedRecipientAddress] = useState(null);
   const [editingRecipientId, setEditingRecipientId] = useState(null);
+  const [productImages, setProductImages] = useState({});
+const [loadingImages, setLoadingImages] = useState(true);
   const [newAddress, setNewAddress] = useState({
     pincode: "",
     city: "",
@@ -62,6 +64,54 @@ const KrishiOrderPage = () => {
   ];
   const [razorpayOrderId, setRazorpayOrderId] = useState(null);
   const [razorpayPaymentId, setRazorpayPaymentId] = useState(null);
+
+  const fetchProductImages = async (products) => {
+    try {
+      setLoadingImages(true);
+      const images = {};
+      
+      for (const product of products) {
+        // If image already exists in product, use that
+        if (product.imageUrl) {
+          images[product.product_id] = product.imageUrl;
+          continue;
+        }
+  
+        try {
+          const response = await fetch(
+            `https://api.pexels.com/v1/search?query=${encodeURIComponent(product.product_name)}&per_page=1`,
+            {
+              headers: {
+                Authorization: 'YOUR_PEXELS_API_KEY' // Replace with your actual key
+              }
+            }
+          );
+          
+          if (!response.ok) throw new Error('Image fetch failed');
+          
+          const data = await response.json();
+          images[product.product_id] = data.photos[0]?.src?.medium || '/images/default-produce.jpg';
+        } catch (err) {
+          console.error(`Error fetching image for ${product.product_name}:`, err);
+          images[product.product_id] = '/images/default-produce.jpg';
+        }
+      }
+  
+      setProductImages(images);
+    } catch (error) {
+      console.error("Error fetching product images:", error);
+    } finally {
+      setLoadingImages(false);
+    }
+  };
+
+  useEffect(() => {
+    if (cart.length > 0) {
+      fetchProductImages(cart);
+    } else {
+      setLoadingImages(false);
+    }
+  }, [cart]);
   useEffect(() => {
     const storedConsumer = localStorage.getItem("consumer");
     if (storedConsumer) {
@@ -668,11 +718,14 @@ const verifyPayment = async (paymentData) => {
           {cart.map((product) => (
             <div key={product.product_id} className="krishi-order-item">
               <img
-                src={getImagePath(product.product_name)}
-                alt={product.product_name}
-                className="krishi-product-image"
-                onError={(e) => { e.target.src = "/images/default-image.jpg"; }} 
-              />
+  src={productImages[product.product_id] || '/images/default-produce.jpg'}
+  alt={product.product_name}
+  className="krishi-product-image"
+  onError={(e) => { 
+    e.target.src = "/images/default-produce.jpg";
+    e.target.className = "krishi-product-image krishi-default-img";
+  }}
+/>
               <div className="krishi-product-details">
                 <h4>{product.product_name}</h4>
                 <div className="krishi-product-meta">
@@ -730,6 +783,12 @@ const verifyPayment = async (paymentData) => {
             {couponError && <p className="krishi-coupon-error">{couponError}</p>}
           </div>
   
+          {loadingImages && (
+  <div className="krishi-loading-overlay">
+    <BsCheckCircleFill className="krishi-loading-spinner" />
+    <p>Loading product images...</p>
+  </div>
+)}
           <div className="krishi-address-card">
             <h3 className="krishi-card-title">
               <FaMapMarkerAlt className="krishi-card-icon" />

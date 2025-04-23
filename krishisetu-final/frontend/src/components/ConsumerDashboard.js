@@ -22,74 +22,87 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 
 // Import images
-import Farmer from "../assets/farmer.jpeg";
+// import Farmer from "../assets/farmer.jpeg";
 import OrganicBadge from "../assets/organic.jpg";
-import Tomato from "../assets/tomato.jpg";
-import Apple from "../assets/apple.jpg";
-import Banana from "../assets/banana.jpg";
-import Butter from "../assets/butter.jpg";
-import Cheese from "../assets/cheese.jpg";
-import Chilly from "../assets/chilly.jpg";
-import Cumin from "../assets/cuminseeds.jpg";
-import Ghee from "../assets/ghee.jpg";
-import Ginger from "../assets/ginger.jpg";
-import Grapes from "../assets/grapes.jpg";
-import Onion from "../assets/onion.jpg";
-import Potato from "../assets/potato.jpg";
-import Rice from "../assets/rice.jpg";
-import Turmeric from "../assets/turmeric.jpg";
-import Wheat from "../assets/wheat.png";
-import Pomegranate from "../assets/pomegranate.jpg";
-import MasoorDal from "../assets/masoordal.jpg";
-import Uraddal from "../assets/uraddal.jpg";
-import Redchilly from "../assets/redchilly.jpg";
-import Garlic from "../assets/garlic.jpg";
-import Coriander from "../assets/coriander.jpg";
-import Avocado from "../assets/avocado.png";
-import Capsicum from "../assets/capsicum.jpg";
-import Carrot from "../assets/carrot.jpg";
-import Cauliflower from "../assets/cauliflower.webp";
-import Curd from "../assets/curd.jpg";
-import Lentils from "../assets/lentils.jpg";
-import Mango from "../assets/mango.jpg";
-import Milk from "../assets/milk.jpg";
-import BlackPepper from "../assets/blackpepper.jpg"; 
+// import Tomato from "../assets/tomato.jpg";
+// import Apple from "../assets/apple.jpg";
+// import Banana from "../assets/banana.jpg";
+// import Butter from "../assets/butter.jpg";
+// import Cheese from "../assets/cheese.jpg";
+// import Chilly from "../assets/chilly.jpg";
+// import Cumin from "../assets/cuminseeds.jpg";
+// import Ghee from "../assets/ghee.jpg";
+// import Ginger from "../assets/ginger.jpg";
+// import Grapes from "../assets/grapes.jpg";
+// import Onion from "../assets/onion.jpg";
+// import Potato from "../assets/potato.jpg";
+// import Rice from "../assets/rice.jpg";
+// import Turmeric from "../assets/turmeric.jpg";
+// import Wheat from "../assets/wheat.png";
+// import Pomegranate from "../assets/pomegranate.jpg";
+// import MasoorDal from "../assets/masoordal.jpg";
+// import Uraddal from "../assets/uraddal.jpg";
+// import Redchilly from "../assets/redchilly.jpg";
+// import Garlic from "../assets/garlic.jpg";
+// import Coriander from "../assets/coriander.jpg";
+// import Avocado from "../assets/avocado.png";
+// import Capsicum from "../assets/capsicum.jpg";
+// import Carrot from "../assets/carrot.jpg";
+// import Cauliflower from "../assets/cauliflower.webp";
+// import Curd from "../assets/curd.jpg";
+// import Lentils from "../assets/lentils.jpg";
+// import Mango from "../assets/mango.jpg";
+// import Milk from "../assets/milk.jpg";
+// import BlackPepper from "../assets/blackpepper.jpg"; 
 // import BargainChatWindow from "./bargaining/ConsumerChatWindow";
 
-const productImages = {
-  BlackPepper,
-  Mango,
-  Milk,
-  Lentils,
-  Curd,
-  Cauliflower,
-  Carrot,
-  Capsicum,
-  Avocado,
-  MasoorDal,
-  Uraddal,
-  Redchilly,
-  Garlic,
-  Coriander,
-  Tomato,
-  Apple,
-  Banana,
-  Butter,
-  Cheese,
-  Chilly,
-  Cumin,
-  Ghee,
-  Ginger,
-  Grapes,
-  Onion,
-  Potato,
-  Rice,
-  Turmeric,
-  Wheat,
-  Pomegranate,
-};
+// const productImages = {
+//   BlackPepper,
+//   Mango,
+//   Milk,
+//   Lentils,
+//   Curd,
+//   Cauliflower,
+//   Carrot,
+//   Capsicum,
+//   Avocado,
+//   MasoorDal,
+//   Uraddal,
+//   Redchilly,
+//   Garlic,
+//   Coriander,
+//   Tomato,
+//   Apple,
+//   Banana,
+//   Butter,
+//   Cheese,
+//   Chilly,
+//   Cumin,
+//   Ghee,
+//   Ginger,
+//   Grapes,
+//   Onion,
+//   Potato,
+//   Rice,
+//   Turmeric,
+//   Wheat,
+//   Pomegranate,
+// };
+// In your component file (e.g., ConsumerDashboard.js)
+
+// Remove the local image imports and replace with:
 
 const ConsumerDashboard = () => {
+
+
+  // Add this at the top of your component
+const [imageCache, setImageCache] = useState(() => {
+  const savedCache = localStorage.getItem('productImageCache');
+  return savedCache ? JSON.parse(savedCache) : {};
+});
+
+// Update your fetchProductImage function
+
   const { consumer } = useAuth();
   // const token = consumer?.token;
   // console.log("Consumer token:", token);
@@ -102,6 +115,7 @@ const ConsumerDashboard = () => {
   const [buyType, setBuyType] = useState("");
   const { addToCart } = useCart();
   const location = useLocation();
+  const [productImages, setProductImages] = useState({});
   // const { bargainId } = useParams();
   // const [, setIsBargainPopupOpen] = useState(false);
   // const [, setSelectedFarmer] = useState(null);
@@ -114,6 +128,25 @@ const ConsumerDashboard = () => {
   const [selectedQuantities, setSelectedQuantities] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const [imagesLoading, setImagesLoading] = useState(false);
+
+// Update your useEffect
+useEffect(() => {
+  const loadProductImages = async () => {
+    setImagesLoading(true);
+    const images = {};
+    for (const product of products) {
+      images[product.product_id] = await fetchProductImage(product.product_name);
+    }
+    setProductImages(images);
+    setImagesLoading(false);
+  };
+
+  if (products.length > 0) {
+    loadProductImages();
+  }
+}, [products]);
   // const [, setMessages] = useState([]);
 
   // useEffect(() => {
@@ -144,6 +177,51 @@ const ConsumerDashboard = () => {
   //     fetchProducts(); // Call only when token is available
   //   }
   // }, [consumer?.token]);
+
+  const fetchProductImage = async (productName) => {
+    // Check cache first
+    if (imageCache[productName]) {
+      return imageCache[productName];
+    }
+  
+    try {
+      const response = await fetch(
+        `https://api.pexels.com/v1/search?query=${encodeURIComponent(productName)}&per_page=1`,
+        {
+          headers: {
+            Authorization: 'uONxxczjZM1uaDw2jsGQPV70vtBfQbuyHcKeJ0aaCwsK0xxbo5HDpamR'
+          }
+        }
+      );
+      
+      const data = await response.json();
+      const imageUrl = data.photos[0]?.src.medium || 'https://via.placeholder.com/300?text=No+Image';
+      
+      // Update cache
+      const newCache = { ...imageCache, [productName]: imageUrl };
+      setImageCache(newCache);
+      localStorage.setItem('productImageCache', JSON.stringify(newCache));
+      
+      return imageUrl;
+    } catch (error) {
+      console.error('Error fetching image:', error);
+      return 'https://via.placeholder.com/300?text=No+Image';
+    }
+  };
+  useEffect(() => {
+    const loadProductImages = async () => {
+      const images = {};
+      for (const product of products) {
+        images[product.product_id] = await fetchProductImage(product.product_name);
+      }
+      setProductImages(images);
+    };
+  
+    if (products.length > 0) {
+      loadProductImages();
+    }
+  }, [products]);
+
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -190,17 +268,28 @@ const ConsumerDashboard = () => {
             "Authorization": `Bearer ${consumer?.token}`,
           },
         });        
-  
+
         if (!response.ok) {
           throw new Error('Failed to fetch farmers');
         }
-  
+
         const data = await response.json();
-  
-        // Fetch ratings and products for each farmer
+
+        // Fetch ratings, products, and profile photo for each farmer
         const farmersWithData = await Promise.all(
           data.map(async (farmer) => {
             try {
+              // Fetch personal details including profile photo
+              const personalResponse = await fetch(
+                `http://localhost:5000/api/farmerprofile/${farmer.farmer_id}/personal`,
+                {
+                  headers: {
+                    "Authorization": `Bearer ${consumer?.token}`,
+                  },
+                }
+              );
+              const personalData = await personalResponse.json();
+
               // Fetch ratings
               const ratingsResponse = await fetch(
                 `http://localhost:5000/reviews/${farmer.farmer_id}`,
@@ -216,7 +305,7 @@ const ConsumerDashboard = () => {
               const averageRating = ratingsData.length > 0 
                 ? ratingsData.reduce((sum, review) => sum + parseFloat(review.rating), 0) / ratingsData.length
                 : 0;
-  
+
               // Fetch products
               const productsResponse = await fetch(
                 `http://localhost:5000/api/produces?farmer_id=${farmer.farmer_id}&market_type=Bargaining Market`,
@@ -231,27 +320,31 @@ const ConsumerDashboard = () => {
               
               return {
                 ...farmer,
+                profile_photo: personalData.profile_photo 
+                  ? `http://localhost:5000${personalData.profile_photo}`
+                  : null,
                 products: productsData,
-                average_rating: parseFloat(averageRating.toFixed(1)) // Round to 1 decimal place
+                average_rating: parseFloat(averageRating.toFixed(1))
               };
             } catch (error) {
               console.error(`Error fetching data for farmer ${farmer.farmer_id}:`, error);
               return {
                 ...farmer,
+                profile_photo: null,
                 products: [],
                 average_rating: 0
               };
             }
           })
         );
-  
+
         setFarmers(farmersWithData);
       } catch (error) {
         console.error("Error fetching farmers:", error);
         alert("Failed to load farmers. Please refresh the page.");
       }
     };
-  
+
     fetchFarmers();
   }, [consumer?.token]);
 
@@ -277,98 +370,6 @@ const ConsumerDashboard = () => {
     fetchData();
   }, []);
   
-  // const handleNewMessage = (senderType, content) => {
-  //   setMessages((prevMessages) => [
-  //     ...prevMessages,
-  //     { senderType, content }
-  //   ]);
-  // };
-
-  // const handleFarmerResponse = (response) => {
-  //   handleNewMessage('farmer', response);
-  // };
-
-  // const handleBargainClick = async (farmer, product, e) => {
-  //   e.stopPropagation();
-  //   setError(null);
-  //   setIsLoading(true);
-  
-  //   try {
-  //     // Validate authentication
-  //     if (!consumer?.token) {
-  //       navigate('/loginpage', { state: { from: location.pathname } });
-  //       return;
-  //     }
-  
-  //     // Default quantity (you can make this configurable)
-  //     const quantity = 10; 
-  
-  //     // Create bargain request
-  //     const response = await fetch('http://localhost:5000/api/create-bargain', {
-  //       method: 'POST',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //         'Authorization': `Bearer ${consumer.token}`
-  //       },
-  //       body: JSON.stringify({
-  //         product_id: product.product_id,
-  //         farmer_id: farmer.farmer_id, // <-- ✅ Add this line
-  //         quantity,
-  //         initiator: "consumer"
-  //       })
-        
-  //     });
-  
-            
-  //     // 🔍 Get raw response body (for debugging)
-  //     const rawText = await response.text();
-  //     console.log("🔍 Raw server response:", rawText);
-
-  //     if (!response.ok) {
-  //       throw new Error(`Server error: ${response.status} - ${rawText}`);
-  //     }
-  //     // // ✅ Check if response is OK BEFORE trying to parse JSON
-  //     // if (!response.ok) {
-  //     //   const errorText = await response.text(); // safer than trying .json() on a broken response
-  //     //   throw new Error(`Server error: ${response.status} - ${errorText}`);
-  //     // }
-
-  //     // const data = await response.json();
-
-  //     // if (!data.bargainId) {
-  //     //   throw new Error("Missing bargainId in response");
-  //     // }
-  //     // console.log("🧾 Full response:", response);
-  //     // ✅ Only parse JSON if it’s not empty
-  //     let data;
-  //     try {
-  //       data = JSON.parse(rawText);
-  //     } catch (err) {
-  //       throw new Error(`Failed to parse server JSON: ${err.message}`);
-  //     }
-
-  //     if (!data.bargainId) {
-  //       throw new Error("Missing bargainId in response");
-  //     }
-
-  //     // Navigate directly to chat window with bargain context
-  //     navigate(`/bargain/${data.bargainId}`, {
-  //       state: {
-  //         product: product,
-  //         farmer: farmer,
-  //         quantity: quantity,
-  //         originalPrice: data.originalPrice,
-  //         isNewBargain: true // Flag to show this is a new bargain
-  //       }
-  //     });
-  
-  //   } catch (error) {
-  //     console.error("Bargain initiation failed:", error);
-  //     setError(error.message);
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
   const handleBargainClick = async (farmer, product) => {
     try {
       setIsLoading(true);
@@ -485,12 +486,12 @@ useEffect(() => {
     navigate("/cart");
   };
 
-  // const handleClosePopup = () => {
-  //   setIsBargainPopupOpen(false);
-  // };
-
-  const handleProductClick = (productId) => {
-    navigate(`/productDetails/${productId}`);
+  const handleProductClick = (productId, productImage) => {
+    navigate(`/productDetails/${productId}`, { 
+      state: { 
+        productImage: productImage || 'https://via.placeholder.com/300?text=No+Image'
+      } 
+    });
   };
 
   const handleFarmerClick = (farmerId) => {
@@ -500,11 +501,6 @@ useEffect(() => {
   const handleAddToCommunityOrders = () => {
     navigate(`/community-home`);
   };
-
-  // const handleSubscribe = (product, e) => {
-  //   e.stopPropagation();
-  //   navigate("/subscribe", { state: { product } });
-  // };
 
   const handleSubscribe =  (productId) => {
     navigate(`/productDetails/${productId}`);
@@ -620,22 +616,34 @@ useEffect(() => {
         </div>
         
         <div className="ks-products-grid">
-          {filteredProducts.map((product) => (
-            <div 
-              key={product.product_id} 
-              className="ks-product-card"
-              onClick={() => handleProductClick(product.product_id)}
-            >
-              <div className="ks-product-image-container">
-                {product.buy_type === "organic" && (
-                  <img src={OrganicBadge} alt="Organic" className="ks-organic-badge" />
-                )}
-                <img
-                  src={productImages[product.product_name]}
-                  alt={product.product_name}
-                  className="ks-product-image"
-                />
-              </div>
+        {filteredProducts.map((product) => (
+    <div key={product.product_id} className="ks-product-card">
+      <div 
+        className="ks-product-image-container"
+        onClick={() => handleProductClick(product.product_id, productImages[product.product_id])}
+
+      >
+        <img
+          src={productImages[product.product_id] || 'https://via.placeholder.com/300?text=Loading...'}
+          alt={product.product_name}
+          className="ks-product-image"
+          onError={(e) => {
+            e.target.onerror = null;
+            e.target.src = 'https://via.placeholder.com/300?text=No+Image';
+          }}
+        />
+        {product.buy_type === "organic" && (
+          <img 
+            src={OrganicBadge} 
+            alt="Organic" 
+            className="ks-organic-badge"
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent triggering the parent click
+              handleProductClick(product.product_id);
+            }}
+          />
+        )}
+      </div>
               <div className="ks-product-details">
                 <h3 className="ks-product-name">{product.product_name}</h3>
                 <div className="ks-product-meta">
@@ -732,27 +740,38 @@ useEffect(() => {
         </div>
         
         <div className="ks-farmers-list">
-  {filteredFarmers
-    .filter(farmer => farmer.products && farmer.products.length > 0) // Only show farmers with bargaining products
-    .map((farmer) => (
-      <div 
-        key={farmer.farmer_id} 
-        className="ks-farmer-card"
-        onClick={() => handleFarmerClick(farmer.farmer_id)}
-      >
-        <div className="ks-farmer-header">
-          <img src={Farmer} alt="Farmer" className="ks-farmer-avatar" />
-          <div className="ks-farmer-basic-info">
-            <h3 className="ks-farmer-name">{farmer.farmer_name}</h3>
-            <div className="ks-farmer-meta">
-              <span className="ks-farmer-id">ID: {farmer.farmer_id}</span>
-              <span className="ks-farmer-rating">
-          {renderRatingStars(farmer.average_rating || 0)}
-          <span className="ks-rating-value">({farmer.average_rating?.toFixed(1) || 0})</span>
-        </span>
-            </div>
-          </div>
-        </div>
+        {filteredFarmers
+            .filter(farmer => farmer.products && farmer.products.length > 0)
+            .map((farmer) => (
+              <div 
+                key={farmer.farmer_id} 
+                className="ks-farmer-card"
+                onClick={() => handleFarmerClick(farmer.farmer_id)}
+              >
+                <div className="ks-farmer-header">
+                  <div className="ks-farmer-avatar-container">
+                    {farmer.profile_photo ? (
+                      <img 
+                        src={farmer.profile_photo} 
+                        alt="Farmer" 
+                        className="ks-farmer-avatar"
+                      />
+                    ) : (
+                      <div className="ks-farmer-avatar-placeholder"></div>
+                    )}
+                  </div>
+                  <div className="ks-farmer-basic-info">
+                    <h3 className="ks-farmer-name">{farmer.farmer_name}</h3>
+                    <div className="ks-farmer-meta">
+                      <span className="ks-farmer-id">ID: {farmer.farmer_id}</span>
+                      <span className="ks-farmer-rating">
+                        {renderRatingStars(farmer.average_rating || 0)}
+                        <span className="ks-rating-value">({farmer.average_rating?.toFixed(1) || 0})</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
         
         <div className="ks-products-table-container">
           <table className="ks-products-table">
