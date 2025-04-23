@@ -1,4 +1,4 @@
-// import "../styles/MemberOrderPage.css";
+import "../styles/MemberOrderPage.css";
 import React, { useState, useEffect ,useRef} from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from '../context/AuthContext';
@@ -391,14 +391,14 @@ const handleProceedToPayment = async () => {
               <div className="krishi-cart-items">
                 {orders.map((order) => (
                   <div key={order.order_id} className="krishi-cart-item">
-                    <div className="krishi-cart-item-img-container">
+                    {/* <div className="krishi-cart-item-img-container">
                       <img
                         src={getProductImage(order.product_id)}
                         alt={order.product_name || "Product"}
                         className="krishi-cart-item-img"
                         onError={(e) => { e.target.src = "/images/default-produce.jpg"; }}
                       />
-                    </div>
+                    </div> */}
                     <div className="krishi-cart-item-details">
                       <h3 className="krishi-cart-item-name">{order.product_name || "Product"}</h3>
                       <div className="krishi-cart-item-meta">

@@ -362,7 +362,7 @@ router.get("/:communityId/member-by-consumer/:consumerId", async (req, res) => {
 });
 
 
-router.post('/:communityId/member/:memberId/submit-frozen-order',  async (req, res) => {
+router.post('/:communityId/member/:memberId/submit-frozen-order', async (req, res) => {
   try {
     const { communityId, memberId } = req.params;
     const { orders, discount } = req.body;
@@ -376,18 +376,22 @@ router.post('/:communityId/member/:memberId/submit-frozen-order',  async (req, r
     const subtotal = orders.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const totalAmount = subtotal - (discount?.totalDiscountAmount || 0);
 
-    // Create order in database
-    const order = await Order.create({
-      community_id: communityId,
-      member_id: memberId,
-      order_data: JSON.stringify(orders),
-      discount_data: JSON.stringify(discount),
-      total_amount: totalAmount,
-      status: 'pending'
-    });
+    // Create order in database using queryDatabase
+    const query = `
+      INSERT INTO orders (community_id, member_id, order_data, discount_data, total_amount, status)
+      VALUES (?, ?, ?, ?, ?, 'pending')
+    `;
+    
+    const result = await queryDatabase(query, [
+      communityId,
+      memberId,
+      JSON.stringify(orders),
+      JSON.stringify(discount),
+      totalAmount
+    ]);
 
     res.status(201).json({ 
-      orderId: order.id,
+      orderId: result.insertId,
       message: 'Order submitted successfully' 
     });
   } catch (error) {
@@ -462,13 +466,15 @@ router.get('/:communityId/member/:memberId/has-confirmed-order', async (req, res
   try {
     const { communityId, memberId } = req.params;
     
-    const confirmedOrder = await Order.findOne({
-      where: {
-        community_id: communityId,
-        member_id: memberId,
-        status: 'confirmed'
-      }
-    });
+    const query = `
+      SELECT * FROM orders 
+      WHERE community_id = ? 
+      AND member_id = ? 
+      
+      LIMIT 1
+    `;
+    
+    const [confirmedOrder] = await queryDatabase(query, [communityId, memberId]);
     
     res.json({ hasConfirmedOrder: !!confirmedOrder });
   } catch (error) {

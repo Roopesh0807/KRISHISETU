@@ -1520,7 +1520,7 @@ useEffect(() => {
               // </div>
               // In OrderPage.js - update the order item display
 <div key={order.order_id} className="order-item">
-  <div className="order-item-img">
+  {/* <div className="order-item-img">
     <img 
       src={`/images/${(order.product_name || order.name || '').toLowerCase().replace(/\s+/g, '-')}.jpg`}
       alt={order.product_name || order.name || 'Product'}
@@ -1529,7 +1529,7 @@ useEffect(() => {
         e.target.onerror = null;
       }}
     />
-  </div>
+  </div> */}
   <div className="order-item-details">
     <h3>{order.product_name}</h3>
     <div className="product-meta">

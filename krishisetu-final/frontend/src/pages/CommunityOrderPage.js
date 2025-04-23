@@ -825,13 +825,13 @@ function CommunityOrderPage() {
           <div className="order-items-container">
             {parsedOrders.map((item, index) => (
               <div key={index} className="order-item-card">
-                <div className="product-image">
+                {/* <div className="product-image">
                   <img 
                     src={getProductImage(item.product_id)} 
                     alt={item.product_name}
                     onError={(e) => e.target.src = "/images/default-produce.jpg"}
                   />
-                </div>
+                </div> */}
                 <div className="product-details">
                   <h4>{item.product_name}</h4>
                   <p>Price: ₹{safeToFixed(item.price)}</p>

@@ -5839,7 +5839,7 @@ schedule.schedule('*/10 * * * *', autoDebitSubscriptions);
 //   const now = new Date();
 //   const next5PM = new Date();
 
-//   next5PM.setHours(17, 0, 0, 0); // 17:00 == 5:00 PM
+//   next5PM.setHours(13, 0, 0, 0); // 17:00 == 5:00 PM
 
 //   if (now > next5PM) {
 //     next5PM.setDate(next5PM.getDate() + 1);

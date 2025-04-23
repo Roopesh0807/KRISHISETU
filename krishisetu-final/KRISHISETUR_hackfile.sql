@@ -58,27 +58,6 @@ CREATE TABLE consumerregistration (
 );
 
 -- Trigger for Auto-Generating Consumer ID
--- DELIMITER $$
-
--- CREATE TRIGGER before_insert_consumer
--- BEFORE INSERT ON consumerregistration
--- FOR EACH ROW
--- BEGIN
---     DECLARE max_id INT DEFAULT 0;
---     DECLARE next_id VARCHAR(15);
-
---     -- Get the highest numeric part of consumer_id (e.g., 001 from 'KRST01CS001')
---     SELECT IFNULL(MAX(CAST(SUBSTRING(consumer_id, 9) AS UNSIGNED)), 0) INTO max_id 
---     FROM consumerregistration;
-
---     -- Generate new consumer_id in the format 'KRST01CS001', 'KRST01CS002', etc.
---     SET next_id = CONCAT('KRST01CS', LPAD(max_id + 1, 3, '0'));
-
---     -- Assign the new consumer_id to the inserting row
---     SET NEW.consumer_id = next_id;
--- END $$
-
--- DELIMITER ;
 DELIMITER $$
 
 CREATE TRIGGER before_insert_consumer
@@ -87,20 +66,20 @@ FOR EACH ROW
 BEGIN
     DECLARE max_id INT DEFAULT 0;
     DECLARE next_id VARCHAR(15);
-
-    -- Get the highest numeric part of consumer_id (e.g., 001 from 'KRST01CS001')
-    SELECT IFNULL(MAX(CAST(SUBSTRING(consumer_id, 9) AS UNSIGNED)), 0)
+    
+    -- Get the highest numeric part of consumer_id
+    SELECT IFNULL(MAX(CAST(SUBSTRING(consumer_id, 9) AS UNSIGNED)), 0) 
     INTO max_id
     FROM consumerregistration;
-
-    -- Generate new consumer_id in the format 'KRST01CS001', 'KRST01CS002', etc.
+    
+    -- Generate new consumer_id in the format 'KRST01CS001'
     SET next_id = CONCAT('KRST01CS', LPAD(max_id + 1, 3, '0'));
-
-    -- Assign the new consumer_id to the inserting row
     SET NEW.consumer_id = next_id;
 END $$
 
 DELIMITER ;
+
+
 -- Insert Consumer Registration Data
 INSERT INTO consumerregistration (first_name, last_name, email, phone_number, password, confirm_password) 
 VALUES 
@@ -496,8 +475,11 @@ CREATE TABLE add_produce (
     FOREIGN KEY (farmer_id) REFERENCES farmerregistration(farmer_id) ON DELETE CASCADE
 );
 
+
+DROP TRIGGER IF EXISTS before_insert_add_produce ;
 -- Trigger for Add Produce
 DELIMITER //
+
 
 CREATE TRIGGER before_insert_add_produce
 BEFORE INSERT ON add_produce
@@ -509,28 +491,32 @@ BEGIN
     DECLARE next_id VARCHAR(10);
     DECLARE farmer_exists INT DEFAULT 0;
 
-    -- Check if email exists in farmerregistration table
+    -- Check if farmer exists
     SELECT COUNT(*) INTO farmer_exists
     FROM farmerregistration
     WHERE email = NEW.email;
 
     IF farmer_exists = 0 THEN
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Invalid email: No matching farmer found in farmerregistration';
+        SIGNAL SQLSTATE '45000' 
+        SET MESSAGE_TEXT = 'Invalid email: No matching farmer found';
     END IF;
 
-    -- Fetch farmer_id and first_name from the farmerregistration table based on email
+    -- Fetch farmer details
     SELECT farmer_id, first_name
     INTO fetched_farmer_id, fetched_first_name
     FROM farmerregistration
     WHERE email = NEW.email
     LIMIT 1;
 
-    -- Assign farmer_id and farmer_name (first_name)
+    -- Assign farmer details
     SET NEW.farmer_id = fetched_farmer_id;
     SET NEW.farmer_name = fetched_first_name;
 
-    -- Generate Auto-incrementing Product ID (e.g., PRD001, PRD002, ...)
-    SELECT IFNULL(MAX(CAST(SUBSTRING(product_id, 4) AS UNSIGNED)), 0) INTO max_id FROM add_produce;
+    -- Generate product ID - handles empty table case properly
+    SELECT COALESCE(MAX(CAST(SUBSTRING(product_id, 4) AS UNSIGNED)), 0) INTO max_id 
+    FROM add_produce
+    WHERE product_id REGEXP '^PRD[0-9]+$';
+    
     SET next_id = CONCAT('PRD', LPAD(max_id + 1, 3, '0'));
     SET NEW.product_id = next_id;
 END //
@@ -891,30 +877,10 @@ CREATE TABLE review_images (
 ALTER TABLE consumerregistration MODIFY COLUMN consumer_id VARCHAR(15) NULL;
 
 -- Drop the existing trigger if it exists
-DROP TRIGGER IF EXISTS before_insert_consumer;
+
 
 -- Create a new trigger for ID generation
-DELIMITER $$
 
-CREATE TRIGGER before_insert_consumer
-BEFORE INSERT ON consumerregistration
-FOR EACH ROW
-BEGIN
-    DECLARE max_id INT DEFAULT 0;
-    DECLARE next_id VARCHAR(15);
-
-    -- Get the highest numeric part of consumer_id (e.g., 001 from 'KRST01CS001')
-    SELECT IFNULL(MAX(CAST(SUBSTRING(consumer_id, 9) AS UNSIGNED)), 0) INTO max_id 
-    FROM consumerregistration;
-
-    -- Generate new consumer_id in the format 'KRST01CS001', 'KRST01CS002', etc.
-    SET next_id = CONCAT('KRST01CS', LPAD(max_id + 1, 3, '0'));
-
-    -- Assign the new consumer_id to the inserting row
-    SET NEW.consumer_id = next_id;
-END $$
-
-DELIMITER ;
 
 -- Make consumer_id NOT NULL again
 ALTER TABLE consumerregistration MODIFY COLUMN consumer_id VARCHAR(15) NOT NULL;
@@ -955,8 +921,16 @@ DELIMITER ;
 
 
 
-CREATE TABLE placeorder (
-    order_id VARCHAR(10) PRIMARY KEY,
+-- Test insert (should automatically generate order_id)
+
+
+-- Drop existing trigger first
+DROP TRIGGER IF EXISTS before_insert_placeorder;
+
+-- Update the table structure
+CREATE TABLE IF NOT EXISTS placeorder (
+    id INT AUTO_INCREMENT PRIMARY KEY,  -- Added auto-increment primary key
+    order_id VARCHAR(10) UNIQUE,       -- Changed to UNIQUE (not primary)
     consumer_id VARCHAR(15) NOT NULL,
     name VARCHAR(255) NOT NULL,
     mobile_number VARCHAR(15) NOT NULL,
@@ -969,15 +943,15 @@ CREATE TABLE placeorder (
     amount DECIMAL(10,2) NOT NULL,
     status ENUM('Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled') NOT NULL DEFAULT 'Pending',
     payment_status ENUM('Pending', 'Paid', 'Failed') NOT NULL DEFAULT 'Pending',
-    payment_method ENUM('credit-card', 'upi', 'cash-on-delivery') NOT NULL,
-    is_self_delivery BOOLEAN,
-    recipient_name VARCHAR(255),
-    recipient_phone VARCHAR(15),
+    payment_method ENUM('credit-card', 'upi', 'cash-on-delivery', 'razorpay') NOT NULL DEFAULT 'cash-on-delivery',
+    is_self_delivery BOOLEAN NOT NULL DEFAULT FALSE,
+    recipient_name VARCHAR(255) DEFAULT NULL,
+    recipient_phone VARCHAR(15) DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (consumer_id) REFERENCES consumerprofile(consumer_id)
 );
-ALTER TABLE placeorder 
-ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
--- Trigger for Auto-Generating Order ID in placeorder table
+
+-- Recreate the trigger
 DELIMITER $$
 
 CREATE TRIGGER before_insert_placeorder
@@ -989,7 +963,8 @@ BEGIN
     
     -- Get the highest numeric part of order_id
     SELECT IFNULL(MAX(CAST(SUBSTRING(order_id, 4) AS UNSIGNED)), 0) INTO max_id 
-    FROM placeorder;
+    FROM placeorder
+    WHERE order_id REGEXP '^ORD[0-9]+$';
     
     -- Generate new order_id in the format 'ORD001', 'ORD002', etc.
     SET next_id = CONCAT('ORD', LPAD(max_id + 1, 3, '0'));
@@ -1000,7 +975,20 @@ END$$
 
 DELIMITER ;
 
+INSERT INTO placeorder (
+    consumer_id, name, mobile_number, email,
+    produce_name, quantity, amount,
+    is_self_delivery, payment_status, payment_method,
+    address, pincode
+) VALUES (
+    'KRST01CS001', 'Test User', '9876543210', 'test@example.com',
+    'Test Product', 1, 100.00,
+    1, 'Pending', 'cash-on-delivery',
+    '123 Test St, Test City, Test State - 560001', '560001'
+);
 
+-- Check the result
+SELECT * FROM placeorder WHERE consumer_id = 'KRST01CS001';
 
 ALTER TABLE personaldetails CHANGE aadhaar_proof_pdf aadhaar_proof longblob;
 ALTER TABLE personaldetails ADD COLUMN bank_proof longblob;
@@ -1062,9 +1050,7 @@ DELIMITER ;
 
 
 
-ALTER TABLE placeorder
-ADD COLUMN instamojo_payment_id VARCHAR(255),
-ADD COLUMN instamojo_payment_request_id VARCHAR(255);
+
 
 CREATE TABLE IF NOT EXISTS bargain_session_temp (
   consumer_id VARCHAR(50),
@@ -1073,57 +1059,128 @@ CREATE TABLE IF NOT EXISTS bargain_session_temp (
   original_price DECIMAL(10,2)
 );
 
-CREATE TABLE IF NOT EXISTS bargain_sessions (
-    bargain_id INT AUTO_INCREMENT PRIMARY KEY,
-    consumer_id VARCHAR(20),
-    farmer_id VARCHAR(20),
-    status VARCHAR(20), -- active, completed, etc.
-    initiator VARCHAR(20), -- consumer or farmer
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    expires_at DATETIME
-)ENGINE=InnoDB;
+CREATE TABLE bargain_sessions (
+  bargain_id int(11) NOT NULL AUTO_INCREMENT,
+  consumer_id varchar(20) DEFAULT NULL,
+  farmer_id varchar(20) DEFAULT NULL,
+  status varchar(20) DEFAULT NULL,
+  initiator varchar(20) DEFAULT NULL,
+  created_at datetime DEFAULT CURRENT_TIMESTAMP,
+  updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  expires_at datetime DEFAULT NULL,
+  PRIMARY KEY (bargain_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+CREATE TABLE bargain_messages (
+  message_id int(11) NOT NULL AUTO_INCREMENT,
+  bargain_id int(11) NOT NULL,
+  sender_role enum('consumer','farmer','system') NOT NULL,
+  sender_id varchar(20) DEFAULT NULL,
+  message_content text DEFAULT NULL,
+  price_suggestion decimal(10,2) DEFAULT NULL,
+  message_type enum('text','price_offer','counter_offer','accept','reject','finalize','system') NOT NULL DEFAULT 'text',
+  created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (message_id),
+  KEY bargain_id (bargain_id),
+  CONSTRAINT bargain_messages_ibfk_1 FOREIGN KEY (bargain_id) REFERENCES bargain_sessions (bargain_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE TABLE IF NOT EXISTS bargain_session_products (
-    bsp_id INT AUTO_INCREMENT PRIMARY KEY,
-    bargain_id INT,
-    product_id VARCHAR(20),
-    original_price DECIMAL(10,2),
-    quantity DECIMAL(10,2),
-    current_offer DECIMAL(10,2),
-    FOREIGN KEY (bargain_id) REFERENCES bargain_sessions(bargain_id) ON DELETE CASCADE
-)ENGINE=InnoDB;
+CREATE TABLE bargain_session_products (
+  bsp_id int(11) NOT NULL AUTO_INCREMENT,
+  bargain_id int(11) DEFAULT NULL,
+  product_id varchar(20) DEFAULT NULL,
+  original_price decimal(10,2) DEFAULT NULL,
+  quantity decimal(10,2) DEFAULT NULL,
+  current_offer decimal(10,2) DEFAULT NULL,
+  PRIMARY KEY (bsp_id),
+  KEY bargain_id (bargain_id),
+  CONSTRAINT bargain_session_products_ibfk_1 FOREIGN KEY (bargain_id) REFERENCES bargain_sessions (bargain_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 
 
+CREATE TABLE bargain_system_notifications (
+    notification_id INT(11) NOT NULL AUTO_INCREMENT,
+    bargain_id INT(11) NOT NULL,
+    notification_type VARCHAR(50) NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (notification_id),
+    KEY (bargain_id),
+    CONSTRAINT fk_bargain_notification
+        FOREIGN KEY (bargain_id) REFERENCES bargain_sessions(bargain_id)
+        ON DELETE CASCADE
+);
 
 
-DELIMITER $$
-CREATE TRIGGER after_session_insert
-AFTER INSERT ON bargain_sessions
+
+-- Drop existing triggers (run these one by one)
+DROP TRIGGER IF EXISTS after_status_change;
+DROP TRIGGER IF EXISTS after_price_message;
+DROP TRIGGER IF EXISTS update_bargain_status_after_message;
+
+DROP TRIGGER IF EXISTS insert_bargain_order_after_accept_or_reject;
+
+DROP TRIGGER IF EXISTS add_to_cart_after_accept_message;
+
+-- Create a single consolidated trigger
+DELIMITER //
+
+CREATE TRIGGER after_insert_bargain_message
+AFTER INSERT ON bargain_messages
 FOR EACH ROW
 BEGIN
-  -- Example: insert null values (just to replicate your issue)
-  INSERT INTO bargain_session_products 
-  (bargain_id, product_id, original_price, quantity, current_offer)
-  VALUES 
-  (NEW.bargain_id, NULL, NULL, NULL, NULL);
-END$$
+  -- Handle accept, reject, and finalize
+  IF NEW.message_type = 'accept' THEN
+    UPDATE bargain_sessions
+    SET status = 'accepted'
+    WHERE bargain_id = NEW.bargain_id;
+
+    INSERT INTO bargain_system_notifications (bargain_id, notification_type, content)
+    VALUES (NEW.bargain_id, 'accept', CONCAT('Offer accepted by ', NEW.sender_role));
+
+  ELSEIF NEW.message_type = 'reject' THEN
+    UPDATE bargain_sessions
+    SET status = 'rejected'
+    WHERE bargain_id = NEW.bargain_id;
+
+    INSERT INTO bargain_system_notifications (bargain_id, notification_type, content)
+    VALUES (NEW.bargain_id, 'reject', CONCAT('Offer rejected by ', NEW.sender_role));
+
+  ELSEIF NEW.message_type = 'finalize' THEN
+    UPDATE bargain_sessions
+    SET status = 'completed'
+    WHERE bargain_id = NEW.bargain_id;
+  END IF;
+
+  -- Handle price_offer and counter_offer updates
+  IF NEW.message_type IN ('price_offer', 'counter_offer') AND NEW.price_suggestion IS NOT NULL THEN
+    UPDATE bargain_session_products
+    SET current_offer = NEW.price_suggestion
+    WHERE bargain_id = NEW.bargain_id;
+
+    UPDATE bargain_sessions
+    SET status = 'countered'
+    WHERE bargain_id = NEW.bargain_id;
+  END IF;
+
+END;
+//
+
 DELIMITER ;
 
-CREATE TABLE bargain_messages (
-    message_id INT AUTO_INCREMENT PRIMARY KEY,
-    bargain_id INT,
-    sender_role ENUM('consumer', 'farmer') NOT NULL,
-    sender_id VARCHAR(20) NOT NULL,
-    price_suggestion DECIMAL(10,2),
-    message_type ENUM('suggestion', 'accept', 'reject', 'finalize') DEFAULT 'suggestion',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    FOREIGN KEY (bargain_id) REFERENCES bargain_sessions(bargain_id) ON DELETE CASCADE
-)ENGINE=InnoDB;
 
 
+
+CREATE TABLE bargain_price_history (
+  history_id int(11) NOT NULL AUTO_INCREMENT,
+  bargain_id int(11) NOT NULL,
+  price decimal(10,2) NOT NULL,
+  offered_by enum('consumer','farmer') NOT NULL,
+  created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (history_id),
+  KEY bargain_id (bargain_id),
+  CONSTRAINT bargain_price_history_ibfk_1 FOREIGN KEY (bargain_id) REFERENCES bargain_sessions (bargain_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 -- Add Subscription Table
 CREATE TABLE subscriptions (
     subscription_id VARCHAR(10) PRIMARY KEY,
@@ -1140,35 +1197,7 @@ CREATE TABLE subscriptions (
     FOREIGN KEY (product_id) REFERENCES products(product_id)
 );
 
--- DROP TRIGGER IF EXISTS before_subscription_insert;
--- -- Trigger for Auto-Generating Subscription ID
--- DELIMITER $$
-
--- CREATE TRIGGER before_subscription_insert
--- BEFORE INSERT ON subscriptions
--- FOR EACH ROW
--- BEGIN
---     DECLARE new_id INT;
---     DECLARE formatted_id VARCHAR(10);
-    
---     -- Get the numeric part of the last subscription_id and increment it
---     SELECT IFNULL(MAX(CAST(SUBSTRING(subscription_id, 4) AS UNSIGNED)), 0) + 1 
---     INTO new_id FROM subscriptions;
-
---     -- Format it as SUB001, SUB002, etc.
---     SET formatted_id = CONCAT('SUB', LPAD(new_id, 3, '0'));
-
---     -- Assign the formatted ID to the new row
---     SET NEW.subscription_id = formatted_id;
--- END$$
-
-
--- DELIMITER ;
-
-
-DROP TRIGGER IF EXISTS before_insert_consumer;
-
-
+-- Trigger for Auto-Generating Subscription ID
 DELIMITER $$
 
 CREATE TRIGGER before_subscription_insert
@@ -1187,25 +1216,168 @@ BEGIN
 
     -- Assign the formatted ID to the new row
     SET NEW.subscription_id = formatted_id;
-END $$
+END$$
+
 
 DELIMITER ;
 
-INSERT INTO orderall (orderid, farmer_id, farmer_name, order_date, produce_name, quantity, amount, status, payment_status)
-VALUES 
-('ORD006', 'KRST01FR005', 'Deepika Mashetty', '2025-02-10', 'Chilies', 35, 210.00, 'Fulfilled', 'Paid');
 
-INSERT INTO orderall (orderid, farmer_id, farmer_name, order_date, produce_name, quantity, amount, status, payment_status)
-VALUES 
-('ORD007', 'KRST01FR005', 'Deepika Mashetty', '2025-02-11', 'Rice', 50, 400.00, 'Unfulfilled', 'Unpaid');
 
-INSERT INTO orderall (orderid, farmer_id, farmer_name, order_date, produce_name, quantity, amount, status, payment_status)
-VALUES 
-('ORD008', 'KRST01FR005', 'Deepika Mashetty', '2025-02-12', 'Corn', 40, 280.00, 'Fulfilled', 'Paid');
 
-INSERT INTO orderall (orderid, farmer_id, farmer_name, order_date, produce_name, quantity, amount, status, payment_status)
-VALUES 
-('ORD009', 'KRST01FR005', 'Deepika Mashetty', '2025-02-13', 'Brinjal', 20, 100.00, 'Unfulfilled', 'Paid');
+
+-- Personal Details Table
+ALTER TABLE personaldetails 
+MODIFY COLUMN profile_photo VARCHAR(255),
+MODIFY COLUMN aadhaar_proof VARCHAR(255),
+MODIFY COLUMN bank_proof VARCHAR(255);
+
+-- Farm Details Table
+ALTER TABLE farmdetails 
+MODIFY COLUMN land_ownership_proof VARCHAR(255),
+MODIFY COLUMN certification VARCHAR(255),
+MODIFY COLUMN land_lease_agreement VARCHAR(255),
+MODIFY COLUMN farm_photographs VARCHAR(255);
+
+CREATE TABLE payments (
+    payment_id VARCHAR(20) PRIMARY KEY,
+    order_id VARCHAR(10) NOT NULL,
+    razorpay_order_id VARCHAR(50) NOT NULL,
+    razorpay_payment_id VARCHAR(50) NOT NULL,
+    razorpay_signature VARCHAR(255) NOT NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    currency VARCHAR(3) NOT NULL DEFAULT 'INR',
+    status ENUM('created', 'captured', 'failed') NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_id) REFERENCES placeorder(order_id)
+);
+
+-- Update the placeorder table to make address non-nullable with a default
+ALTER TABLE placeorder MODIFY address TEXT NOT NULL;
+
+-- Add pincode field if not exists
+ALTER TABLE placeorder ADD COLUMN IF NOT EXISTS pincode VARCHAR(10) NOT NULL;
+
+-- Create payments table if not exists
+CREATE TABLE IF NOT EXISTS payments (
+    payment_id VARCHAR(20) PRIMARY KEY,
+    order_id VARCHAR(10) NOT NULL,
+    razorpay_order_id VARCHAR(50) NOT NULL,
+    razorpay_payment_id VARCHAR(50) NOT NULL,
+    razorpay_signature VARCHAR(255) NOT NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    currency VARCHAR(3) NOT NULL DEFAULT 'INR',
+    status ENUM('created', 'captured', 'failed') NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_id) REFERENCES placeorder(order_id)
+);
+
+DROP TRIGGER IF EXISTS before_insert_placeorder;
+
+DELIMITER $$
+
+CREATE TRIGGER before_insert_placeorder
+BEFORE INSERT ON placeorder
+FOR EACH ROW
+BEGIN
+    DECLARE max_id INT DEFAULT 0;
+    DECLARE next_id VARCHAR(10);
+    DECLARE id_num INT;
+    
+    -- Get the highest numeric part of existing order_id
+    SELECT IFNULL(MAX(CAST(SUBSTRING(order_id, 4) AS UNSIGNED)), 0) INTO max_id 
+    FROM placeorder
+    WHERE order_id REGEXP '^ORD[0-9]+$';
+    
+    -- Calculate next ID number
+    SET id_num = max_id + 1;
+    
+    -- Format the order ID with leading zeros (ORD001, ORD002, etc.)
+    SET next_id = CONCAT('ORD', LPAD(id_num, 3, '0'));
+    
+    -- Assign the new order_id
+    SET NEW.order_id = next_id;
+    
+    -- Set default status if not provided
+    IF NEW.status IS NULL THEN
+        SET NEW.status = 'Pending';
+    END IF;
+    
+    -- Set created_at timestamp if not provided
+    IF NEW.created_at IS NULL THEN
+        SET NEW.created_at = CURRENT_TIMESTAMP;
+    END IF;
+END$$
+
+DELIMITER ;
+
+
+-- Add Razorpay fields to placeorder table
+ALTER TABLE placeorder 
+ADD COLUMN IF NOT EXISTS razorpay_payment_id VARCHAR(50),
+ADD COLUMN IF NOT EXISTS razorpay_order_id VARCHAR(50),
+ADD COLUMN IF NOT EXISTS razorpay_signature VARCHAR(255);
+ALTER TABLE placeorder
+MODIFY COLUMN razorpay_payment_id VARCHAR(50) DEFAULT NULL,
+MODIFY COLUMN razorpay_order_id VARCHAR(50) DEFAULT NULL,
+MODIFY COLUMN razorpay_signature VARCHAR(255) DEFAULT NULL,
+ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT NULL;
+
+
+
+
+CREATE TABLE wallet_transactions (
+    transaction_id VARCHAR(15) PRIMARY KEY,
+    consumer_id VARCHAR(15) NOT NULL,
+    transaction_type ENUM('Credit', 'Debit') NOT NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    balance DECIMAL(10,2) NOT NULL,
+    description VARCHAR(255),
+    payment_method VARCHAR(50),
+    transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (consumer_id) REFERENCES consumerregistration(consumer_id)
+);
+
+DELIMITER $$
+
+CREATE TRIGGER before_wallet_transaction_insert
+BEFORE INSERT ON wallet_transactions
+FOR EACH ROW
+BEGIN
+    DECLARE new_id INT;
+    DECLARE formatted_id VARCHAR(15);
+    DECLARE prev_balance DECIMAL(10,2) DEFAULT 0;
+    
+    -- Get the numeric part of the last transaction_id
+    SELECT IFNULL(MAX(CAST(SUBSTRING(transaction_id, 4) AS UNSIGNED)), 0) + 1 
+    INTO new_id FROM wallet_transactions;
+
+    -- Get previous balance
+    SELECT balance INTO prev_balance 
+    FROM wallet_transactions 
+    WHERE consumer_id = NEW.consumer_id 
+    ORDER BY transaction_date DESC 
+    LIMIT 1;
+
+    -- Set default balance if no previous transactions
+    IF prev_balance IS NULL THEN
+        SET prev_balance = 0;
+    END IF;
+
+    -- Calculate new balance
+    IF NEW.transaction_type = 'Credit' THEN
+        SET NEW.balance = prev_balance + NEW.amount;
+    ELSE
+        SET NEW.balance = prev_balance - NEW.amount;
+    END IF;
+
+    -- Format transaction ID
+    SET formatted_id = CONCAT('TXN', LPAD(new_id, 3, '0'));
+    SET NEW.transaction_id = formatted_id;
+END$$
+
+DELIMITER ;
+
+
 
 
 
@@ -1236,8 +1408,84 @@ ALTER TABLE add_produce
 MODIFY COLUMN minimum_quantity INT NULL CHECK (minimum_quantity IS NULL OR minimum_quantity >= 0);
 
 
-ALTER TABLE add_produce
-ADD COLUMN minimum_price DECIMAL(10,2) NULL CHECK (minimum_price >= 0);
+
+
+
+CREATE TABLE community_orders (
+  order_id INT AUTO_INCREMENT PRIMARY KEY,
+  community_id VARCHAR(20) NOT NULL,
+  consumer_id VARCHAR(20) NOT NULL,
+  name VARCHAR(100) NOT NULL,
+  mobile_number VARCHAR(15) NOT NULL,
+  email VARCHAR(100) NOT NULL,
+  address TEXT NOT NULL,
+  pincode VARCHAR(10) NOT NULL,
+  status VARCHAR(20) DEFAULT 'Pending',
+  payment_method VARCHAR(50) NOT NULL,
+  payment_status VARCHAR(20) DEFAULT 'Pending',
+  subtotal DECIMAL(10,2) NOT NULL,
+  discount_amount DECIMAL(10,2) DEFAULT 0.00,
+  total_amount DECIMAL(10,2) NOT NULL,
+  order_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+  delivery_date DATE,
+  delivery_time VARCHAR(50),
+  discount_data JSON,
+  FOREIGN KEY (community_id) REFERENCES communities(community_id),
+  FOREIGN KEY (consumer_id) REFERENCES consumerregistration(consumer_id)
+);
+
+
+
+
+ALTER TABLE community_orders 
+ADD COLUMN produce_name TEXT NOT NULL AFTER pincode;
+
+ALTER TABLE community_orders
+
+ADD COLUMN quantity INT AFTER produce_name,
+ADD COLUMN amount DECIMAL(10,2) AFTER quantity,
+ADD COLUMN is_community BOOLEAN DEFAULT TRUE AFTER amount;
+
+
+-- Add these tables to your database
+
+CREATE TABLE billing_history (
+    billing_id VARCHAR(15) PRIMARY KEY,
+    consumer_id VARCHAR(15) NOT NULL,
+    subscription_type ENUM('Daily', 'Alternate Days', 'Weekly', 'Monthly') NOT NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    billing_date DATE NOT NULL,
+    transaction_id VARCHAR(15),
+    description VARCHAR(255),
+    FOREIGN KEY (consumer_id) REFERENCES consumerregistration(consumer_id),
+    FOREIGN KEY (transaction_id) REFERENCES wallet_transactions(transaction_id)
+);
+
+
+
+
+
+
+-- Trigger for billing_history IDs
+DELIMITER $$
+
+CREATE TRIGGER before_billing_history_insert
+BEFORE INSERT ON billing_history
+FOR EACH ROW
+BEGIN
+    DECLARE new_id INT;
+    DECLARE formatted_id VARCHAR(15);
+    
+    SELECT IFNULL(MAX(CAST(SUBSTRING(billing_id, 4) AS UNSIGNED)), 0) + 1 
+    INTO new_id FROM billing_history;
+
+    SET formatted_id = CONCAT('BIL', LPAD(new_id, 3, '0'));
+    SET NEW.billing_id = formatted_id;
+END$$
+
+DELIMITER ;
+
+-- Similar triggers for delivery_logs and subscription_logs
 
 
 CREATE TABLE bargain_orders (
@@ -1259,6 +1507,8 @@ CREATE TABLE bargain_orders (
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (order_id)
 );
+
+
 DELIMITER //
 CREATE TRIGGER insert_bargain_order_after_accept_or_reject 
 AFTER INSERT ON bargain_messages FOR EACH ROW
@@ -1344,6 +1594,7 @@ BEGIN
   END IF;
 END//
 DELIMITER ;
+
 
 CREATE TABLE cart (
     cart_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -1434,15 +1685,6 @@ END$$
 
 DELIMITER ;
 
-CREATE TABLE bargain_system_notifications (
-    notification_id INT(11) NOT NULL AUTO_INCREMENT,
-    bargain_id INT(11) NOT NULL,
-    notification_type VARCHAR(50) NOT NULL,
-    content TEXT NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (notification_id),
-    KEY (bargain_id),
-    CONSTRAINT fk_bargain_notification
-        FOREIGN KEY (bargain_id) REFERENCES bargain_sessions(bargain_id)
-        ON DELETE CASCADE
-);
+
+ALTER TABLE add_produce
+ADD COLUMN minimum_price DECIMAL(10,2) NULL CHECK (minimum_price >= 0);
