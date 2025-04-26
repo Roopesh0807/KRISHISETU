@@ -346,7 +346,7 @@ app.post("/api/farmerregister", async (req, res) => {
       res.status(500).json({ success: false, message: "Database error", error: err.message });
   }
 });
-//farmerlogin
+//farmerlogin before profile....
 app.post("/api/farmerlogin", async (req, res) => {
   const { emailOrPhone, password } = req.body;
 
@@ -406,6 +406,74 @@ const token = jwt.sign(
 });
 
 
+
+
+//for profile status check
+// app.post("/api/farmerlogin", async (req, res) => {
+//   const { emailOrPhone, password } = req.body;
+
+//   try {
+//     const results = await queryDatabase(
+//       `SELECT fr.farmer_id, fr.first_name, fr.last_name, fr.email, fr.phone_number, 
+//               fr.password, fr.profile_complete,
+//               p.dob, p.gender, p.contact_no, p.aadhaar_no, p.residential_address,
+//               f.farm_address, f.farm_size, f.crops_grown
+//        FROM farmerregistration fr
+//        LEFT JOIN personaldetails p ON fr.farmer_id = p.farmer_id
+//        LEFT JOIN farmdetails f ON fr.farmer_id = f.farmer_id
+//        WHERE fr.email = ? OR fr.phone_number = ?`,
+//       [emailOrPhone, emailOrPhone]
+//     );
+
+//     console.log("Login Query Results:", results);
+
+//     if (results.length === 0) {
+//       return res.status(401).json({ success: false, message: "Invalid credentials" });
+//     }
+
+//     const user = results[0];
+//     console.log("User Retrieved:", user);
+
+//     // Password check
+//     if (!user.password || password !== user.password) {
+//       return res.status(401).json({ success: false, message: "Invalid password" });
+//     }
+
+//     // Generate JWT Token
+//     const token = jwt.sign(
+//       {
+//         farmer_id: user.farmer_id,
+//         userType: "farmer",
+//         email: user.email,
+//       },
+//       process.env.JWT_SECRET,
+//       { expiresIn: "8760h" }
+//     );
+
+//     // Check if profile is complete
+//     const profileComplete = user.profile_complete || 
+//                           (user.dob && user.gender && user.contact_no && user.aadhaar_no && 
+//                            user.residential_address && user.farm_address && 
+//                            user.farm_size && user.crops_grown);
+
+//     // Send response with token
+//     res.json({
+//       success: true,
+//       token,
+//       farmer_id: user.farmer_id,
+//       full_name: `${user.first_name} ${user.last_name}`,
+//       email: user.email,
+//       phone_number: user.phone_number,
+//       first_name: user.first_name,
+//       last_name: user.last_name,
+//       profile_complete: profileComplete
+//     });
+    
+//   } catch (err) {
+//     console.error("❌ Farmer Login Database Error:", err);
+//     res.status(500).json({ success: false, message: "Database error", error: err.message });
+//   }
+// });
 
 
 // ✅ Upload Profile Photo
@@ -1294,6 +1362,8 @@ app.get("/api/consumer/:consumer_id", async (req, res) => {
         c.address,
         c.pincode,
         c.location,
+        c.city,
+        c.state,
         c.photo,
         c.preferred_payment_method,
         c.subscription_method
@@ -1319,6 +1389,8 @@ app.get("/api/consumer/:consumer_id", async (req, res) => {
       address: result.address,
       pincode: result.pincode,
       location: result.location,
+      city:result.city,
+      state:result.state,
       photo: result.photo ? `http://localhost:5000${result.photo}` : null,
       preferred_payment_method: result.preferred_payment_method,
       subscription_method: result.subscription_method
@@ -1341,19 +1413,21 @@ app.get("/api/consumerprofile/:consumer_id", verifyToken, async (req, res) => {
     const { consumer_id } = req.params;
     
     const query = `
-      SELECT 
-        consumer_id, 
-        name, 
-        mobile_number, 
-        email, 
-        address, 
-        pincode, 
-        location, 
-        photo, 
-        preferred_payment_method, 
-        subscription_method 
-      FROM consumerprofile 
-      WHERE consumer_id = ?`;
+    SELECT 
+      consumer_id, 
+      name, 
+      mobile_number, 
+      email, 
+      address, 
+      pincode, 
+      location, 
+      city,
+      state,
+      photo, 
+      preferred_payment_method, 
+      subscription_method 
+    FROM consumerprofile 
+    WHERE consumer_id = ?`;
     
     const results = await queryDatabase(query, [consumer_id]);
     
@@ -1376,6 +1450,8 @@ app.put("/api/consumerprofile/:consumer_id", async (req, res) => {
       address, 
       pincode, 
       location, 
+      city,
+      state,
       preferred_payment_method, 
       subscription_method 
     } = req.body;
@@ -1399,13 +1475,15 @@ app.put("/api/consumerprofile/:consumer_id", async (req, res) => {
       // Update existing profile
       await queryDatabase(
         `UPDATE consumerprofile 
-         SET address = ?, pincode = ?, location = ?,
+         SET address = ?, pincode = ?, location = ?, city = ?, state = ?,
              preferred_payment_method = ?, subscription_method = ?
          WHERE consumer_id = ?`,
         [
           address, 
           pincode, 
           location, 
+          city, // Add this
+          state, // Add this
           preferred_payment_method, 
           subscription_method, 
           consumer_id
@@ -1415,14 +1493,16 @@ app.put("/api/consumerprofile/:consumer_id", async (req, res) => {
       // Create new profile
       await queryDatabase(
         `INSERT INTO consumerprofile 
-         (consumer_id, address, pincode, location, 
+         (consumer_id, address, pincode, location, city, state,
           preferred_payment_method, subscription_method)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           consumer_id, 
           address, 
           pincode, 
           location, 
+          city, // Add this
+          state, // Add this
           preferred_payment_method, 
           subscription_method
         ]
@@ -4047,6 +4127,110 @@ app.get("/api/consumer-communities/:consumer_id", async (req, res) => {
 // Add to community cart
 // Updated community cart endpoint
 // Updated community cart endpoint with better consumer verification
+
+
+// app.post("/api/community-cart", async (req, res) => {
+//   console.log("Received community cart request with body:", req.body);
+//   const { community_id, product_id, consumer_id, quantity, price } = req.body;
+  
+//   // Validate all required fields
+//   if (!community_id || !product_id || !consumer_id || !quantity || !price) {
+//     return res.status(400).json({ error: "All fields are required" });
+//   }
+
+//   try {
+//     console.log(`Checking consumer with ID: ${consumer_id}`);
+    
+//     // First verify the consumer exists
+//     const [consumer] = await queryDatabase(
+//       "SELECT consumer_id, CONCAT(first_name, ' ', last_name) AS name FROM consumerregistration WHERE consumer_id = ?",
+//       [consumer_id]
+//     );
+
+//     if (!consumer) {
+//       console.error(`Consumer not found with ID: ${consumer_id}`);
+//       return res.status(404).json({ 
+//         error: "Consumer not found",
+//         details: `No consumer found with ID: ${consumer_id}`,
+//         suggestion: "Please ensure you're logged in with a valid account"
+//       });
+//     }
+
+//       // Get product details including name
+//       const [product] = await queryDatabase(
+//         "SELECT product_id, product_name FROM products WHERE product_id = ?",
+//         [product_id]
+//       );
+  
+//       if (!product) {
+//         return res.status(404).json({ error: "Product not found" });
+//       }
+
+//     // Then verify the community exists and check freeze status
+//     const [community] = await queryDatabase(
+//       `SELECT 
+//         community_id, 
+//         community_name,
+//         TIMESTAMPDIFF(SECOND, NOW(), CONCAT(delivery_date, ' ', delivery_time)) AS seconds_until_delivery
+//        FROM communities 
+//        WHERE community_id = ?`,
+//       [community_id]
+//     );
+    
+//     if (!community) {
+//       return res.status(404).json({ error: "Community not found" });
+//     }
+
+//     // Check if community is frozen (within 24 hours of delivery)
+//     if (community.seconds_until_delivery <= 86400) {
+//       return res.status(403).json({ 
+//         error: "Community is frozen",
+//         message: "No new orders can be placed within 24 hours of delivery",
+//         delivery_time: community.delivery_time,
+//         delivery_date: community.delivery_date
+//       });
+//     }
+
+//     // Get member info (including verification that consumer belongs to community)
+//     const [member] = await queryDatabase(
+//       `SELECT m.member_id, m.consumer_id, m.community_id
+//        FROM members m
+//        WHERE m.consumer_id = ? 
+//        AND m.community_id = ?`,
+//       [consumer_id, community_id]
+//     );
+    
+//     if (!member) {
+//       return res.status(403).json({ 
+//         error: "Membership not found",
+//         details: `Consumer ${consumer.consumer_id} is not a member of community ${community_id}`
+//       });
+//     }
+
+//     // Insert the order
+//     const result = await queryDatabase(
+//       `INSERT INTO orders (community_id, product_id, product_name, quantity, price, member_id, payment_method)
+//       VALUES (?, ?, ?, ?, ?, ?, 'Pending')`,
+//      [community_id, product_id, product.product_name, quantity, price, member.member_id]
+//    );
+    
+//     res.json({ 
+//       success: true, 
+//       message: "Added to community cart",
+//       community_id: community.community_id,
+//       community_name: community.community_name,
+//       order_id: result.insertId
+//     });
+//   } catch (error) {
+//     console.error("Error adding to community cart:", error);
+//     res.status(500).json({ 
+//       error: "Failed to add to community cart",
+//       details: error.message 
+//     });
+//   }
+// });
+
+
 app.post("/api/community-cart", async (req, res) => {
   console.log("Received community cart request with body:", req.body);
   const { community_id, product_id, consumer_id, quantity, price } = req.body;
@@ -4072,6 +4256,16 @@ app.post("/api/community-cart", async (req, res) => {
         details: `No consumer found with ID: ${consumer_id}`,
         suggestion: "Please ensure you're logged in with a valid account"
       });
+    }
+
+    // Get product details including name, buy_type, and category
+    const [product] = await queryDatabase(
+      "SELECT product_id, product_name, buy_type, category FROM products WHERE product_id = ?",
+      [product_id]
+    );
+  
+    if (!product) {
+      return res.status(404).json({ error: "Product not found" });
     }
 
     // Then verify the community exists and check freeze status
@@ -4115,11 +4309,29 @@ app.post("/api/community-cart", async (req, res) => {
       });
     }
 
-    // Insert the order
+    // Insert the order with all product details
     const result = await queryDatabase(
-      `INSERT INTO orders (community_id, product_id, quantity, price, member_id, payment_method)
-       VALUES (?, ?, ?, ?, ?, 'Pending')`,
-      [community_id, product_id, quantity, price, member.member_id]
+      `INSERT INTO orders (
+        community_id, 
+        product_id, 
+        product_name, 
+        buy_type, 
+        category,
+        quantity, 
+        price, 
+        member_id, 
+        payment_method
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Pending')`,
+      [
+        community_id, 
+        product_id, 
+        product.product_name,
+        product.buy_type,
+        product.category,
+        quantity, 
+        price, 
+        member.member_id
+      ]
     );
     
     res.json({ 
@@ -4137,7 +4349,6 @@ app.post("/api/community-cart", async (req, res) => {
     });
   }
 });
-
 
 // GET /api/consumers - Fetch consumers from the database
 app.get('/consumers', async (req, res) => {
@@ -7268,6 +7479,17 @@ app.put("/api/farmerprofile/:farmer_id",
         ]);
       }
 
+       // Check if profile is complete
+      //  const isComplete = await checkProfileCompletion(farmer_id);
+      
+      //  // Update profile complete status if needed
+      //  if (isComplete) {
+      //    await queryDatabase(
+      //      `UPDATE farmerregistration SET profile_complete = TRUE WHERE farmer_id = ?`,
+      //      [farmer_id]
+      //    );
+      //  }
+
       res.json({ success: true, message: "Profile updated successfully" });
     } catch (error) {
       console.error("Error updating farmer profile:", error);
@@ -7275,6 +7497,127 @@ app.put("/api/farmerprofile/:farmer_id",
     }
   }
 );
+
+// Helper function to check profile completion
+// async function checkProfileCompletion(farmer_id) {
+//   try {
+//     // Check personal details
+//     const personal = await queryDatabase(
+//       `SELECT dob, gender, contact_no, aadhaar_no, residential_address,aadhaar_proof, bank_proof 
+//        FROM personaldetails 
+//        WHERE farmer_id = ?`,
+//       [farmer_id]
+//     );
+
+//     if (!personal.length) return false;
+    
+//     const personalComplete = personal[0].dob && 
+//                             personal[0].gender && 
+//                             personal[0].contact_no && 
+//                             personal[0].aadhaar_no && 
+//                             personal[0].residential_address &&
+//                             personal[0].aadhaar_proof &&
+//                             personal[0].bank_proof;
+
+//     // Check farm details
+//     const farm = await queryDatabase(
+//       `SELECT farm_address, farm_size, crops_grown,land_ownership_proof, certification 
+//        FROM farmdetails 
+//        WHERE farmer_id = ?`,
+//       [farmer_id]
+//     );
+
+//     if (!farm.length) return false;
+    
+//     const farmComplete = farm[0].farm_address && 
+//                          farm[0].farm_size && 
+//                          farm[0].crops_grown &&
+//                          farm[0].land_ownership_proof &&
+//                          farm[0].certification;
+
+//     return personalComplete && farmComplete;
+//   } catch (error) {
+//     console.error("Error checking profile completion:", error);
+//     return false;
+//   }
+// }
+
+// Farmer Profile Completion Check
+// app.get('/api/farmerprofile/:farmer_id/status', auth.authenticate, auth.farmerOnly, async (req, res) => {
+//   try {
+//     const { farmer_id } = req.params;
+//     if (farmer_id !== req.user.farmer_id) {
+//       return res.status(403).json({ error: "Unauthorized" });
+//     }
+
+//     const [farmer] = await queryDatabase(
+//       `SELECT profile_complete FROM farmerregistration WHERE farmer_id = ?`,
+//       [farmer_id]
+//     );
+
+//     if (!farmer) {
+//       return res.status(404).json({ error: "Farmer not found" });
+//     }
+
+//     res.json({ profile_complete: farmer.profile_complete });
+//   } catch (error) {
+//     console.error("Error checking profile status:", error);
+//     res.status(500).json({ error: "Failed to check profile status" });
+//   }
+// });
+
+// // Mark Profile as Complete
+// app.post('/api/farmerprofile/:farmer_id/complete', auth.authenticate, auth.farmerOnly, async (req, res) => {
+//   try {
+//     const { farmer_id } = req.params;
+//     if (farmer_id !== req.user.farmer_id) {
+//       return res.status(403).json({ error: "Unauthorized" });
+//     }
+
+//     // First verify all required fields are filled
+//     const [personal] = await queryDatabase(
+//       `SELECT dob, gender, contact_no, aadhaar_no, residential_address 
+//        FROM personaldetails WHERE farmer_id = ?`,
+//       [farmer_id]
+//     );
+
+//     const [farm] = await queryDatabase(
+//       `SELECT farm_address, farm_size, crops_grown 
+//        FROM farmdetails WHERE farmer_id = ?`,
+//       [farmer_id]
+//     );
+
+//     if (!personal || !farm) {
+//       return res.status(400).json({ error: "Profile data not found" });
+//     }
+
+//     const requiredPersonal = ['dob', 'gender', 'contact_no', 'aadhaar_no', 'residential_address','aadhaar_proof','bank_proof'];
+//     const requiredFarm = ['farm_address', 'farm_size', 'crops_grown'];
+
+//     const personalComplete = requiredPersonal.every(field => personal[field]);
+//     const farmComplete = requiredFarm.every(field => farm[field]);
+
+//     if (!personalComplete || !farmComplete) {
+//       return res.status(400).json({ 
+//         error: "Profile not complete", 
+//         missing: {
+//           personal: requiredPersonal.filter(field => !personal[field]),
+//           farm: requiredFarm.filter(field => !farm[field])
+//         }
+//       });
+//     }
+
+//     await queryDatabase(
+//       `UPDATE farmerregistration SET profile_complete = TRUE WHERE farmer_id = ?`,
+//       [farmer_id]
+//     );
+
+//     res.json({ success: true, message: "Profile marked as complete" });
+//   } catch (error) {
+//     console.error("Error marking profile complete:", error);
+//     res.status(500).json({ error: "Failed to mark profile complete" });
+//   }
+// });
 app.put("/api/farmerprofile/:farmer_id/:section", 
   auth.authenticate,
   auth.farmerOnly,

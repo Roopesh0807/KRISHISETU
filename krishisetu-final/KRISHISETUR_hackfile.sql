@@ -412,6 +412,10 @@ END $$
 
 DELIMITER ;
 
+ALTER TABLE consumerprofile
+ADD COLUMN city VARCHAR(100) NULL AFTER location,
+ADD COLUMN state VARCHAR(100) NULL AFTER city;
+
 -- Insert Consumer Profile Data
 INSERT INTO consumerprofile (name, mobile_number, email, address, pincode, location, photo, preferred_payment_method, subscription_method)
 VALUES 
@@ -460,6 +464,9 @@ JOIN
     personaldetails p ON fr.farmer_id = p.farmer_id
 JOIN 
     farmdetails f ON fr.farmer_id = f.farmer_id;
+
+    -- Add profile_complete column to farmerregistration table
+ALTER TABLE farmerregistration ADD COLUMN profile_complete BOOLEAN DEFAULT FALSE;
 
 -- Add Produce Table
 CREATE TABLE add_produce (
@@ -825,6 +832,13 @@ CREATE TABLE orders (
 
 
 ALTER TABLE orders ADD COLUMN payment_method VARCHAR(50);
+-- Add product_name column to orders table
+ALTER TABLE orders ADD COLUMN product_name VARCHAR(100) NOT NULL AFTER product_id;
+
+
+ALTER TABLE orders 
+ADD COLUMN buy_type VARCHAR(20) AFTER product_name,
+ADD COLUMN category VARCHAR(50) AFTER buy_type;
 
 -- Trigger for Auto-Generating Order ID
 DELIMITER $$
@@ -849,9 +863,10 @@ END $$
 
 DELIMITER ;
 
-
-INSERT INTO orders (community_id, product_id, quantity, price, member_id)
-VALUES ('COMM001', 'PROD001', 2, 19.99, 'MEM001');
+ALTER TABLE orders ADD CONSTRAINT fk_product
+FOREIGN KEY (product_id) REFERENCES products(product_id);
+-- INSERT INTO orders (community_id, product_id, quantity, price, member_id)
+-- VALUES ('COMM001', 'PROD001', 2, 19.99, 'MEM001');
 
 
 CREATE TABLE reviews (

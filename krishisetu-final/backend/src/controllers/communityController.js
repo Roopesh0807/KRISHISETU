@@ -571,44 +571,152 @@ exports.joinCommunity = async (req, res) => {
 //   }
 // };
 // Add this to communityController.js
+
+
+
+
+// exports.getMemberOrders = async (req, res) => {
+//   const { communityId, memberId } = req.params;
+
+//   try {
+//     // First verify the member belongs to this community
+//     const verifyQuery = `
+//       SELECT member_id FROM members 
+//       WHERE member_id = ? AND community_id = ?
+//     `;
+//     const [member] = await queryDatabase(verifyQuery, [memberId, communityId]);
+
+//     if (!member) {
+//       return res.status(404).json({ error: "Member not found in this community" });
+//     }
+
+//     // Get orders for this member in this community with product details
+//     const query = `
+//       SELECT 
+//         o.order_id,
+//         o.product_id,
+//         p.product_name,
+//         p.category,
+//         p.buy_type,
+//         o.quantity,
+//         o.price,
+//         o.payment_method,
+//         o.created_at
+//       FROM orders o
+//       JOIN products p ON o.product_id = p.product_id
+//       WHERE o.community_id = ? AND o.member_id = ?
+//       ORDER BY o.created_at DESC
+//     `;
+
+//     const orders = await queryDatabase(query, [communityId, memberId]);
+//     res.status(200).json({
+//       success: true,
+//       orders: orders.map(order => ({
+//         ...order,
+//         product_name: order.product_name || 'Unknown Product',
+//         total: order.price * order.quantity
+//       }))
+//     });
+
+//   } catch (error) {
+//     console.error("Error fetching member orders:", error);
+//     res.status(500).json({ error: "Error fetching member orders" });
+//   }
+// };
+
 exports.getMemberOrders = async (req, res) => {
   const { communityId, memberId } = req.params;
 
   try {
-    // First verify the member belongs to this community
-    const verifyQuery = `
-      SELECT member_id FROM members 
-      WHERE member_id = ? AND community_id = ?
-    `;
-    const [member] = await queryDatabase(verifyQuery, [memberId, communityId]);
+    // Verify member belongs to this community
+    const [member] = await queryDatabase(
+      `SELECT member_id FROM members 
+       WHERE member_id = ? AND community_id = ?`,
+      [memberId, communityId]
+    );
 
     if (!member) {
       return res.status(404).json({ error: "Member not found in this community" });
     }
 
-    // Get orders for this member in this community
+
+    console.log(`Fetching orders for community: ${communityId}, member: ${memberId}`);
+    // Get orders with all product details from orders table
     const query = `
-    SELECT 
-      o.order_id,
-      o.product_id,
-      p.product_name,
-      p.category,
-      p.buy_type,
-      o.quantity,
-      o.price,
-      o.payment_method,
-      o.created_at
-    FROM orders o
-    JOIN products p ON o.product_id = p.product_id
-    WHERE o.community_id = ? AND o.member_id = ?
-    ORDER BY o.created_at DESC
-  `;
+      SELECT 
+        order_id,
+        product_id,
+        product_name,
+        quantity,
+        price,
+        payment_method,
+        created_at,
+        category,
+        buy_type
+      FROM orders
+      WHERE community_id = ? AND member_id = ?
+      ORDER BY created_at DESC
+    `;
 
     const orders = await queryDatabase(query, [communityId, memberId]);
-    res.status(200).json(orders);
+    
+    console.log('Raw database results:', orders);
+
+
+
+    if (!orders || orders.length === 0) {
+      return res.status(200).json({ 
+        success: true,
+        orders: [] 
+      });
+    }
+
+
+        // Process orders with minimal transformation
+        const processedOrders = orders.map(order => {
+          // Debug each order
+          console.log('Processing order:', {
+            id: order.order_id,
+            name: order.product_name,
+            category: order.category,
+            buy_type: order.buy_type
+          });
+    
+          return {
+            order_id: order.order_id,
+            product_id: order.product_id,
+            product_name: order.product_name || 'Unknown Product',
+            quantity: order.quantity,
+            price: order.price,
+            payment_method: order.payment_method,
+            created_at: order.created_at,
+            category: order.category || 'Uncategorized',
+            buy_type: order.buy_type || 'Standard',
+            total: order.price * order.quantity
+          };
+        });
+
+    res.status(200).json({
+      success: true,
+      orders: orders.map(order => ({
+        order_id: order.order_id,
+        product_id: order.product_id,
+        product_name: order.product_name,
+        quantity: order.quantity,
+        price: order.price,
+        payment_method: order.payment_method,
+        created_at: order.created_at,
+        category: order.category,
+        buy_type: order.buy_type,
+        total: order.price * order.quantity
+      }))
+    });
   } catch (error) {
     console.error("Error fetching member orders:", error);
-    res.status(500).json({ error: "Error fetching member orders" });
+    res.status(500).json({ 
+      success: false,
+      error: "Error fetching member orders" 
+    });
   }
 };
 // Verify community access for a consumer

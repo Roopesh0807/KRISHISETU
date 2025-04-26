@@ -14,6 +14,8 @@ const ConsumerProfile = () => {
     address: "",
     pincode: "",
     location: "",
+    city: "", // Add this
+    state: "", // Add this
     photo: "",
     preferred_payment_method: "",
     subscription_method: "",
@@ -55,6 +57,9 @@ const ConsumerProfile = () => {
         ? data.photo 
         : `http://localhost:5000${data.photo}`
       : null;
+
+
+      
         setProfile({
           consumer_id: data.consumer_id,
           first_name: data.first_name,
@@ -65,6 +70,8 @@ const ConsumerProfile = () => {
           address: data.address,
           pincode: data.pincode,
           location: data.location,
+          city: data.city, // Add this
+          state: data.state, // Add this
           photo: photoUrl,
           preferred_payment_method: data.preferred_payment_method,
           subscription_method: data.subscription_method
@@ -135,6 +142,8 @@ const ConsumerProfile = () => {
         setProfile((prevProfile) => ({
           ...prevProfile,
           location: data[0].PostOffice[0].District,
+          city: data[0].PostOffice[0].District, // Set city same as district
+        state: data[0].PostOffice[0].State // Add state
         }));
       }
     } catch (err) {
@@ -277,6 +286,8 @@ const ConsumerProfile = () => {
         address: profile.address,
         pincode: profile.pincode,
         location: profile.location,
+        city: profile.city, // Add this
+        state: profile.state, // Add this
         preferred_payment_method: profile.preferred_payment_method,
         subscription_method: profile.subscription_method
       };
@@ -477,6 +488,9 @@ const ConsumerProfile = () => {
                   </label>
                   <div className="ks-profile-value">{profile.email || "Not provided"}</div>
                 </div>
+
+
+               
               </div>
             </div>
 
@@ -529,8 +543,46 @@ const ConsumerProfile = () => {
                   </label>
                   <div className="ks-profile-value">{profile.location || "Not provided"}</div>
                 </div>
+                <div className="ks-profile-field">
+    <label className="ks-profile-label">
+      <i className="fas fa-city ks-field-icon"></i> City
+    </label>
+    {isEditing ? (
+      <input 
+        type="text" 
+        name="city" 
+        value={profile.city} 
+        onChange={handleChange} 
+        className="ks-profile-input"
+        placeholder="Enter your city" 
+      />
+    ) : (
+      <div className="ks-profile-value">{profile.city || "Not provided"}</div>
+    )}
+  </div>
+
+  <div className="ks-profile-field">
+    <label className="ks-profile-label">
+      <i className="fas fa-map-marked-alt ks-field-icon"></i> State
+    </label>
+    {isEditing ? (
+      <input 
+        type="text" 
+        name="state" 
+        value={profile.state} 
+        onChange={handleChange} 
+        className="ks-profile-input"
+        placeholder="Enter your state" 
+      />
+    ) : (
+      <div className="ks-profile-value">{profile.state || "Not provided"}</div>
+    )}
+ 
+</div>
               </div>
+              
             </div>
+            
 
             <div className="ks-profile-detail-group">
               <div className="ks-profile-section-header">

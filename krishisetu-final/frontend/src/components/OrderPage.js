@@ -154,11 +154,14 @@ const [loadingImages, setLoadingImages] = useState(true);
           setNewAddress({
             street: addressParts[0],
             landmark: landmark,
-            city: addressParts.length > 2 ? addressParts[2] : addressParts[1],
-            state: statePincodeMatch ? statePincodeMatch[1] : "",
-            pincode: statePincodeMatch ? statePincodeMatch[2] : ""
-          });
-        }
+            city: data.city || (addressParts.length > 2 ? addressParts[2] : addressParts[1]),
+        state: data.state || (statePincodeMatch ? statePincodeMatch[1] : ""),
+        pincode: data.pincode || (statePincodeMatch ? statePincodeMatch[2] : "")
+      });
+    } else if (data.pincode) {
+      // If we have pincode but no address, fetch location details
+      fetchAddressDetails(data.pincode);
+    }
       } catch (error) {
         console.error("Error fetching consumer profile:", error);
         setConsumerProfile({
@@ -565,11 +568,16 @@ const verifyPayment = async (paymentData) => {
         throw new Error(errorData.error || "Failed to update address");
       }
       
-      setConsumerProfile(prev => ({
-        ...prev,
-        address: fullAddress
-      }));
-      
+ // Update the consumer profile with all address components
+ const updatedProfile = {
+  ...consumerprofile,
+  address: fullAddress,
+  pincode: newAddress.pincode,
+  city: newAddress.city,
+  state: newAddress.state
+};
+
+setConsumerProfile(updatedProfile);
       setShowAddressPopup(false);
       alert("Address updated successfully!");
   
@@ -978,6 +986,9 @@ const verifyPayment = async (paymentData) => {
                       <h4><FaUser /> {consumerprofile?.name || "Loading..."}</h4>
                       <p><FaPhone /> {consumerprofile?.mobile_number || "Loading..."}</p>
                       <p>{consumerprofile.address}</p>
+                      <p><strong>Pincode:</strong> {consumerprofile.pincode || newAddress.pincode}</p>
+            <p><strong>City:</strong> {consumerprofile.city || newAddress.city}</p>
+            <p><strong>State:</strong> {consumerprofile.state || newAddress.state}</p>
                     </div>
                   </div>
                 ) : (
@@ -1103,42 +1114,46 @@ const verifyPayment = async (paymentData) => {
               <span>{consumerprofile?.mobile_number || "Loading..."}</span>
             </div>
             <div className="krishi-popup-field">
-              <label>Pincode *</label>
-              <input
-                type="text"
-                placeholder="Enter 6-digit pincode"
-                value={newAddress.pincode}
-                onChange={(e) => handlePincodeChange(e)}
-                maxLength="6"
-              />
-            </div>
-            <div className="krishi-popup-field">
-              <label>City *</label>
-              <input 
-                type="text" 
-                placeholder="City" 
-                value={newAddress.city} 
-                readOnly 
-              />
-            </div>
-            <div className="krishi-popup-field">
-              <label>State *</label>
-              <input 
-                type="text" 
-                placeholder="State" 
-                value={newAddress.state} 
-                readOnly 
-              />
-            </div>
-            <div className="krishi-popup-field">
-              <label>Street Address *</label>
-              <input
-                type="text"
-                placeholder="House no, Building, Street"
-                value={newAddress.street}
-                onChange={(e) => setNewAddress(prev => ({ ...prev, street: e.target.value }))}
-              />
-            </div>
+        <label>Pincode *</label>
+        <input
+          type="text"
+          placeholder="Enter 6-digit pincode"
+          value={newAddress.pincode}
+          onChange={(e) => {
+            const pincode = e.target.value;
+            setNewAddress(prev => ({ ...prev, pincode }));
+            if (pincode.length === 6) fetchAddressDetails(pincode);
+          }}
+          maxLength="6"
+        />
+      </div>
+      <div className="krishi-popup-field">
+        <label>City *</label>
+        <input 
+          type="text" 
+          placeholder="City" 
+          value={newAddress.city} 
+          onChange={(e) => setNewAddress(prev => ({ ...prev, city: e.target.value }))}
+        />
+      </div>
+      <div className="krishi-popup-field">
+        <label>State *</label>
+        <input 
+          type="text" 
+          placeholder="State" 
+          value={newAddress.state} 
+          onChange={(e) => setNewAddress(prev => ({ ...prev, state: e.target.value }))}
+        />
+      </div>
+      <div className="krishi-popup-field">
+        <label>Street Address *</label>
+        <input
+          type="text"
+          placeholder="House no, Building, Street"
+          value={newAddress.street}
+          onChange={(e) => setNewAddress(prev => ({ ...prev, street: e.target.value }))}
+        />
+      </div>
             <div className="krishi-popup-field">
               <label>Landmark (Optional)</label>
               <input
