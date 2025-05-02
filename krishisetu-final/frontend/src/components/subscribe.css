@@ -1818,7 +1818,7 @@
 }
 
 .add-product-btn:hover {
-<<<<<<< HEAD
+
   background: var(--primary-dark);
   transform: translateY(-2px);
   box-shadow: var(--shadow-sm);
@@ -2220,13 +2220,12 @@
   to { transform: rotate(360deg); }
 }
 
-@keyframes fadeIn {
+/* @keyframes fadeIn {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
-=======
+
   background: var(--krishi-dark-green);
->>>>>>> d320bbf7d4aeb1d78a59069f7971716d545a1e4c
-}
+} */
 
 /* Responsive Design */
 @media (max-width: 768px) {
@@ -2300,7 +2299,6 @@
   line-height: 1.5;
 }
 
-<<<<<<< HEAD
 
 
 /* Success Messages */
@@ -2321,9 +2319,9 @@ gap: 10px;
 }
 
 /* Header Styles */
-=======
+
 /* Header */
->>>>>>> d320bbf7d4aeb1d78a59069f7971716d545a1e4c
+
 .subscribe-header {
   display: flex;
   justify-content: space-between;

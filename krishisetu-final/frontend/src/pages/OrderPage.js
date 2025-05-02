@@ -501,100 +501,6 @@ useEffect(() => {
         {yourOrders.length > 0 ? (
           <div className="orders-container">
             {yourOrders.map(order => (
-<<<<<<< HEAD
-              // <div key={order.order_id} className="order-item">
-              //   <div className="order-item-img">
-              //   <img 
-              //     src={`/images/${(order.product_name || order.name || '').toLowerCase().replace(/\s+/g, '-')}.jpg`
-              //     }
-              //     alt={order.product_name || order.name || 'Product'}
-              //     onError={(e) =>{ e.target.src = "/images/default-produce.jpg";
-              //       e.target.onerror = null;
-              //     }}
-              //   />
-              // </div>
-              //   <div className="order-item-details">
-              //     <h3>{order.product_name}</h3>
-              //     <div className="order-item-meta">
-              //       <span>Price: ₹{order.price.toFixed(2)}</span>
-              //       <div className="quantity-controls">
-              //         <button 
-              //           onClick={() => handleQuantityChange(order.order_id, order.quantity - 1)}
-              //           disabled={order.quantity <= 1 || freezeStatus.isFrozen}
-              //         >
-              //           −
-              //         </button>
-              //         <span>{order.quantity}</span>
-              //         <button 
-              //           onClick={() => handleQuantityChange(order.order_id, order.quantity + 1)}
-              //           disabled={freezeStatus.isFrozen}
-              //         >
-              //           +
-              //         </button>
-              //       </div>
-              //       <button 
-              //         className="remove-btn"
-              //         onClick={() => handleRemoveOrder(order.order_id)}
-              //         disabled={freezeStatus.isFrozen}
-              //       >
-              //         Remove
-              //       </button>
-              //     </div>
-              //     <div className="order-item-total">
-              //       Total: ₹{order.total.toFixed(2)}
-              //     </div>
-              //   </div>
-              // </div>
-              // In OrderPage.js - update the order item display
-<div key={order.order_id} className="order-item">
-  {/* <div className="order-item-img">
-    <img 
-      src={`/images/${(order.product_name || order.name || '').toLowerCase().replace(/\s+/g, '-')}.jpg`}
-      alt={order.product_name || order.name || 'Product'}
-      onError={(e) => {
-        e.target.src = "/images/default-produce.jpg";
-        e.target.onerror = null;
-      }}
-    />
-  </div> */}
-  <div className="order-item-details">
-    <h3>{order.product_name}</h3>
-    <div className="product-meta">
-      <span className="product-type">
-        {order.category} • {order.buy_type === 'organic' ? 'Organic' : 'Standard'}
-      </span>
-    </div>
-    <div className="order-item-meta">
-      <span>Price: ₹{order.price.toFixed(2)}</span>
-      <div className="quantity-controls">
-        <button 
-          onClick={() => handleQuantityChange(order.order_id, order.quantity - 1)}
-          disabled={order.quantity <= 1 || freezeStatus.isFrozen}
-        >
-          −
-        </button>
-        <span>{order.quantity}</span>
-        <button 
-          onClick={() => handleQuantityChange(order.order_id, order.quantity + 1)}
-          disabled={freezeStatus.isFrozen}
-        >
-          +
-        </button>
-      </div>
-      <button 
-        className="remove-btn"
-        onClick={() => handleRemoveOrder(order.order_id)}
-        disabled={freezeStatus.isFrozen}
-      >
-        Remove
-      </button>
-    </div>
-    <div className="order-item-total">
-      Total: ₹{order.total.toFixed(2)}
-    </div>
-  </div>
-</div>
-=======
               <div key={order.order_id} className="order-item">
                 <div className="order-item-img">
                   <img 
@@ -644,7 +550,6 @@ useEffect(() => {
                   </div>
                 </div>
               </div>
->>>>>>> d320bbf7d4aeb1d78a59069f7971716d545a1e4c
             ))}
                    <div className="order-summary">
               {freezeStatus.isFrozen && discount.totalDiscount > 0 && (
