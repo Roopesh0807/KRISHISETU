@@ -127,10 +127,10 @@ const ProductDetails = () => {
           product_id: product.product_id,
           consumer_id: consumer.consumer_id,
           quantity: selectedQuantity,
-          price: selectedQuantity * product.price_1kg
+          price: selectedQuantity * product.price_1kg,
+          // buy_type and category will be fetched by the backend from the product
         })
       });
-      
       const data = await response.json();
       
       if (!response.ok) {

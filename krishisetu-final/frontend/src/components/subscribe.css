@@ -2225,7 +2225,12 @@
   to { opacity: 1; transform: translateY(0); }
 
   background: var(--krishi-dark-green);
+<<<<<<< HEAD
 } */
+=======
+
+}
+>>>>>>> 61c63ea89300e02667fe7b95728ac38ab182ff6f
 
 /* Responsive Design */
 @media (max-width: 768px) {
@@ -2299,6 +2304,10 @@
   line-height: 1.5;
 }
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 61c63ea89300e02667fe7b95728ac38ab182ff6f
 
 
 /* Success Messages */
