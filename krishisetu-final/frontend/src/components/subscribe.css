@@ -2220,13 +2220,7 @@
   to { transform: rotate(360deg); }
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
 
-  background: var(--krishi-dark-green);
-
-}
 
 /* Responsive Design */
 @media (max-width: 768px) {
@@ -2299,7 +2293,6 @@
   background: var(--krishi-white);
   line-height: 1.5;
 }
-
 
 
 
