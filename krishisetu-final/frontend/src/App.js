@@ -61,6 +61,8 @@ import CommunityOrderPage from "./pages/CommunityOrderPage";
 // In your main App.js or routing file
 import PaymentSuccess from './components/PaymentSuccess';
 import PaymentFailed from './components/PaymentFailed';
+import GoogleTranslate from "./components/GoogleTranslate";
+
 
 function App() {
   return (
@@ -68,6 +70,7 @@ function App() {
       <AuthProvider>
         <CartProvider>
           <Router>
+            <GoogleTranslate />
             <Main />
           </Router>
         </CartProvider>
@@ -79,6 +82,42 @@ function App() {
 const Main = () => {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // const [language, setLanguage] = useState('en');
+
+  const path = location.pathname;
+
+  // // Initialize Google Translate
+  // useEffect(() => {
+  //   const addGoogleTranslateScript = () => {
+  //     const script = document.createElement('script');
+  //     script.src = '//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+  //     script.async = true;
+  //     document.body.appendChild(script);
+      
+  //     window.googleTranslateElementInit = () => {
+  //       new window.google.translate.TranslateElement(
+  //         {
+  //           pageLanguage: 'en',
+  //           includedLanguages: 'en,hi,kn',
+  //           layout: window.google.translate.TranslateElement.InlineLayout.SIMPLE
+  //         },
+  //         'google_translate_element'
+  //       );
+  //     };
+  //   };
+
+  //   addGoogleTranslateScript();
+
+  //   return () => {
+  //     // Cleanup function
+  //     const googleTranslateScript = document.querySelector('script[src*="translate.google.com"]');
+  //     if (googleTranslateScript) {
+  //       document.body.removeChild(googleTranslateScript);
+  //     }
+  //     delete window.googleTranslateElementInit;
+  //   };
+  // }, []);
+
 
   const getNavbar = () => {
     const path = location.pathname;
@@ -103,9 +142,13 @@ const Main = () => {
       /\/farmer\/[A-Za-z0-9]+\/personal-details/.test(path) ||
       /\/farmer\/[A-Za-z0-9]+\/farm-details/.test(path)  
     ) {
-      return <Navbar2 />;
+      return (
+        <>
+          <Navbar2 />
+          
+        </>
+      );
     }
-
     if (
       path.startsWith("/consumer-dashboard") ||
       /\/productDetails\/[A-Za-z0-9]+/.test(path) ||
@@ -121,54 +164,57 @@ const Main = () => {
       path.startsWith("/consumer-orders") ||
       path === "/subscribe"
     ) {
-      return <Navbar3 />;
+      return (
+        <>
+          <Navbar3 />
+          
+       </>
+      );
     }
 
-    return <Navbar1 
-      isLoginPage={path === "/LoginPage"} 
-      isAuthPage={path.startsWith("/farmer-login") || 
-                  path.startsWith("/farmer-register") || 
-                  path.startsWith("/consumer-login") || 
-                  path.startsWith("/consumer-register")} 
-    />;
-  };
-
-  const showSidebar = () => {
-    const path = location.pathname;
     return (
-      path.startsWith("/farmer-dashboard") ||
-      path.startsWith("/farmer/") ||
-      path.startsWith("/add-produce") ||
-      path.startsWith("/profile") ||
-      path.startsWith("/help") ||
-      path.startsWith("/view-profile") ||
-      path.startsWith("/order-review") ||
-      path.startsWith("/notifications") ||
-      path.startsWith("/feeds") ||
-      path.startsWith("/farmers/my-reviews") ||
-      path.startsWith("/chat") ||
-      path.startsWith("/farmer-orders")
+      <>
+        <Navbar1
+          isLoginPage={path === "/LoginPage"}
+          isAuthPage={
+            path.startsWith("/farmer-login") ||
+            path.startsWith("/farmer-register") ||
+            path.startsWith("/consumer-login") ||
+            path.startsWith("/consumer-register")
+          }
+        />
+        {/* <div id="google_translate_element" style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 1000 }}></div> */}
+      </>
     );
   };
 
-  const showChatbot = () => {
-    const path = location.pathname;
-    return (
-      path.startsWith("/farmer-dashboard") || 
-      path.startsWith("/consumer-dashboard")
-    );
-  };
+  const showSidebar = () =>
+    path.startsWith("/farmer-dashboard") ||
+    path.startsWith("/farmer/") ||
+    path.startsWith("/add-produce") ||
+    path.startsWith("/FarmerProfile") ||
+    path.startsWith("/help") ||
+    path.startsWith("/view-profile") ||
+    path.startsWith("/order-review") ||
+    path.startsWith("/notifications") ||
+    path.startsWith("/feeds") ||
+    path.startsWith("/farmers/my-reviews") ||
+    path.startsWith("/chat") ||
+    path.startsWith("/farmer-orders");
+
+  const showChatbot = () =>
+    path.startsWith("/farmer-dashboard") || path.startsWith("/consumer-dashboard");
 
   return (
     <div>
       {getNavbar()}
-
-      {showSidebar() && <Sidebar 
-        farmerId={location.state?.farmerId} 
-        isOpen={sidebarOpen} 
-        toggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
-      />}
-
+      {showSidebar() && (
+        <Sidebar
+          farmerId={location.state?.farmerId}
+          isOpen={sidebarOpen}
+          toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+        />
+      )}
       <div className="main-content">
         <Routes>
           <Route path="/" element={<HomePage />} />
