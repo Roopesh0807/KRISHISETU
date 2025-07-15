@@ -1,126 +1,179 @@
+// import React, { useState, useEffect } from "react";
+// import { useNavigate,useLocation } from "react-router-dom";
+// import "../components/ConsumerDashboard.css";
+// import { fetchProducts } from '../utils/api';
+// import { useCart } from '../context/CartContext';
+// import { useAuth } from '../context/AuthContext';
+// import { faSpinner } from '@fortawesome/free-solid-svg-icons';
+
+// import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+// import { 
+//   faShoppingCart, 
+//   faBolt, 
+//   faUsers, 
+//   faCalendarAlt,
+//   //faUser,
+//   faHandshake,
+//   // faComments,
+//   faStar,
+//   faStarHalfAlt,
+//   faExclamationTriangle,
+//   // faTimes
+// } from '@fortawesome/free-solid-svg-icons';
+
+// // Import images
+// // import Farmer from "../assets/farmer.jpeg";
+// import OrganicBadge from "../assets/organic.jpg";
+// // import Tomato from "../assets/tomato.jpg";
+// // import Apple from "../assets/apple.jpg";
+// // import Banana from "../assets/banana.jpg";
+// // import Butter from "../assets/butter.jpg";
+// // import Cheese from "../assets/cheese.jpg";
+// // import Chilly from "../assets/chilly.jpg";
+// // import Cumin from "../assets/cuminseeds.jpg";
+// // import Ghee from "../assets/ghee.jpg";
+// // import Ginger from "../assets/ginger.jpg";
+// // import Grapes from "../assets/grapes.jpg";
+// // import Onion from "../assets/onion.jpg";
+// // import Potato from "../assets/potato.jpg";
+// // import Rice from "../assets/rice.jpg";
+// // import Turmeric from "../assets/turmeric.jpg";
+// // import Wheat from "../assets/wheat.png";
+// // import Pomegranate from "../assets/pomegranate.jpg";
+// // import MasoorDal from "../assets/masoordal.jpg";
+// // import Uraddal from "../assets/uraddal.jpg";
+// // import Redchilly from "../assets/redchilly.jpg";
+// // import Garlic from "../assets/garlic.jpg";
+// // import Coriander from "../assets/coriander.jpg";
+// // import Avocado from "../assets/avocado.png";
+// // import Capsicum from "../assets/capsicum.jpg";
+// // import Carrot from "../assets/carrot.jpg";
+// // import Cauliflower from "../assets/cauliflower.webp";
+// // import Curd from "../assets/curd.jpg";
+// // import Lentils from "../assets/lentils.jpg";
+// // import Mango from "../assets/mango.jpg";
+// // import Milk from "../assets/milk.jpg";
+// // import BlackPepper from "../assets/blackpepper.jpg"; 
+// // import BargainChatWindow from "./bargaining/ConsumerChatWindow";
+
+// // const productImages = {
+// //   BlackPepper,
+// //   Mango,
+// //   Milk,
+// //   Lentils,
+// //   Curd,
+// //   Cauliflower,
+// //   Carrot,
+// //   Capsicum,
+// //   Avocado,
+// //   MasoorDal,
+// //   Uraddal,
+// //   Redchilly,
+// //   Garlic,
+// //   Coriander,
+// //   Tomato,
+// //   Apple,
+// //   Banana,
+// //   Butter,
+// //   Cheese,
+// //   Chilly,
+// //   Cumin,
+// //   Ghee,
+// //   Ginger,
+// //   Grapes,
+// //   Onion,
+// //   Potato,
+// //   Rice,
+// //   Turmeric,
+// //   Wheat,
+// //   Pomegranate,
+// // };
+// // In your component file (e.g., ConsumerDashboard.js)
+
+// // Remove the local image imports and replace with:
+
+// const ConsumerDashboard = () => {
+
+
+//   // Add this at the top of your component
+// const [imageCache, setImageCache] = useState(() => {
+//   const savedCache = localStorage.getItem('productImageCache');
+//   return savedCache ? JSON.parse(savedCache) : {};
+// });
+
+// // Update your fetchProductImage function
+
+//   const { consumer } = useAuth();
+//   // const token = consumer?.token;
+//   // console.log("Consumer token:", token);
+//   console.log("🔍 Consumer from AuthContext:", consumer);
+//   // const location = useLocation();
+//   const [products, setProducts] = useState([]);
+//   const [farmers, setFarmers] = useState([]);
+//   const [searchTerm, setSearchTerm] = useState("");
+//   const [category, setCategory] = useState("");
+//   const [buyType, setBuyType] = useState("");
+//   const { addToCart } = useCart();
+//   const location = useLocation();
+//   const [productImages, setProductImages] = useState({});
+//   // const { bargainId } = useParams();
+//   // const [, setIsBargainPopupOpen] = useState(false);
+//   // const [, setSelectedFarmer] = useState(null);
+//   // const [selectedProduct, setSelectedProduct] = useState(null);
+//   // const [quantity, setQuantity] = useState(1);
+//   const [farmerSearchTerm, setFarmerSearchTerm] = useState("");
+//   const [sortPriceOrder, setSortPriceOrder] = useState("");
+//   const [sortProduceOrder, setSortProduceOrder] = useState("");
+//   const navigate = useNavigate();
+//   const [selectedQuantities, setSelectedQuantities] = useState({});
+//   const [isLoading, setIsLoading] = useState(false);
+//   const [error, setError] = useState(null);
+
+//   const [imagesLoading, setImagesLoading] = useState(false);
+
+
+import { faSearch } from '@fortawesome/free-solid-svg-icons';
 import React, { useState, useEffect } from "react";
-import { useNavigate,useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import "../components/ConsumerDashboard.css";
 import { fetchProducts } from '../utils/api';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { faSpinner } from '@fortawesome/free-solid-svg-icons';
-
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faShoppingCart, 
   faBolt, 
   faUsers, 
   faCalendarAlt,
-  //faUser,
   faHandshake,
-  // faComments,
   faStar,
   faStarHalfAlt,
   faExclamationTriangle,
-  // faTimes
+  faChevronLeft,
+  faChevronRight
 } from '@fortawesome/free-solid-svg-icons';
 
 // Import images
-// import Farmer from "../assets/farmer.jpeg";
 import OrganicBadge from "../assets/organic.jpg";
-// import Tomato from "../assets/tomato.jpg";
-// import Apple from "../assets/apple.jpg";
-// import Banana from "../assets/banana.jpg";
-// import Butter from "../assets/butter.jpg";
-// import Cheese from "../assets/cheese.jpg";
-// import Chilly from "../assets/chilly.jpg";
-// import Cumin from "../assets/cuminseeds.jpg";
-// import Ghee from "../assets/ghee.jpg";
-// import Ginger from "../assets/ginger.jpg";
-// import Grapes from "../assets/grapes.jpg";
-// import Onion from "../assets/onion.jpg";
-// import Potato from "../assets/potato.jpg";
-// import Rice from "../assets/rice.jpg";
-// import Turmeric from "../assets/turmeric.jpg";
-// import Wheat from "../assets/wheat.png";
-// import Pomegranate from "../assets/pomegranate.jpg";
-// import MasoorDal from "../assets/masoordal.jpg";
-// import Uraddal from "../assets/uraddal.jpg";
-// import Redchilly from "../assets/redchilly.jpg";
-// import Garlic from "../assets/garlic.jpg";
-// import Coriander from "../assets/coriander.jpg";
-// import Avocado from "../assets/avocado.png";
-// import Capsicum from "../assets/capsicum.jpg";
-// import Carrot from "../assets/carrot.jpg";
-// import Cauliflower from "../assets/cauliflower.webp";
-// import Curd from "../assets/curd.jpg";
-// import Lentils from "../assets/lentils.jpg";
-// import Mango from "../assets/mango.jpg";
-// import Milk from "../assets/milk.jpg";
-// import BlackPepper from "../assets/blackpepper.jpg"; 
-// import BargainChatWindow from "./bargaining/ConsumerChatWindow";
-
-// const productImages = {
-//   BlackPepper,
-//   Mango,
-//   Milk,
-//   Lentils,
-//   Curd,
-//   Cauliflower,
-//   Carrot,
-//   Capsicum,
-//   Avocado,
-//   MasoorDal,
-//   Uraddal,
-//   Redchilly,
-//   Garlic,
-//   Coriander,
-//   Tomato,
-//   Apple,
-//   Banana,
-//   Butter,
-//   Cheese,
-//   Chilly,
-//   Cumin,
-//   Ghee,
-//   Ginger,
-//   Grapes,
-//   Onion,
-//   Potato,
-//   Rice,
-//   Turmeric,
-//   Wheat,
-//   Pomegranate,
-// };
-// In your component file (e.g., ConsumerDashboard.js)
-
-// Remove the local image imports and replace with:
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
+import Slider from "react-slick";
 
 const ConsumerDashboard = () => {
-
-
-  // Add this at the top of your component
-const [imageCache, setImageCache] = useState(() => {
-  const savedCache = localStorage.getItem('productImageCache');
-  return savedCache ? JSON.parse(savedCache) : {};
-});
-
-// Update your fetchProductImage function
-
+  const [searchQuery, setSearchQuery] = useState("");
+const [selectedCategory, setSelectedCategory] = useState("All Categories");
+const [deliveryLocation, setDeliveryLocation] = useState("Bengaluru 562130");
+ const [searchResults, setSearchResults] = useState([]);
+  const [bargainingProducts, setBargainingProducts] = useState([]);
   const { consumer } = useAuth();
-  // const token = consumer?.token;
-  // console.log("Consumer token:", token);
-  console.log("🔍 Consumer from AuthContext:", consumer);
-  // const location = useLocation();
   const [products, setProducts] = useState([]);
   const [farmers, setFarmers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [category, setCategory] = useState("");
   const [buyType, setBuyType] = useState("");
   const { addToCart } = useCart();
-  const location = useLocation();
   const [productImages, setProductImages] = useState({});
-  // const { bargainId } = useParams();
-  // const [, setIsBargainPopupOpen] = useState(false);
-  // const [, setSelectedFarmer] = useState(null);
-  // const [selectedProduct, setSelectedProduct] = useState(null);
-  // const [quantity, setQuantity] = useState(1);
   const [farmerSearchTerm, setFarmerSearchTerm] = useState("");
   const [sortPriceOrder, setSortPriceOrder] = useState("");
   const [sortProduceOrder, setSortProduceOrder] = useState("");
@@ -128,9 +181,188 @@ const [imageCache, setImageCache] = useState(() => {
   const [selectedQuantities, setSelectedQuantities] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-
   const [imagesLoading, setImagesLoading] = useState(false);
+  const [recommendedProducts, setRecommendedProducts] = useState([]);
+  const [pastOrders, setPastOrders] = useState([]);
+const [imageCache, setImageCache] = useState(() => {
+  const savedCache = localStorage.getItem('productImageCache');
+  return savedCache ? JSON.parse(savedCache) : {};
+});
+// useEffect(() => {
+//     const fetchBargainingProducts = async () => {
+//       try {
+//         const response = await fetch('http://localhost:5000/api/bargaining-products');
+//         const data = await response.json();
+//         setBargainingProducts(data);
+//       } catch (error) {
+//         console.error("Error fetching bargaining products:", error);
+//       }
+//     };
+//     fetchBargainingProducts();
+//   }, []);
 
+  // Search handler function
+  const handleSearch = () => {
+    const combinedProducts = [...products, ...bargainingProducts];
+    
+    const results = combinedProducts.filter(product => {
+      const matchesSearch = product.product_name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = selectedCategory === "All Categories" || 
+                            product.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+    
+    setSearchResults(results);
+    // You can then use these results to display or navigate to search results page
+    console.log("Search Results:", results);
+  };
+
+// Updated Carousel Settings in ConsumerDashboard.js
+const carouselSettings = {
+  dots: true,
+  infinite: true,
+  speed: 800,
+  slidesToShow: 2, // Show 2 products at a time
+  slidesToScroll: 1,
+  autoplay: true,
+  autoplaySpeed: 3000,
+  pauseOnHover: true,
+  cssEase: "cubic-bezier(0.645, 0.045, 0.355, 1)",
+  nextArrow: <SampleNextArrow />,
+  prevArrow: <SamplePrevArrow />,
+  responsive: [
+    {
+      breakpoint: 1024,
+      settings: {
+        slidesToShow: 2
+      }
+    },
+    {
+      breakpoint: 600,
+      settings: {
+        slidesToShow: 1
+      }
+    }
+  ]
+};
+
+// Enhanced Arrow Components
+function SampleNextArrow(props) {
+  const { className, style, onClick } = props;
+  return (
+    <div
+      className={className}
+      style={{ 
+        ...style, 
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        right: "-25px",
+        width: "40px",
+        height: "40px",
+        background: "rgba(255,255,255,0.9)",
+        borderRadius: "50%",
+        boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
+        zIndex: 1,
+        transform: "scale(1.2)"
+      }}
+      onClick={onClick}
+    >
+      <FontAwesomeIcon 
+        icon={faChevronRight} 
+        style={{ color: "#2e7d32", fontSize: "16px" }} 
+      />
+    </div>
+  );
+}
+
+function SamplePrevArrow(props) {
+  const { className, style, onClick } = props;
+  return (
+    <div
+      className={className}
+      style={{ 
+        ...style, 
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        left: "-25px",
+        width: "40px",
+        height: "40px",
+        background: "rgba(255,255,255,0.9)",
+        borderRadius: "50%",
+        boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
+        zIndex: 1,
+        transform: "scale(1.2)"
+      }}
+      onClick={onClick}
+    >
+      <FontAwesomeIcon 
+        icon={faChevronLeft} 
+        style={{ color: "#2e7d32", fontSize: "16px" }} 
+      />
+    </div>
+  );
+}
+
+  // Fetch past orders for recommendations
+  useEffect(() => {
+    const fetchPastOrders = async () => {
+      if (!consumer?.consumer_id) return;
+      
+      try {
+        const response = await fetch(`http://localhost:5000/api/orders?consumer_id=${consumer.consumer_id}`, {
+          headers: {
+            "Authorization": `Bearer ${consumer.token}`,
+          },
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setPastOrders(data);
+        }
+      } catch (error) {
+        console.error("Error fetching past orders:", error);
+      }
+    };
+    
+    fetchPastOrders();
+  }, [consumer]);
+
+  // Generate recommendations based on past orders
+  useEffect(() => {
+    if (pastOrders.length > 0 && products.length > 0) {
+      // Get most frequently ordered categories
+      const categoryCounts = {};
+      pastOrders.forEach(order => {
+        const category = order.category || 'vegetables'; // default category
+        categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+      });
+      
+      // Sort categories by frequency
+      const sortedCategories = Object.keys(categoryCounts)
+        .sort((a, b) => categoryCounts[b] - categoryCounts[a]);
+      
+      // Get top 2 categories
+      const topCategories = sortedCategories.slice(0, 2);
+      
+      // Filter products by these categories
+      const recommended = products.filter(product => 
+        topCategories.includes(product.category.toLowerCase())
+      ).slice(0, 8); // Limit to 8 products
+      
+      setRecommendedProducts(recommended);
+    } else {
+      // Fallback to popular products if no orders
+      const popular = [...products]
+        .sort((a, b) => b.ratings - a.ratings)
+        .slice(0, 8);
+      setRecommendedProducts(popular);
+    }
+  }, [pastOrders, products]);
+
+  // Rest of your existing code (fetchProducts, fetchProductImage, etc.) remains the same
+  // ... [keep all your existing functions and effects]
 // Update your useEffect
 useEffect(() => {
   const loadProductImages = async () => {
@@ -576,10 +808,112 @@ useEffect(() => {
     
     return stars;
   };
-
-  return (
-    <div className="ks-consumer-dashboard">
+return (
+  
+  <div className="ks-consumer-dashboard">
+  {/* Location and Search Bar Section */}
+      <div className="ks-search-location-bar">
+        <div className="ks-delivery-info">
+          <span className="ks-deliver-to">Deliver to</span>
+          <div className="ks-location-selector">
+            <span className="ks-location-icon">📍</span>
+            <span className="ks-current-location">{deliveryLocation}</span>
+            <button 
+              className="ks-update-location"
+              onClick={() => {
+                const newLocation = prompt("Enter your pincode:", deliveryLocation);
+                if (newLocation) setDeliveryLocation(newLocation);
+              }}
+            >
+              Update
+            </button>
+          </div>
+        </div>
+        
+        <div className="ks-search-container">
+          <div className="ks-search-categories">
+            <select 
+              className="ks-category-dropdown"
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+            >
+              <option>All Categories</option>
+              <option>Vegetables</option>
+              <option>Fruits</option>
+              <option>Grains & Pulses</option>
+              <option>Dairy</option>
+              <option>Spices</option>
+            </select>
+            <div className="ks-dropdown-arrow">▼</div>
+          </div>
+          <input 
+            type="text" 
+            placeholder="Search products in KrishiSetu and Bargaining markets..." 
+            className="ks-search-input"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+          />
+          <button 
+            className="ks-search-button"
+            onClick={handleSearch}
+          >
+            <FontAwesomeIcon icon={faSearch} />
+          </button>
+        </div>
+      </div>
+    {/* Recommendation Carousel Section - Always visible */}
+    {recommendedProducts.length > 0 && (
+      <div className="ks-recommendation-section">
+        <h2 className="ks-section-title">Recommended For You</h2>
+        <div className="ks-recommendation-carousel">
+          <Slider {...carouselSettings}>
+            {recommendedProducts.map((product) => (
+              <div key={`rec-${product.product_id}`} className="ks-recommendation-item">
+                  <div 
+                    className="ks-product-image-container"
+                    onClick={() => handleProductClick(product.product_id, productImages[product.product_id])}
+                  >
+                    <img
+                      src={productImages[product.product_id] || 'https://via.placeholder.com/300?text=Loading...'}
+                      alt={product.product_name}
+                      className="ks-product-image"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = 'https://via.placeholder.com/300?text=No+Image';
+                      }}
+                    />
+                    {product.buy_type === "organic" && (
+                      <img 
+                        src={OrganicBadge} 
+                        alt="Organic" 
+                        className="ks-organic-badge"
+                      />
+                    )}
+                  </div>
+                  <div className="ks-recommendation-details">
+                    <h3>{product.product_name}</h3>
+                    <div className="ks-recommendation-price">
+                      ₹{product.price_1kg}/kg
+                    </div>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        addToCart(product, 1);
+                      }}
+                      className="ks-recommendation-add-btn"
+                    >
+                      <FontAwesomeIcon icon={faShoppingCart} /> Add to Cart
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </Slider>
+          </div>
+        </div>
+      )}
       {/* Product Section */}
+      <div className="ks-main-content">
       <div className="ks-market-section">
         <h2 className="ks-section-title">KrishiSetu Marketplace</h2>
         <div className="ks-search-filter-container">
@@ -830,7 +1164,7 @@ useEffect(() => {
     ))}
 </div>
       </div>
-
+</div>
      
     </div>
   );

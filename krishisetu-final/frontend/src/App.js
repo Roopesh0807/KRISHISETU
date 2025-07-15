@@ -64,6 +64,9 @@ import PaymentFailed from './components/PaymentFailed';
 import GoogleTranslate from "./components/GoogleTranslate";
 
 
+import MyOrders from './components/MyOrders';
+import Transactions from './components/Transactions';
+
 function App() {
   return (
     <ProductProvider>
@@ -162,6 +165,8 @@ const Main = () => {
       path.startsWith("/bargain") ||
       path.startsWith("/community-home") ||
       path.startsWith("/consumer-orders") ||
+      path.startsWith("/my-orders") ||
+      path.startsWith("/transactions") ||
       path === "/subscribe"
     ) {
       return (
@@ -291,6 +296,9 @@ const Main = () => {
 
           <Route path="/orderpage" element={<OrderPage />} />
           <Route path="/payment" element={<Payment />} />
+
+          <Route path="/my-orders" element={<MyOrders />} />
+      <Route path="/transactions" element={<Transactions />} />
         </Routes>
 
         {showChatbot() && <Chatbot />}

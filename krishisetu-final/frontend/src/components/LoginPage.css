@@ -1,179 +1,298 @@
-/* Container for the background and login content */
-.login-cont {
+/* ===================== */
+/* KRISHISETU LOGIN STYLES */
+/* ===================== */
+:root {
+  --ks-primary: #2e7d32;
+  --ks-primary-light: #4CAF50;
+  --ks-primary-dark: #1b5e20;
+  --ks-secondary: #FFC107;
+  --ks-accent: #FF5722;
+  --ks-light: #f8fff8;
+  --ks-dark: #263238;
+  --ks-gray: #607D8B;
+  --ks-light-gray: #ECEFF1;
+}
+
+.ks-login-container {
   position: relative;
   width: 100%;
-  height: 100vh; /* Full viewport height */
+  min-height: 100vh;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  font-family: 'Poppins', sans-serif;
 }
 
-/* Background image */
-.login-bg {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  filter: brightness(0.6); /* Darken the background */
-  z-index: -1; /* Place it behind the content */
-}
-
-/* Container for the login options */
-.log-cont {
-  position: relative;
-  width: 50%;
-  max-width: 600px;
-  background: rgba(255, 255, 255, 0.1); /* Transparent glass effect */
-  padding: 2rem;
-  border-radius: 20px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(15px); /* Frosted glass effect */
-  border: 1px solid rgba(255, 255, 255, 0.2); /* Light border */
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  animation: fadeIn 1.5s ease-in-out;
-}
-
-/* Styling for the title */
-.login-title {
-  font-size: 2rem;
-  color: #fff;
-  background: linear-gradient(135deg, rgba(76, 175, 80, 0.8), rgba(69, 160, 73, 0.8));
-  padding: 10px 20px;
-  border-radius: 8px;
-  margin-bottom: 2rem;
-  text-transform: uppercase;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-  animation: float 3s infinite ease-in-out;
-}
-
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-}
-
-/* Center the login options container */
-.login-options {
-  display: flex;
-  justify-content: center;
-  gap: 2rem;
-  width: 100%;
-}
-
-/* Style for each login card */
-.login-card {
-  background: rgba(255, 255, 255, 0.1); /* Transparent glass effect */
-  border-radius: 15px;
-  width: 200px;
-  height: 250px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-  cursor: pointer;
-  transition: all 0.3s ease;
-  overflow: hidden;
-  position: relative;
-  border: 1px solid rgba(255, 255, 255, 0.2); /* Light border */
-}
-
-/* Hover effect for the cards */
-.login-card:hover {
-  transform: scale(1.05);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-  background: rgba(255, 255, 255, 0.2); /* Slightly brighter on hover */
-}
-
-/* Gradient overlay on hover */
-.login-card::before {
-  content: '';
+.ks-login-bg-image {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, rgba(76, 175, 80, 0.8), rgba(69, 160, 73, 0.8));
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.login-card:hover::before {
-  opacity: 1;
-}
-
-/* Styling for images inside the cards */
-.login-card-img {
-  width: 120px;
-  height: 120px;
   object-fit: cover;
+  z-index: 0;
+  filter: brightness(0.7);
+}
+
+.ks-login-bg-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    135deg, 
+    rgba(46, 125, 50, 0.3), 
+    rgba(0, 0, 0, 0.7)
+  );
+  z-index: 1;
+}
+
+.ks-login-content {
+  position: relative;
+  z-index: 2;
+  width: 90%;
+  max-width: 1200px;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.ks-login-header {
+  text-align: center;
+  margin-bottom: 60px;
+  max-width: 800px;
+}
+
+.ks-login-title {
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-weight: 800;
+  color: white;
+  margin-bottom: 20px;
+  line-height: 1.2;
+}
+
+.ks-login-title-highlight {
+  background: linear-gradient(135deg, #8BC34A, var(--ks-primary-light));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.ks-login-subtitle {
+  font-size: clamp(1rem, 2vw, 1.3rem);
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.6;
+}
+
+.ks-login-cards-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 30px;
+  width: 100%;
+  margin-bottom: 40px;
+}
+
+.ks-login-card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  position: relative;
+}
+
+.ks-login-card.hovered {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+}
+
+.ks-login-card-image-container {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+}
+
+.ks-login-card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.ks-login-card.hovered .ks-login-card-image {
+  transform: scale(1.05);
+}
+
+.ks-login-card-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    to bottom, 
+    transparent 60%, 
+    rgba(46, 125, 50, 0.7)
+  );
+}
+
+.ks-login-card-content {
+  padding: 30px;
+  position: relative;
+  z-index: 1;
+}
+
+.ks-login-card-icon-container {
+  width: 60px;
+  height: 60px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(5px);
   border-radius: 50%;
-  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.ks-login-card-icon {
+  font-size: 1.8rem;
+  color: white;
+}
+
+.ks-login-card-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 15px;
+}
+
+.ks-login-card-description {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 25px;
+  line-height: 1.6;
+}
+
+.ks-login-card-cta {
+  display: flex;
+  align-items: center;
+  color: white;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.ks-login-card-arrow {
+  margin-left: 10px;
   transition: transform 0.3s ease;
-  z-index: 1; /* Ensure the image is above the overlay */
 }
 
-.login-card:hover .login-card-img {
-  transform: scale(1.1);
+.ks-login-card.hovered .ks-login-card-arrow {
+  transform: translateX(5px);
 }
 
-/* Styling for the text below images */
-.login-card p {
-  color: #fff;
-  font-weight: bold;
-  font-size: 1.2rem;
-  z-index: 1; /* Ensure the text is above the overlay */
-  transition: color 0.3s ease;
+.ks-login-footer {
+  text-align: center;
 }
 
-.login-card:hover p {
-  color: #fff;
+.ks-login-footer-text {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1rem;
 }
 
-/* Animations */
-@keyframes fadeIn {
-  from {
+.ks-login-footer-link {
+  color: white;
+  font-weight: 600;
+  text-decoration: none;
+  position: relative;
+}
+
+.ks-login-footer-link::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: white;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.3s ease;
+}
+
+.ks-login-footer-link:hover::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+/* ===================== */
+/* ANIMATIONS */
+/* ===================== */
+@keyframes ks-fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes ks-slideUp {
+  from { 
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(30px);
   }
-  to {
+  to { 
     opacity: 1;
     transform: translateY(0);
   }
 }
 
-/* Responsive Design */
+/* ===================== */
+/* RESPONSIVE DESIGN */
+/* ===================== */
+@media (max-width: 992px) {
+  .ks-login-cards-container {
+    grid-template-columns: 1fr;
+    max-width: 600px;
+  }
+}
+
 @media (max-width: 768px) {
-  .log-cont {
-    width: 90%;
-    padding: 1.5rem;
+  .ks-login-content {
+    padding: 30px 20px;
   }
-
-  .login-options {
-    flex-direction: column;
-    gap: 1.5rem;
+  
+  .ks-login-header {
+    margin-bottom: 40px;
   }
-
-  .login-card {
-    width: 100%;
-    height: 200px;
+  
+  .ks-login-card-content {
+    padding: 25px;
   }
+}
 
-  .login-card-img {
-    width: 100px;
-    height: 100px;
+@media (max-width: 576px) {
+  .ks-login-title {
+    font-size: 2.2rem;
   }
-
-  .login-title {
+  
+  .ks-login-card-title {
+    font-size: 1.3rem;
+  }
+  
+  .ks-login-card-description {
+    font-size: 0.9rem;
+  }
+  
+  .ks-login-card-icon-container {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .ks-login-card-icon {
     font-size: 1.5rem;
-    padding: 8px 16px;
   }
 }
