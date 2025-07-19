@@ -306,6 +306,8 @@ try {
 }
 });
 
+
+
 app.post("/api/farmerregister", async (req, res) => {
   const { first_name, last_name, email, phone_number, password, confirm_password } = req.body;
 
@@ -318,11 +320,14 @@ app.post("/api/farmerregister", async (req, res) => {
   }
 
   try {
-      // ✅ Insert farmer details
+      // ✅ Hash the password before saving
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // ✅ Insert farmer details (only store hashed password)
       const result = await queryDatabase(
-          `INSERT INTO farmerregistration (first_name, last_name, email, phone_number, password, confirm_password) 
-           VALUES (?, ?, ?, ?, ?, ?);`,
-          [first_name, last_name, email, phone_number, password, confirm_password]
+          `INSERT INTO farmerregistration (first_name, last_name, email, phone_number, password) 
+           VALUES (?, ?, ?, ?, ?);`,
+          [first_name, last_name, email, phone_number, hashedPassword]
       );
 
       if (result.affectedRows === 0) {
@@ -343,9 +348,11 @@ app.post("/api/farmerregister", async (req, res) => {
 
       res.json({ success: true, message: "Farmer registered successfully", farmer_id });
   } catch (err) {
+      console.error("Registration error:", err);
       res.status(500).json({ success: false, message: "Database error", error: err.message });
   }
 });
+
 //farmerlogin before profile....
 app.post("/api/farmerlogin", async (req, res) => {
   const { emailOrPhone, password } = req.body;
