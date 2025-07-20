@@ -4628,41 +4628,108 @@ app.get('/create-bargain', (req, res) => {
 // ... (other route imports and middleware above)
 
 // Add this after other route declarations but before error handlers
+// app.post('/api/subscriptions', async (req, res) => {
+//   const { consumer_id, subscription_type, product_id, product_name, quantity, price, start_date } = req.body;
+  
+//   try {
+//       // Verify consumer exists
+//       const consumerCheck = await queryDatabase(
+//           "SELECT consumer_id FROM consumerregistration WHERE consumer_id = ?",
+//           [consumer_id]
+//       );
+      
+//       if (consumerCheck.length === 0) {
+//           return res.status(404).json({ success: false, message: "Consumer not found" });
+//       }
+
+//       // Insert subscription into database
+//       const result = await queryDatabase(
+//           `INSERT INTO subscriptions 
+//           (consumer_id, subscription_type, product_id, product_name, quantity, price, start_date)
+//           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+//           [consumer_id, subscription_type, product_id, product_name, quantity, price, start_date]
+//       );
+
+//       if (result.affectedRows === 0) {
+//           return res.status(400).json({ success: false, message: "Failed to create subscription" });
+//       }
+
+
+//       res.status(201).json({ 
+//           success: true, 
+//           message: "Subscription created successfully",
+//           subscription_id: result.insertId
+//       });
+//   } catch (error) {
+//       console.error("Error creating subscription:", error);
+//       res.status(500).json({ success: false, message: "Internal server error" });
+//   }
+// });
 app.post('/api/subscriptions', async (req, res) => {
   const { consumer_id, subscription_type, product_id, product_name, quantity, price, start_date } = req.body;
-  
+
   try {
-      // Verify consumer exists
-      const consumerCheck = await queryDatabase(
-          "SELECT consumer_id FROM consumerregistration WHERE consumer_id = ?",
-          [consumer_id]
+    // ✅ 1. Verify consumer exists
+    const consumerCheck = await queryDatabase(
+      "SELECT consumer_id FROM consumerregistration WHERE consumer_id = ?",
+      [consumer_id]
+    );
+
+    if (consumerCheck.length === 0) {
+      return res.status(404).json({ success: false, message: "Consumer not found" });
+    }
+
+    // ✅ 2. Check if subscription already exists
+    const existingSubscription = await queryDatabase(
+      `SELECT subscription_id, quantity FROM subscriptions 
+       WHERE consumer_id = ? AND subscription_type = ? AND product_id = ?`,
+      [consumer_id, subscription_type, product_id]
+    );
+
+    if (existingSubscription.length > 0) {
+      // ✅ 3. Subscription exists, update quantity
+      const existing = existingSubscription[0];
+      const newQuantity = existing.quantity + quantity;
+
+      const updateResult = await queryDatabase(
+        `UPDATE subscriptions SET quantity = ?, price = ? 
+         WHERE subscription_id = ?`,
+        [newQuantity, price * newQuantity / quantity, existing.subscription_id]
       );
-      
-      if (consumerCheck.length === 0) {
-          return res.status(404).json({ success: false, message: "Consumer not found" });
+
+      if (updateResult.affectedRows === 0) {
+        return res.status(400).json({ success: false, message: "Failed to update subscription quantity" });
       }
 
-      // Insert subscription into database
-      const result = await queryDatabase(
-          `INSERT INTO subscriptions 
-          (consumer_id, subscription_type, product_id, product_name, quantity, price, start_date)
-          VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          [consumer_id, subscription_type, product_id, product_name, quantity, price, start_date]
-      );
-
-      if (result.affectedRows === 0) {
-          return res.status(400).json({ success: false, message: "Failed to create subscription" });
-      }
-
-
-      res.status(201).json({ 
-          success: true, 
-          message: "Subscription created successfully",
-          subscription_id: result.insertId
+      return res.status(200).json({ 
+        success: true, 
+        message: "Subscription quantity updated successfully", 
+        subscription_id: existing.subscription_id,
+        new_quantity: newQuantity
       });
+    }
+
+    // ✅ 4. No existing subscription, create new one
+    const result = await queryDatabase(
+      `INSERT INTO subscriptions 
+      (consumer_id, subscription_type, product_id, product_name, quantity, price, start_date)
+      VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [consumer_id, subscription_type, product_id, product_name, quantity, price, start_date]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(400).json({ success: false, message: "Failed to create subscription" });
+    }
+
+    res.status(201).json({ 
+      success: true, 
+      message: "Subscription created successfully", 
+      subscription_id: result.insertId
+    });
+
   } catch (error) {
-      console.error("Error creating subscription:", error);
-      res.status(500).json({ success: false, message: "Internal server error" });
+    console.error("Error creating subscription:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
 
@@ -5379,10 +5446,6 @@ app.get('/api/subscriptions/combined-bill/:consumer_id', async (req, res) => {
 });
 
 
-
-
-
-
 //  combined bill
 
 app.get('/api/subscriptions/combined-bill-pdf/:consumer_id', async (req, res) => {
@@ -5551,11 +5614,6 @@ app.get('/api/subscriptions/combined-bill-pdf/:consumer_id', async (req, res) =>
     });
   }
 });
-
-
-
-
-
 
 // ✅ Auto-Debit Cron Job
 const autoDebitSubscriptions = async () => {
@@ -5750,10 +5808,6 @@ autoDebitSubscriptions();
 
 // 🔁 Run every 10 minutes
 schedule.schedule('*/10 * * * *', autoDebitSubscriptions);
-
-
-
-
 
 // for (const sub of subscriptions) {
 //   const {
@@ -6120,18 +6174,6 @@ schedule.schedule('*/10 * * * *', autoDebitSubscriptions);
 //   console.log('🚀 Server running at http://localhost:5000');
 // });
 
-
-
-
-
-
-
-
-
-
-
-
-
 // Helper function to get combined bill data
 async function getCombinedBillData(consumer_id, start_date, end_date) {
   // Validate dates
@@ -6191,10 +6233,7 @@ async function getCombinedBillData(consumer_id, start_date, end_date) {
     generatedAt: new Date().toISOString()
   };
 }
-
-
 // Add this to your server.js
-
 // Get bill for a specific subscription type
 app.get('/api/bills/:consumer_id/:subscription_type', async (req, res) => {
   try {
@@ -6260,7 +6299,6 @@ app.get('/api/bills/:consumer_id/:subscription_type', async (req, res) => {
     });
   }
 });
-
 // Helper function to calculate next billing date
 function getNextBillingDate(subscriptionType, currentDate) {
   const date = new Date(currentDate);
@@ -6284,8 +6322,6 @@ function getNextBillingDate(subscriptionType, currentDate) {
   
   return date.toISOString().split('T')[0];
 }
-
-
 // Process payment for a subscription bill
 app.post('/api/bills/pay/:consumer_id/:subscription_type', async (req, res) => {
   try {
@@ -6373,10 +6409,6 @@ app.post('/api/bills/pay/:consumer_id/:subscription_type', async (req, res) => {
     });
   }
 });
-
-
-
-
 // Individual Subscription PDF Generation
 app.get('/api/bills/pdf/:consumer_id/:subscription_type', async (req, res) => {
   try {
@@ -6464,6 +6496,7 @@ app.get('/api/bills/pdf/:consumer_id/:subscription_type', async (req, res) => {
 
 
 
+////bargaining
 app.get('/api/bargain/:bargainId', async (req, res) => {
   const { bargainId } = req.params;
 
