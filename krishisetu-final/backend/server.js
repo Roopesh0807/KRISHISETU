@@ -6174,6 +6174,110 @@ schedule.schedule('*/10 * * * *', autoDebitSubscriptions);
 //   console.log('🚀 Server running at http://localhost:5000');
 // });
 
+
+
+// 10/8/25 razor pay for the wallet
+
+// Add these two new routes for Razorpay Wallet Integration
+
+// 1. Create Razorpay Order for Wallet Top-up
+app.post('/api/wallet/razorpay-order', authenticateToken, async (req, res) => {
+  try {
+    const { amount } = req.body;
+    const { consumer_id } = req.user;
+
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ success: false, error: "Invalid amount" });
+    }
+
+    const options = {
+      amount: Math.round(amount * 100), // Amount in paise
+      currency: "INR",
+      receipt: `wallet-topup-${consumer_id}-${Date.now()}`,
+      payment_capture: 1
+    };
+
+    const order = await razorpay.orders.create(options);
+    
+    res.json({
+      success: true,
+      order: {
+        id: order.id,
+        amount: order.amount,
+        currency: order.currency
+      }
+    });
+
+  } catch (error) {
+    console.error("Razorpay wallet order creation error:", error);
+    res.status(500).json({ 
+      success: false, 
+      error: "Failed to create Razorpay order",
+      details: error.message
+    });
+  }
+});
+
+// 2. Verify Razorpay Payment and Add Funds to Wallet
+app.post("/api/wallet/verify-payment", authenticateToken, async (req, res) => {
+  try {
+    const { razorpay_payment_id, razorpay_order_id, razorpay_signature, amount } = req.body;
+    const { consumer_id } = req.user;
+
+    if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
+      return res.status(400).json({ success: false, error: "Missing payment verification data" });
+    }
+
+    // Step 1: Verify the signature
+    const hmac = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET);
+    hmac.update(`${razorpay_order_id}|${razorpay_payment_id}`);
+    const generated_signature = hmac.digest('hex');
+
+    if (generated_signature !== razorpay_signature) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "Invalid signature. Payment verification failed."
+      });
+    }
+
+    // Step 2: Signature is valid, now add funds to wallet
+    const description = `Wallet top-up via Razorpay. Payment ID: ${razorpay_payment_id}`;
+    const insertQuery = `
+      INSERT INTO wallet_transactions 
+      (consumer_id, transaction_type, amount, description, payment_method, razorpay_payment_id) 
+      VALUES (?, 'Credit', ?, ?, ?, ?)`;
+      
+    await queryDatabase(insertQuery, [
+      consumer_id, 
+      amount, 
+      description, 
+      'Razorpay',
+      razorpay_payment_id
+    ]);
+
+    // Step 3: Get the new balance
+    const [newBalanceResult] = await queryDatabase(
+      `SELECT balance FROM wallet_transactions WHERE consumer_id = ? ORDER BY transaction_date DESC LIMIT 1`,
+      [consumer_id]
+    );
+
+    return res.json({ 
+      success: true,
+      message: "Payment verified successfully and funds added to wallet.",
+      newBalance: newBalanceResult.balance
+    });
+
+  } catch (error) {
+    console.error("Wallet payment verification error:", error);
+    return res.status(500).json({ 
+      success: false,
+      error: "Payment verification failed",
+      details: error.message 
+    });
+  }
+});
+
+
 // Helper function to get combined bill data
 async function getCombinedBillData(consumer_id, start_date, end_date) {
   // Validate dates

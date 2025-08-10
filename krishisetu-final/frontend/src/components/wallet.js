@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { FaWallet, FaHistory, FaCheckCircle } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 import './wallet.css';
+import logo from '../assets/logo.jpg';
 
 const safeParseNumber = (value) => {
   if (typeof value === 'number') return value;
@@ -27,8 +28,8 @@ const Wallet = () => {
   const fetchWalletData = useCallback(async () => {
     if (!consumer?.consumer_id || !token) return;
 
+    setIsLoading(true);
     try {
-      setIsLoading(true);
       const [balanceRes, transactionsRes] = await Promise.all([
         fetch(`http://localhost:5000/api/wallet/balance/${consumer.consumer_id}`, {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -58,6 +59,7 @@ const Wallet = () => {
     }
   }, [consumer, token]);
 
+
   useEffect(() => {
     fetchWalletData();
   }, [fetchWalletData]);
@@ -68,30 +70,76 @@ const Wallet = () => {
       showSuccess('Please enter a valid amount');
       return;
     }
-
     setIsLoading(true);
+
     try {
-      const response = await fetch('http://localhost:5000/api/wallet/add', {
+      // Step 1: Create a Razorpay Order from your server
+      const orderResponse = await fetch('http://localhost:5000/api/wallet/razorpay-order', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({
-          consumer_id: consumer.consumer_id,
-          amount: amount.toFixed(2),
-        })
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ amount: amount })
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to add money');
+      const orderData = await orderResponse.json();
+      if (!orderData.success) {
+        throw new Error(orderData.error || "Failed to create Razorpay order");
       }
+      
+      const { order } = orderData;
 
-      await response.json();
-      setAddAmount('');
-      setShowWalletPopup(false);
-      await fetchWalletData();
-      showSuccess(`₹${amount} added successfully`);
+      // Step 2: Configure and open Razorpay Checkout
+      const options = {
+        key: process.env.REACT_APP_RAZORPAY_KEY_ID || 'rzp_test_VLCfnymiyd6HGf', // Replace with your actual Key ID
+        amount: order.amount,
+        currency: order.currency,
+        name: 'KrishiSetu Wallet',
+        description: `Add ₹${amount} to your wallet`,
+        order_id: order.id,
+        handler: async (response) => {
+          // Step 3: Verify the payment on your server
+          const verificationResponse = await fetch('http://localhost:5000/api/wallet/verify-payment', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_signature: response.razorpay_signature,
+              amount: amount // Send the original amount for verification
+            })
+          });
+
+          const verificationData = await verificationResponse.json();
+
+          if (verificationData.success) {
+            showSuccess(`₹${amount} added successfully!`);
+            await fetchWalletData(); // Refresh wallet data
+            setShowWalletPopup(false);
+            setAddAmount(''); // Clear the input field
+          } else {
+            throw new Error(verificationData.error || 'Payment verification failed');
+          }
+        },
+        prefill: {
+          name: `${consumer.first_name} ${consumer.last_name}`,
+          email: consumer.email,
+          contact: consumer.phone_number
+        },
+        theme: {
+          color: '#5a7247'
+        }
+      };
+      
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+
     } catch (error) {
-      console.error('Wallet add error:', error);
+      console.error('Add money with Razorpay error:', error);
       showSuccess(error.message || 'Failed to complete transaction');
     } finally {
       setIsLoading(false);
@@ -106,13 +154,15 @@ const Wallet = () => {
     return new Date(dateString).toLocaleDateString('en-US', options);
   };
 
-  return (
-    <div className="wallet-section">
-      {isLoading && (
-        <div className="loading-overlay">
-          <div className="loading-spinner"></div>
+return (
+  <div className="wallet-section">
+    {isLoading && (
+      <div className="loading-overlay">
+        <div className="loading-spinner">
+          <img src={logo} alt="Loading..." />
         </div>
-      )}
+      </div>
+    )}
       {successMessage && (
         <div className="success-message">
           <FaCheckCircle /> {successMessage}
@@ -169,13 +219,21 @@ const Wallet = () => {
                   step="100"
                 />
                 <button className="add-money-btn" onClick={handleAddMoney} disabled={!addAmount || Number(addAmount) <= 0}>
-                  Add Funds
+                  Add Funds via Razorpay
                 </button>
               </div>
             </div>
           </div>
         </div>
       )}
+
+      {isLoading && (
+  <div className="loading-overlay">
+    <div className="loading-spinner">
+      <img src={logo} alt="Loading..." />
+    </div>
+  </div>
+)}
 
       {showHistoryPopup && (
         <div className="popup-overlay">
