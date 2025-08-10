@@ -1,0 +1,237 @@
+/* Krishisetu Premium Theme - Wallet Component */
+:root {
+  --krishi-earth: #5a7247;
+  --krishi-soil: #8b5a2b;
+  --krishi-leaf: #7d9d4e;
+  --krishi-mist: #e0e7e9;
+  --krishi-stone: #95a5a6;
+  --krishi-charcoal: #34495e;
+  --krishi-cloud: #f5f7fa;
+  --krishi-success: #27ae60;
+  --krishi-error: #e74c3c;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --shadow-sm: 0 2px 8px rgba(46, 52, 56, 0.08);
+  --shadow-md: 0 4px 12px rgba(46, 52, 56, 0.12);
+  --shadow-lg: 0 8px 24px rgba(46, 52, 56, 0.16);
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.wallet-section {
+  background: white;
+  border-radius: var(--radius-lg);
+  padding: 30px;
+  margin: 40px 0;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--krishi-mist);
+}
+
+.wallet-balance-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px;
+  background: linear-gradient(135deg, #f8faf7 0%, #f1f5ec 100%);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--krishi-mist);
+  position: relative;
+  overflow: hidden;
+}
+
+.wallet-balance-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--krishi-leaf);
+}
+
+.wallet-info {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.wallet-icon {
+  font-size: 32px;
+  color: var(--krishi-earth);
+  background: rgba(90, 114, 71, 0.1);
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wallet-label {
+  font-size: 15px;
+  color: var(--krishi-stone);
+  font-weight: 500;
+  margin: 0;
+}
+
+.wallet-amount {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--krishi-earth);
+  margin-top: 5px;
+}
+
+.wallet-actions {
+  display: flex;
+  gap: 15px;
+}
+
+.wallet-action {
+  background: var(--krishi-earth);
+  color: white;
+  border: none;
+  padding: 12px 22px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: var(--transition);
+  box-shadow: var(--shadow-sm);
+  font-size: 15px;
+}
+
+.wallet-action.history {
+  background: var(--krishi-soil);
+}
+
+.wallet-action:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Wallet & History Popups */
+.wallet-popup .wallet-user-details,
+.history-popup .wallet-user-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 18px;
+  padding: 22px;
+}
+
+.wallet-popup .wallet-user-info,
+.history-popup .wallet-user-info {
+  background: var(--krishi-cloud);
+  padding: 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--krishi-mist);
+}
+
+.wallet-popup .wallet-user-info h4,
+.history-popup .wallet-user-info h4 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--krishi-stone);
+  font-weight: 500;
+}
+
+.wallet-popup .wallet-user-info p,
+.history-popup .wallet-user-info p {
+  margin: 0;
+  font-weight: 600;
+  color: var(--krishi-charcoal);
+  font-size: 15px;
+}
+
+.wallet-popup .current-balance {
+  padding: 22px;
+  text-align: center;
+  border-top: 1px solid var(--krishi-mist);
+  border-bottom: 1px solid var(--krishi-mist);
+}
+
+.wallet-popup .current-balance h4 {
+    margin: 0 0 12px;
+}
+
+.wallet-popup .balance-amount {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--krishi-earth);
+  margin: 0;
+}
+
+.wallet-popup .add-money-section {
+  padding: 22px;
+}
+
+.wallet-popup .add-money-section h4 {
+  margin-bottom: 18px;
+}
+
+.wallet-popup .add-money-controls {
+  display: flex;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.wallet-popup .add-money-controls input {
+  flex: 1;
+  padding: 14px 18px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--krishi-mist);
+}
+
+.wallet-popup .add-money-btn {
+  background: var(--krishi-leaf);
+  color: white;
+  border: none;
+  padding: 0 24px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.history-popup {
+  max-width: 800px;
+}
+
+.transactions-list {
+  padding: 0 22px 22px;
+}
+
+.transactions-table-container {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid var(--krishi-mist);
+  border-radius: var(--radius-sm);
+}
+
+.transactions-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.transactions-table th, 
+.transactions-table td {
+  padding: 14px 18px;
+  text-align: left;
+  border-bottom: 1px solid var(--krishi-mist);
+}
+
+.transactions-table th {
+  background: var(--krishi-cloud);
+  position: sticky;
+  top: 0;
+}
+
+.txn-type.credit, .txn-amount.credit {
+  color: var(--krishi-success);
+  font-weight: 600;
+}
+
+.txn-type.debit, .txn-amount.debit {
+  color: var(--krishi-error);
+  font-weight: 600;
+}

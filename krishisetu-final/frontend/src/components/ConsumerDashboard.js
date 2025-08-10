@@ -1028,7 +1028,7 @@ return (
                     <FontAwesomeIcon icon={faUsers} /> Community
                   </button>
                   <button
-                    onClick={(e) => handleSubscribe(product, e)}
+                    onClick={(e) => handleSubscribe(product.product_id, e)}
                     className="ks-action-btn ks-subscribe-btn"
                   >
                     <FontAwesomeIcon icon={faCalendarAlt} /> Subscribe

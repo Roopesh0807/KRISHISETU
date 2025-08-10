@@ -1,0 +1,54 @@
+/* Krishisetu Premium Theme - PDF Generation */
+:root {
+  --krishi-sun: #e67e22;
+  --radius-sm: 8px;
+  --shadow-sm: 0 2px 8px rgba(46, 52, 56, 0.08);
+  --shadow-md: 0 4px 12px rgba(46, 52, 56, 0.12);
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.combined-bill-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--krishi-sun);
+  color: white;
+  border: none;
+  padding: 14px 24px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-weight: 600;
+  margin: 30px 0;
+  transition: var(--transition);
+  box-shadow: var(--shadow-sm);
+  font-size: 15px;
+  width: 100%;
+  justify-content: center;
+}
+
+.combined-bill-btn:hover {
+  background: #d35400;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.bill-popup .download-pdf {
+  background: var(--krishi-sun);
+  color: white;
+  border: none;
+  padding: 14px 24px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: var(--transition);
+  font-size: 15px;
+}
+
+.bill-popup .download-pdf:hover {
+  background: #d35400;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
