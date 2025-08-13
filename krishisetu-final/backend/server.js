@@ -2468,481 +2468,284 @@ app.get('/api/wallet/transactions/:consumer_id', authenticateToken, async (req, 
 });
 
 
-// //bill generation
-// // Add these endpoints to your server.js
 
-// // Generate bill for a subscription plan
- 
-// app.get('/api/bills/:consumer_id/:plan', authenticateToken, async (req, res) => {
-//   console.log('BACKEND 1: Request received', req.params); // Backend Debug 1
-//   try {
-//     const { consumer_id, plan } = req.params;
-//     console.log('BACKEND 2: Authenticated user:', req.user); // Backend Debug 2
-//     const today = new Date();
-//     today.setHours(0, 0, 0, 0); // Normalize to midnight
+
+// Helper function to calculate next billing date (used by individual bills)
+function getNextBillingDate(subscriptionType, currentDate) {
+  const date = moment(currentDate);
+  switch (subscriptionType) {
+    case 'Daily':
+      date.add(1, 'days');
+      break;
+    case 'Alternate Days':
+      date.add(2, 'days');
+      break;
+    case 'Weekly':
+      date.add(7, 'days');
+      break;
+    case 'Monthly':
+      date.add(1, 'months');
+      break;
+    default:
+      date.add(1, 'days'); // Default to daily if type is unknown
+  }
+  return date.format('YYYY-MM-DD');
+}
+
+// Helper function to check if a specific date is a delivery day for a subscription
+const isDeliveryDay = (subscription, checkDate) => {
+  const startDate = moment(subscription.start_date).startOf('day');
+  const checkMoment = moment(checkDate).startOf('day');
+
+  // Do not deliver before the subscription start date
+  if (checkMoment.isBefore(startDate)) {
+    return false;
+  }
+
+  const daysDiff = checkMoment.diff(startDate, 'days');
+
+  switch (subscription.subscription_type) {
+    case 'Daily':
+      return true;
+    case 'Alternate Days':
+      // Deliver on day 0, 2, 4... relative to start date
+      return daysDiff % 2 === 0;
+    case 'Weekly':
+      // Get day of week for start date (0=Sunday, 6=Saturday)
+      const startDayOfWeek = startDate.day();
+      // Check if the current day matches the start day of the week
+      return checkMoment.day() === startDayOfWeek;
+    case 'Monthly':
+      // Check if the current day of month matches the start day of month
+      // Or if it's the last day of a shorter month and start day was higher
+      const startDayOfMonth = startDate.date();
+      const currentDayOfMonth = checkMoment.date();
+      const lastDayOfCurrentMonth = checkMoment.endOf('month').date();
+      return (currentDayOfMonth === startDayOfMonth) ||
+             (currentDayOfMonth === lastDayOfCurrentMonth && startDayOfMonth > lastDayOfCurrentMonth);
+    default:
+      return false;
+  }
+};
+
+
+// 1. Get bill for a specific subscription type (Individual Bill Data)
+app.get('/api/bills/:consumer_id/:subscription_type', authenticateToken, async (req, res) => {
+  try {
+    const { consumer_id, subscription_type } = req.params;
+    const today = moment(); // Billing for the current date's delivery
+
+    if (consumer_id !== req.user.consumer_id) {
+      return res.status(403).json({ success: false, message: 'Unauthorized access to billing information' });
+    }
     
-//     // Verify the requested consumer_id matches the authenticated user
-//     if (consumer_id !== req.user.consumer_id) {
-//       return res.status(403).json({
-//         success: false,
-//         message: 'Unauthorized access to billing information'
-//       });
-//     }
+    // Fetch all active subscriptions of this specific type for the consumer
+    const subscriptions = await queryDatabase(
+      `SELECT s.subscription_id, s.product_id, s.product_name, 
+              s.quantity, s.price, s.start_date, s.subscription_type
+       FROM subscriptions s
+       WHERE s.consumer_id = ?
+       AND s.subscription_type = ?
+       AND s.status = 'Active'`,
+      [consumer_id, subscription_type]
+    );
 
-//     // Validate plan type
-//     const validPlans = ['Daily', 'Alternate Days', 'Weekly', 'Monthly'];
-//     if (!validPlans.includes(plan)) {
-//       return res.status(400).json({ 
-//         success: false,
-//         error: "Invalid subscription plan" 
-//       });
-//     }
+    if (subscriptions.length === 0) {
+      return res.status(404).json({ success: false, error: `No active ${subscription_type} subscriptions found.` });
+    }
 
-//     // Get all active subscriptions for this plan
-//     const subscriptions = await queryDatabase(
-//       `SELECT * FROM subscriptions 
-//        WHERE consumer_id = ? AND subscription_type = ? AND status = 'Active'`,
-//       [consumer_id, plan]
-//     );
+    let billableItems = [];
+    let subtotal = 0;
+    let subscriptionFee = 0;
 
-//     if (subscriptions.length === 0) {
-//       return res.status(404).json({ 
-//         success: false,
-//         error: "No active subscriptions found for this plan" 
-//       });
-//     }
-
-//     // Calculate billing period based on plan type
-//     let billingPeriod = {
-//       start: '',
-//       end: '',
-//       nextBillingDate: ''
-//     };
-    
-//     const startDate = new Date(subscriptions[0].start_date);
-//     startDate.setHours(0, 0, 0, 0);
-    
-//     if (plan === 'Daily') {
-//       billingPeriod = {
-//         start: today.toISOString().split('T')[0],
-//         end: today.toISOString().split('T')[0],
-//         nextBillingDate: new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-//       };
-//     } 
-//     else if (plan === 'Alternate Days') {
-//       const daysDiff = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
-      
-//       if (daysDiff % 2 === 0) {
-//         billingPeriod = {
-//           start: today.toISOString().split('T')[0],
-//           end: today.toISOString().split('T')[0],
-//           nextBillingDate: new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-//         };
-//       } else {
-//         return res.status(400).json({ 
-//           success: false,
-//           error: "Today is not a billing day for Alternate Days plan" 
-//         });
-//       }
-//     } 
-//     else if (plan === 'Weekly') {
-//       const startDayOfWeek = startDate.getDay(); // 0 (Sunday) to 6 (Saturday)
-//       const todayDayOfWeek = today.getDay();
-      
-//       if (startDayOfWeek === todayDayOfWeek) {
-//         const weekStart = new Date(today);
-//         weekStart.setDate(today.getDate() - today.getDay()); // Start of week (Sunday)
+    // Check which subscriptions are due for delivery TODAY
+    subscriptions.forEach(sub => {
+      if (isDeliveryDay(sub, today)) {
+        const itemTotal = parseFloat(sub.price) * parseInt(sub.quantity);
+        const itemFee = 5 * parseInt(sub.quantity); // Assuming 5 per item quantity
         
-//         billingPeriod = {
-//           start: weekStart.toISOString().split('T')[0],
-//           end: today.toISOString().split('T')[0],
-//           nextBillingDate: new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-//         };
-//       } else {
-//         return res.status(400).json({ 
-//           success: false,
-//           error: "Today is not the billing day for Weekly plan" 
-//         });
-//       }
-//     } 
-//     else if (plan === 'Monthly') {
-//       const startDateDay = startDate.getDate();
-//       const todayDate = today.getDate();
-//       const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+        billableItems.push({
+          subscription_id: sub.subscription_id,
+          product_name: sub.product_name,
+          quantity: parseInt(sub.quantity),
+          price: parseFloat(sub.price),
+          total: itemTotal,
+        });
+        subtotal += itemTotal;
+        subscriptionFee += itemFee;
+      }
+    });
+
+    if (billableItems.length === 0) {
+      // If no items are billable today, return a success: false but with a message
+      return res.status(200).json({ success: false, message: `No deliveries scheduled for ${subscription_type} today (${today.format('YYYY-MM-DD')}).` });
+    }
+
+    const total = subtotal + subscriptionFee;
+
+    const [consumer] = await queryDatabase(
+      `SELECT first_name, last_name, consumer_id FROM consumerregistration WHERE consumer_id = ?`,
+      [consumer_id]
+    );
+
+    res.json({
+      success: true,
+      bill: {
+        plan: subscription_type,
+        consumer: consumer,
+        items: billableItems,
+        subtotal: subtotal,
+        subscriptionFee: subscriptionFee,
+        total: total,
+        billingDate: today.format('YYYY-MM-DD'),
+        nextBillingDate: getNextBillingDate(subscription_type, today) // Calculate next logical billing date
+      }
+    });
+
+  } catch (error) {
+    console.error("Error generating individual bill:", error);
+    res.status(500).json({ success: false, error: "Failed to generate individual bill", details: error.message });
+  }
+});
+
+// 2. Get combined bill data for a period
+app.get('/api/subscriptions/combined-bill/:consumer_id', authenticateToken, async (req, res) => {
+  try {
+    const { consumer_id } = req.params;
+    const { start_date, end_date } = req.query;
+
+    if (consumer_id !== req.user.consumer_id) {
+      return res.status(403).json({ success: false, message: 'Unauthorized access to billing information' });
+    }
+
+    // Parse and validate date range
+    let startDate = moment(start_date).startOf('day');
+    let endDate = moment(end_date || moment()).endOf('day'); // Default end date to end of today
+
+    if (!startDate.isValid() || !endDate.isValid() || startDate.isAfter(endDate)) {
+      return res.status(400).json({ success: false, error: "Invalid date range provided." });
+    }
+    
+    // Ensure end date doesn't exceed current date (don't bill for future deliveries)
+    if (endDate.isAfter(moment().endOf('day'))) {
+      endDate = moment().endOf('day');
+    }
+
+    // Fetch all active subscriptions for the consumer
+    const allActiveSubscriptions = await queryDatabase(
+      `SELECT s.subscription_id, s.product_id, s.product_name, 
+              s.quantity, s.price, s.start_date, s.subscription_type
+       FROM subscriptions s
+       WHERE s.consumer_id = ? AND s.status = 'Active'
+       ORDER BY s.start_date ASC`,
+      [consumer_id]
+    );
+
+    const dailyDeliveries = {}; // Object to hold deliveries grouped by date
+    let overallGrandTotal = 0;
+    const overallTotalsByType = {}; // For summary totals per subscription type
+
+    // Iterate through each day in the specified period
+    let currentDay = moment(startDate);
+    while (currentDay.isSameOrBefore(endDate)) {
+      const formattedDate = currentDay.format('YYYY-MM-DD');
       
-//       // Check if today is the billing day or the last day of month (for short months)
-//       if (todayDate === startDateDay || 
-//           (todayDate === lastDayOfMonth && startDateDay > lastDayOfMonth)) {
-//         const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-        
-//         billingPeriod = {
-//           start: monthStart.toISOString().split('T')[0],
-//           end: today.toISOString().split('T')[0],
-//           nextBillingDate: new Date(today.getFullYear(), today.getMonth() + 1, 
-//                                    Math.min(startDateDay, lastDayOfMonth)).toISOString().split('T')[0]
-//         };
-//       } else {
-//         return res.status(400).json({ 
-//           success: false,
-//           error: "Today is not the billing day for Monthly plan" 
-//         });
-//       }
-//     }
+      let daySubtotal = 0;
+      let daySubscriptionFee = 0;
+      const dayItems = [];
 
-//     // Calculate bill amounts
-//     const subtotal = subscriptions.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-//     const subscriptionFee = subscriptions.reduce((sum, item) => sum + (5 * item.quantity), 0); // ₹5 per item fee
-//     const total = subtotal + subscriptionFee;
+      allActiveSubscriptions.forEach(sub => {
+        if (isDeliveryDay(sub, currentDay)) {
+          const itemPrice = parseFloat(sub.price);
+          const itemQuantity = parseInt(sub.quantity);
+          const itemTotal = itemPrice * itemQuantity;
+          const itemFee = 5 * itemQuantity; // Assuming 5 per item quantity
 
-//     // Get billing history for this plan
-//     const billingHistory = await queryDatabase(
-//       `SELECT 
-//         bh.billing_id,
-//         bh.amount,
-//         DATE_FORMAT(bh.billing_date, '%Y-%m-%d') as billing_date,
-//         wt.transaction_id,
-//         DATE_FORMAT(wt.transaction_date, '%Y-%m-%d %H:%i:%s') as payment_date,
-//         bh.description
-//        FROM billing_history bh
-//        JOIN wallet_transactions wt ON bh.transaction_id = wt.transaction_id
-//        WHERE bh.consumer_id = ? AND bh.subscription_type = ?
-//        ORDER BY bh.billing_date DESC
-//        LIMIT 10`,
-//       [consumer_id, plan]
-//     );
+          dayItems.push({
+            subscription_id: sub.subscription_id, // Include subscription_id for uniqueness if needed later
+            product_name: sub.product_name,
+            quantity: itemQuantity,
+            price: itemPrice,
+            total: itemTotal,
+            subscription_type: sub.subscription_type
+          });
 
-//     // Create bill object
-//     const bill = {
-//       plan,
-//       billingPeriod,
-//       items: subscriptions.map(item => ({
-//         subscription_id: item.subscription_id,
-//         product_name: item.product_name,
-//         quantity: item.quantity,
-//         price: item.price,
-//         total: item.price * item.quantity
-//       })),
-//       subtotal,
-//       subscriptionFee,
-//       total,
-//       generatedAt: new Date().toISOString(),
-//       billingHistory
-//     };
+          daySubtotal += itemTotal;
+          daySubscriptionFee += itemFee;
 
-//     res.json({ 
-//       success: true, 
-//       bill 
-//     });
-//   } catch (error) {
-//     console.error("Error generating bill:", error);
-//     res.status(500).json({ 
-//       success: false,
-//       error: "Failed to generate bill" 
-//     });
-//   }
-// });
+          // Update overall totals by type
+          if (!overallTotalsByType[sub.subscription_type]) {
+              overallTotalsByType[sub.subscription_type] = 0;
+          }
+          overallTotalsByType[sub.subscription_type] += (itemTotal + itemFee);
+        }
+      });
 
-// // Process payment for a subscription plan
-// app.post('/api/bills/pay/:consumer_id/:plan', authenticateToken, async (req, res) => {
-//   try {
-//     const { consumer_id, plan } = req.params;
-//     const today = new Date();
-//     today.setHours(0, 0, 0, 0);
-    
-//     // Verify authorization
-//     if (consumer_id !== req.user.consumer_id) {
-//       return res.status(403).json({
-//         success: false,
-//         message: 'Unauthorized payment attempt'
-//       });
-//     }
-
-//     // First generate the bill to get the amount
-//     const billResponse = await queryDatabase(
-//       `SELECT 
-//         s.subscription_id,
-//         s.product_name,
-//         s.quantity,
-//         s.price,
-//         (s.price * s.quantity) as item_total,
-//         (5 * s.quantity) as fee
-//        FROM subscriptions s
-//        WHERE s.consumer_id = ? AND s.subscription_type = ? AND s.status = 'Active'`,
-//       [consumer_id, plan]
-//     );
-
-//     if (billResponse.length === 0) {
-//       return res.status(404).json({ 
-//         success: false,
-//         error: "No active subscriptions found for this plan" 
-//       });
-//     }
-
-//     // Calculate totals
-//     const subtotal = billResponse.reduce((sum, item) => sum + item.item_total, 0);
-//     const subscriptionFee = billResponse.reduce((sum, item) => sum + item.fee, 0);
-//     const total = subtotal + subscriptionFee;
-
-//     // Get current wallet balance
-//     const walletBalance = await queryDatabase(
-//       `SELECT balance FROM wallet_transactions 
-//        WHERE consumer_id = ? 
-//        ORDER BY transaction_date DESC LIMIT 1`,
-//       [consumer_id]
-//     );
-//     const currentBalance = walletBalance[0]?.balance || 0;
-
-//     if (currentBalance < total) {
-//       return res.status(400).json({ 
-//         success: false,
-//         error: "Insufficient wallet balance",
-//         required: total,
-//         current: currentBalance
-//       });
-//     }
-
-//     // Deduct from wallet
-//     const paymentDescription = `Subscription payment for ${plan} plan`;
-//     const paymentResult = await queryDatabase(
-//       `INSERT INTO wallet_transactions 
-//        (consumer_id, transaction_type, amount, description, payment_method) 
-//        VALUES (?, 'Debit', ?, ?, 'Subscription Payment')`,
-//       [consumer_id, total, paymentDescription]
-//     );
-
-//     // Record the payment in billing history
-//     await queryDatabase(
-//       `INSERT INTO billing_history 
-//        (consumer_id, subscription_type, amount, billing_date, transaction_id, description) 
-//        VALUES (?, ?, ?, ?, NULL, ?)`,
-//       [consumer_id, plan, total, today, paymentResult.insertId, paymentDescription]
-//     );
-
-//     // Log the delivery
-//     await queryDatabase(
-//       `INSERT INTO delivery_logs 
-//        (consumer_id, delivery_date, amount, transaction_id, status) 
-//        VALUES (?, ?, ?, NULL, 'Completed')`,
-//       [consumer_id, today, total, paymentResult.insertId]
-//     );
-
-//     // Get the updated balance
-//     const updatedBalance = await queryDatabase(
-//       `SELECT balance FROM wallet_transactions 
-//        WHERE transaction_id = ?`,
-//       [paymentResult.insertId]
-//     );
-
-//     res.json({ 
-//       success: true,
-//       message: "Payment processed successfully",
-//       amount: total,
-//       newBalance: updatedBalance[0].balance,
-//       transactionId: paymentResult.insertId
-//     });
-    
-//   } catch (error) {
-//     console.error("Error processing payment:", error);
-//     res.status(500).json({ 
-//       success: false,
-//       error: "Failed to process payment" 
-//     });
-//   }
-// });
-
-
-// // Get billing history
-// app.get('/api/bills/history/:consumer_id', verifyToken, async (req, res) => {
-//   try {
-//     const { consumer_id } = req.params;
-    
-//     const history = await queryDatabase(
-//       `SELECT 
-//         bh.billing_id,
-//         bh.subscription_type as plan,
-//         bh.amount,
-//         DATE_FORMAT(bh.billing_date, '%Y-%m-%d') as billing_date,
-//         wt.transaction_id,
-//         DATE_FORMAT(wt.transaction_date, '%Y-%m-%d %H:%i:%s') as payment_date,
-//         bh.description
-//        FROM billing_history bh
-//        JOIN wallet_transactions wt ON bh.transaction_id = wt.transaction_id
-//        WHERE bh.consumer_id = ?
-//        ORDER BY bh.billing_date DESC`,
-//       [consumer_id]
-//     );
-
-//     res.json({ success: true, history });
-//   } catch (error) {
-//     console.error("Error fetching billing history:", error);
-//     res.status(500).json({ error: "Failed to fetch billing history" });
-//   }
-// });
-
-// // Generate PDF bill
-// app.get('/api/bills/pdf/:consumer_id/:plan', authenticateToken, async (req, res) => {
-//   try {
-//     const { consumer_id, plan } = req.params;
-//     const today = new Date();
-    
-//     // Verify the requested consumer_id matches the authenticated user
-//     if (consumer_id !== req.user.consumer_id) {
-//       return res.status(403).json({
-//         success: false,
-//         message: 'Unauthorized access to billing information'
-//       });
-//     }
-
-//     // Get current bill
-//     const currentBill = await queryDatabase(
-//       `SELECT 
-//         s.subscription_id,
-//         s.product_name,
-//         s.quantity,
-//         s.price,
-//         (s.price * s.quantity) as item_total,
-//         (5 * s.quantity) as fee
-//        FROM subscriptions s
-//        WHERE s.consumer_id = ? AND s.subscription_type = ? AND s.status = 'Active'`,
-//       [consumer_id, plan]
-//     );
-
-//     if (currentBill.length === 0) {
-//       return res.status(404).json({ 
-//         success: false,
-//         error: "No active subscriptions found for this plan" 
-//       });
-//     }
-
-//     // Get billing history
-//     const billingHistory = await queryDatabase(
-//       `SELECT 
-//         bh.billing_id,
-//         bh.amount,
-//         DATE_FORMAT(bh.billing_date, '%Y-%m-%d') as billing_date,
-//         wt.transaction_id,
-//         DATE_FORMAT(wt.transaction_date, '%Y-%m-%d %H:%i:%s') as payment_date,
-//         bh.description
-//        FROM billing_history bh
-//        JOIN wallet_transactions wt ON bh.transaction_id = wt.transaction_id
-//        WHERE bh.consumer_id = ? AND bh.subscription_type = ?
-//        ORDER BY bh.billing_date DESC
-//        LIMIT 10`,
-//       [consumer_id, plan]
-//     );
-
-//     // Calculate totals for current bill
-//     const subtotal = currentBill.reduce((sum, item) => sum + item.item_total, 0);
-//     const subscriptionFee = currentBill.reduce((sum, item) => sum + item.fee, 0);
-//     const total = subtotal + subscriptionFee;
-
-//     // Generate PDF
-//     const PDFDocument = require('pdfkit');
-//     const fs = require('fs');
-//     const path = require('path');
-    
-//     const doc = new PDFDocument();
-//     const fileName = `subscription_bill_${plan}_${today.toISOString().split('T')[0]}.pdf`;
-//     const filePath = path.join(__dirname, 'temp', fileName);
-    
-//     // Ensure temp directory exists
-//     if (!fs.existsSync(path.join(__dirname, 'temp'))) {
-//       fs.mkdirSync(path.join(__dirname, 'temp'));
-//     }
-    
-//     const writeStream = fs.createWriteStream(filePath);
-//     doc.pipe(writeStream);
-    
-//     // PDF Content
-//     doc.fontSize(20).text(`${plan} Subscription Bill`, { align: 'center' });
-//     doc.moveDown();
-    
-//     // Consumer info
-//     const consumer = await queryDatabase(
-//       "SELECT first_name, last_name, address FROM consumerregistration WHERE consumer_id = ?",
-//       [consumer_id]
-//     );
-    
-//     if (consumer.length > 0) {
-//       doc.fontSize(12)
-//          .text(`Consumer: ${consumer[0].first_name} ${consumer[0].last_name}`)
-//          .text(`Address: ${consumer[0].address}`)
-//          .text(`Date: ${today.toLocaleDateString()}`)
-//          .moveDown();
-//     }
-    
-//     // Current Bill Section
-//     doc.fontSize(14).text('Current Bill Details', { underline: true });
-//     doc.moveDown(0.5);
-    
-//     // Table header
-//     doc.font('Helvetica-Bold')
-//        .text('Product', 50, doc.y)
-//        .text('Qty', 200, doc.y)
-//        .text('Unit Price', 250, doc.y)
-//        .text('Total', 350, doc.y)
-//        .moveDown(0.5);
-    
-//     doc.font('Helvetica');
-//     // Table rows
-//     currentBill.forEach(item => {
-//       doc.text(item.product_name, 50, doc.y)
-//          .text(item.quantity.toString(), 200, doc.y)
-//          .text(`₹${item.price.toFixed(2)}`, 250, doc.y)
-//          .text(`₹${item.item_total.toFixed(2)}`, 350, doc.y)
-//          .moveDown(0.5);
-//     });
-    
-//     // Totals
-//     doc.moveDown(0.5)
-//        .text(`Subtotal: ₹${subtotal.toFixed(2)}`, { align: 'right' })
-//        .text(`Subscription Fee: ₹${subscriptionFee.toFixed(2)}`, { align: 'right' })
-//        .font('Helvetica-Bold')
-//        .text(`Total: ₹${total.toFixed(2)}`, { align: 'right' })
-//        .font('Helvetica')
-//        .moveDown(2);
-    
-//     // Billing History Section
-//     if (billingHistory.length > 0) {
-//       doc.fontSize(14).text('Payment History', { underline: true });
-//       doc.moveDown(0.5);
+      if (dayItems.length > 0) {
+        const dayTotal = daySubtotal + daySubscriptionFee;
+        dailyDeliveries[formattedDate] = {
+          items: dayItems,
+          subtotal: daySubtotal,
+          fee: daySubscriptionFee,
+          total: dayTotal
+        };
+        overallGrandTotal += dayTotal;
+      }
       
-//       // History table header
-//       doc.font('Helvetica-Bold')
-//          .text('Date', 50, doc.y)
-//          .text('Amount', 200, doc.y)
-//          .text('Status', 350, doc.y)
-//          .moveDown(0.5);
-      
-//       doc.font('Helvetica');
-//       // History rows
-//       billingHistory.forEach(item => {
-//         doc.text(item.billing_date, 50, doc.y)
-//            .text(`₹${item.amount.toFixed(2)}`, 200, doc.y)
-//            .text('Paid', 350, doc.y)
-//            .moveDown(0.5);
-//       });
-//     }
-    
-//     doc.end();
-    
-//     writeStream.on('finish', () => {
-//       res.download(filePath, fileName, (err) => {
-//         if (err) console.error("Error sending PDF:", err);
-//         // Delete the file after download
-//         fs.unlinkSync(filePath);
-//       });
-//     });
-    
-//   } catch (error) {
-//     console.error("Error generating PDF:", error);
-//     res.status(500).json({ 
-//       success: false,
-//       error: "Failed to generate PDF bill" 
-//     });
-//   }
-// });
+      currentDay.add(1, 'day'); // Move to the next day
+    }
 
+    const [consumer] = await queryDatabase(
+      `SELECT first_name, last_name, email, phone_number FROM consumerregistration WHERE consumer_id = ?`,
+      [consumer_id]
+    );
+
+    const responseData = {
+      success: true,
+      // Ensure consumer is always an object, even if query returns empty
+      consumer: consumer || { first_name: 'Unknown', last_name: 'Consumer', consumer_id: consumer_id }, 
+      period: {
+        start: startDate.format('YYYY-MM-DD'),
+        end: endDate.format('YYYY-MM-DD')
+      },
+      // THESE ARE THE CRITICAL KEYS THAT pdfUtils.js EXPECTS:
+      dailyDeliveries: dailyDeliveries, // <--- THIS MUST BE 'dailyDeliveries'
+      overallTotals: { // <--- THIS MUST BE 'overallTotals'
+        ...overallTotalsByType,
+        grandTotal: overallGrandTotal
+      },
+    };
+
+    console.log("Backend preparing combined bill response:", JSON.stringify(responseData, null, 2)); // <-- VERIFY THIS LOG IN YOUR BACKEND CONSOLE
+    res.json(responseData);
+
+  } catch (error) {
+    console.error("Error generating combined bill:", error);
+    res.status(500).json({ success: false, error: "Failed to generate combined bill", details: error.message });
+  }
+});
+
+// Example route for fetching active subscriptions (needed for combined bill logic)
+app.get('/api/subscriptions/:consumer_id', authenticateToken, async (req, res) => {
+  try {
+    const { consumer_id } = req.params;
+    if (consumer_id !== req.user.consumer_id) {
+      return res.status(403).json({ success: false, message: 'Unauthorized access' });
+    }
+
+    const subscriptions = await queryDatabase(
+      `SELECT subscription_id, subscription_type, product_id, product_name, quantity, price, start_date, status
+       FROM subscriptions
+       WHERE consumer_id = ? AND status = 'Active'
+       ORDER BY start_date DESC`,
+      [consumer_id]
+    );
+    res.json({ success: true, subscriptions });
+  } catch (error) {
+    console.error("Error fetching subscriptions:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
 
 
 
@@ -5372,248 +5175,7 @@ app.post('/api/process-subscriptions/monthly', async (req, res) => {
   }
 });
 
-// Combined Bill Generation
-app.get('/api/subscriptions/combined-bill/:consumer_id', async (req, res) => {
-  try {
-    const { consumer_id } = req.params;
-    const { start_date, end_date } = req.query;
 
-    // Validate dates
-    const startDate = start_date ? new Date(start_date) : new Date();
-    startDate.setHours(0, 0, 0, 0);
-    
-    const endDate = end_date ? new Date(end_date) : new Date();
-    endDate.setHours(23, 59, 59, 999);
-
-    // Get all billing history for the period
-    const billingHistory = await queryDatabase(
-      `SELECT 
-        bh.billing_id,
-        bh.subscription_type,
-        bh.amount,
-        bh.billing_date,
-        bh.description,
-        wt.transaction_id,
-        wt.transaction_date
-       FROM billing_history bh
-       JOIN wallet_transactions wt ON bh.transaction_id = wt.transaction_id
-       WHERE bh.consumer_id = ?
-       AND bh.billing_date BETWEEN ? AND ?
-       ORDER BY bh.billing_date DESC`,
-      [consumer_id, startDate, endDate]
-    );
-
-    // Calculate totals
-    const totals = billingHistory.reduce((acc, item) => {
-      if (!acc[item.subscription_type]) {
-        acc[item.subscription_type] = 0;
-      }
-      acc[item.subscription_type] += parseFloat(item.amount);
-      acc.total = (acc.total || 0) + parseFloat(item.amount);
-      return acc;
-    }, {});
-
-    // Get consumer details
-    const [consumer] = await queryDatabase(
-      `SELECT first_name, last_name, email, phone_number 
-       FROM consumerregistration 
-       WHERE consumer_id = ?`,
-      [consumer_id]
-    );
-
-    res.json({
-      success: true,
-      consumer,
-      period: {
-        start: startDate.toISOString().split('T')[0],
-        end: endDate.toISOString().split('T')[0]
-      },
-      billingHistory: billingHistory.map(item => ({
-        ...item,
-        amount: parseFloat(item.amount)
-      })),
-      totals,
-      generatedAt: new Date().toISOString()
-    });
-
-  } catch (error) {
-    console.error("Error generating combined bill:", error);
-    res.status(500).json({ 
-      success: false,
-      error: "Failed to generate combined bill"
-    });
-  }
-});
-
-
-//  combined bill
-
-app.get('/api/subscriptions/combined-bill-pdf/:consumer_id', async (req, res) => {
-  try {
-    const { consumer_id } = req.params;
-    const { start_date, end_date } = req.query;
-    const today = new Date();
-    const pageWidth = 595.28; // A4 width in points
-    const margin = 50;
-    const contentWidth = pageWidth - (margin * 2);
-
-    // Get consumer details
-    const [consumer] = await queryDatabase(
-      `SELECT first_name, last_name FROM consumerregistration 
-       WHERE consumer_id = ?`,
-      [consumer_id]
-    );
-
-    // Get billing details
-    const billingDetails = await queryDatabase(
-      `SELECT 
-        s.product_name,
-        s.quantity,
-        s.price,
-        bh.subscription_type
-       FROM billing_history bh
-       JOIN subscriptions s ON bh.consumer_id = s.consumer_id 
-         AND bh.subscription_type = s.subscription_type
-       WHERE bh.consumer_id = ?
-       AND bh.billing_date BETWEEN ? AND ?
-       ORDER BY bh.subscription_type, s.product_name`,
-      [consumer_id, start_date || '1970-01-01', end_date || today.toISOString()]
-    );
-
-    // Organize data
-    const subscriptionGroups = {};
-    let grandTotal = 0;
-
-    billingDetails.forEach(item => {
-      const type = item.subscription_type;
-      if (!subscriptionGroups[type]) {
-        subscriptionGroups[type] = {
-          items: [],
-          subtotal: 0,
-          fee: 0,
-          total: 0
-        };
-      }
-      
-      const itemTotal = parseFloat(item.price) * parseInt(item.quantity);
-      const fee = 5 * parseInt(item.quantity);
-      
-      subscriptionGroups[type].items.push({
-        product_name: item.product_name,
-        quantity: item.quantity,
-        price: parseFloat(item.price),
-        total: itemTotal
-      });
-      
-      subscriptionGroups[type].subtotal += itemTotal;
-      subscriptionGroups[type].fee += fee;
-      subscriptionGroups[type].total += (itemTotal + fee);
-      grandTotal += (itemTotal + fee);
-    });
-
-    // Generate PDF
-    const PDFDocument = require('pdfkit');
-    const doc = new PDFDocument({ margin: margin, size: 'A4' });
-    
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=Subscription_Bill_${consumer_id}.pdf`);
-    doc.pipe(res);
-
-    // Header
-    doc.fontSize(18)
-       .font('Helvetica-Bold')
-       .text('SUBSCRIPTION BILL', { align: 'center' })
-       .moveDown(0.5);
-
-    // Customer Info
-    doc.fontSize(10)
-       .font('Helvetica')
-       .text(`Customer: ${consumer.first_name} ${consumer.last_name}`, margin, 100)
-       .text(`ID: ${consumer_id}`, margin, 115)
-       .text(`Period: ${start_date} to ${end_date}`, margin, 130)
-       .text(`Generated: ${today.toISOString().split('T')[0]}`, margin, 145)
-       .moveDown(2);
-
-    // Process each subscription type
-    Object.entries(subscriptionGroups).forEach(([type, group]) => {
-      // Section Header
-      doc.fontSize(12)
-         .font('Helvetica-Bold')
-         .text(`${type.toUpperCase()}`, margin, doc.y)
-         .moveDown(0.5);
-
-      // Table Setup
-      const tableTop = doc.y;
-      const col1 = margin;          // Product (150px)
-      const col2 = col1 + 150;      // Qty (50px)
-      const col3 = col2 + 50;       // Price (80px)
-      const col4 = col3 + 80;       // Amount (80px)
-
-      // Table Header
-      doc.font('Helvetica-Bold')
-         .text('PRODUCT', col1, tableTop)
-         .text('QTY', col2, tableTop)
-         .text('PRICE', col3, tableTop)
-         .text('AMOUNT', col4, tableTop)
-         .moveDown(0.5);
-
-      // Horizontal line under header
-      doc.moveTo(margin, doc.y - 5)
-         .lineTo(pageWidth - margin, doc.y - 5)
-         .lineWidth(0.5)
-         .strokeColor('#333333')
-         .stroke();
-
-      // Table Rows
-      doc.font('Helvetica');
-      let y = tableTop + 25;
-      group.items.forEach(item => {
-        doc.text(item.product_name, col1, y)
-           .text(item.quantity.toString(), col2, y)
-           .text(`₹${item.price.toFixed(2)}`, col3, y)
-           .text(`₹${item.total.toFixed(2)}`, col4, y);
-        y += 20;
-      });
-
-      // Section Totals
-      doc.font('Helvetica-Bold')
-         .text('Subtotal:', col3 - 10, y + 10)
-         .text(`₹${group.subtotal.toFixed(2)}`, col4, y + 10)
-         .text('Subscription Fee:', col3 - 10, y + 30)
-         .text(`₹${group.fee.toFixed(2)}`, col4, y + 30)
-         .text('Total:', col3 - 10, y + 50)
-         .text(`₹${group.total.toFixed(2)}`, col4, y + 50);
-
-      // Section separator line
-      doc.moveTo(margin, y + 70)
-         .lineTo(pageWidth - margin, y + 70)
-         .lineWidth(0.5)
-         .strokeColor('#cccccc')
-         .stroke()
-         .moveDown(2);
-    });
-
-    // Grand Total
-    doc.fontSize(14)
-       .font('Helvetica-Bold')
-       .text('GRAND TOTAL:', contentWidth - 150, doc.y)
-       .text(`₹${grandTotal.toFixed(2)}`, contentWidth - 50, doc.y)
-       .moveDown(2);
-
-    // Footer
-    doc.fontSize(8)
-       .text('Thank you for your business!', { align: 'center' })
-       .text('For queries contact: support@freshmilk.com | Phone: 1800-123-4567', { align: 'center' });
-
-    doc.end();
-  } catch (error) {
-    console.error("Error generating PDF:", error);
-    res.status(500).json({ 
-      success: false,
-      error: "Failed to generate PDF bill" 
-    });
-  }
-});
 
 // ✅ Auto-Debit Cron Job
 const autoDebitSubscriptions = async () => {
@@ -6278,320 +5840,15 @@ app.post("/api/wallet/verify-payment", authenticateToken, async (req, res) => {
 });
 
 
-// Helper function to get combined bill data
-async function getCombinedBillData(consumer_id, start_date, end_date) {
-  // Validate dates
-  const startDate = start_date ? new Date(start_date) : new Date();
-  startDate.setHours(0, 0, 0, 0);
-  
-  const endDate = end_date ? new Date(end_date) : new Date();
-  endDate.setHours(23, 59, 59, 999);
 
-  // Get all billing history for the period
-  const billingHistory = await queryDatabase(
-    `SELECT 
-      bh.billing_id,
-      bh.subscription_type,
-      bh.amount,
-      bh.billing_date,
-      bh.description,
-      wt.transaction_id,
-      wt.transaction_date
-     FROM billing_history bh
-     JOIN wallet_transactions wt ON bh.transaction_id = wt.transaction_id
-     WHERE bh.consumer_id = ?
-     AND bh.billing_date BETWEEN ? AND ?
-     ORDER BY bh.billing_date DESC`,
-    [consumer_id, startDate, endDate]
-  );
 
-  // Calculate totals
-  const totals = billingHistory.reduce((acc, item) => {
-    if (!acc[item.subscription_type]) {
-      acc[item.subscription_type] = 0;
-    }
-    acc[item.subscription_type] += parseFloat(item.amount);
-    acc.total = (acc.total || 0) + parseFloat(item.amount);
-    return acc;
-  }, {});
 
-  // Get consumer details
-  const [consumer] = await queryDatabase(
-    `SELECT first_name, last_name, email, phone_number 
-     FROM consumerregistration 
-     WHERE consumer_id = ?`,
-    [consumer_id]
-  );
 
-  return {
-    consumer,
-    period: {
-      start: startDate.toISOString().split('T')[0],
-      end: endDate.toISOString().split('T')[0]
-    },
-    billingHistory: billingHistory.map(item => ({
-      ...item,
-      amount: parseFloat(item.amount)
-    })),
-    totals,
-    generatedAt: new Date().toISOString()
-  };
-}
-// Add this to your server.js
-// Get bill for a specific subscription type
-app.get('/api/bills/:consumer_id/:subscription_type', async (req, res) => {
-  try {
-    const { consumer_id, subscription_type } = req.params;
-    const today = new Date();
-    
-    // Get all active subscriptions of this type
-    const subscriptions = await queryDatabase(
-      `SELECT s.subscription_id, s.product_id, s.product_name, 
-              s.quantity, s.price, s.start_date
-       FROM subscriptions s
-       WHERE s.consumer_id = ?
-       AND s.subscription_type = ?
-       AND s.status = 'Active'`,
-      [consumer_id, subscription_type]
-    );
 
-    if (subscriptions.length === 0) {
-      return res.status(404).json({ 
-        success: false,
-        error: `No active ${subscription_type} subscriptions found`
-      });
-    }
 
-    // Calculate bill amounts
-    const items = subscriptions.map(sub => ({
-      ...sub,
-      price: parseFloat(sub.price),
-      quantity: parseInt(sub.quantity),
-      total: parseFloat(sub.price) * parseInt(sub.quantity)
-    }));
 
-    const subtotal = items.reduce((sum, item) => sum + item.total, 0);
-    const subscriptionFee = items.reduce((sum, item) => sum + (5 * item.quantity), 0);
-    const total = subtotal + subscriptionFee;
 
-    // Get consumer details
-    const [consumer] = await queryDatabase(
-      `SELECT first_name, last_name FROM consumerregistration 
-       WHERE consumer_id = ?`,
-      [consumer_id]
-    );
 
-    res.json({
-      success: true,
-      bill: {
-        plan: subscription_type,
-        consumer,
-        items,
-        subtotal,
-        subscriptionFee,
-        total,
-        billingDate: today.toISOString().split('T')[0],
-        nextBillingDate: getNextBillingDate(subscription_type, today)
-      }
-    });
-
-  } catch (error) {
-    console.error("Error generating bill:", error);
-    res.status(500).json({ 
-      success: false,
-      error: "Failed to generate bill"
-    });
-  }
-});
-// Helper function to calculate next billing date
-function getNextBillingDate(subscriptionType, currentDate) {
-  const date = new Date(currentDate);
-  
-  switch(subscriptionType) {
-    case 'Daily':
-      date.setDate(date.getDate() + 1);
-      break;
-    case 'Alternate Days':
-      date.setDate(date.getDate() + 2);
-      break;
-    case 'Weekly':
-      date.setDate(date.getDate() + 7);
-      break;
-    case 'Monthly':
-      date.setMonth(date.getMonth() + 1);
-      break;
-    default:
-      date.setDate(date.getDate() + 1);
-  }
-  
-  return date.toISOString().split('T')[0];
-}
-// Process payment for a subscription bill
-app.post('/api/bills/pay/:consumer_id/:subscription_type', async (req, res) => {
-  try {
-    const { consumer_id, subscription_type } = req.params;
-    const today = new Date();
-    
-    // Get all active subscriptions of this type
-    const subscriptions = await queryDatabase(
-      `SELECT s.subscription_id, s.product_id, s.product_name, 
-              s.quantity, s.price
-       FROM subscriptions s
-       WHERE s.consumer_id = ?
-       AND s.subscription_type = ?
-       AND s.status = 'Active'`,
-      [consumer_id, subscription_type]
-    );
-
-    if (subscriptions.length === 0) {
-      return res.status(404).json({ 
-        success: false,
-        error: `No active ${subscription_type} subscriptions found`
-      });
-    }
-
-    // Calculate total amount
-    const subtotal = subscriptions.reduce((sum, sub) => 
-      sum + (parseFloat(sub.price) * parseInt(sub.quantity)), 0);
-    const subscriptionFee = subscriptions.reduce((sum, sub) => 
-      sum + (5 * parseInt(sub.quantity)), 0);
-    const total = subtotal + subscriptionFee;
-
-    // Check wallet balance
-    const [wallet] = await queryDatabase(
-      `SELECT balance FROM wallet_transactions 
-       WHERE consumer_id = ? 
-       ORDER BY transaction_date DESC LIMIT 1`,
-      [consumer_id]
-    );
-
-    const currentBalance = wallet?.balance || 0;
-
-    if (currentBalance < total) {
-      return res.status(400).json({ 
-        success: false,
-        error: "Insufficient funds"
-      });
-    }
-
-    // Deduct from wallet
-    await queryDatabase(
-      `INSERT INTO wallet_transactions 
-       (consumer_id, transaction_type, amount, description, payment_method)
-       VALUES (?, 'Debit', ?, ?, 'Subscription')`,
-      [consumer_id, total, `${subscription_type} Subscription Payment`, 'Wallet']
-    );
-
-    // Get the transaction ID
-    const [transaction] = await queryDatabase(
-      `SELECT transaction_id FROM wallet_transactions 
-       WHERE consumer_id = ? 
-       ORDER BY transaction_date DESC LIMIT 1`,
-      [consumer_id]
-    );
-
-    // Record payment in billing history
-    await queryDatabase(
-      `INSERT INTO billing_history 
-       (consumer_id, subscription_type, amount, billing_date, description, transaction_id)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [consumer_id, subscription_type, total, today, `${subscription_type} Subscription Payment`, transaction.transaction_id]
-    );
-
-    res.json({
-      success: true,
-      message: "Payment processed successfully",
-      transactionId: transaction.transaction_id,
-      newBalance: currentBalance - total
-    });
-
-  } catch (error) {
-    console.error("Error processing payment:", error);
-    res.status(500).json({ 
-      success: false,
-      error: "Failed to process payment"
-    });
-  }
-});
-// Individual Subscription PDF Generation
-app.get('/api/bills/pdf/:consumer_id/:subscription_type', async (req, res) => {
-  try {
-    const { consumer_id, subscription_type } = req.params;
-    
-    // Get the bill data first
-    const billResponse = await fetch(`http://localhost:5000/api/bills/${consumer_id}/${subscription_type}`);
-    if (!billResponse.ok) {
-      throw new Error('Failed to get bill data');
-    }
-    
-    const { bill } = await billResponse.json();
-    
-    // Generate PDF
-    const PDFDocument = require('pdfkit');
-    const doc = new PDFDocument();
-    
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=${subscription_type}_bill_${consumer_id}.pdf`);
-    
-    doc.pipe(res);
-
-    // Header
-    doc.fontSize(20).text(`${subscription_type} Subscription Bill`, { align: 'center' });
-    doc.moveDown();
-    
-    // Consumer Info
-    doc.fontSize(12)
-       .text(`Customer: ${bill.consumer.first_name} ${bill.consumer.last_name}`)
-       .text(`Customer ID: ${consumer_id}`)
-       .text(`Billing Date: ${bill.billingDate}`)
-       .text(`Next Billing Date: ${bill.nextBillingDate}`)
-       .moveDown();
-
-    // Bill Items
-    doc.fontSize(16).text('Items', { underline: true });
-    doc.moveDown(0.5);
-    
-    doc.font('Helvetica-Bold')
-       .text('Product', 50, doc.y)
-       .text('Qty', 200, doc.y)
-       .text('Unit Price', 250, doc.y)
-       .text('Total', 350, doc.y)
-       .moveDown(0.5);
-    
-    doc.font('Helvetica');
-    bill.items.forEach(item => {
-      doc.text(item.product_name, 50, doc.y)
-         .text(item.quantity.toString(), 200, doc.y)
-         .text(`₹${item.price.toFixed(2)}`, 250, doc.y)
-         .text(`₹${item.total.toFixed(2)}`, 350, doc.y)
-         .moveDown(0.5);
-    });
-    
-    // Totals
-    doc.moveDown();
-    doc.font('Helvetica-Bold')
-       .text('Subtotal:', 300, doc.y)
-       .text(`₹${bill.subtotal.toFixed(2)}`, 350, doc.y)
-       .moveDown(0.5);
-    
-    doc.font('Helvetica-Bold')
-       .text('Subscription Fee:', 300, doc.y)
-       .text(`₹${bill.subscriptionFee.toFixed(2)}`, 350, doc.y)
-       .moveDown(0.5);
-    
-    doc.font('Helvetica-Bold')
-       .text('Total Amount:', 300, doc.y)
-       .text(`₹${bill.total.toFixed(2)}`, 350, doc.y);
-
-    doc.end();
-  } catch (error) {
-    console.error("Error generating PDF:", error);
-    res.status(500).json({ 
-      success: false,
-      error: "Failed to generate PDF bill" 
-    });
-  }
-});
 
 
 

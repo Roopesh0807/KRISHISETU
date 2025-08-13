@@ -4,11 +4,12 @@ import { useAuth } from '../context/AuthContext';
 import {
   FaArrowLeft, FaClock, FaFilePdf, FaEdit, FaTrash, FaPlus, FaMinus,
   FaChevronDown, FaChevronUp, FaPlusCircle, FaExclamationTriangle, FaCheckCircle,
-  FaUser, FaEllipsisV
+  FaUser, FaEllipsisV, FaInfoCircle // Added FaInfoCircle for the instruction button
 } from 'react-icons/fa';
 import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
+import moment from 'moment'; // <--- ADDED THIS IMPORT
 
 // Import the new components and utils with CORRECT file paths
 import Wallet from './wallet'; // Using lowercase 'wallet.js'
@@ -16,7 +17,7 @@ import { downloadPlanPDF, generateCombinedBillPDF } from './pdfUtils';
 
 // Import local CSS with CORRECT file paths
 import './subscribe.css';
-import './pdfUtils.css'; // Renamed for consistency
+// import './pdfUtils.css'; // This CSS file is not strictly needed for PDF generation itself, as PDF styling is internal to jspdf
 
 // Import carousel images
 import slide1 from '../assets/free.jpg';
@@ -33,6 +34,7 @@ const Subscribe = () => {
   const [modifyItem, setModifyItem] = useState(null);
   const [deleteItem, setDeleteItem] = useState(null);
   const [collapsedPlans, setCollapsedPlans] = useState({});
+  // Initialize showInstructions based on localStorage, default to true if not seen
   const [showInstructions, setShowInstructions] = useState(() => !localStorage.getItem('hasSeenInstructions'));
   const [isLoading, setIsLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState(null);
@@ -53,13 +55,14 @@ const Subscribe = () => {
     const now = new Date();
     const currentHour = now.getHours();
     const currentMinutes = now.getMinutes();
+    // Freeze modifications from 10:30 PM to 6:59 AM (inclusive of 10:30 PM)
     const isFrozen = (currentHour === 22 && currentMinutes >= 30) || currentHour >= 23 || currentHour < 7;
     setCanModify(!isFrozen);
 
     const deadline = new Date();
-    deadline.setHours(22, 30, 0, 0);
+    deadline.setHours(22, 30, 0, 0); // 10:30 PM
     if (now > deadline) {
-      deadline.setDate(deadline.getDate() + 1);
+      deadline.setDate(deadline.getDate() + 1); // If past 10:30 PM, set deadline for next day
     }
     const diff = deadline - now;
     const hours = Math.floor(diff / (1000 * 60 * 60));
@@ -165,6 +168,12 @@ const Subscribe = () => {
 
   const handleDownloadPlanPDF = async (plan) => {
     setIsLoading(true);
+    // Ensure showBill data is available before attempting to download
+    if (!showBill) {
+      showSuccess("Please view the bill first before downloading.");
+      setIsLoading(false);
+      return;
+    }
     const result = await downloadPlanPDF(plan, showBill, consumer);
     showSuccess(result.message);
     setIsLoading(false);
@@ -172,9 +181,19 @@ const Subscribe = () => {
 
   const handleGenerateCombinedBill = async () => {
     setIsLoading(true);
-    const result = await generateCombinedBillPDF(consumer.consumer_id, token);
-    showSuccess(result.message);
-    setIsLoading(false);
+    try {
+      // For combined bill, we typically generate for a period, e.g., last 30 days
+      const endDate = moment();
+      const startDate = moment().subtract(30, 'days');
+      // Pass moment objects directly. pdfUtils will format them.
+      const result = await generateCombinedBillPDF(consumer.consumer_id, token, startDate, endDate);
+      showSuccess(result.message);
+    } catch (error) {
+      console.error("Error generating combined bill:", error);
+      showSuccess(`Error generating combined bill: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const togglePlanCollapse = (plan) => setCollapsedPlans(prev => ({ ...prev, [plan]: !prev[plan] }));
@@ -263,9 +282,16 @@ const Subscribe = () => {
 
       <Wallet />
 
-      <button className="combined-bill-btn" onClick={handleGenerateCombinedBill}>
-        <FaFilePdf /> Download Combined Bill (Last 30 Days)
-      </button>
+      <div className="bill-buttons-container"> {/* New container for bill buttons */}
+        <button className="combined-bill-btn" onClick={handleGenerateCombinedBill}>
+          <FaFilePdf /> Download Combined Bill (Last 30 Days)
+        </button>
+        {/* New Instructions Button */}
+        <button className="instructions-btn" onClick={() => setShowInstructions(true)}>
+          <FaInfoCircle /> View Instructions
+        </button>
+      </div>
+
 
       <div className="subscription-plans">
         <h2 className="section-title"><span>Your Subscription Plans</span></h2>
