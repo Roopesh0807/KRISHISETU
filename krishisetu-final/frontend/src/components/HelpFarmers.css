@@ -1,0 +1,149 @@
+/* General container for the entire component */
+.ks-market-container {
+  font-family: Arial, sans-serif;
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  background-color: #f9f9f9;
+  color: #333;
+}
+
+/* Header section styling */
+.ks-market-header {
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+.ks-market-title {
+  font-size: 2.5rem;
+  color: #2c3e50;
+  margin-bottom: 5px;
+}
+
+.ks-market-subtitle {
+  font-size: 1.1rem;
+  color: #7f8c8d;
+}
+
+/* Content area styling */
+.ks-market-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.ks-location-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  color: #3498db;
+  text-align: center;
+}
+
+.ks-location-icon {
+  margin-right: 10px;
+  font-size: 1.5rem;
+}
+
+/* Button styling */
+.ks-refresh-btn {
+  padding: 12px 25px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #fff;
+  background-color: #2ecc71;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  align-self: center;
+  width: auto;
+}
+
+.ks-refresh-btn:hover {
+  background-color: #27ae60;
+  transform: translateY(-2px);
+}
+
+.ks-refresh-btn:disabled {
+  background-color: #bdc3c7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Table styling for better data display */
+.ks-price-table-container {
+  overflow-x: auto;
+}
+
+.ks-price-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  background-color: #fff;
+}
+
+.ks-price-table th,
+.ks-price-table td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.ks-price-table th {
+  background-color: #ecf0f1;
+  color: #555;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.ks-price-table th:hover {
+  background-color: #e0e6e7;
+}
+
+.ks-price-table tbody tr:hover {
+  background-color: #f1f8ff;
+}
+
+/* Error and info messages */
+.ks-error-message,
+.ks-info-message {
+  text-align: center;
+  padding: 15px;
+  border-radius: 8px;
+  font-weight: bold;
+}
+
+.ks-error-message {
+  color: #c0392b;
+  background-color: #fbecec;
+  border: 1px solid #e74c3c;
+}
+
+.ks-info-message {
+  color: #2c3e50;
+  background-color: #e8f4f8;
+  border: 1px solid #3498db;
+}
+
+/* Spinner for loading state */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.ks-spinner {
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top: 4px solid #fff;
+  width: 20px;
+  height: 20px;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+  margin-right: 10px;
+}
