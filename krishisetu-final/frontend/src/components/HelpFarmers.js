@@ -1,170 +1,108 @@
 import React, { useState } from "react";
-import { useForm, ValidationError } from "@formspree/react";
-import { FaFacebook, FaInstagram, FaTwitter, FaMapMarkerAlt, FaPhoneAlt } from "react-icons/fa";
-import { MdEmail } from "react-icons/md";
-import axios from "axios";
-import "./styles.css";
+import { FaMapMarkerAlt } from "react-icons/fa";
+import "./HelpFarmers.css";
 
-const HelpFarmers = () => {
-  const [state, handleSubmit] = useForm("xbldnpvk");
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    message: "",
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
+const MarketPrice = () => {
+  const [prices, setPrices] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [sortOrder, setSortOrder] = useState("asc");
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  const getLivePrices = async () => {
+    setLoading(true);
+    setError("");
 
-  const onSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
+    const backendUrl = "http://localhost:5000/api/agmarknet-prices";
 
-    await handleSubmit(e);
-
-    if (state.succeeded) {
-      try {
-        const response = await axios.post("http://localhost:5000/api/contact", formData);
-        console.log("Data saved to database:", response.data);
-        setFormData({ name: "", email: "", phone: "", message: "" });
-        alert("Message sent and saved successfully!");
-      } catch (error) {
-        console.error("Error saving data to database:", error.response || error.message);
-        alert("Message sent, but failed to save to database. Please try again.");
-      } finally {
-        setIsSubmitting(false);
+    try {
+      const response = await fetch(backendUrl);
+      if (!response.ok) {
+        throw new Error("Failed to fetch market data from server.");
       }
-    } else {
-      setIsSubmitting(false);
+      const data = await response.json();
+      setPrices(data);
+    } catch (err) {
+      setError(`Error: ${err.message}. Please check if the backend server is running.`);
+      console.error("Frontend fetch error:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
+  // Sort prices by commodity name
+  const sortedPrices = prices ? [...prices].sort((a, b) => {
+    if (sortOrder === "asc") {
+      return a.commodity.localeCompare(b.commodity);
+    } else {
+      return b.commodity.localeCompare(a.commodity);
+    }
+  }) : null;
+
+  const toggleSortOrder = () => {
+    setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+  };
+
   return (
-    <div className="ks-contact-container">
-      <div className="ks-contact-header">
-        <h2 className="ks-contact-title">Get in Touch</h2>
-        <p className="ks-contact-subtitle">We'd love to hear from you</p>
+    <div className="ks-market-container">
+      <div className="ks-market-header">
+        <h2 className="ks-market-title">Live Market Prices</h2>
+        <p className="ks-market-subtitle">
+          Prices for all commodities in Karnataka, fetched from OGD Platform.
+        </p>
       </div>
 
-      <div className="ks-contact-content">
-        <div className="ks-contact-info">
-          <div className="ks-contact-info-item">
-            <FaMapMarkerAlt className="ks-contact-icon" />
-            <div>
-              <h3 className="ks-contact-info-title">Our Address</h3>
-              <p className="ks-contact-info-text">
-                Krishisetu, Opp. to Hotel Empire, Anand Rao Circle, Bengaluru - 560009
-              </p>
-            </div>
-          </div>
-
-          <div className="ks-contact-info-item">
-            <FaPhoneAlt className="ks-contact-icon" />
-            <div>
-              <h3 className="ks-contact-info-title">Phone Number</h3>
-              <p className="ks-contact-info-text">+91 9110823741</p>
-            </div>
-          </div>
-
-          <div className="ks-contact-info-item">
-            <MdEmail className="ks-contact-icon" />
-            <div>
-              <h3 className="ks-contact-info-title">Email Address</h3>
-              <p className="ks-contact-info-text">info@krishisetu.com</p>
-            </div>
-          </div>
-
-          <div className="ks-contact-social">
-            <p className="ks-social-title">Follow Us On</p>
-            <div className="ks-social-icons">
-              <a href="https://www.facebook.com/krishisetu" target="_blank" rel="noopener noreferrer">
-                <FaFacebook className="ks-social-icon" />
-              </a>
-              <a href="https://www.instagram.com/krishisetu" target="_blank" rel="noopener noreferrer">
-                <FaInstagram className="ks-social-icon" />
-              </a>
-              <a href="https://twitter.com/krishisetu" target="_blank" rel="noopener noreferrer">
-                <FaTwitter className="ks-social-icon" />
-              </a>
-            </div>
-          </div>
+      <div className="ks-market-content">
+        <div className="ks-location-display">
+          <FaMapMarkerAlt className="ks-location-icon" />
+          <p>
+            Fetching all available prices for Karnataka state.
+          </p>
         </div>
 
-        <form className="ks-contact-form" onSubmit={onSubmit}>
-          <div className="ks-form-group">
-            <label className="ks-form-label">Your Name</label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-              className="ks-form-input"
-              placeholder="Enter your name"
-            />
-          </div>
+        <button onClick={getLivePrices} className="ks-refresh-btn" disabled={loading}>
+          {loading ? "Loading..." : "Get Live Prices"}
+        </button>
 
-          <div className="ks-form-group">
-            <label className="ks-form-label">Email Address</label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              className="ks-form-input"
-              placeholder="Enter your email"
-            />
-            <ValidationError prefix="Email" field="email" errors={state.errors} />
-          </div>
+        {error && <div className="ks-error-message">{error}</div>}
 
-          <div className="ks-form-group">
-            <label className="ks-form-label">Phone Number</label>
-            <input
-              type="text"
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              required
-              className="ks-form-input"
-              placeholder="Enter your phone number"
-            />
+        {sortedPrices && sortedPrices.length > 0 ? (
+          <div className="ks-price-table-container">
+            <h3>Current Prices:</h3>
+            <table className="ks-price-table">
+              <thead>
+                <tr>
+                  <th onClick={toggleSortOrder}>
+                    Commodity {sortOrder === "asc" ? "▲" : "▼"}
+                  </th>
+                  <th>Market</th>
+                  <th>Min Price</th>
+                  <th>Max Price</th>
+                  <th>Modal Price</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedPrices.map((item, index) => (
+                  <tr key={index}>
+                    <td>{item.commodity}</td>
+                    <td>{item.market}</td>
+                    <td>₹{item.min_price}</td>
+                    <td>₹{item.max_price}</td>
+                    <td>₹{item.modal_price}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-
-          <div className="ks-form-group">
-            <label className="ks-form-label">Your Message</label>
-            <textarea
-              name="message"
-              value={formData.message}
-              onChange={handleChange}
-              required
-              className="ks-form-textarea"
-              placeholder="Enter your message"
-              rows="5"
-            />
-            <ValidationError prefix="Message" field="message" errors={state.errors} />
-          </div>
-
-          <button
-            type="submit"
-            className="ks-submit-btn"
-            disabled={state.submitting || isSubmitting}
-          >
-            {isSubmitting ? (
-              <>
-                <span className="ks-spinner"></span> Sending...
-              </>
-            ) : (
-              "Send Message"
-            )}
-          </button>
-        </form>
+        ) : (
+          !loading && !error && (
+            <div className="ks-info-message">
+              No live prices available for this combination.
+            </div>
+          )
+        )}
       </div>
     </div>
   );
 };
 
-export default HelpFarmers;
+export default MarketPrice;

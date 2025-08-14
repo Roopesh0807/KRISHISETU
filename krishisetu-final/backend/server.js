@@ -700,7 +700,12 @@ app.use((req, res, next) => {
     "api/community/consumer/:consumerId/communities",
     "api/community/:communityId/update-details",
     // "/uploads/reviews",
-
+    "/api/geocode/reverse",
+    "/api/geocode/forward",
+    "/api/orders",
+"/api/farmers",
+"/api/products",
+"/api/agmarknet-prices",
     // Add more public routes if needed
   ];
 
@@ -716,6 +721,106 @@ app.use((req, res, next) => {
   console.log("🔒 Protected route, applying token check:", cleanPath);
   return authMiddleware(req, res, next);
 });
+// **FIX:** Corrected Public Geocoding Proxy Routes
+// This section is now explicitly public and will not be blocked by auth middleware.
+app.get("/api/geocode/reverse", async (req, res) => {
+    const { lat, lon } = req.query;
+    if (!lat || !lon) {
+        return res.status(400).json({ error: "Latitude and longitude are required." });
+    }
+    try {
+        const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`;
+        const response = await fetch(url, {
+            headers: { 'User-Agent': 'KrishiSetu-App/1.0 (contact@krishisetu.com)' }
+        });
+        if (!response.ok) {
+            const errorText = await response.text();
+            return res.status(response.status).json({ error: `Nominatim API error: ${errorText}` });
+        }
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ error: "Internal server error." });
+    }
+});
+
+app.get("/api/geocode/forward", async (req, res) => {
+    const { q } = req.query;
+    if (!q) {
+        return res.status(400).json({ error: "Address query 'q' is required." });
+    }
+    try {
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`;
+        const response = await fetch(url, {
+            headers: { 'User-Agent': 'KrishiSetu-App/1.0 (contact@krishisetu.com)' }
+        });
+        if (!response.ok) {
+            const errorText = await response.text();
+            return res.status(response.status).json({ error: `Nominatim API error: ${errorText}` });
+        }
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ error: "Internal server error." });
+    }
+});
+// --- PROTECTED ROUTES ---
+// **FIX:** This is the route you were missing for fetching orders.
+// The frontend uses a query parameter, so the backend must handle it this way.
+app.get("/api/orders", async (req, res) => {
+    const { consumer_id } = req.query;
+    try {
+        if (!consumer_id) {
+            return res.status(400).json({ success: false, message: "consumer_id query parameter is required." });
+        }
+        const products = await queryDatabase(
+            "SELECT * FROM placeorder WHERE consumer_id = ?",
+            [consumer_id]
+        );
+        res.json(products);
+    } catch (error) {
+        res.status(500).json({ success: false, error: "Failed to fetch order products" });
+    }
+});
+
+app.get("/api/products", async (req, res) => {
+  try {
+    const products = await queryDatabase("SELECT * FROM products");
+    if (!products) {
+      return res.status(200).json([]); // Always return valid JSON
+    }
+    res.json(products);
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Error fetching products", error: err.message });
+  }
+});
+
+// Your API key and dataset ID
+const OGD_API_KEY = '579b464db66ec23bdd00000179ac061caec74e2f56620c1fafc76881';
+const DATASET_ID = '9ef84268-d588-465a-a308-a864a43d0070'; 
+
+app.get('/api/agmarknet-prices', async (req, res) => {
+    // Broaden the search to just the state
+    const state = 'Karnataka';
+    
+    // The API URL now only filters by state.
+    // The `limit` parameter is increased to get more data.
+    const apiUrl = `https://api.data.gov.in/resource/${DATASET_ID}?api-key=${OGD_API_KEY}&format=json&filters[state.keyword]=${state}&limit=100`;
+
+    try {
+        const response = await axios.get(apiUrl);
+        
+        if (response.data && response.data.records) {
+            res.json(response.data.records);
+        } else {
+            res.status(404).json({ message: 'No data found for this query.' });
+        }
+    } catch (error) {
+        console.error('Error fetching data from OGD:', error.response ? error.response.data : error.message);
+        res.status(500).json({ message: 'Failed to fetch data from the live API.', details: error.response ? error.response.data : error.message });
+    }
+});
+
 
 // ⬇️ Must go before routes
 app.use(authMiddleware);
@@ -2755,17 +2860,7 @@ app.get('/api/subscriptions/:consumer_id', authenticateToken, async (req, res) =
 
 
 
-app.get("/api/products", async (req, res) => {
-  try {
-    const products = await queryDatabase("SELECT * FROM products");
-    if (!products) {
-      return res.status(200).json([]); // Always return valid JSON
-    }
-    res.json(products);
-  } catch (err) {
-    res.status(500).json({ success: false, message: "Error fetching products", error: err.message });
-  }
-});
+
 
 
 const saltRounds = 10;
