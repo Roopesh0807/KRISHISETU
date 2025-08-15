@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import "./ProductDetails.css";
@@ -26,12 +24,35 @@ const ProductDetails = () => {
   const [addedToCommunityCart, setAddedToCommunityCart] = useState(false);
   const [showCommunityOptions, setShowCommunityOptions] = useState(false);
   const { consumer } = React.useContext(AuthContext);
+
+  // Function to get the initial default date based on cutoff time
+  const getInitialSubscriptionDate = () => {
+      const now = new Date();
+      const cutoffHour = 22; // 10 PM
+      const cutoffMinute = 30; // 30 minutes
+
+      const tomorrow = new Date();
+      tomorrow.setDate(now.getDate() + 1);
+      tomorrow.setHours(0, 0, 0, 0); // Normalize to start of day
+
+      const dayAfterTomorrow = new Date();
+      dayAfterTomorrow.setDate(now.getDate() + 2);
+      dayAfterTomorrow.setHours(0, 0, 0, 0); // Normalize to start of day
+
+      if (now.getHours() > cutoffHour || (now.getHours() === cutoffHour && now.getMinutes() >= cutoffMinute)) {
+          // After 10:30 PM today, default to day after tomorrow
+          return dayAfterTomorrow;
+      } else {
+          // Before or at 10:30 PM today, default to tomorrow
+          return tomorrow;
+      }
+  };
   
   // Subscription state
   const [showSubscriptionPopup, setShowSubscriptionPopup] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedFrequency, setSelectedFrequency] = useState("");
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(getInitialSubscriptionDate()); // Initialize with new logic
   const [subscriptionConfirmed, setSubscriptionConfirmed] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [dateSelectionError, setDateSelectionError] = useState("");
@@ -175,11 +196,12 @@ const ProductDetails = () => {
     }
     setShowSubscriptionPopup(true);
     setDateSelectionError("");
+    setSelectedDate(getInitialSubscriptionDate()); // Reset selectedDate when popup opens
   };
 
   const handleFrequencySelect = (frequency) => {
     setSelectedFrequency(frequency);
-    setShowCalendar(true);
+    setShowCalendar(true); // This sets showCalendar to true
     setDateSelectionError("");
   };
 
@@ -197,23 +219,11 @@ const ProductDetails = () => {
   };
 
   const confirmSubscriptionDate = () => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const selectedDay = new Date(selectedDate);
-    selectedDay.setHours(0, 0, 0, 0);
-    
-    // Check if selected date is today
-    if (selectedDay.getTime() === today.getTime()) {
-      if (isPastCutoffTime()) {
-        setDateSelectionError("Orders for today are closed. Please select tomorrow's date or later.");
+    // The getMinDate() function already handles the "today blocked" and "tomorrow blocked after cutoff" logic.
+    // We just need to ensure the selected date is not before this minimum.
+    if (selectedDate < getMinDate()) { // Compare selectedDate directly with the calculated minimum
+        setDateSelectionError("Please select a valid start date.");
         return;
-      }
-    } 
-    // Check if selected date is in the past
-    else if (selectedDay < today) {
-      setDateSelectionError("Please select today's date (before 10:30 PM) or a future date.");
-      return;
     }
     
     setShowCalendar(false);
@@ -314,15 +324,24 @@ const ProductDetails = () => {
   const totalPrice = selectedQuantity * (product.price_1kg || 0);
   const discountedPrice = calculateDiscountedPrice(totalPrice);
 
-  // Calculate minimum date based on current time
+  // Corrected getMinDate function to block today and tomorrow after cutoff
   const getMinDate = () => {
-    const now = new Date();
-    if (isPastCutoffTime()) {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      return tomorrow;
-    }
-    return now;
+      const now = new Date();
+      const tomorrow = new Date(now);
+      tomorrow.setDate(now.getDate() + 1);
+      tomorrow.setHours(0, 0, 0, 0); // Normalize to start of day
+
+      const dayAfterTomorrow = new Date(now);
+      dayAfterTomorrow.setDate(now.getDate() + 2);
+      dayAfterTomorrow.setHours(0, 0, 0, 0); // Normalize to start of day
+
+      if (isPastCutoffTime()) {
+          // If it's past 10:30 PM today, min date is day after tomorrow
+          return dayAfterTomorrow;
+      } else {
+          // If it's before or at 10:30 PM today, min date is tomorrow
+          return tomorrow;
+      }
   };
 
   return (
@@ -470,6 +489,7 @@ const ProductDetails = () => {
             
             <h2>Choose Subscription Plan</h2>
             
+            {/* Conditional rendering for frequency options vs calendar vs confirmation */}
             {!showCalendar && !subscriptionConfirmed ? (
               <div className="ks-frequency-options">
                 <div 
@@ -497,7 +517,7 @@ const ProductDetails = () => {
                   Monthly
                 </div>
               </div>
-            ) : showCalendar ? (
+            ) : showCalendar && !subscriptionConfirmed ? ( /* Only show calendar if showCalendar is true AND subscription is NOT confirmed */
               <div className="ks-calendar-section">
                 <h3>Select Start Date</h3>
                 {isPastCutoffTime() ? (
@@ -510,7 +530,7 @@ const ProductDetails = () => {
                 <Calendar 
                   onChange={handleDateChange}
                   value={selectedDate}
-                  minDate={getMinDate()}
+                  minDate={getMinDate()} // Use the corrected getMinDate
                 />
                 {dateSelectionError && (
                   <div className="ks-date-error">{dateSelectionError}</div>
@@ -522,7 +542,7 @@ const ProductDetails = () => {
                   Confirm Date
                 </button>
               </div>
-            ) : (
+            ) : ( /* Show confirmation if subscriptionConfirmed is true */
               <div className="ks-subscription-confirmation">
                 <p>Subscribe to {product.product_name} ({selectedQuantity}kg) {selectedFrequency} starting from {selectedDate.toDateString()}</p>
                 <div className="ks-subscription-price">
