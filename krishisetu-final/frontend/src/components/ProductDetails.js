@@ -201,12 +201,14 @@ const ProductDetails = () => {
 
   const handleFrequencySelect = (frequency) => {
     setSelectedFrequency(frequency);
-    setShowCalendar(true); // This sets showCalendar to true
+    setShowCalendar(true);
     setDateSelectionError("");
   };
 
   const handleDateChange = (date) => {
-    setSelectedDate(date);
+    // Normalize the selected date to avoid timezone issues when setting the state
+    const normalizedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    setSelectedDate(normalizedDate);
     setDateSelectionError("");
   };
 
@@ -253,6 +255,12 @@ const ProductDetails = () => {
       const subscriptionType = getBackendSubscriptionType(selectedFrequency);
       const discountedPrice = calculateDiscountedPrice(product.price_1kg * selectedQuantity);
       
+      // Format the date to YYYY-MM-DD string using local date components
+      const year = selectedDate.getFullYear();
+      const month = String(selectedDate.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed
+      const day = String(selectedDate.getDate()).padStart(2, '0');
+      const formattedStartDate = `${year}-${month}-${day}`;
+
       const subscriptionData = {
         consumer_id: consumer.consumer_id,
         subscription_type: subscriptionType,
@@ -260,8 +268,8 @@ const ProductDetails = () => {
         product_name: product.product_name,
         quantity: selectedQuantity,
         original_price: product.price_1kg * selectedQuantity,
-        price: discountedPrice,
-        start_date: selectedDate.toISOString().split('T')[0],
+        price: discountedPrice, // This is the total discounted price for the quantity
+        start_date: formattedStartDate, // Use the manually formatted date string
         discount_applied: 5 // 5% discount
       };
   

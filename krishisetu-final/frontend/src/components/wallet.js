@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { FaWallet, FaHistory, FaCheckCircle } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 import './wallet.css';
-import logo from '../assets/logo.jpg';
+
 
 const safeParseNumber = (value) => {
   if (typeof value === 'number') return value;
@@ -156,13 +156,7 @@ const Wallet = () => {
 
 return (
   <div className="wallet-section">
-    {isLoading && (
-      <div className="loading-overlay">
-        <div className="loading-spinner">
-          <img src={logo} alt="Loading..." />
-        </div>
-      </div>
-    )}
+   
       {successMessage && (
         <div className="success-message">
           <FaCheckCircle /> {successMessage}
@@ -227,13 +221,6 @@ return (
         </div>
       )}
 
-      {isLoading && (
-  <div className="loading-overlay">
-    <div className="loading-spinner">
-      <img src={logo} alt="Loading..." />
-    </div>
-  </div>
-)}
 
       {showHistoryPopup && (
         <div className="popup-overlay">

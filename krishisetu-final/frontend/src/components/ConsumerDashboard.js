@@ -641,7 +641,7 @@ const ConsumerDashboard = () => {
         const cutoffHour = 22; // 10 PM
         const cutoffMinute = 30; // 30 minutes
         return now.getHours() > cutoffHour || 
-               (now.getHours() === cutoffHour && now.getMinutes() >= cutoffMinute);
+                (now.getHours() === cutoffHour && now.getMinutes() >= cutoffMinute);
     };
 
     const confirmSubscriptionDate = () => {
@@ -693,6 +693,14 @@ const ConsumerDashboard = () => {
 
             const subscriptionType = getBackendSubscriptionType(selectedFrequency);
             
+            // --- FIX APPLIED HERE ---
+            // Manually construct the date string to avoid timezone issues.
+            const date = new Date(selectedDate);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const startDateString = `${year}-${month}-${day}`;
+
             const subscriptionData = {
                 consumer_id: consumerData.consumer_id,
                 subscription_type: subscriptionType,
@@ -701,7 +709,7 @@ const ConsumerDashboard = () => {
                 quantity: quantity,
                 original_price: originalPrice,
                 price: discountedPrice,
-                start_date: selectedDate.toISOString().split('T')[0],
+                start_date: startDateString, // Use the manually formatted date string
                 discount_applied: 5
             };
         
