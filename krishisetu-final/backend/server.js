@@ -4532,56 +4532,40 @@ app.get('/create-bargain', (req, res) => {
 
 
 
+// subscription endpoints
 
 
-// subscription endpoints 
 
+app.post('/api/subscriptions', async (req, res) => {
+  const { consumer_id, subscription_type, product_id, product_name, quantity, price, start_date } = req.body;
 
-// Endpoint to create or update a subscription
-app.post("/api/subscriptions", verifyToken, async (req, res) => {
   try {
-    const { 
-      consumer_id,
-      subscription_type,
-      product_id,
-      product_name,
-      quantity,
-      // 'price' here is the total discounted price for the 'quantity' being subscribed.
-      price, 
-      start_date // This is the date string from the frontend (e.g., "YYYY-MM-DD")
-    } = req.body;
+    // ✅ 1. Verify consumer exists
+    const consumerCheck = await queryDatabase(
+      "SELECT consumer_id FROM consumerregistration WHERE consumer_id = ?",
+      [consumer_id]
+    );
 
-    // Validate required fields based on your table schema
-    if (!consumer_id || !subscription_type || !product_id || !product_name || 
-        !quantity || price === undefined || !start_date) {
-      return res.status(400).json({ error: "All required fields (consumer_id, subscription_type, product_id, product_name, quantity, price, start_date) are missing." });
+    if (consumerCheck.length === 0) {
+      return res.status(404).json({ success: false, message: "Consumer not found" });
     }
 
-    // --- Date Storage Correction ---
-    // Directly use the start_date string received from the frontend.
-    // The frontend is now responsible for sending 'YYYY-MM-DD' correctly.
-    const formattedStartDate = start_date; 
-
-    // Check if subscription already exists for this consumer, product, and subscription type
+    // ✅ 2. Check if subscription already exists
     const existingSubscription = await queryDatabase(
-      `SELECT subscription_id, quantity, price FROM subscriptions 
+      `SELECT subscription_id, quantity FROM subscriptions 
        WHERE consumer_id = ? AND subscription_type = ? AND product_id = ?`,
       [consumer_id, subscription_type, product_id]
     );
 
     if (existingSubscription.length > 0) {
-      // Subscription exists, update quantity and accumulate total price
+      // ✅ 3. Subscription exists, update quantity
       const existing = existingSubscription[0];
       const newQuantity = existing.quantity + quantity;
-      
-      // Accumulate the new total discounted price with the existing one.
-      // 'price' from req.body is the total discounted price for the 'quantity' added.
-      const newTotalPrice = existing.price + price; 
 
       const updateResult = await queryDatabase(
         `UPDATE subscriptions SET quantity = ?, price = ? 
          WHERE subscription_id = ?`,
-        [newQuantity, newTotalPrice, existing.subscription_id]
+        [newQuantity, price * newQuantity / quantity, existing.subscription_id]
       );
 
       if (updateResult.affectedRows === 0) {
@@ -4596,26 +4580,12 @@ app.post("/api/subscriptions", verifyToken, async (req, res) => {
       });
     }
 
-    // No existing subscription, create new one
+    // ✅ 4. No existing subscription, create new one
     const result = await queryDatabase(
-      `INSERT INTO subscriptions (
-        consumer_id,
-        subscription_type,
-        product_id,
-        product_name,
-        quantity,
-        price,
-        start_date
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [
-        consumer_id,
-        subscription_type,
-        product_id,
-        product_name,
-        quantity,
-        price, // Insert the discounted price directly
-        formattedStartDate // Use the correctly formatted date string from frontend
-      ]
+      `INSERT INTO subscriptions 
+      (consumer_id, subscription_type, product_id, product_name, quantity, price, start_date)
+      VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [consumer_id, subscription_type, product_id, product_name, quantity, price, start_date]
     );
 
     if (result.affectedRows === 0) {
@@ -4634,7 +4604,38 @@ app.post("/api/subscriptions", verifyToken, async (req, res) => {
   }
 });
 
-// Endpoint to get subscriptions for a consumer
+app.get('/api/subscriptions/:consumer_id', async (req, res) => {
+  const { consumer_id } = req.params;
+
+  try {
+      // Verify consumer exists
+      const consumerCheck = await queryDatabase(
+          "SELECT consumer_id FROM consumerregistration WHERE consumer_id = ?",
+          [consumer_id]
+      );
+      
+      if (consumerCheck.length === 0) {
+          return res.status(404).json({ success: false, message: "Consumer not found" });
+      }
+
+      const subscriptions = await queryDatabase(
+          `SELECT * FROM subscriptions 
+           WHERE consumer_id = ? 
+           ORDER BY start_date DESC`,
+          [consumer_id]
+      );
+
+      res.json({ success: true, subscriptions });
+  } catch (error) {
+      console.error("Error fetching subscriptions:", error);
+      res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+
+// ... (error handlers and server startup below)
+
+
+// Get subscriptions for a consumer
 app.get("/api/subscriptions/:consumer_id", verifyToken, async (req, res) => {
   try {
     const { consumer_id } = req.params;
@@ -4651,14 +4652,14 @@ app.get("/api/subscriptions/:consumer_id", verifyToken, async (req, res) => {
 
     const subscriptions = await queryDatabase(
       `SELECT 
-         subscription_id,
-         subscription_type,
-         product_id,
-         product_name,
-         quantity,
-         price,
-         start_date,
-         status
+        subscription_id,
+        subscription_type,
+        product_id,
+        product_name,
+        quantity,
+        price,
+        start_date,
+        status
        FROM subscriptions
        WHERE consumer_id = ?
        ORDER BY subscription_type, start_date DESC`,
@@ -4672,29 +4673,76 @@ app.get("/api/subscriptions/:consumer_id", verifyToken, async (req, res) => {
   }
 });
 
-// Update subscription quantity and price
+// Create new subscription
+app.post("/api/subscriptions", verifyToken, async (req, res) => {
+  try {
+    const { 
+      consumer_id,
+      subscription_type,
+      product_id,
+      product_name,
+      quantity,
+      price,
+      start_date
+    } = req.body;
+
+    // Validate required fields
+    if (!consumer_id || !subscription_type || !product_id || !product_name || 
+        !quantity || !price || !start_date) {
+      return res.status(400).json({ error: "All fields are required" });
+    }
+
+    // Insert new subscription
+    const result = await queryDatabase(
+      `INSERT INTO subscriptions (
+        consumer_id,
+        subscription_type,
+        product_id,
+        product_name,
+        quantity,
+        price,
+        start_date
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        consumer_id,
+        subscription_type,
+        product_id,
+        product_name,
+        quantity,
+        price,
+        start_date
+      ]
+    );
+
+    res.status(201).json({ 
+      success: true,
+      subscription_id: result.insertId
+    });
+  } catch (error) {
+    console.error("Error creating subscription:", error);
+    res.status(500).json({ error: "Failed to create subscription" });
+  }
+});
+
+
+
+
+// Update subscription
 app.put("/api/subscriptions/:subscription_id", verifyToken, async (req, res) => {
   try {
     const { subscription_id } = req.params;
-    // Expect both quantity and the new_total_price for the updated quantity
-    const { quantity, new_total_price } = req.body; 
+    const { quantity } = req.body;
 
     if (!quantity || quantity < 1) {
       return res.status(400).json({ error: "Valid quantity is required" });
     }
-    // Ensure new_total_price is provided and valid when updating
-    if (new_total_price === undefined || isNaN(new_total_price)) {
-        return res.status(400).json({ error: "New total price is required and must be a number." });
-    }
 
-    // Update quantity and the new calculated total price
-    // The 'start_date' should NOT be updated here, as it's the original start date of the subscription.
     await queryDatabase(
-      "UPDATE subscriptions SET quantity = ?, price = ? WHERE subscription_id = ?",
-      [quantity, new_total_price, subscription_id]
+      "UPDATE subscriptions SET quantity = ? WHERE subscription_id = ?",
+      [quantity, subscription_id]
     );
 
-    res.json({ success: true, message: "Subscription updated successfully" });
+    res.json({ success: true });
   } catch (error) {
     console.error("Error updating subscription:", error);
     res.status(500).json({ error: "Failed to update subscription" });
@@ -4711,292 +4759,673 @@ app.delete("/api/subscriptions/:subscription_id", verifyToken, async (req, res) 
       [subscription_id]
     );
 
-    res.json({ success: true, message: "Subscription deleted successfully" });
-  }
- catch (error) {
+    res.json({ success: true });
+  } catch (error) {
     console.error("Error deleting subscription:", error);
     res.status(500).json({ error: "Failed to delete subscription" });
   }
 });
+
+
+// Add these new routes for subscription management
+
+
+// Daily Subscription Processing
+app.post('/api/process-subscriptions/daily', async (req, res) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Get all active daily subscriptions
+    const subscriptions = await queryDatabase(
+      `SELECT s.subscription_id, s.consumer_id, s.product_id, 
+              s.product_name, s.quantity, s.price,
+              cr.first_name, cr.last_name
+       FROM subscriptions s
+       JOIN consumerregistration cr ON s.consumer_id = cr.consumer_id
+       WHERE s.subscription_type = 'Daily' 
+       AND s.status = 'Active'`
+    );
+
+    if (subscriptions.length === 0) {
+      return res.json({ success: true, message: "No daily subscriptions to process" });
+    }
+
+    const processedSubscriptions = [];
+    
+    for (const sub of subscriptions) {
+      const amount = parseFloat(sub.price) * parseInt(sub.quantity);
+      const subscriptionFee = 5 * parseInt(sub.quantity);
+      const total = amount + subscriptionFee;
+
+      // Check wallet balance
+      const [wallet] = await queryDatabase(
+        `SELECT balance FROM wallet_transactions 
+         WHERE consumer_id = ? 
+         ORDER BY transaction_date DESC LIMIT 1`,
+        [sub.consumer_id]
+      );
+
+      const currentBalance = wallet?.balance || 0;
+
+      if (currentBalance < total) {
+        await queryDatabase(
+          `INSERT INTO subscription_logs 
+           (subscription_id, consumer_id, amount, status, message)
+           VALUES (?, ?, ?, 'Failed', 'Insufficient funds')`,
+          [sub.subscription_id, sub.consumer_id, total]
+        );
+        continue;
+      }
+
+      // Deduct from wallet
+      await queryDatabase(
+        `INSERT INTO wallet_transactions 
+         (consumer_id, transaction_type, amount, description, payment_method)
+         VALUES (?, 'Debit', ?, ?, 'Subscription')`,
+        [sub.consumer_id, total, `${sub.product_name} (Daily Subscription)`]
+      );
+
+      // Get the transaction ID
+      const [transaction] = await queryDatabase(
+        `SELECT transaction_id FROM wallet_transactions 
+         WHERE consumer_id = ? 
+         ORDER BY transaction_date DESC LIMIT 1`,
+        [sub.consumer_id]
+      );
+
+      // Record payment in billing history
+      await queryDatabase(
+        `INSERT INTO billing_history 
+         (consumer_id, subscription_type, amount, billing_date, description, transaction_id)
+         VALUES (?, 'Daily', ?, ?, ?, ?)`,
+        [sub.consumer_id, total, today, `${sub.product_name} (Daily Subscription)`, transaction.transaction_id]
+      );
+
+      // Record successful delivery
+      await queryDatabase(
+        `INSERT INTO delivery_logs 
+         (consumer_id, delivery_date, amount, status, transaction_id)
+         VALUES (?, ?, ?, 'Completed', ?)`,
+        [sub.consumer_id, today, total, transaction.transaction_id]
+      );
+
+      // Log successful processing
+      await queryDatabase(
+        `INSERT INTO subscription_logs 
+         (subscription_id, consumer_id, amount, status, message, transaction_id)
+         VALUES (?, ?, ?, 'Completed', 'Payment processed successfully', ?)`,
+        [sub.subscription_id, sub.consumer_id, total, transaction.transaction_id]
+      );
+
+      processedSubscriptions.push({
+        subscription_id: sub.subscription_id,
+        consumer_id: sub.consumer_id,
+        amount: total,
+        transaction_id: transaction.transaction_id
+      });
+    }
+
+    res.json({ 
+      success: true, 
+      message: "Daily subscriptions processed successfully",
+      processed: processedSubscriptions
+    });
+
+  } catch (error) {
+    console.error("Error processing daily subscriptions:", error);
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to process subscriptions",
+      details: error.message
+    });
+  }
+});
+
+// Alternate Days Subscription Processing
+app.post('/api/process-subscriptions/alternate-days', async (req, res) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dayOfMonth = today.getDate();
+
+    // Only process on even days
+    if (dayOfMonth % 2 !== 0) {
+      return res.json({ 
+        success: true, 
+        message: "Not an alternate day - skipping processing" 
+      });
+    }
+
+    // Get all active alternate day subscriptions
+    const subscriptions = await queryDatabase(
+      `SELECT s.subscription_id, s.consumer_id, s.product_id, 
+              s.product_name, s.quantity, s.price,
+              cr.first_name, cr.last_name
+       FROM subscriptions s
+       JOIN consumerregistration cr ON s.consumer_id = cr.consumer_id
+       WHERE s.subscription_type = 'Alternate Days' 
+       AND s.status = 'Active'`
+    );
+
+    if (subscriptions.length === 0) {
+      return res.json({ success: true, message: "No alternate day subscriptions to process" });
+    }
+
+    const processedSubscriptions = [];
+    
+    for (const sub of subscriptions) {
+      const amount = parseFloat(sub.price) * parseInt(sub.quantity);
+      const subscriptionFee = 5 * parseInt(sub.quantity);
+      const total = amount + subscriptionFee;
+
+      // Check wallet balance
+      const [wallet] = await queryDatabase(
+        `SELECT balance FROM wallet_transactions 
+         WHERE consumer_id = ? 
+         ORDER BY transaction_date DESC LIMIT 1`,
+        [sub.consumer_id]
+      );
+
+      const currentBalance = wallet?.balance || 0;
+
+      if (currentBalance < total) {
+        await queryDatabase(
+          `INSERT INTO subscription_logs 
+           (subscription_id, consumer_id, amount, status, message)
+           VALUES (?, ?, ?, 'Failed', 'Insufficient funds')`,
+          [sub.subscription_id, sub.consumer_id, total]
+        );
+        continue;
+      }
+
+      // Deduct from wallet
+      await queryDatabase(
+        `INSERT INTO wallet_transactions 
+         (consumer_id, transaction_type, amount, description, payment_method)
+         VALUES (?, 'Debit', ?, ?, 'Subscription')`,
+        [sub.consumer_id, total, `${sub.product_name} (Alternate Days Subscription)`]
+      );
+
+      // Get the transaction ID
+      const [transaction] = await queryDatabase(
+        `SELECT transaction_id FROM wallet_transactions 
+         WHERE consumer_id = ? 
+         ORDER BY transaction_date DESC LIMIT 1`,
+        [sub.consumer_id]
+      );
+
+      // Record payment in billing history
+      await queryDatabase(
+        `INSERT INTO billing_history 
+         (consumer_id, subscription_type, amount, billing_date, description, transaction_id)
+         VALUES (?, 'Alternate Days', ?, ?, ?, ?)`,
+        [sub.consumer_id, total, today, `${sub.product_name} (Alternate Days Subscription)`, transaction.transaction_id]
+      );
+
+      // Record successful delivery
+      await queryDatabase(
+        `INSERT INTO delivery_logs 
+         (consumer_id, delivery_date, amount, status, transaction_id)
+         VALUES (?, ?, ?, 'Completed', ?)`,
+        [sub.consumer_id, today, total, transaction.transaction_id]
+      );
+
+      // Log successful processing
+      await queryDatabase(
+        `INSERT INTO subscription_logs 
+         (subscription_id, consumer_id, amount, status, message, transaction_id)
+         VALUES (?, ?, ?, 'Completed', 'Payment processed successfully', ?)`,
+        [sub.subscription_id, sub.consumer_id, total, transaction.transaction_id]
+      );
+
+      processedSubscriptions.push({
+        subscription_id: sub.subscription_id,
+        consumer_id: sub.consumer_id,
+        amount: total,
+        transaction_id: transaction.transaction_id
+      });
+    }
+
+    res.json({ 
+      success: true, 
+      message: "Alternate day subscriptions processed successfully",
+      processed: processedSubscriptions
+    });
+
+  } catch (error) {
+    console.error("Error processing alternate day subscriptions:", error);
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to process subscriptions",
+      details: error.message
+    });
+  }
+});
+
+// Weekly Subscription Processing
+app.post('/api/process-subscriptions/weekly', async (req, res) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Only process on Sundays (day 0)
+    if (today.getDay() !== 0) {
+      return res.json({ 
+        success: true, 
+        message: "Not a Sunday - skipping weekly processing" 
+      });
+    }
+
+    // Get all active weekly subscriptions
+    const subscriptions = await queryDatabase(
+      `SELECT s.subscription_id, s.consumer_id, s.product_id, 
+              s.product_name, s.quantity, s.price,
+              cr.first_name, cr.last_name
+       FROM subscriptions s
+       JOIN consumerregistration cr ON s.consumer_id = cr.consumer_id
+       WHERE s.subscription_type = 'Weekly' 
+       AND s.status = 'Active'`
+    );
+
+    if (subscriptions.length === 0) {
+      return res.json({ success: true, message: "No weekly subscriptions to process" });
+    }
+
+    const processedSubscriptions = [];
+    
+    for (const sub of subscriptions) {
+      const amount = parseFloat(sub.price) * parseInt(sub.quantity);
+      const subscriptionFee = 5 * parseInt(sub.quantity);
+      const total = amount + subscriptionFee;
+
+      // Check wallet balance
+      const [wallet] = await queryDatabase(
+        `SELECT balance FROM wallet_transactions 
+         WHERE consumer_id = ? 
+         ORDER BY transaction_date DESC LIMIT 1`,
+        [sub.consumer_id]
+      );
+
+      const currentBalance = wallet?.balance || 0;
+
+      if (currentBalance < total) {
+        await queryDatabase(
+          `INSERT INTO subscription_logs 
+           (subscription_id, consumer_id, amount, status, message)
+           VALUES (?, ?, ?, 'Failed', 'Insufficient funds')`,
+          [sub.subscription_id, sub.consumer_id, total]
+        );
+        continue;
+      }
+
+      // Deduct from wallet
+      await queryDatabase(
+        `INSERT INTO wallet_transactions 
+         (consumer_id, transaction_type, amount, description, payment_method)
+         VALUES (?, 'Debit', ?, ?, 'Subscription')`,
+        [sub.consumer_id, total, `${sub.product_name} (Weekly Subscription)`]
+      );
+
+      // Get the transaction ID
+      const [transaction] = await queryDatabase(
+        `SELECT transaction_id FROM wallet_transactions 
+         WHERE consumer_id = ? 
+         ORDER BY transaction_date DESC LIMIT 1`,
+        [sub.consumer_id]
+      );
+
+      // Record payment in billing history
+      await queryDatabase(
+        `INSERT INTO billing_history 
+         (consumer_id, subscription_type, amount, billing_date, description, transaction_id)
+         VALUES (?, 'Weekly', ?, ?, ?, ?)`,
+        [sub.consumer_id, total, today, `${sub.product_name} (Weekly Subscription)`, transaction.transaction_id]
+      );
+
+      // Record successful delivery
+      await queryDatabase(
+        `INSERT INTO delivery_logs 
+         (consumer_id, delivery_date, amount, status, transaction_id)
+         VALUES (?, ?, ?, 'Completed', ?)`,
+        [sub.consumer_id, today, total, transaction.transaction_id]
+      );
+
+      // Log successful processing
+      await queryDatabase(
+        `INSERT INTO subscription_logs 
+         (subscription_id, consumer_id, amount, status, message, transaction_id)
+         VALUES (?, ?, ?, 'Completed', 'Payment processed successfully', ?)`,
+        [sub.subscription_id, sub.consumer_id, total, transaction.transaction_id]
+      );
+
+      processedSubscriptions.push({
+        subscription_id: sub.subscription_id,
+        consumer_id: sub.consumer_id,
+        amount: total,
+        transaction_id: transaction.transaction_id
+      });
+    }
+
+    res.json({ 
+      success: true, 
+      message: "Weekly subscriptions processed successfully",
+      processed: processedSubscriptions
+    });
+
+  } catch (error) {
+    console.error("Error processing weekly subscriptions:", error);
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to process subscriptions",
+      details: error.message
+    });
+  }
+});
+
+// Monthly Subscription Processing
+app.post('/api/process-subscriptions/monthly', async (req, res) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Only process on the 1st of the month
+    if (today.getDate() !== 1) {
+      return res.json({ 
+        success: true, 
+        message: "Not the first of the month - skipping monthly processing" 
+      });
+    }
+
+    // Get all active monthly subscriptions
+    const subscriptions = await queryDatabase(
+      `SELECT s.subscription_id, s.consumer_id, s.product_id, 
+              s.product_name, s.quantity, s.price,
+              cr.first_name, cr.last_name
+       FROM subscriptions s
+       JOIN consumerregistration cr ON s.consumer_id = cr.consumer_id
+       WHERE s.subscription_type = 'Monthly' 
+       AND s.status = 'Active'`
+    );
+
+    if (subscriptions.length === 0) {
+      return res.json({ success: true, message: "No monthly subscriptions to process" });
+    }
+
+    const processedSubscriptions = [];
+    
+    for (const sub of subscriptions) {
+      const amount = parseFloat(sub.price) * parseInt(sub.quantity);
+      const subscriptionFee = 5 * parseInt(sub.quantity);
+      const total = amount + subscriptionFee;
+
+      // Check wallet balance
+      const [wallet] = await queryDatabase(
+        `SELECT balance FROM wallet_transactions 
+         WHERE consumer_id = ? 
+         ORDER BY transaction_date DESC LIMIT 1`,
+        [sub.consumer_id]
+      );
+
+      const currentBalance = wallet?.balance || 0;
+
+      if (currentBalance < total) {
+        await queryDatabase(
+          `INSERT INTO subscription_logs 
+           (subscription_id, consumer_id, amount, status, message)
+           VALUES (?, ?, ?, 'Failed', 'Insufficient funds')`,
+          [sub.subscription_id, sub.consumer_id, total]
+        );
+        continue;
+      }
+
+      // Deduct from wallet
+      await queryDatabase(
+        `INSERT INTO wallet_transactions 
+         (consumer_id, transaction_type, amount, description, payment_method)
+         VALUES (?, 'Debit', ?, ?, 'Subscription')`,
+        [sub.consumer_id, total, `${sub.product_name} (Monthly Subscription)`]
+      );
+
+      // Get the transaction ID
+      const [transaction] = await queryDatabase(
+        `SELECT transaction_id FROM wallet_transactions 
+         WHERE consumer_id = ? 
+         ORDER BY transaction_date DESC LIMIT 1`,
+        [sub.consumer_id]
+      );
+
+      // Record payment in billing history
+      await queryDatabase(
+        `INSERT INTO billing_history 
+         (consumer_id, subscription_type, amount, billing_date, description, transaction_id)
+         VALUES (?, 'Monthly', ?, ?, ?, ?)`,
+        [sub.consumer_id, total, today, `${sub.product_name} (Monthly Subscription)`, transaction.transaction_id]
+      );
+
+      // Record successful delivery
+      await queryDatabase(
+        `INSERT INTO delivery_logs 
+         (consumer_id, delivery_date, amount, status, transaction_id)
+         VALUES (?, ?, ?, 'Completed', ?)`,
+        [sub.consumer_id, today, total, transaction.transaction_id]
+      );
+
+      // Log successful processing
+      await queryDatabase(
+        `INSERT INTO subscription_logs 
+         (subscription_id, consumer_id, amount, status, message, transaction_id)
+         VALUES (?, ?, ?, 'Completed', 'Payment processed successfully', ?)`,
+        [sub.subscription_id, sub.consumer_id, total, transaction.transaction_id]
+      );
+
+      processedSubscriptions.push({
+        subscription_id: sub.subscription_id,
+        consumer_id: sub.consumer_id,
+        amount: total,
+        transaction_id: transaction.transaction_id
+      });
+    }
+
+    res.json({ 
+      success: true, 
+      message: "Monthly subscriptions processed successfully",
+      processed: processedSubscriptions
+    });
+
+  } catch (error) {
+    console.error("Error processing monthly subscriptions:", error);
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to process subscriptions",
+      details: error.message
+    });
+  }
+});
+
+
 
 // ✅ Auto-Debit Cron Job
 const autoDebitSubscriptions = async () => {
   console.log("🔁 Auto-debit cron running at", new Date().toLocaleString());
 
   const now = new Date();
-  // Normalize 'now' to the start of the current day for consistent comparison
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()); 
-  const todayStr = today.toISOString().split('T')[0];
+  const currentDay = now.getDay();
+  const isAlternateDay = now.getDate() % 2 === 0;
+  const todayStr = now.toISOString().split('T')[0];
 
   try {
-    // Fetch all active subscriptions
     const subscriptions = await queryDatabase(`
-      SELECT s.*, pr.price_1kg, pr.price_2kg, pr.price_5kg, cr.first_name, cr.last_name 
+      SELECT s.*, cr.first_name, cr.last_name 
       FROM subscriptions s
       JOIN consumerregistration cr ON s.consumer_id = cr.consumer_id
-      JOIN products pr ON s.product_id = pr.product_id -- Join to get product unit prices
       WHERE s.status = 'Active'
     `);
 
-    if (subscriptions.length === 0) {
-      console.log("✅ No active subscriptions to process.");
-      return;
-    }
-
-    // Group weekly subscriptions by consumer to bill them once per week
-    const weeklyGroupedDebits = {}; // { consumer_id: { totalAmount: X, subscriptionIds: [] } }
-    
-    for (const sub of subscriptions) {
-      const { consumer_id, subscription_type, price, quantity, subscription_id, start_date, product_name, price_1kg, price_2kg, price_5kg } = sub;
-      const subStartDate = new Date(start_date);
-      subStartDate.setHours(0, 0, 0, 0); // Normalize subscription start date
-
-      // Skip if subscription hasn't started yet
-      if (subStartDate > today) {
-        console.log(`⏩ Skipping ${subscription_id} (${subscription_type}) for ${consumer_id} - start date is in the future.`);
-        continue;
+    // 🧠 Group Weekly subscriptions
+    const weeklyGrouped = {};
+    subscriptions.forEach(sub => {
+      if (sub.subscription_type === 'Weekly') {
+        const fee = 5 * sub.quantity;
+        const amount = sub.price * sub.quantity + fee;
+        if (!weeklyGrouped[sub.consumer_id]) {
+          weeklyGrouped[sub.consumer_id] = { total: 0, items: [] };
+        }
+        weeklyGrouped[sub.consumer_id].total += amount;
+        weeklyGrouped[sub.consumer_id].items.push(sub);
       }
+    });
 
-      // 'price' column already stores the total discounted price for the quantity.
-      const grandTotal = parseFloat(price); 
+    for (const sub of subscriptions) {
+      const { consumer_id, subscription_type, price, quantity, subscription_id } = sub;
+      const subscriptionFee = 5 * quantity;
+      const grandTotal = (price * quantity) + subscriptionFee;
 
       let shouldDebit = false;
-      let billingDescription = "";
-      let billingType = subscription_type; // Default billing type
 
-      // Check if already billed for the current period to prevent duplicate debits
       const [alreadyBilled] = await queryDatabase(`
         SELECT 1 FROM billing_history 
         WHERE consumer_id = ? AND subscription_type = ? AND billing_date = ?
       `, [consumer_id, subscription_type, todayStr]);
 
-      if (alreadyBilled) {
-        console.log(`⏩ Skipping ${subscription_id} (${subscription_type}) for ${consumer_id} - already billed today.`);
-        continue; // Already billed for today/this period
-      }
+      if (alreadyBilled) continue;
 
-      // --- Logic for each subscription type ---
+      const nowCopy = new Date();
+
+      // ✅ Daily and Alternate Days
       if (subscription_type === 'Daily') {
-        // Daily subscriptions are billed every day from their start_date onwards
         shouldDebit = true;
-        billingDescription = `${product_name} (Daily Subscription)`;
-      } 
-      else if (subscription_type === 'Alternate Days') {
-        // Calculate days since start date (normalized to start of day)
-        const diffTime = Math.abs(today.getTime() - subStartDate.getTime());
-        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24)); // Round to nearest day
-
-        // Debit if it's the start date, or if it's an even number of days since start date
-        // e.g., if starts on day 0 (today), then day 2, day 4...
-        // if starts on day 1 (tomorrow), then day 3, day 5...
-        if (diffDays % 2 === 0) { 
-            shouldDebit = true;
-            billingDescription = `${product_name} (Alternate Days Subscription)`;
-        } else {
-            console.log(`⏩ Skipping ${subscription_id} (Alternate Days) for ${consumer_id} - not an alternate day relative to start date.`);
-            continue;
-        }
-      } 
-      else if (subscription_type === 'Weekly') {
-        // Weekly processing should happen on a specific day of the week (e.g., the day of the week the subscription started)
-        // To avoid multiple weekly debits for the same consumer for different weekly subscriptions,
-        // we group them and process once per consumer per week.
-        const startDayOfWeek = subStartDate.getDay(); // 0 for Sunday, 1 for Monday, etc.
-        if (today.getDay() === startDayOfWeek) { // If today is the same day of the week as the start_date
-            // Check if this consumer's weekly subscriptions have already been billed for this week
-            const startOfWeek = new Date(today);
-            startOfWeek.setDate(today.getDate() - today.getDay()); // Go to Sunday of current week
-            startOfWeek.setHours(0,0,0,0); // Normalize
-
-            const [weeklyBilledForConsumer] = await queryDatabase(`
-                SELECT 1 FROM billing_history 
-                WHERE consumer_id = ? AND subscription_type = 'Weekly' AND billing_date >= ?
-            `, [consumer_id, startOfWeek.toISOString().split('T')[0]]);
-
-            if (!weeklyBilledForConsumer) { // If not already billed for this week
-                if (!weeklyGroupedDebits[consumer_id]) {
-                    weeklyGroupedDebits[consumer_id] = { totalAmount: 0, subscriptionIds: [] };
-                }
-                weeklyGroupedDebits[consumer_id].totalAmount += grandTotal;
-                weeklyGroupedDebits[consumer_id].subscriptionIds.push(subscription_id);
-                shouldDebit = false; // Will be processed as a group later
-            } else {
-                console.log(`⏩ Skipping ${subscription_id} (Weekly) for ${consumer_id} - already billed for this week.`);
-                continue;
-            }
-        } else {
-            console.log(`⏩ Skipping ${subscription_id} (Weekly) for ${consumer_id} - not the billing day of the week.`);
-            continue;
-        }
-      } 
-      else if (subscription_type === 'Monthly') {
-        // Monthly processing should happen on the same day of the month as the start_date
-        if (today.getDate() === subStartDate.getDate()) {
-            // Check if this consumer's monthly subscriptions have already been billed for this month
-            const firstDayOfThisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-            firstDayOfThisMonth.setHours(0,0,0,0); // Normalize
-
-            const [monthlyBilledForConsumer] = await queryDatabase(`
-                SELECT 1 FROM billing_history 
-                WHERE consumer_id = ? AND subscription_type = 'Monthly' AND billing_date >= ?
-            `, [consumer_id, firstDayOfThisMonth.toISOString().split('T')[0]]);
-
-            if (!monthlyBilledForConsumer) { // If not already billed for this month
-                shouldDebit = true;
-                billingDescription = `${product_name} (Monthly Subscription)`;
-            } else {
-                console.log(`⏩ Skipping ${subscription_id} (Monthly) for ${consumer_id} - already billed for this month.`);
-                continue;
-            }
-        } else {
-            console.log(`⏩ Skipping ${subscription_id} (Monthly) for ${consumer_id} - not the billing day of the month.`);
-            continue;
-        }
+      } else if (subscription_type === 'Alternate Days') {
+        shouldDebit = isAlternateDay;
       }
 
-      // --- Process Debit if 'shouldDebit' is true (for Daily, Alternate Days, Monthly) ---
-      if (shouldDebit) {
-        // Check wallet balance
-        const [latestTxn] = await queryDatabase(`
-          SELECT balance FROM wallet_transactions 
-          WHERE consumer_id = ? ORDER BY transaction_date DESC LIMIT 1
-        `, [consumer_id]);
+      // ✅ Weekly (grouped)
+      if (subscription_type === 'Weekly') {
+        const monday = new Date(nowCopy);
+        monday.setDate(monday.getDate() - monday.getDay());
+        const mondayStr = monday.toISOString().split('T')[0];
 
-        const balance = latestTxn?.balance ?? 0;
+        const [weeklyBilled] = await queryDatabase(`
+          SELECT 1 FROM billing_history 
+          WHERE consumer_id = ? AND subscription_type = 'Weekly' AND billing_date >= ?
+        `, [consumer_id, mondayStr]);
 
-        if (balance < grandTotal) {
-          console.warn(`❌ Insufficient balance for ${consumer_id} (${subscription_type} ${subscription_id}). Need ₹${grandTotal}, has ₹${balance}`);
-          // Log failed transaction
-          await queryDatabase(
-            `INSERT INTO subscription_logs 
-            (subscription_id, consumer_id, amount, status, message)
-            VALUES (?, ?, ?, 'Failed', 'Insufficient funds')`,
-            [subscription_id, consumer_id, grandTotal]
-          );
-          continue; // Skip to next subscription
-        }
+        if (!weeklyBilled && weeklyGrouped[consumer_id]) {
+          const totalAmount = weeklyGrouped[consumer_id].total;
 
-        // Deduct from wallet
-        await queryDatabase(`
-          INSERT INTO wallet_transactions 
-          (consumer_id, transaction_type, amount, description, payment_method)
-          VALUES (?, 'Debit', ?, ?, 'Auto-Debit')
-        `, [
-          consumer_id,
-          grandTotal,
-          billingDescription,
-          'Auto-Debit'
-        ]);
-
-        const [txn] = await queryDatabase(`
-          SELECT transaction_id FROM wallet_transactions 
-          WHERE consumer_id = ? ORDER BY transaction_date DESC LIMIT 1
-        `, [consumer_id]);
-
-        if (!txn?.transaction_id) {
-            console.error(`❌ Failed to retrieve transaction_id for ${subscription_id}.`);
-            continue;
-        }
-
-        // Insert billing history
-        await queryDatabase(`
-          INSERT INTO billing_history 
-          (consumer_id, subscription_type, amount, billing_date, transaction_id, description)
-          VALUES (?, ?, ?, ?, ?, ?)
-        `, [
-          consumer_id,
-          billingType,
-          grandTotal,
-          todayStr,
-          txn.transaction_id,
-          billingDescription
-        ]);
-
-        // Log successful processing
-        await queryDatabase(
-          `INSERT INTO subscription_logs 
-          (subscription_id, consumer_id, amount, status, message, transaction_id)
-          VALUES (?, ?, ?, 'Completed', 'Payment processed successfully', ?)`,
-          [subscription_id, consumer_id, grandTotal, txn.transaction_id]
-        );
-
-        console.log(`✅ Debited ₹${grandTotal} from ${consumer_id} (${subscription_type} ${subscription_id})`);
-      }
-    } // End of subscription loop
-
-    // --- Process Grouped Weekly Debits (after individual subscriptions) ---
-    for (const consumerId in weeklyGroupedDebits) {
-        const { totalAmount, subscriptionIds } = weeklyGroupedDebits[consumerId];
-        const billingDescription = `Auto debit for Weekly subscriptions (${subscriptionIds.join(', ')})`;
-
-        // Check wallet balance for the grouped amount
-        const [latestTxn] = await queryDatabase(`
+          // Check balance
+          const [latestTxn] = await queryDatabase(`
             SELECT balance FROM wallet_transactions 
             WHERE consumer_id = ? ORDER BY transaction_date DESC LIMIT 1
-        `, [consumerId]);
+          `, [consumer_id]);
 
-        const balance = latestTxn?.balance ?? 0;
+          const balance = latestTxn?.balance ?? 0;
 
-        if (balance < totalAmount) {
-            console.warn(`❌ Insufficient balance for grouped Weekly subscriptions for ${consumerId}. Need ₹${totalAmount}, has ₹${balance}`);
-            // Log failure for each subscription in the group
-            for(const subId of subscriptionIds) {
-                await queryDatabase(
-                    `INSERT INTO subscription_logs 
-                    (subscription_id, consumer_id, amount, status, message)
-                    VALUES (?, ?, ?, 'Failed', 'Insufficient funds (grouped weekly)')`,
-                    [subId, consumerId, totalAmount] // Log total amount for the group for context
-                );
-            }
+          if (balance < totalAmount) {
+            console.warn(`❌ Insufficient balance for ${consumer_id} (Weekly). Need ₹${totalAmount}, has ₹${balance}`);
             continue;
-        }
+          }
 
-        // Deduct from wallet for the grouped amount
-        await queryDatabase(`
+          // Insert wallet debit
+          await queryDatabase(`
             INSERT INTO wallet_transactions 
             (consumer_id, transaction_type, amount, description, payment_method)
             VALUES (?, 'Debit', ?, ?, 'Auto-Debit')
-        `, [
-            consumerId,
+          `, [
+            consumer_id,
             totalAmount,
-            billingDescription,
-            'Auto-Debit'
-        ]);
+            `Auto debit for Weekly subscriptions`
+          ]);
 
-        const [txn] = await queryDatabase(`
+          const [txn] = await queryDatabase(`
             SELECT transaction_id FROM wallet_transactions 
             WHERE consumer_id = ? ORDER BY transaction_date DESC LIMIT 1
-        `, [consumerId]);
+          `, [consumer_id]);
 
-        if (!txn?.transaction_id) {
-            console.error(`❌ Failed to retrieve transaction_id for grouped weekly debit for ${consumerId}.`);
-            continue;
-        }
+          if (!txn?.transaction_id) continue;
 
-        // Insert billing history for the grouped amount
-        await queryDatabase(`
+          // Insert billing
+          await queryDatabase(`
             INSERT INTO billing_history 
             (consumer_id, subscription_type, amount, billing_date, transaction_id, description)
             VALUES (?, ?, ?, ?, ?, ?)
-        `, [
-            consumerId,
-            'Weekly', // Billing type is 'Weekly' for the group
+          `, [
+            consumer_id,
+            'Weekly',
             totalAmount,
             todayStr,
             txn.transaction_id,
-            billingDescription
-        ]);
+            `Auto billing for all Weekly subscriptions`
+          ]);
 
-        // Log successful processing for each subscription in the group
-        for(const subId of subscriptionIds) {
-            await queryDatabase(
-                `INSERT INTO subscription_logs 
-                (subscription_id, consumer_id, amount, status, message, transaction_id)
-                VALUES (?, ?, ?, 'Completed', 'Payment processed successfully (grouped weekly)', ?)`,
-                [subId, consumerId, totalAmount, txn.transaction_id] // Log total amount for the group for context
-            );
+          console.log(`✅ Debited ₹${totalAmount} from ${consumer_id} (Weekly)`);
         }
-        console.log(`✅ Debited ₹${totalAmount} from ${consumerId} (Grouped Weekly Subscriptions)`);
+
+        continue; // Skip rest of loop for weekly
+      }
+
+      // ✅ Monthly
+      if (subscription_type === 'Monthly') {
+        const firstDay = `${nowCopy.getFullYear()}-${String(nowCopy.getMonth() + 1).padStart(2, '0')}-01`;
+
+        const [monthlyBill] = await queryDatabase(`
+          SELECT 1 FROM billing_history 
+          WHERE consumer_id = ? AND subscription_type = 'Monthly' AND billing_date >= ?
+        `, [consumer_id, firstDay]);
+
+        shouldDebit = !monthlyBill;
+      }
+
+      if (!shouldDebit) {
+        console.log(`⏩ Skipping ${consumer_id} (${subscription_type}) - not due`);
+        continue;
+      }
+
+      // Check balance
+      const [latestTxn] = await queryDatabase(`
+        SELECT balance FROM wallet_transactions 
+        WHERE consumer_id = ? ORDER BY transaction_date DESC LIMIT 1
+      `, [consumer_id]);
+
+      const balance = latestTxn?.balance ?? 0;
+
+      if (balance < grandTotal) {
+        console.warn(`❌ Insufficient balance for ${consumer_id}. Need ₹${grandTotal}, has ₹${balance}`);
+        continue;
+      }
+
+      // Insert wallet debit
+      await queryDatabase(`
+        INSERT INTO wallet_transactions 
+        (consumer_id, transaction_type, amount, description, payment_method)
+        VALUES (?, 'Debit', ?, ?, 'Auto-Debit')
+      `, [
+        consumer_id,
+        grandTotal,
+        `Auto debit for ${subscription_type} subscription (${subscription_id})`
+      ]);
+
+      const [txn] = await queryDatabase(`
+        SELECT transaction_id FROM wallet_transactions 
+        WHERE consumer_id = ? ORDER BY transaction_date DESC LIMIT 1
+      `, [consumer_id]);
+
+      if (!txn?.transaction_id) continue;
+
+      await queryDatabase(`
+        INSERT INTO billing_history 
+        (consumer_id, subscription_type, amount, billing_date, transaction_id, description)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `, [
+        consumer_id,
+        subscription_type,
+        grandTotal,
+        todayStr,
+        txn.transaction_id,
+        `Auto billing for ${subscription_type} plan (Subscription ID: ${subscription_id})`
+      ]);
+
+      console.log(`✅ Debited ₹${grandTotal} from ${consumer_id} (${subscription_type})`);
     }
 
   } catch (err) {
@@ -5007,9 +5436,585 @@ const autoDebitSubscriptions = async () => {
 // 🔥 Run once at startup
 autoDebitSubscriptions();
 
-// 🔁 Run every morning at 7:30 AM
-// This cron string means: at 30 minutes past the 7th hour, every day of every month.
-schedule.schedule('30 7 * * *', autoDebitSubscriptions);
+// 🔁 Run every 10 minutes
+schedule.schedule('*/10 * * * *', autoDebitSubscriptions);
+
+
+
+// 1. Create Razorpay Order for Wallet Top-up
+app.post('/api/wallet/razorpay-order', authenticateToken, async (req, res) => {
+  try {
+    const { amount } = req.body;
+    const { consumer_id } = req.user;
+
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ success: false, error: "Invalid amount" });
+    }
+
+    const options = {
+      amount: Math.round(amount * 100), // Amount in paise
+      currency: "INR",
+      receipt: `wallet-topup-${consumer_id}-${Date.now()}`,
+      payment_capture: 1
+    };
+
+    const order = await razorpay.orders.create(options);
+    
+    res.json({
+      success: true,
+      order: {
+        id: order.id,
+        amount: order.amount,
+        currency: order.currency
+      }
+    });
+
+  } catch (error) {
+    console.error("Razorpay wallet order creation error:", error);
+    res.status(500).json({ 
+      success: false, 
+      error: "Failed to create Razorpay order",
+      details: error.message
+    });
+  }
+});
+
+// 2. Verify Razorpay Payment and Add Funds to Wallet
+app.post("/api/wallet/verify-payment", authenticateToken, async (req, res) => {
+  try {
+    const { razorpay_payment_id, razorpay_order_id, razorpay_signature, amount } = req.body;
+    const { consumer_id } = req.user;
+
+    if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
+      return res.status(400).json({ success: false, error: "Missing payment verification data" });
+    }
+
+    // Step 1: Verify the signature
+    const hmac = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET);
+    hmac.update(`${razorpay_order_id}|${razorpay_payment_id}`);
+    const generated_signature = hmac.digest('hex');
+
+    if (generated_signature !== razorpay_signature) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "Invalid signature. Payment verification failed."
+      });
+    }
+
+    // Step 2: Signature is valid, now add funds to wallet
+    const description = `Wallet top-up via Razorpay. Payment ID: ${razorpay_payment_id}`;
+    const insertQuery = `
+      INSERT INTO wallet_transactions 
+      (consumer_id, transaction_type, amount, description, payment_method, razorpay_payment_id) 
+      VALUES (?, 'Credit', ?, ?, ?, ?)`;
+      
+    await queryDatabase(insertQuery, [
+      consumer_id, 
+      amount, 
+      description, 
+      'Razorpay',
+      razorpay_payment_id
+    ]);
+
+    // Step 3: Get the new balance
+    const [newBalanceResult] = await queryDatabase(
+      `SELECT balance FROM wallet_transactions WHERE consumer_id = ? ORDER BY transaction_date DESC LIMIT 1`,
+      [consumer_id]
+    );
+
+    return res.json({ 
+      success: true,
+      message: "Payment verified successfully and funds added to wallet.",
+      newBalance: newBalanceResult.balance
+    });
+
+  } catch (error) {
+    console.error("Wallet payment verification error:", error);
+    return res.status(500).json({ 
+      success: false,
+      error: "Payment verification failed",
+      details: error.message 
+    });
+  }
+});
+
+
+
+
+
+// // Endpoint to create or update a subscription
+// app.post("/api/subscriptions", verifyToken, async (req, res) => {
+//   try {
+//     const { 
+//       consumer_id,
+//       subscription_type,
+//       product_id,
+//       product_name,
+//       quantity,
+//       // 'price' here is the total discounted price for the 'quantity' being subscribed.
+//       price, 
+//       start_date // This is the date string from the frontend (e.g., "YYYY-MM-DD")
+//     } = req.body;
+
+//     // Validate required fields based on your table schema
+//     if (!consumer_id || !subscription_type || !product_id || !product_name || 
+//         !quantity || price === undefined || !start_date) {
+//       return res.status(400).json({ error: "All required fields (consumer_id, subscription_type, product_id, product_name, quantity, price, start_date) are missing." });
+//     }
+
+//     // --- Date Storage Correction ---
+//     // Directly use the start_date string received from the frontend.
+//     // The frontend is now responsible for sending 'YYYY-MM-DD' correctly.
+//     const formattedStartDate = start_date; 
+
+//     // Check if subscription already exists for this consumer, product, and subscription type
+//     const existingSubscription = await queryDatabase(
+//       `SELECT subscription_id, quantity, price FROM subscriptions 
+//        WHERE consumer_id = ? AND subscription_type = ? AND product_id = ?`,
+//       [consumer_id, subscription_type, product_id]
+//     );
+
+//     if (existingSubscription.length > 0) {
+//       // Subscription exists, update quantity and accumulate total price
+//       const existing = existingSubscription[0];
+//       const newQuantity = existing.quantity + quantity;
+      
+//       // Accumulate the new total discounted price with the existing one.
+//       // 'price' from req.body is the total discounted price for the 'quantity' added.
+//       const newTotalPrice = existing.price + price; 
+
+//       const updateResult = await queryDatabase(
+//         `UPDATE subscriptions SET quantity = ?, price = ? 
+//          WHERE subscription_id = ?`,
+//         [newQuantity, newTotalPrice, existing.subscription_id]
+//       );
+
+//       if (updateResult.affectedRows === 0) {
+//         return res.status(400).json({ success: false, message: "Failed to update subscription quantity" });
+//       }
+
+//       return res.status(200).json({ 
+//         success: true, 
+//         message: "Subscription quantity updated successfully", 
+//         subscription_id: existing.subscription_id,
+//         new_quantity: newQuantity
+//       });
+//     }
+
+//     // No existing subscription, create new one
+//     const result = await queryDatabase(
+//       `INSERT INTO subscriptions (
+//         consumer_id,
+//         subscription_type,
+//         product_id,
+//         product_name,
+//         quantity,
+//         price,
+//         start_date
+//       ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+//       [
+//         consumer_id,
+//         subscription_type,
+//         product_id,
+//         product_name,
+//         quantity,
+//         price, // Insert the discounted price directly
+//         formattedStartDate // Use the correctly formatted date string from frontend
+//       ]
+//     );
+
+//     if (result.affectedRows === 0) {
+//       return res.status(400).json({ success: false, message: "Failed to create subscription" });
+//     }
+
+//     res.status(201).json({ 
+//       success: true, 
+//       message: "Subscription created successfully", 
+//       subscription_id: result.insertId
+//     });
+
+//   } catch (error) {
+//     console.error("Error creating subscription:", error);
+//     res.status(500).json({ success: false, message: "Internal server error" });
+//   }
+// });
+
+// // Endpoint to get subscriptions for a consumer
+// app.get("/api/subscriptions/:consumer_id", verifyToken, async (req, res) => {
+//   try {
+//     const { consumer_id } = req.params;
+    
+//     // Verify the consumer exists
+//     const consumerCheck = await queryDatabase(
+//       "SELECT consumer_id FROM consumerregistration WHERE consumer_id = ?",
+//       [consumer_id]
+//     );
+    
+//     if (consumerCheck.length === 0) {
+//       return res.status(404).json({ error: "Consumer not found" });
+//     }
+
+//     const subscriptions = await queryDatabase(
+//       `SELECT 
+//          subscription_id,
+//          subscription_type,
+//          product_id,
+//          product_name,
+//          quantity,
+//          price,
+//          start_date,
+//          status
+//        FROM subscriptions
+//        WHERE consumer_id = ?
+//        ORDER BY subscription_type, start_date DESC`,
+//       [consumer_id]
+//     );
+
+//     res.json(subscriptions);
+//   } catch (error) {
+//     console.error("Error fetching subscriptions:", error);
+//     res.status(500).json({ error: "Failed to fetch subscriptions" });
+//   }
+// });
+
+// // Update subscription quantity and price
+// app.put("/api/subscriptions/:subscription_id", verifyToken, async (req, res) => {
+//   try {
+//     const { subscription_id } = req.params;
+//     // Expect both quantity and the new_total_price for the updated quantity
+//     const { quantity, new_total_price } = req.body; 
+
+//     if (!quantity || quantity < 1) {
+//       return res.status(400).json({ error: "Valid quantity is required" });
+//     }
+//     // Ensure new_total_price is provided and valid when updating
+//     if (new_total_price === undefined || isNaN(new_total_price)) {
+//         return res.status(400).json({ error: "New total price is required and must be a number." });
+//     }
+
+//     // Update quantity and the new calculated total price
+//     // The 'start_date' should NOT be updated here, as it's the original start date of the subscription.
+//     await queryDatabase(
+//       "UPDATE subscriptions SET quantity = ?, price = ? WHERE subscription_id = ?",
+//       [quantity, new_total_price, subscription_id]
+//     );
+
+//     res.json({ success: true, message: "Subscription updated successfully" });
+//   } catch (error) {
+//     console.error("Error updating subscription:", error);
+//     res.status(500).json({ error: "Failed to update subscription" });
+//   }
+// });
+
+// // Delete subscription
+// app.delete("/api/subscriptions/:subscription_id", verifyToken, async (req, res) => {
+//   try {
+//     const { subscription_id } = req.params;
+    
+//     await queryDatabase(
+//       "DELETE FROM subscriptions WHERE subscription_id = ?",
+//       [subscription_id]
+//     );
+
+//     res.json({ success: true, message: "Subscription deleted successfully" });
+//   }
+//  catch (error) {
+//     console.error("Error deleting subscription:", error);
+//     res.status(500).json({ error: "Failed to delete subscription" });
+//   }
+// });
+
+// // ✅ Auto-Debit Cron Job
+// const autoDebitSubscriptions = async () => {
+//   console.log("🔁 Auto-debit cron running at", new Date().toLocaleString());
+
+//   const now = new Date();
+//   // Normalize 'now' to the start of the current day for consistent comparison
+//   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()); 
+//   const todayStr = today.toISOString().split('T')[0];
+
+//   try {
+//     // Fetch all active subscriptions
+//     const subscriptions = await queryDatabase(`
+//       SELECT s.*, pr.price_1kg, pr.price_2kg, pr.price_5kg, cr.first_name, cr.last_name 
+//       FROM subscriptions s
+//       JOIN consumerregistration cr ON s.consumer_id = cr.consumer_id
+//       JOIN products pr ON s.product_id = pr.product_id -- Join to get product unit prices
+//       WHERE s.status = 'Active'
+//     `);
+
+//     if (subscriptions.length === 0) {
+//       console.log("✅ No active subscriptions to process.");
+//       return;
+//     }
+
+//     // Group weekly subscriptions by consumer to bill them once per week
+//     const weeklyGroupedDebits = {}; // { consumer_id: { totalAmount: X, subscriptionIds: [] } }
+    
+//     for (const sub of subscriptions) {
+//       const { consumer_id, subscription_type, price, quantity, subscription_id, start_date, product_name, price_1kg, price_2kg, price_5kg } = sub;
+//       const subStartDate = new Date(start_date);
+//       subStartDate.setHours(0, 0, 0, 0); // Normalize subscription start date
+
+//       // Skip if subscription hasn't started yet
+//       if (subStartDate > today) {
+//         console.log(`⏩ Skipping ${subscription_id} (${subscription_type}) for ${consumer_id} - start date is in the future.`);
+//         continue;
+//       }
+
+//       // 'price' column already stores the total discounted price for the quantity.
+//       const grandTotal = parseFloat(price); 
+
+//       let shouldDebit = false;
+//       let billingDescription = "";
+//       let billingType = subscription_type; // Default billing type
+
+//       // Check if already billed for the current period to prevent duplicate debits
+//       const [alreadyBilled] = await queryDatabase(`
+//         SELECT 1 FROM billing_history 
+//         WHERE consumer_id = ? AND subscription_type = ? AND billing_date = ?
+//       `, [consumer_id, subscription_type, todayStr]);
+
+//       if (alreadyBilled) {
+//         console.log(`⏩ Skipping ${subscription_id} (${subscription_type}) for ${consumer_id} - already billed today.`);
+//         continue; // Already billed for today/this period
+//       }
+
+//       // --- Logic for each subscription type ---
+//       if (subscription_type === 'Daily') {
+//         // Daily subscriptions are billed every day from their start_date onwards
+//         shouldDebit = true;
+//         billingDescription = `${product_name} (Daily Subscription)`;
+//       } 
+//       else if (subscription_type === 'Alternate Days') {
+//         // Calculate days since start date (normalized to start of day)
+//         const diffTime = Math.abs(today.getTime() - subStartDate.getTime());
+//         const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24)); // Round to nearest day
+
+//         // Debit if it's the start date, or if it's an even number of days since start date
+//         // e.g., if starts on day 0 (today), then day 2, day 4...
+//         // if starts on day 1 (tomorrow), then day 3, day 5...
+//         if (diffDays % 2 === 0) { 
+//             shouldDebit = true;
+//             billingDescription = `${product_name} (Alternate Days Subscription)`;
+//         } else {
+//             console.log(`⏩ Skipping ${subscription_id} (Alternate Days) for ${consumer_id} - not an alternate day relative to start date.`);
+//             continue;
+//         }
+//       } 
+//       else if (subscription_type === 'Weekly') {
+//         // Weekly processing should happen on a specific day of the week (e.g., the day of the week the subscription started)
+//         // To avoid multiple weekly debits for the same consumer for different weekly subscriptions,
+//         // we group them and process once per consumer per week.
+//         const startDayOfWeek = subStartDate.getDay(); // 0 for Sunday, 1 for Monday, etc.
+//         if (today.getDay() === startDayOfWeek) { // If today is the same day of the week as the start_date
+//             // Check if this consumer's weekly subscriptions have already been billed for this week
+//             const startOfWeek = new Date(today);
+//             startOfWeek.setDate(today.getDate() - today.getDay()); // Go to Sunday of current week
+//             startOfWeek.setHours(0,0,0,0); // Normalize
+
+//             const [weeklyBilledForConsumer] = await queryDatabase(`
+//                 SELECT 1 FROM billing_history 
+//                 WHERE consumer_id = ? AND subscription_type = 'Weekly' AND billing_date >= ?
+//             `, [consumer_id, startOfWeek.toISOString().split('T')[0]]);
+
+//             if (!weeklyBilledForConsumer) { // If not already billed for this week
+//                 if (!weeklyGroupedDebits[consumer_id]) {
+//                     weeklyGroupedDebits[consumer_id] = { totalAmount: 0, subscriptionIds: [] };
+//                 }
+//                 weeklyGroupedDebits[consumer_id].totalAmount += grandTotal;
+//                 weeklyGroupedDebits[consumer_id].subscriptionIds.push(subscription_id);
+//                 shouldDebit = false; // Will be processed as a group later
+//             } else {
+//                 console.log(`⏩ Skipping ${subscription_id} (Weekly) for ${consumer_id} - already billed for this week.`);
+//                 continue;
+//             }
+//         } else {
+//             console.log(`⏩ Skipping ${subscription_id} (Weekly) for ${consumer_id} - not the billing day of the week.`);
+//             continue;
+//         }
+//       } 
+//       else if (subscription_type === 'Monthly') {
+//         // Monthly processing should happen on the same day of the month as the start_date
+//         if (today.getDate() === subStartDate.getDate()) {
+//             // Check if this consumer's monthly subscriptions have already been billed for this month
+//             const firstDayOfThisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+//             firstDayOfThisMonth.setHours(0,0,0,0); // Normalize
+
+//             const [monthlyBilledForConsumer] = await queryDatabase(`
+//                 SELECT 1 FROM billing_history 
+//                 WHERE consumer_id = ? AND subscription_type = 'Monthly' AND billing_date >= ?
+//             `, [consumer_id, firstDayOfThisMonth.toISOString().split('T')[0]]);
+
+//             if (!monthlyBilledForConsumer) { // If not already billed for this month
+//                 shouldDebit = true;
+//                 billingDescription = `${product_name} (Monthly Subscription)`;
+//             } else {
+//                 console.log(`⏩ Skipping ${subscription_id} (Monthly) for ${consumer_id} - already billed for this month.`);
+//                 continue;
+//             }
+//         } else {
+//             console.log(`⏩ Skipping ${subscription_id} (Monthly) for ${consumer_id} - not the billing day of the month.`);
+//             continue;
+//         }
+//       }
+
+//       // --- Process Debit if 'shouldDebit' is true (for Daily, Alternate Days, Monthly) ---
+//       if (shouldDebit) {
+//         // Check wallet balance
+//         const [latestTxn] = await queryDatabase(`
+//           SELECT balance FROM wallet_transactions 
+//           WHERE consumer_id = ? ORDER BY transaction_date DESC LIMIT 1
+//         `, [consumer_id]);
+
+//         const balance = latestTxn?.balance ?? 0;
+
+//         if (balance < grandTotal) {
+//           console.warn(`❌ Insufficient balance for ${consumer_id} (${subscription_type} ${subscription_id}). Need ₹${grandTotal}, has ₹${balance}`);
+//           // Log failed transaction
+//           await queryDatabase(
+//             `INSERT INTO subscription_logs 
+//             (subscription_id, consumer_id, amount, status, message)
+//             VALUES (?, ?, ?, 'Failed', 'Insufficient funds')`,
+//             [subscription_id, consumer_id, grandTotal]
+//           );
+//           continue; // Skip to next subscription
+//         }
+
+//         // Deduct from wallet
+//         await queryDatabase(`
+//           INSERT INTO wallet_transactions 
+//           (consumer_id, transaction_type, amount, description, payment_method)
+//           VALUES (?, 'Debit', ?, ?, 'Auto-Debit')
+//         `, [
+//           consumer_id,
+//           grandTotal,
+//           billingDescription,
+//           'Auto-Debit'
+//         ]);
+
+//         const [txn] = await queryDatabase(`
+//           SELECT transaction_id FROM wallet_transactions 
+//           WHERE consumer_id = ? ORDER BY transaction_date DESC LIMIT 1
+//         `, [consumer_id]);
+
+//         if (!txn?.transaction_id) {
+//             console.error(`❌ Failed to retrieve transaction_id for ${subscription_id}.`);
+//             continue;
+//         }
+
+//         // Insert billing history
+//         await queryDatabase(`
+//           INSERT INTO billing_history 
+//           (consumer_id, subscription_type, amount, billing_date, transaction_id, description)
+//           VALUES (?, ?, ?, ?, ?, ?)
+//         `, [
+//           consumer_id,
+//           billingType,
+//           grandTotal,
+//           todayStr,
+//           txn.transaction_id,
+//           billingDescription
+//         ]);
+
+//         // Log successful processing
+//         await queryDatabase(
+//           `INSERT INTO subscription_logs 
+//           (subscription_id, consumer_id, amount, status, message, transaction_id)
+//           VALUES (?, ?, ?, 'Completed', 'Payment processed successfully', ?)`,
+//           [subscription_id, consumer_id, grandTotal, txn.transaction_id]
+//         );
+
+//         console.log(`✅ Debited ₹${grandTotal} from ${consumer_id} (${subscription_type} ${subscription_id})`);
+//       }
+//     } // End of subscription loop
+
+//     // --- Process Grouped Weekly Debits (after individual subscriptions) ---
+//     for (const consumerId in weeklyGroupedDebits) {
+//         const { totalAmount, subscriptionIds } = weeklyGroupedDebits[consumerId];
+//         const billingDescription = `Auto debit for Weekly subscriptions (${subscriptionIds.join(', ')})`;
+
+//         // Check wallet balance for the grouped amount
+//         const [latestTxn] = await queryDatabase(`
+//             SELECT balance FROM wallet_transactions 
+//             WHERE consumer_id = ? ORDER BY transaction_date DESC LIMIT 1
+//         `, [consumerId]);
+
+//         const balance = latestTxn?.balance ?? 0;
+
+//         if (balance < totalAmount) {
+//             console.warn(`❌ Insufficient balance for grouped Weekly subscriptions for ${consumerId}. Need ₹${totalAmount}, has ₹${balance}`);
+//             // Log failure for each subscription in the group
+//             for(const subId of subscriptionIds) {
+//                 await queryDatabase(
+//                     `INSERT INTO subscription_logs 
+//                     (subscription_id, consumer_id, amount, status, message)
+//                     VALUES (?, ?, ?, 'Failed', 'Insufficient funds (grouped weekly)')`,
+//                     [subId, consumerId, totalAmount] // Log total amount for the group for context
+//                 );
+//             }
+//             continue;
+//         }
+
+//         // Deduct from wallet for the grouped amount
+//         await queryDatabase(`
+//             INSERT INTO wallet_transactions 
+//             (consumer_id, transaction_type, amount, description, payment_method)
+//             VALUES (?, 'Debit', ?, ?, 'Auto-Debit')
+//         `, [
+//             consumerId,
+//             totalAmount,
+//             billingDescription,
+//             'Auto-Debit'
+//         ]);
+
+//         const [txn] = await queryDatabase(`
+//             SELECT transaction_id FROM wallet_transactions 
+//             WHERE consumer_id = ? ORDER BY transaction_date DESC LIMIT 1
+//         `, [consumerId]);
+
+//         if (!txn?.transaction_id) {
+//             console.error(`❌ Failed to retrieve transaction_id for grouped weekly debit for ${consumerId}.`);
+//             continue;
+//         }
+
+//         // Insert billing history for the grouped amount
+//         await queryDatabase(`
+//             INSERT INTO billing_history 
+//             (consumer_id, subscription_type, amount, billing_date, transaction_id, description)
+//             VALUES (?, ?, ?, ?, ?, ?)
+//         `, [
+//             consumerId,
+//             'Weekly', // Billing type is 'Weekly' for the group
+//             totalAmount,
+//             todayStr,
+//             txn.transaction_id,
+//             billingDescription
+//         ]);
+
+//         // Log successful processing for each subscription in the group
+//         for(const subId of subscriptionIds) {
+//             await queryDatabase(
+//                 `INSERT INTO subscription_logs 
+//                 (subscription_id, consumer_id, amount, status, message, transaction_id)
+//                 VALUES (?, ?, ?, 'Completed', 'Payment processed successfully (grouped weekly)', ?)`,
+//                 [subId, consumerId, totalAmount, txn.transaction_id] // Log total amount for the group for context
+//             );
+//         }
+//         console.log(`✅ Debited ₹${totalAmount} from ${consumerId} (Grouped Weekly Subscriptions)`);
+//     }
+
+//   } catch (err) {
+//     console.error("❌ Error in auto-debit:", err.message);
+//   }
+// };
+
+// // 🔥 Run once at startup
+// autoDebitSubscriptions();
+
+// // 🔁 Run every morning at 7:30 AM
+// // This cron string means: at 30 minutes past the 7th hour, every day of every month.
+// schedule.schedule('30 7 * * *', autoDebitSubscriptions);
 
 
 // 1. Create Razorpay Order for Wallet Top-up
