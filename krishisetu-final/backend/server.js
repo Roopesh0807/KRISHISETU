@@ -1090,7 +1090,7 @@ io.on("connection", (socket) => {
 
 const mysql = require("mysql");
 //
-const urlDB = 'mysql://${process.env.MYSQLUSER}:${process.env.MYSQLPASSWORD}@${process.env.MYSQLHOST}:${process.env.MYSQLPORT}/${process.env.MYSQLDATABASE}'
+const urlDB = 'mysql://root:KkYGxTrASLisTvoPOliiJCCXcqRDwAIN@mysql.railway.internal:3306/krishisetur'
 const querydatabase = mysql.createConnection(urlDB);
 // const querydatabase = mysql.createConnection({
 //   host: process.env.DB_HOST,
