@@ -36,12 +36,18 @@ const testConnection = async () => {
 
 testConnection();
 
-// Sequelize configuration
-const sequelize = new Sequelize("krishisetur", "root", "", {
-  host: "localhost",
-  dialect: "mysql",
-  logging: false, // Set to true if you want query logs
-});
+
+const sequelize = new Sequelize(
+  process.env.MYSQLDATABASE || "railway",   // database name
+  process.env.MYSQLUSER || "root",             // db user
+  process.env.MYSQLPASSWORD || "",             // db password
+  {
+    host: process.env.MYSQLHOST || "localhost",
+    port: process.env.MYSQLPORT || 3306,
+    dialect: "mysql",
+    logging: false, // set to true if you want query logs
+  }
+);
 
 sequelize
   .authenticate()
