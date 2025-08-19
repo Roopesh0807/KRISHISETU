@@ -1089,14 +1089,15 @@ io.on("connection", (socket) => {
 
 
 const mysql = require("mysql");
-
-
-const querydatabase = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "krishisetur",
-});
+//
+const urlDB = 'mysql://${process.env.MYSQLUSER}:${process.env.MYSQLPASSWORD}@${process.env.MYSQLHOST}:${process.env.MYSQLPORT}/${process.env.MYSQLDATABASE}'
+const querydatabase = mysql.createConnection(urlDB);
+// const querydatabase = mysql.createConnection({
+//   host: process.env.DB_HOST,
+//   user: process.env.DB_USER,
+//   password: process.env.DB_PASSWORD,
+//   database: process.env.DB_DATABASE,
+// });
 
 querydatabase.connect((err) => {
   if (err) {
