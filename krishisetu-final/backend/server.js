@@ -706,6 +706,7 @@ app.use((req, res, next) => {
 "/api/farmers",
 "/api/products",
 "/api/agmarknet-prices",
+"/api/contact",
     // Add more public routes if needed
   ];
 
