@@ -147,7 +147,10 @@ const { verifyToken, authenticate, farmerOnly } = require('./src/middlewares/aut
 const httpServer = require("http").createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: [
+      "http://localhost:3000", 
+      "https://krishisetur.netlify.app"
+    ],
     methods: ["GET", "POST"],
     credentials: true
   },
@@ -162,10 +165,13 @@ const { authMiddleware } = require("./src/middlewares/authMiddleware"); // your 
 
 // ✅ PROPER CORS SETUP
 const corsOptions = {
-  origin: "http://localhost:3000", // your React app
+  origin: [
+    "http://localhost:3000",              // local dev
+    "https://krishisetur.netlify.app"     // production frontend
+  ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-  credentials: true, // allow cookies and sessions
+  credentials: true,
   optionsSuccessStatus: 200
 };
 const crypto = require('crypto');
