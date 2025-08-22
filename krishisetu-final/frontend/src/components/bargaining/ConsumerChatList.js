@@ -44,7 +44,7 @@ const fetchFarmerProfilePhoto = useCallback(async (farmerId) => {
     if (!token) return null;
 
     const response = await axios.get(
-      `http://localhost:5000/api/farmerprofile/${farmerId}/personal`,
+      `${process.env.REACT_APP_BACKEND_URL}/api/farmerprofile/${farmerId}/personal`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -55,7 +55,7 @@ const fetchFarmerProfilePhoto = useCallback(async (farmerId) => {
     if (response.data?.profile_photo) {
       const photoUrl = response.data.profile_photo.startsWith('http')
         ? response.data.profile_photo
-        : `http://localhost:5000${response.data.profile_photo}`;
+        : `${process.env.REACT_APP_BACKEND_URL}${response.data.profile_photo}`;
       
       setFarmerProfilePhotos(prev => ({
         ...prev,
@@ -180,7 +180,7 @@ const fetchFarmerProfilePhoto = useCallback(async (farmerId) => {
       const consumerId = decodedToken.consumer_id;
       console.log(`Fetching sessions for consumer: ${consumerId}`);
 
-      const apiUrl = `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/bargain/consumers/${consumerId}/sessions`;
+      const apiUrl = `${process.env.REACT_APP_BACKEND_URL} || "http://localhost:5000"}/api/bargain/consumers/${consumerId}/sessions`;
       console.log("API Endpoint:", apiUrl);
 
       const response = await fetch(apiUrl, {
@@ -280,7 +280,7 @@ const fetchFarmerProfilePhoto = useCallback(async (farmerId) => {
       }
   
       console.log("Initializing new socket connection");
-      socket.current = io(process.env.REACT_APP_API_BASE_URL || "http://localhost:5000", {
+      socket.current = io(`${process.env.REACT_APP_BACKEND_URL || "http://localhost:5000"}`, {
         auth: { token },
         query: { consumerId },
         transports: ['websocket'],

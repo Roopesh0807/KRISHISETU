@@ -127,7 +127,7 @@ export const initializeWebSocket = (
     return;
   }
 
-  socket = io("http://localhost:5000", {
+  socket = io(`${process.env.REACT_APP_BACKEND_URL}`, {
     auth: { token },
     query: { bargainId }, // ✅ pass it properly
     reconnection: true,

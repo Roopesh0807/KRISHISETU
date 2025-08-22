@@ -125,7 +125,7 @@ const OrderPage = () => {
   const fetchConsumerProfile = async () => {
     try {
       const response = await axios.get(
-        `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/consumerprofile/${consumer.consumer_id}`,
+        `${process.env.REACT_APP_BACKEND_URL} || "http://localhost:5000"}/api/consumerprofile/${consumer.consumer_id}`,
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
       
@@ -253,7 +253,7 @@ const OrderPage = () => {
       };
   
       const response = await axios.put(
-        `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/update-address`,
+        `${process.env.REACT_APP_BACKEND_URL} || "http://localhost:5000"}/api/update-address`,
         payload,
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
@@ -287,7 +287,7 @@ const OrderPage = () => {
       setError(null);
       
       const cartResponse = await axios.get(
-        `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/cart/${consumer.consumer_id}`,
+        `${process.env.REACT_APP_BACKEND_URL} || "http://localhost:5000"}/api/cart/${consumer.consumer_id}`,
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
       
@@ -327,7 +327,7 @@ const OrderPage = () => {
 
       // First create the order in your database
       const orderResponse = await axios.post(
-        `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/place-order`,
+        `${process.env.REACT_APP_BACKEND_URL} || "http://localhost:5000"}/api/place-order`,
         {
           consumer_id: consumer.consumer_id,
         name: consumerProfile.name,
@@ -365,7 +365,7 @@ const OrderPage = () => {
 
       // Create Razorpay order
       const razorpayResponse = await axios.post(
-        `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/razorpay/create-order`,
+        `${process.env.REACT_APP_BACKEND_URL} || "http://localhost:5000"}/api/razorpay/create-order`,
         { 
           amount: finalAmount , // Convert to paise
           order_id: orderResult.order_id,
@@ -396,7 +396,7 @@ const OrderPage = () => {
           try {
             // Verify payment
             const verificationResponse = await axios.post(
-              `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/razorpay/verify`,
+              `${process.env.REACT_APP_BACKEND_URL} || "http://localhost:5000"}/api/razorpay/verify`,
               {
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_order_id: response.razorpay_order_id,
@@ -491,7 +491,7 @@ const OrderPage = () => {
       };
   
       const response = await axios.post(
-        `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/place-order`,
+        `${process.env.REACT_APP_BACKEND_URL} || "http://localhost:5000"}/api/place-order`,
         orderData,
         {
           headers: {
