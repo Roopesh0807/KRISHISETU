@@ -14,7 +14,7 @@ const PaymentSuccess = () => {
   useEffect(() => {
     const verifyPayment = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/verify-instamojo-payment', {
+        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/verify-instamojo-payment`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

@@ -35,7 +35,7 @@ const FarmerReview = () => {
                 console.log(`Fetching reviews for farmer ID: ${farmerId}`);
                 
                 const response = await axios.get(
-                    `http://localhost:5000/reviews/${farmerId}`,
+                    `${process.env.REACT_APP_BACKEND_URL}/reviews/${farmerId}`,
                     {
                         headers: {
                             "Content-Type": "application/json",
@@ -69,9 +69,9 @@ const FarmerReview = () => {
     const createImageUrl = (imgPath) => {
         if (!imgPath) return "";
         if (imgPath.startsWith("http")) return imgPath;
-        if (imgPath.startsWith("uploads/")) return `http://localhost:5000/${imgPath}`;
-        if (imgPath.startsWith("/uploads")) return `http://localhost:5000${imgPath}`;
-        return `http://localhost:5000/uploads/${imgPath}`;
+        if (imgPath.startsWith("uploads/")) return `${process.env.REACT_APP_BACKEND_URL}/${imgPath}`;
+        if (imgPath.startsWith("/uploads")) return `${process.env.REACT_APP_BACKEND_URL}${imgPath}`;
+        return `${process.env.REACT_APP_BACKEND_URL}/uploads/${imgPath}`;
     };
 
     // Render loading state

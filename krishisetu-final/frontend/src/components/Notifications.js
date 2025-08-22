@@ -29,7 +29,7 @@ const Notifications = () => {
     if (!farmer_id || !token) return;
 
     try {
-      const response = await fetch(`http://localhost:5000/api/farmer-notifications/${farmer_id}`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/farmer-notifications/${farmer_id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -43,7 +43,7 @@ const Notifications = () => {
 
   const markAsRead = async (id) => {
     try {
-      await fetch(`http://localhost:5000/api/mark-notification-read/${id}`, {
+      await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/mark-notification-read/${id}`, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,

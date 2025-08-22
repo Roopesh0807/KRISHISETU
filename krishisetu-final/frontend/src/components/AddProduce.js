@@ -3809,7 +3809,7 @@ const AddProduce = () => {
     
     try {
       setIsLoading(true);
-      const response = await axios.get(`http://localhost:5000/api/produces`, {
+      const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/produces`, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -4086,13 +4086,13 @@ const AddProduce = () => {
 
       if (newProduce.id) {
         await axios.put(
-          `http://localhost:5000/api/produces/${newProduce.id}`,
+          `${process.env.REACT_APP_BACKEND_URL}/api/produces/${newProduce.id}`,
           produceData,
           config
         );
       } else {
         await axios.post(
-          'http://localhost:5000/api/produces',
+          `${process.env.REACT_APP_BACKEND_URL}/api/produces`,
           produceData,
           config
         );
@@ -4133,29 +4133,59 @@ const AddProduce = () => {
     setIsFormVisible(true);
   };
 
-  const deleteProduce = async (productId) => {
-    try {
-      setIsLoading(true);
-      await axios.delete(`http://localhost:5000/api/produces/${productId}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      await loadProduces();
-      setCommandFeedback(language === 'kn-IN' ? 
-        'ಉತ್ಪನ್ನ ಯಶಸ್ವಿಯಾಗಿ ಅಳಿಸಲಾಗಿದೆ' : 
-        'Produce deleted successfully');
-      setTimeout(() => setCommandFeedback(''), 3000);
-    } catch (err) {
-      console.error('Failed to delete produce:', err);
-      setError(language === 'kn-IN' ? 
-        'ಉತ್ಪನ್ನವನ್ನು ಅಳಿಸಲು ವಿಫಲವಾಗಿದೆ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ' : 
-        'Failed to delete produce. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // const deleteProduce = async (productId) => {
+  //   try {
+  //     setIsLoading(true);
+  //     await axios.delete(`${process.env.REACT_APP_BACKEND_URL}/api/produces/${productId}`, {
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //         'Authorization': `Bearer ${localStorage.getItem('token')}`
+  //       }
+  //     });
+  //     await loadProduces();
+  //     setCommandFeedback(language === 'kn-IN' ? 
+  //       'ಉತ್ಪನ್ನ ಯಶಸ್ವಿಯಾಗಿ ಅಳಿಸಲಾಗಿದೆ' : 
+  //       'Produce deleted successfully');
+  //     setTimeout(() => setCommandFeedback(''), 3000);
+  //   } catch (err) {
+  //     console.error('Failed to delete produce:', err);
+  //     setError(language === 'kn-IN' ? 
+  //       'ಉತ್ಪನ್ನವನ್ನು ಅಳಿಸಲು ವಿಫಲವಾಗಿದೆ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ' : 
+  //       'Failed to delete produce. Please try again.');
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
+const deleteProduce = async (productId) => {
+  try {
+    setIsLoading(true);
+    
+    await axios.delete(`${process.env.REACT_APP_BACKEND_URL}/api/produces/${productId}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+
+    await loadProduces(); // Assuming this refreshes the product list
+    
+    setCommandFeedback(language === 'kn-IN' ? 
+      'ಉತ್ಪನ್ನ ಯಶಸ್ವಿಯಾಗಿ ಅಳಿಸಲಾಗಿದೆ' : 
+      'Produce deleted successfully');
+
+    setTimeout(() => setCommandFeedback(''), 3000);
+    
+  } catch (err) {
+    console.error('Failed to delete produce:', err);
+
+    setError(language === 'kn-IN' ? 
+      'ಉತ್ಪನ್ನವನ್ನು ಅಳಿಸಲು ವಿಫಲವಾಗಿದೆ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ' : 
+      'Failed to delete produce. Please try again.');
+    
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   // Render instructions if showInstructions is true
   if (showInstructions) {

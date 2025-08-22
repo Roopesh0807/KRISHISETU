@@ -20,7 +20,7 @@ const Transactions = () => {
         }
         
         const response = await fetch(
-          `http://localhost:5000/api/wallet/transactions/${consumer.consumer_id}`,
+          `${process.env.REACT_APP_BACKEND_URL}/api/wallet/transactions/${consumer.consumer_id}`,
           {
             headers: {
               'Authorization': `Bearer ${consumer.token}`,

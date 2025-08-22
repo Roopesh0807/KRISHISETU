@@ -93,7 +93,7 @@ const CartPage = () => {
     setLoading(prev => ({ ...prev, bargain: true }));
     try {
       const response = await axios.get(
-        `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/cart/${consumer.consumer_id}`,
+        `${process.env.REACT_APP_BACKEND_URL} || "http://localhost:5000"}/api/cart/${consumer.consumer_id}`,
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
       const receivedData = Array.isArray(response.data) ? response.data : response.data?.data || [];
@@ -113,7 +113,7 @@ const CartPage = () => {
       // and then fetch the cart for each community.
       // For now, let's mock it or assume a single community.
       const memberIdResponse = await fetch(
-        `http://localhost:5000/api/community/member-by-consumer/${consumer.consumer_id}`, {
+        `${process.env.REACT_APP_BACKEND_URL}/api/community/member-by-consumer/${consumer.consumer_id}`, {
           headers: { 'Authorization': `Bearer ${consumer.token}` },
         }
       );
@@ -128,7 +128,7 @@ const CartPage = () => {
 
       if (memberId && communityId) {
         const communityOrdersResponse = await fetch(
-          `http://localhost:5000/api/community/${communityId}/member/${memberId}/orders`, {
+          `${process.env.REACT_APP_BACKEND_URL}/api/community/${communityId}/member/${memberId}/orders`, {
             headers: { 'Authorization': `Bearer ${consumer.token}` },
           }
         );

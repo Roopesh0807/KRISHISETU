@@ -31,10 +31,10 @@ const Wallet = () => {
     setIsLoading(true);
     try {
       const [balanceRes, transactionsRes] = await Promise.all([
-        fetch(`http://localhost:5000/api/wallet/balance/${consumer.consumer_id}`, {
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/wallet/balance/${consumer.consumer_id}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch(`http://localhost:5000/api/wallet/transactions/${consumer.consumer_id}`, {
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/wallet/transactions/${consumer.consumer_id}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
       ]);
@@ -74,7 +74,7 @@ const Wallet = () => {
 
     try {
       // Step 1: Create a Razorpay Order from your server
-      const orderResponse = await fetch('http://localhost:5000/api/wallet/razorpay-order', {
+      const orderResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/wallet/razorpay-order`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -100,7 +100,7 @@ const Wallet = () => {
         order_id: order.id,
         handler: async (response) => {
           // Step 3: Verify the payment on your server
-          const verificationResponse = await fetch('http://localhost:5000/api/wallet/verify-payment', {
+          const verificationResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/wallet/verify-payment`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

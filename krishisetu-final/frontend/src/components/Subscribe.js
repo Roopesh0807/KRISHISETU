@@ -80,7 +80,7 @@ const Subscribe = () => {
     if (!consumer?.consumer_id || !token) return;
     setIsLoading(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/subscriptions/${consumer.consumer_id}`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/subscriptions/${consumer.consumer_id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!response.ok) throw new Error('Failed to fetch subscriptions');
@@ -113,7 +113,7 @@ const Subscribe = () => {
     if (newQuantity < 1) return;
     setIsLoading(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/subscriptions/${subscription_id}`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/subscriptions/${subscription_id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ quantity: newQuantity })
@@ -132,7 +132,7 @@ const Subscribe = () => {
   const handleDelete = async (subscription_id) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/subscriptions/${subscription_id}`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/subscriptions/${subscription_id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -150,7 +150,7 @@ const Subscribe = () => {
   const generateBill = async (plan) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/bills/${consumer.consumer_id}/${plan}`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/bills/${consumer.consumer_id}/${plan}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!response.ok) {

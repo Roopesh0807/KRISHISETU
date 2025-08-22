@@ -652,7 +652,7 @@ const FarmerDetails = () => {
   const fetchReviews = useCallback(async () => {
     setIsLoadingReviews(true);
     try {
-      const response = await axios.get(`http://localhost:5000/reviews/${farmer_id}`,{
+      const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/reviews/${farmer_id}`,{
         headers: {
           "Authorization": `Bearer ${consumer?.token}`,
         },
@@ -675,21 +675,21 @@ const FarmerDetails = () => {
     const fetchFarmerData = async () => {
       try {
         // Fetch personal details
-        const personalResponse = await axios.get(`http://localhost:5000/api/farmerprofile/${farmer_id}/personal`, {
+        const personalResponse = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/farmerprofile/${farmer_id}/personal`, {
           headers: {
             "Authorization": `Bearer ${consumer?.token}`
           }
         });
         
         // Fetch farm details
-        const farmResponse = await axios.get(`http://localhost:5000/api/farmerprofile/${farmer_id}/farm`, {
+        const farmResponse = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/farmerprofile/${farmer_id}/farm`, {
           headers: {
             "Authorization": `Bearer ${consumer?.token}`
           }
         });
         
         // Fetch products with market_type = 'Bargaining Market'
-        const productsResponse = await axios.get(`http://localhost:5000/api/produces`, {
+        const productsResponse = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/produces`, {
           headers: {
             "Authorization": `Bearer ${consumer?.token}`,
           },
@@ -700,7 +700,7 @@ const FarmerDetails = () => {
         });
 
         // Fetch reviews
-        const reviewsResponse = await axios.get(`http://localhost:5000/reviews/${farmer_id}`, {
+        const reviewsResponse = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/reviews/${farmer_id}`, {
           headers: {
             "Authorization": `Bearer ${consumer?.token}`,
           },
@@ -714,7 +714,7 @@ const FarmerDetails = () => {
           farmer_name: personalResponse.data.name,
           email: personalResponse.data.email,
           profile_photo: personalResponse.data.profile_photo 
-            ? `http://localhost:5000${personalResponse.data.profile_photo}`
+            ? `${process.env.REACT_APP_BACKEND_URL}${personalResponse.data.profile_photo}`
             : null,
           gender: personalResponse.data.gender,
           upi_id: personalResponse.data.upi_id,
@@ -767,8 +767,8 @@ const FarmerDetails = () => {
       }
   
       const quantity = 10;
-  
-      const response = await fetch('http://localhost:5000/api/create-bargain', {
+
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/create-bargain`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -846,7 +846,7 @@ const FarmerDetails = () => {
     images.forEach((image) => formData.append("images", image));
   
     try {
-      const response = await axios.post("http://localhost:5000/reviews", formData, {
+      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/reviews`, formData, {
         headers: { 
           "Authorization": `Bearer ${consumer?.token}`,
           "Content-Type": "multipart/form-data" 
@@ -1109,7 +1109,7 @@ const FarmerDetails = () => {
                         {review.image_urls.map((imgPath, i) => (
                           <div key={i} className="review-image-container">
                             <img
-                              src={`http://localhost:5000${imgPath}`}
+                              src={`${process.env.REACT_APP_BACKEND_URL}${imgPath}`}
                               alt={`Review image ${i + 1}`}
                               onError={(e) => {
                                 e.target.onerror = null;

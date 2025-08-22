@@ -135,7 +135,7 @@ const [loadingImages, setLoadingImages] = useState(true);
 
     const fetchConsumerProfile = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/consumerprofile/${consumer.consumer_id}`,{
+        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/consumerprofile/${consumer.consumer_id}`,{
           headers: { 
             "Authorization": `Bearer ${localStorage.getItem('token')}`
           },
@@ -277,8 +277,8 @@ const [loadingImages, setLoadingImages] = useState(true);
         orderData.address = consumerprofile.address;
         orderData.pincode = pincode;
       }
-  
-      const response = await fetch("http://localhost:5000/api/place-order", {
+
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/place-order`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -328,7 +328,7 @@ const handleRazorpayPayment = async () => {
     }
 
     // 1. First create the order in your database
-    const orderResponse = await fetch("http://localhost:5000/api/place-order", {
+    const orderResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/place-order`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -373,7 +373,7 @@ const handleRazorpayPayment = async () => {
     }
 
     // 2. Create Razorpay order
-    const razorpayResponse = await fetch('http://localhost:5000/api/razorpay/create-order', {
+    const razorpayResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/razorpay/create-order`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -406,7 +406,7 @@ const handleRazorpayPayment = async () => {
       handler: async (response) => {
         try {
           // 4. Verify payment
-          const verificationResponse = await fetch('http://localhost:5000/api/razorpay/verify', {
+          const verificationResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/razorpay/verify`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -470,7 +470,7 @@ const handleRazorpayPayment = async () => {
 // Helper functions
 const createRazorpayOrder = async (amount) => {
   try {
-    const response = await fetch('http://localhost:5000/api/razorpay/create-order', {
+    const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/razorpay/create-order`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -496,7 +496,7 @@ const createRazorpayOrder = async (amount) => {
 
 const verifyPayment = async (paymentData) => {
   try {
-    const response = await fetch('http://localhost:5000/api/razorpay/verify', {
+    const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/razorpay/verify`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -553,8 +553,8 @@ const verifyPayment = async (paymentData) => {
         pincode: newAddress.pincode,
         address: fullAddress
       };
-  
-      const response = await fetch("http://localhost:5000/api/update-address", {
+
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/update-address`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

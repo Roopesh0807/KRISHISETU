@@ -37,7 +37,7 @@ const ProductDetails = () => {
   const [dateSelectionError, setDateSelectionError] = useState("");
 
   useEffect(() => {
-    fetch(`http://localhost:5000/api/products/${product_id}`, {
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/products/${product_id}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -74,7 +74,7 @@ const ProductDetails = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/consumer-communities/${consumer.consumer_id}`,{
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/consumer-communities/${consumer.consumer_id}`,{
         headers: { 
           "Authorization": `Bearer ${localStorage.getItem('token')}`
         },
@@ -116,7 +116,7 @@ const ProductDetails = () => {
     }
   
     try {
-      const response = await fetch("http://localhost:5000/api/community-cart", {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/community-cart`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -254,8 +254,8 @@ const ProductDetails = () => {
         start_date: selectedDate.toISOString().split('T')[0],
         discount_applied: 5 // 5% discount
       };
-  
-      const response = await fetch("http://localhost:5000/api/subscriptions", {
+
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/subscriptions`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
