@@ -93,7 +93,7 @@ const BargainChatWindow = () => {
   const fetchMessages = async () => {
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_BACKEND_URL} || "http://localhost:5000"}/api/bargain/${bargainId}/messages`,
+        `${process.env.REACT_APP_BACKEND_URL}/api/bargain/${bargainId}/messages`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -140,7 +140,7 @@ const BargainChatWindow = () => {
       console.log("🔄 Sending to cart API:", payload);
   
       const response = await fetch(
-        `${process.env.REACT_APP_BACKEND_URL}|| "http://localhost:5000"}/api/cart/${consumer.consumer_id}`,
+        `${process.env.REACT_APP_BACKEND_URL}/api/cart/${consumer.consumer_id}`,
         {
           method: 'POST',
           headers: {
@@ -438,7 +438,7 @@ const BargainChatWindow = () => {
         }
 
         const response = await fetch(
-          `${process.env.REACT_APP_BACKEND_URL} || "http://localhost:5000"}/api/bargain/${bargainId}`, 
+          `${process.env.REACT_APP_BACKEND_URL}/api/bargain/${bargainId}`, 
           {
             method: 'GET',
             headers: {
@@ -502,7 +502,7 @@ const BargainChatWindow = () => {
   
       // 1. Create bargain session
       const bargainResponse = await fetch(
-        `${process.env.REACT_APP_BACKEND_URL} || 'http://localhost:5000'}/api/create-bargain`,
+        `${process.env.REACT_APP_BACKEND_URL}/api/create-bargain`,
         {
           method: 'POST',
           headers: {
@@ -523,7 +523,7 @@ const BargainChatWindow = () => {
   
       // 2. Add product to bargain
       const productResponse = await fetch(
-        `${process.env.REACT_APP_BACKEND_URL} || 'http://localhost:5000'}/api/add-bargain-product`,
+        `${process.env.REACT_APP_BACKEND_URL}/api/add-bargain-product`,
         {
           method: 'POST',
           headers: {
@@ -547,7 +547,7 @@ const BargainChatWindow = () => {
       // 3. Save SYSTEM MESSAGE to database
       const systemMessageContent = `🛒 You selected ${selectedProduct.produce_name} (${selectedQuantity}kg) at ₹${selectedProduct.price_per_kg}/kg`;
       const systemMessageResponse = await fetch(
-        `${process.env.REACT_APP_BACKEND_URL} || 'http://localhost:5000'}/api/bargain/${bargainData.bargainId}/system-message`,
+        `${process.env.REACT_APP_BACKEND_URL}/api/bargain/${bargainData.bargainId}/system-message`,
         {
           method: 'POST',
           headers: {
@@ -605,7 +605,7 @@ const BargainChatWindow = () => {
       const messageType = hasFarmerCounterOffer ? 'counter_offer' : 'price_offer';
       const messageContent = `💰 ${hasFarmerCounterOffer ? 'Counter offer' : 'Offered'} ₹${price}/kg for ${selectedQuantity}kg of ${selectedProduct.produce_name}`;
       const response = await fetch(
-        `${process.env.REACT_APP_BACKEND_URL} || "http://localhost:5000"}/api/bargain/${bargainId}/messages`,
+        `${process.env.REACT_APP_BACKEND_URL}/api/bargain/${bargainId}/messages`,
         {
           method: 'POST',
           headers: {
@@ -648,7 +648,7 @@ const BargainChatWindow = () => {
   
       // Save acceptance message to database
       const response = await fetch(
-        `${process.env.REACT_APP_BACKEND_URL} || "http://localhost:5000"}/api/bargain/${bargainId}/messages`,
+        `${process.env.REACT_APP_BACKEND_URL}/api/bargain/${bargainId}/messages`,
         {
           method: 'POST',
           headers: {
@@ -710,7 +710,7 @@ const BargainChatWindow = () => {
       
       // Save rejection to database first
       const response = await fetch(
-        `${process.env.REACT_APP_BACKEND_URL} || "http://localhost:5000"}/api/bargain/${bargainId}/messages`,
+        `${process.env.REACT_APP_BACKEND_URL}/api/bargain/${bargainId}/messages`,
         {
           method: 'POST',
           headers: {
