@@ -180,7 +180,7 @@ const fetchFarmerProfilePhoto = useCallback(async (farmerId) => {
       const consumerId = decodedToken.consumer_id;
       console.log(`Fetching sessions for consumer: ${consumerId}`);
 
-      const apiUrl = `${process.env.REACT_APP_BACKEND_URL} || "http://localhost:5000"}/api/bargain/consumers/${consumerId}/sessions`;
+      const apiUrl = `${process.env.REACT_APP_BACKEND_URL}/api/bargain/consumers/${consumerId}/sessions`;
       console.log("API Endpoint:", apiUrl);
 
       const response = await fetch(apiUrl, {
@@ -280,7 +280,7 @@ const fetchFarmerProfilePhoto = useCallback(async (farmerId) => {
       }
   
       console.log("Initializing new socket connection");
-      socket.current = io(`${process.env.REACT_APP_BACKEND_URL || "http://localhost:5000"}`, {
+      socket.current = io(`${process.env.REACT_APP_BACKEND_URL}`, {
         auth: { token },
         query: { consumerId },
         transports: ['websocket'],

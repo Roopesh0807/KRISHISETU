@@ -77,7 +77,7 @@ const CartPage = () => {
       setError(null);
       
       const response = await axios.get(
-        `${process.env.REACT_APP_BACKEND_URL} || "http://localhost:5000"}/api/cart/${consumer.consumer_id}`,
+        `${process.env.REACT_APP_BACKEND_URL}/api/cart/${consumer.consumer_id}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -110,7 +110,7 @@ const CartPage = () => {
       await Promise.all(
         cartIds.map(cartId => 
           axios.delete(
-            `${process.env.REACT_APP_BACKEND_URL} || "http://localhost:5000"}/api/cart/${consumer.consumer_id}/${cartId}`,
+            `${process.env.REACT_APP_BACKEND_URL}/api/cart/${consumer.consumer_id}/${cartId}`,
             {
               headers: {
                 'Authorization': `Bearer ${token}`

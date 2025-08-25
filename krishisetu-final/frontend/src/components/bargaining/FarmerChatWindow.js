@@ -141,7 +141,7 @@ const FarmerChatWindow = () => {
 
     // Create new socket connection
     socket.current = io(
-      `${process.env.REACT_APP_BACKEND_URL || "http://localhost:5000"}`,
+      `${process.env.REACT_APP_BACKEND_URL}`,
       socketOptions
     );
 
