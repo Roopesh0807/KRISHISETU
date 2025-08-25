@@ -164,11 +164,19 @@ const router = express.Router();
 const { authMiddleware } = require("./src/middlewares/authMiddleware"); // your renamed one
 
 // ✅ PROPER CORS SETUP
+const allowedOrigins = [
+  "http://localhost:3000", 
+  "https://krishisetur.netlify.app"
+];
+
 const corsOptions = {
-  origin: [
-    "http://localhost:3000",              // local dev
-    "https://krishisetur.netlify.app"     // production frontend
-  ],
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, origin);  // ✅ Echo the actual origin
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   credentials: true,
