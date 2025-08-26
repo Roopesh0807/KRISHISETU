@@ -607,7 +607,7 @@ app.delete("/api/farmerprofile/:farmer_id/remove-file",
     }
   }
 );
-
+const baseUrl = process.env.REACT_APP_BACKEND_URL || `http://localhost:${process.env.PORT || 5000}`;
 // Update the file upload endpoint (around line 300)
 app.post("/api/farmerprofile/:farmer_id/upload-file", 
   auth.authenticate,
@@ -644,13 +644,14 @@ app.post("/api/farmerprofile/:farmer_id/upload-file",
         [filePath, farmer_id]
       );
 
-      res.json({ 
-        success: true, 
-        message: "File uploaded successfully",
-        filePath: filePath,
-        accessibleUrl: `http://localhost:5000${filePath}`
-      });
+    
 
+res.json({ 
+  success: true, 
+  message: "File uploaded successfully",
+  filePath: filePath,
+  accessibleUrl: `${baseUrl}${filePath}`  // gives full public URL
+});
     } catch (error) {
       console.error("Error uploading file:", error);
       res.status(500).json({ 
@@ -1476,6 +1477,70 @@ app.delete("/api/remove-photo/:consumer_id", async (req, res) => {
   }
 });
 
+// app.get("/api/consumer/:consumer_id", async (req, res) => {
+//   try {
+//     const { consumer_id } = req.params;
+    
+//     if (!consumer_id) {
+//       return res.status(400).json({ message: "Consumer ID is required" });
+//     }
+
+//     const query = `
+//       SELECT 
+//         c.consumer_id,
+//         cr.first_name,
+//         cr.last_name,
+//         cr.email,
+//         cr.phone_number,
+//         c.name,
+//         c.mobile_number,
+//         c.address,
+//         c.pincode,
+//         c.location,
+//         c.city,
+//         c.state,
+//         c.photo,
+//         c.preferred_payment_method,
+//         c.subscription_method
+//       FROM consumerprofile c
+//       JOIN consumerregistration cr ON c.consumer_id = cr.consumer_id
+//       WHERE c.consumer_id = ?;
+//     `;
+    
+//     const [result] = await queryDatabase(query, [consumer_id]);
+
+//     if (!result) {
+//       return res.status(404).json({ message: "Profile not found" });
+//     }
+
+//     // Format the response
+//     const profileData = {
+//       consumer_id: result.consumer_id,
+//       first_name: result.first_name,
+//       last_name: result.last_name,
+//       full_name: `${result.first_name} ${result.last_name}`.trim(),
+//       email: result.email,
+//       phone_number: result.phone_number,
+//       address: result.address,
+//       pincode: result.pincode,
+//       location: result.location,
+//       city:result.city,
+//       state:result.state,
+//       photo: result.photo ? `http://localhost:5000${result.photo}` : null,
+//       preferred_payment_method: result.preferred_payment_method,
+//       subscription_method: result.subscription_method
+//     };
+
+//     res.json(profileData);
+//   } catch (err) {
+//     console.error("Error in API:", err);
+//     res.status(500).json({ 
+//       message: "Server error", 
+//       error: err.message 
+//     });
+//   }
+// });
+
 app.get("/api/consumer/:consumer_id", async (req, res) => {
   try {
     const { consumer_id } = req.params;
@@ -1512,6 +1577,9 @@ app.get("/api/consumer/:consumer_id", async (req, res) => {
       return res.status(404).json({ message: "Profile not found" });
     }
 
+    // ✅ Use dynamic backend URL
+    const baseUrl = process.env.REACT_APP_BACKEND_URL || `http://localhost:${process.env.PORT || 5000}`;
+
     // Format the response
     const profileData = {
       consumer_id: result.consumer_id,
@@ -1523,9 +1591,9 @@ app.get("/api/consumer/:consumer_id", async (req, res) => {
       address: result.address,
       pincode: result.pincode,
       location: result.location,
-      city:result.city,
-      state:result.state,
-      photo: result.photo ? `http://localhost:5000${result.photo}` : null,
+      city: result.city,
+      state: result.state,
+      photo: result.photo ? `${baseUrl}${result.photo}` : null,  // ✅ FIXED
       preferred_payment_method: result.preferred_payment_method,
       subscription_method: result.subscription_method
     };
@@ -1539,7 +1607,6 @@ app.get("/api/consumer/:consumer_id", async (req, res) => {
     });
   }
 });
-
 
 
 app.get("/api/consumerprofile/:consumer_id", verifyToken, async (req, res) => {
@@ -2169,9 +2236,58 @@ app.get("/api/profile/:id", (req, res) => {
   });
 });
 
+// app.put("/api/consumerprofile/:id", upload.single("photo"), async (req, res) => {
+//   try {
+//     const consumer_id = req.params.id || req.body.consumer_id; // ✅ Ensure correct reference
+
+//     const { address, pincode, location, preferred_payment_method, subscription_method } = req.body;
+
+//     let photo = null;
+//     if (req.file) {
+//       // Save the file and get the file path
+//       photo = `/uploads/${req.file.filename.replace(/\\/g, "/")}`;
+
+//       // ✅ Fix: Correct Table Name (should match your DB structure)
+//       const updatePhotoQuery = "UPDATE consumerprofile SET photo = ? WHERE consumer_id = ?";
+//       await queryDatabase(updatePhotoQuery, [photo, consumer_id]);
+//     }
+
+//     // ✅ Fix: Ensure Updating the Correct Table
+//     let query = `
+//       UPDATE consumerprofile
+//       SET address = ?, pincode = ?, location = ?, 
+//           preferred_payment_method = ?, subscription_method = ?
+//     `;
+
+//     let params = [address, pincode, location, preferred_payment_method, subscription_method];
+
+//     if (photo) {
+//       query += ", photo = ?";
+//       params.push(photo);
+//     }
+
+//     query += " WHERE consumer_id = ?;";
+//     params.push(consumer_id);
+
+//     const result = await queryDatabase(query, params);
+
+//     if (result.affectedRows === 0) {
+//       return res.status(404).json({ message: "Consumer profile not found" });
+//     }
+
+//     res.json({
+//       consumer_id: consumer_id,
+//       photo: photo ? `http://localhost:5000/uploads/${photo}` : null, // ✅ Ensure correct path
+//     });    
+//   } catch (err) {
+//     console.error("Error updating profile:", err);
+//     res.status(500).json({ message: "Server error", error: err.message });
+//   }
+// });
+// API to fetch all consumers
 app.put("/api/consumerprofile/:id", upload.single("photo"), async (req, res) => {
   try {
-    const consumer_id = req.params.id || req.body.consumer_id; // ✅ Ensure correct reference
+    const consumer_id = req.params.id || req.body.consumer_id;
 
     const { address, pincode, location, preferred_payment_method, subscription_method } = req.body;
 
@@ -2180,18 +2296,15 @@ app.put("/api/consumerprofile/:id", upload.single("photo"), async (req, res) => 
       // Save the file and get the file path
       photo = `/uploads/${req.file.filename.replace(/\\/g, "/")}`;
 
-      // ✅ Fix: Correct Table Name (should match your DB structure)
       const updatePhotoQuery = "UPDATE consumerprofile SET photo = ? WHERE consumer_id = ?";
       await queryDatabase(updatePhotoQuery, [photo, consumer_id]);
     }
 
-    // ✅ Fix: Ensure Updating the Correct Table
     let query = `
       UPDATE consumerprofile
       SET address = ?, pincode = ?, location = ?, 
           preferred_payment_method = ?, subscription_method = ?
     `;
-
     let params = [address, pincode, location, preferred_payment_method, subscription_method];
 
     if (photo) {
@@ -2208,16 +2321,19 @@ app.put("/api/consumerprofile/:id", upload.single("photo"), async (req, res) => 
       return res.status(404).json({ message: "Consumer profile not found" });
     }
 
+    const baseUrl = process.env.REACT_APP_BACKEND_URL || `http://localhost:${process.env.PORT || 5000}`;
+
     res.json({
       consumer_id: consumer_id,
-      photo: photo ? `http://localhost:5000/uploads/${photo}` : null, // ✅ Ensure correct path
+      photo: photo ? `${baseUrl}${photo}` : null, // ✅ dynamic base URL
     });    
   } catch (err) {
     console.error("Error updating profile:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 });
-// API to fetch all consumers
+
+
 app.get('/api/consumerprof', async (req, res) => {
   try {
     const query = 'SELECT * FROM consumerprofile';  // Selecting only the necessary fields
@@ -4057,7 +4173,8 @@ app.get("/api/consumer/:id", async (req, res) => {
     }
 
     // 🔹 Append full image URL if stored as file path
-    const baseUrl = "http://localhost:5000";
+    const baseUrl = process.env.REACT_APP_BACKEND_URL || `http://localhost:${process.env.PORT || 5000}`;
+
 result[0].photo = result[0].photo && !result[0].photo.startsWith("http")
   ? `${baseUrl}${result[0].photo}`
   : result[0].photo || `${baseUrl}/uploads/default.png`;  // ✅ Ensure a fallback image
