@@ -93,7 +93,7 @@ const CartPage = () => {
     setLoading(prev => ({ ...prev, bargain: true }));
     try {
       const response = await axios.get(
-        `${process.env.REACT_APP_BACKEND_URL}"}/api/cart/${consumer.consumer_id}`,
+        `${process.env.REACT_APP_BACKEND_URL}/api/cart/${consumer.consumer_id}`,
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
       const receivedData = Array.isArray(response.data) ? response.data : response.data?.data || [];
