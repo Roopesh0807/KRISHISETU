@@ -18,7 +18,7 @@ import {
 import "./Cart.css";
 
 const CartPage = () => {
-  const { cart: krishiCart, setCart: setKrishiCart, removeFromCart, setCartCount, updateQuantity, calculateTotal } = useCart();
+  const { cart: krishiCart, removeFromCart, setCartCount, updateQuantity, calculateTotal } = useCart();
   const { consumer, token } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -73,21 +73,7 @@ const CartPage = () => {
     }
 
     // Fetch Krishisetu Cart
-    setLoading(prev => ({ ...prev, krishi: true }));
-    try {
-      const storedCart = localStorage.getItem(`krishiCart_${consumer.consumer_id}`);
-      if (storedCart) {
-        const parsedCart = JSON.parse(storedCart);
-        if (Array.isArray(parsedCart)) {
-          setKrishiCart(parsedCart);
-          setCartCount(parsedCart.length);
-        }
-      }
-    } catch (err) {
-      console.error("Error loading Krishisetu cart:", err);
-    } finally {
-      setLoading(prev => ({ ...prev, krishi: false }));
-    }
+   
 
     // Fetch Bargain Cart
     setLoading(prev => ({ ...prev, bargain: true }));
