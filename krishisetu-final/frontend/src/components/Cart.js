@@ -113,41 +113,41 @@ if (storedKrishiCart) {
       setLoading(prev => ({ ...prev, bargain: false }));
     }
 
-    // Fetch Community Cart
-    setLoading(prev => ({ ...prev, community: true }));
-    try {
-      // Logic to fetch the community carts. This will be more complex.
-      // You'll need to fetch the communities the user is a member of,
-      // and then fetch the cart for each community.
-      // For now, let's mock it or assume a single community.
-      const memberIdResponse = await fetch(
-        `${process.env.REACT_APP_BACKEND_URL}/api/community/member-by-consumer/${consumer.consumer_id}`, {
-          headers: { 'Authorization': `Bearer ${consumer.token}` },
-        }
-      );
-      if (!memberIdResponse.ok) {
-        console.error("Not a member of any community or failed to fetch.");
-        setCommunityCart([]);
-        return;
-      }
-      const memberIdData = await memberIdResponse.json();
-      const memberId = memberIdData.memberId;
-      const communityId = memberIdData.communityId;
+    // // Fetch Community Cart
+    // setLoading(prev => ({ ...prev, community: true }));
+    // try {
+    //   // Logic to fetch the community carts. This will be more complex.
+    //   // You'll need to fetch the communities the user is a member of,
+    //   // and then fetch the cart for each community.
+    //   // For now, let's mock it or assume a single community.
+    //   const memberIdResponse = await fetch(
+    //     `${process.env.REACT_APP_BACKEND_URL}/api/community/member-by-consumer/${consumer.consumer_id}`, {
+    //       headers: { 'Authorization': `Bearer ${consumer.token}` },
+    //     }
+    //   );
+    //   if (!memberIdResponse.ok) {
+    //     console.error("Not a member of any community or failed to fetch.");
+    //     setCommunityCart([]);
+    //     return;
+    //   }
+    //   const memberIdData = await memberIdResponse.json();
+    //   const memberId = memberIdData.memberId;
+    //   const communityId = memberIdData.communityId;
 
-      if (memberId && communityId) {
-        const communityOrdersResponse = await fetch(
-          `${process.env.REACT_APP_BACKEND_URL}/api/community/${communityId}/member/${memberId}/orders`, {
-            headers: { 'Authorization': `Bearer ${consumer.token}` },
-          }
-        );
-        const communityOrdersData = await communityOrdersResponse.json();
-        setCommunityCart(communityOrdersData.orders || []);
-      }
-    } catch (err) {
-      console.error("Community cart fetch error:", err);
-    } finally {
-      setLoading(prev => ({ ...prev, community: false }));
-    }
+    //   if (memberId && communityId) {
+    //     const communityOrdersResponse = await fetch(
+    //       `${process.env.REACT_APP_BACKEND_URL}/api/community/${communityId}/member/${memberId}/orders`, {
+    //         headers: { 'Authorization': `Bearer ${consumer.token}` },
+    //       }
+    //     );
+    //     const communityOrdersData = await communityOrdersResponse.json();
+    //     setCommunityCart(communityOrdersData.orders || []);
+    //   }
+    // } catch (err) {
+    //   console.error("Community cart fetch error:", err);
+    // } finally {
+    //   setLoading(prev => ({ ...prev, community: false }));
+    // }
   };
 
   useEffect(() => {
