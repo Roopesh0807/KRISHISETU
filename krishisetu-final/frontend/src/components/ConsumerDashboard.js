@@ -712,8 +712,8 @@ const ConsumerDashboard = () => {
                 start_date: startDateString, // Use the manually formatted date string
                 discount_applied: 5
             };
-        
-            const response = await fetch("http://localhost:5000/api/subscriptions", {
+
+            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/subscriptions`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
