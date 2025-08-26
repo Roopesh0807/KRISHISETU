@@ -71,7 +71,15 @@ const CartPage = () => {
       setLoading({ krishi: false, bargain: false, community: false });
       return;
     }
-
+// Load KrishiCart from localStorage first
+const storedKrishiCart = localStorage.getItem(`krishiCart_${consumer.consumer_id}`);
+if (storedKrishiCart) {
+  try {
+    setKrishiCart(JSON.parse(storedKrishiCart));
+  } catch (err) {
+    console.error("Error parsing stored KrishiCart:", err);
+  }
+}
     // Fetch Krishisetu Cart
     setLoading(prev => ({ ...prev, krishi: true }));
     try {
