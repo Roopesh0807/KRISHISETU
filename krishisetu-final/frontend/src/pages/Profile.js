@@ -20,6 +20,11 @@ import {
   FiFile
 } from "react-icons/fi";
 import "../styles/FarmerProfile.css";
+import { useAuth } from "../context/AuthContext";
+
+import { useAuth } from '../context/AuthContext';
+
+  const { farmer } = useAuth();
 
 const FarmerProfile = () => {
   const { farmer_id } = useParams();
@@ -652,7 +657,7 @@ const FarmerProfile = () => {
       <a
   href={
     value
-      ? `${process.env.REACT_APP_BACKEND_URL}/api/secure-file${value}?token=${consumer?.token}`
+      ? `${process.env.REACT_APP_BACKEND_URL}/api/secure-file${value}?token=${farmer?.token}`
       : "#"
   }
   target="_blank"
