@@ -21,10 +21,6 @@ import {
 } from "react-icons/fi";
 import "../styles/FarmerProfile.css";
 import { useAuth } from "../context/AuthContext";
-
-
-  const { farmer } = useAuth();
-
 const FarmerProfile = () => {
   const { farmer_id } = useParams();
   const [activeTab, setActiveTab] = useState("personal");
@@ -32,7 +28,7 @@ const FarmerProfile = () => {
   const [editMode, setEditMode] = useState({ personal: false, farm: false });
   const [loading, setLoading] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
-  
+  const { token, farmer } = useAuth();
   const [formData, setFormData] = useState({
     personal: {
       dob: "",
@@ -653,19 +649,23 @@ const FarmerProfile = () => {
 <div className={`farmer-profile-detail-value ${isFileField(key) ? (value ? 'farmer-profile-uploaded' : 'farmer-profile-not-uploaded') : ''} ${value ? '' : 'farmer-profile-empty'}`}>
   {isFileField(key) ? (
     value ? (
-      <a
-  href={
-    value
-      ? `${process.env.REACT_APP_BACKEND_URL}/api/secure-file${value}?token=${farmer?.token}`
-      : "#"
-  }
-  target="_blank"
-  rel="noopener noreferrer"
-  className="farmer-profile-file-link"
->
-  View File
-</a>
-
+    
+  <a 
+    href={`${process.env.REACT_APP_BACKEND_URL}/api/secure-file?path=${encodeURIComponent(value)}`} 
+    target="_blank" 
+    rel="noopener noreferrer"
+    className="farmer-profile-file-link"
+    onClick={(e) => {
+      e.preventDefault();
+      // open file in new tab with auth
+      window.open(
+        `${process.env.REACT_APP_BACKEND_URL}/api/secure-file?path=${encodeURIComponent(value)}&token=${token}`,
+        "_blank"
+      );
+    }}
+  >
+    View File
+  </a>
     ) : 'Not uploaded'
   ) : (value || 'Not provided')}
 </div>

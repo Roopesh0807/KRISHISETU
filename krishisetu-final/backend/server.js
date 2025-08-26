@@ -2448,35 +2448,19 @@ app.get("/api/addresses/:consumer_id", async (req, res) => {
 });
 
 
-// Secure preview route
-app.get("/api/secure-file/*", auth.authenticate, (req, res) => {
-  try {
-    // Extract relative path after /api/secure-file/
-    const relativePath = req.params[0];
-    const filePath = path.join(__dirname, "uploads", relativePath);
-
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ message: "File not found" });
-    }
-
-    const ext = path.extname(filePath).toLowerCase();
-    const contentTypes = {
-      ".pdf": "application/pdf",
-      ".jpg": "image/jpeg",
-      ".jpeg": "image/jpeg",
-      ".png": "image/png",
-    };
-
-    const contentType = contentTypes[ext] || "application/octet-stream";
-    res.setHeader("Content-Type", contentType);
-
-    // Stream for preview (inline in browser)
-    fs.createReadStream(filePath).pipe(res);
-  } catch (err) {
-    console.error("Secure file error:", err);
-    res.status(500).json({ message: "Error serving file" });
+app.get("/api/secure-file", auth.authenticate, (req, res) => {
+  const filePath = req.query.path;
+  if (!filePath) {
+    return res.status(400).json({ message: "File path is required" });
   }
+
+  const fullPath = path.join(__dirname, filePath);
+
+  res.setHeader("Content-Type", "application/pdf"); // adjust for images/docs
+  res.setHeader("Content-Disposition", "inline");   // ✅ force preview, not download
+  fs.createReadStream(fullPath).pipe(res);
 });
+
 
 // Add or update consumer address
 app.post("/api/addresses/:consumer_id", async (req, res) => {
