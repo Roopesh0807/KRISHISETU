@@ -38,7 +38,7 @@ const ConsumerProfile = () => {
         setError(null);
         
         const response = await fetch(
-          `http://localhost:5000/api/consumer/${consumer_id}`,
+          `${process.env.REACT_APP_BACKEND_URL}/api/consumer/${consumer_id}`,
           {
             headers: {
               "Authorization": `Bearer ${consumer?.token}`
@@ -55,7 +55,7 @@ const ConsumerProfile = () => {
       const photoUrl = data.photo 
       ? data.photo.startsWith('http') 
         ? data.photo 
-        : `http://localhost:5000${data.photo}`
+        : `${process.env.REACT_APP_BACKEND_URL}${data.photo}`
       : null;
 
 
@@ -220,7 +220,7 @@ const ConsumerProfile = () => {
       formData.append('photo', file);
   
       const response = await fetch(
-        `http://localhost:5000/api/upload/${profile.consumer_id}`,
+        `${process.env.REACT_APP_BACKEND_URL}/api/upload/${profile.consumer_id}`,
         {
           method: "POST",
           body: formData,
@@ -253,7 +253,7 @@ const ConsumerProfile = () => {
     try {
       setLoading(true);
       const response = await fetch(
-        `http://localhost:5000/api/remove-photo/${profile.consumer_id}`,
+        `${process.env.REACT_APP_BACKEND_URL}/api/remove-photo/${profile.consumer_id}`,
         {
           method: "DELETE",
           headers: {
@@ -293,7 +293,7 @@ const ConsumerProfile = () => {
       };
   
       const response = await fetch(
-        `http://localhost:5000/api/consumerprofile/${profile.consumer_id}`,
+        `${process.env.REACT_APP_BACKEND_URL}/api/consumerprofile/${profile.consumer_id}`,
         {
           method: "PUT",
           headers: {
@@ -311,7 +311,7 @@ const ConsumerProfile = () => {
   
       // Get the full updated profile data from the server
       const updatedProfileResponse = await fetch(
-        `http://localhost:5000/api/consumer/${profile.consumer_id}`,
+        `${process.env.REACT_APP_BACKEND_URL}/api/consumer/${profile.consumer_id}`,
         {
           headers: {
             "Authorization": `Bearer ${consumer?.token}`
@@ -332,7 +332,7 @@ const ConsumerProfile = () => {
         photo: updatedProfileData.photo 
           ? updatedProfileData.photo.startsWith('http') 
             ? updatedProfileData.photo 
-            : `http://localhost:5000${updatedProfileData.photo}`
+            : `${process.env.REACT_APP_BACKEND_URL}${updatedProfileData.photo}`
           : null
       }));
   

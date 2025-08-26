@@ -19,7 +19,7 @@ const MyOrders = () => {
           return;
         }
         
-        const response = await fetch(`http://localhost:5000/api/orders/${consumer.consumer_id}`, {
+        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/orders/${consumer.consumer_id}`, {
           headers: {
             'Authorization': `Bearer ${consumer.token}`,
             'Content-Type': 'application/json'

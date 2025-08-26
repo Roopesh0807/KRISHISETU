@@ -79,7 +79,7 @@ const FarmerChatWindow = () => {
   const fetchMessages = async () => {
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/bargain/${bargainId}/messages`,
+        `${process.env.REACT_APP_BACKEND_URL}/api/bargain/${bargainId}/messages`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -141,7 +141,7 @@ const FarmerChatWindow = () => {
 
     // Create new socket connection
     socket.current = io(
-      process.env.REACT_APP_API_BASE_URL || "http://localhost:5000",
+      `${process.env.REACT_APP_BACKEND_URL}`,
       socketOptions
     );
 
@@ -289,7 +289,7 @@ const FarmerChatWindow = () => {
         : `❌ You rejected the offer at ₹${currentPrice}/kg`;
       
       const response = await fetch(
-        `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/bargain/${bargainId}/messages`,
+        `${process.env.REACT_APP_BACKEND_URL}/api/bargain/${bargainId}/messages`,
         {
           method: 'POST',
           headers: {
@@ -352,7 +352,7 @@ const FarmerChatWindow = () => {
         
         if (!selectedProduct || !selectedConsumer) {
           const response = await fetch(
-            `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/bargain/${bargainId}`,
+            `${process.env.REACT_APP_BACKEND_URL}/api/bargain/${bargainId}`,
             {
               headers: { 'Authorization': `Bearer ${token}` }
             }
@@ -409,7 +409,7 @@ const FarmerChatWindow = () => {
       const messageContent = `💰 Counter offer: ₹${price}/kg for ${quantity}kg of ${selectedProduct.produce_name}`;
       
       // Define the API URL
-      const apiUrl = `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/bargain/${bargainId}/messages`;
+      const apiUrl = `${process.env.REACT_APP_BACKEND_URL}/api/bargain/${bargainId}/messages`;
       
       // Create the message payload
       const messagePayload = {

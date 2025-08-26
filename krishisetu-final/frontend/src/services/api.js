@@ -1,6 +1,6 @@
 export async function fetchProducts() {
   try {
-    const response = await fetch("http://localhost:5000/products", {
+    const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/products`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",

@@ -154,7 +154,7 @@ export const generateCombinedBillPDF = async (consumerId, token, startDate, endD
 
         // Fetch combined bill data from the backend API
         const response = await fetch(
-          `http://localhost:5000/api/subscriptions/combined-bill/${consumerId}?start_date=${formattedStart}&end_date=${formattedEnd}`,
+          `${process.env.REACT_APP_BACKEND_URL}/api/subscriptions/combined-bill/${consumerId}?start_date=${formattedStart}&end_date=${formattedEnd}`,
           { headers: { 'Authorization': `Bearer ${token}` } }
         );
 

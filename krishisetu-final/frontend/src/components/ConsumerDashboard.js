@@ -112,7 +112,7 @@ const ConsumerDashboard = () => {
     // Geocoding and Reverse Geocoding functions (using proxy for Nominatim)
     const geocodeAddress = async (address) => {
         try {
-            const url = `http://localhost:5000/api/geocode/forward?q=${encodeURIComponent(address)}`;
+            const url = `${process.env.REACT_APP_BACKEND_URL}/api/geocode/forward?q=${encodeURIComponent(address)}`;
             const response = await fetch(url);
             const data = await response.json();
             if (data && data.length > 0) {
@@ -127,7 +127,7 @@ const ConsumerDashboard = () => {
 
     const reverseGeocode = async (latitude, longitude) => {
         try {
-            const url = `http://localhost:5000/api/geocode/reverse?lat=${latitude}&lon=${longitude}`;
+            const url = `${process.env.REACT_APP_BACKEND_URL}/api/geocode/reverse?lat=${latitude}&lon=${longitude}`;
             const response = await fetch(url);
             const data = await response.json();
             if (data.address) {
@@ -191,7 +191,7 @@ const ConsumerDashboard = () => {
             }
 
             try {
-                const productData = await fetchProducts("http://localhost:5000/api/products", {
+                const productData = await fetchProducts(`${process.env.REACT_APP_BACKEND_URL}/api/products`, {
                     headers: {
                         "Content-Type": "application/json",
                         "Authorization": `Bearer ${consumer.token}`,
@@ -207,7 +207,7 @@ const ConsumerDashboard = () => {
             }
 
             try {
-                const response = await fetch(`http://localhost:5000/api/orders?consumer_id=${consumer.consumer_id}`, {
+                const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/orders?consumer_id=${consumer.consumer_id}`, {
                     headers: { "Authorization": `Bearer ${consumer.token}` },
                 });
                 if (!response.ok) {
@@ -236,7 +236,7 @@ const ConsumerDashboard = () => {
             if (!consumer?.token || !consumerCoords) return; // Ensure token and coords are available
 
             try {
-                const response = await fetch('http://localhost:5000/api/farmers', {
+                const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/farmers`, {
                     method: "GET",
                     credentials: 'include',
                     headers: {
@@ -255,13 +255,13 @@ const ConsumerDashboard = () => {
                     data.map(async (farmer) => {
                         try {
                             const personalResponse = await fetch(
-                                `http://localhost:5000/api/farmerprofile/${farmer.farmer_id}/personal`,
+                                `${process.env.REACT_APP_BACKEND_URL}/api/farmerprofile/${farmer.farmer_id}/personal`,
                                 { headers: { "Authorization": `Bearer ${consumer?.token}` } }
                             );
                             const personalData = await personalResponse.json();
 
                             const ratingsResponse = await fetch(
-                                `http://localhost:5000/reviews/${farmer.farmer_id}`,
+                                `${process.env.REACT_APP_BACKEND_URL}/reviews/${farmer.farmer_id}`,
                                 { headers: { "Authorization": `Bearer ${consumer?.token}` } }
                             );
                             const ratingsData = await ratingsResponse.json();
@@ -271,13 +271,13 @@ const ConsumerDashboard = () => {
                                 : 0;
 
                             const productsResponse = await fetch(
-                                `http://localhost:5000/api/produces?farmer_id=${farmer.farmer_id}&market_type=Bargaining Market`,
+                                `${process.env.REACT_APP_BACKEND_URL}/api/produces?farmer_id=${farmer.farmer_id}&market_type=Bargaining Market`,
                                 { headers: { "Authorization": `Bearer ${consumer?.token}` } }
                             );
                             const productsData = await productsResponse.json();
                             
                             const farmResponse = await fetch(
-                                `http://localhost:5000/api/farmerprofile/${farmer.farmer_id}/farm`,
+                                `${process.env.REACT_APP_BACKEND_URL}/api/farmerprofile/${farmer.farmer_id}/farm`,
                                 { headers: { "Authorization": `Bearer ${consumer?.token}` } }
                             );
                             const farmData = await farmResponse.json();
@@ -292,7 +292,7 @@ const ConsumerDashboard = () => {
                             return {
                                 ...farmer,
                                 profile_photo: personalData.profile_photo
-                                    ? `http://localhost:5000${personalData.profile_photo}`
+                                    ? `${process.env.REACT_APP_BACKEND_URL}${personalData.profile_photo}`
                                     : null,
                                 products: productsData,
                                 average_rating: parseFloat(averageRating.toFixed(1)),
@@ -486,7 +486,7 @@ const ConsumerDashboard = () => {
             setIsLoading(true);
             setError(null);
             
-            const response = await fetch(`http://localhost:5000/api/create-bargain`, {
+            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/create-bargain`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -503,7 +503,7 @@ const ConsumerDashboard = () => {
                 throw new Error(data.error || 'Failed to create bargain session');
             }
             
-            const productResponse = await fetch(`http://localhost:5000/api/add-bargain-product`, {
+            const productResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/add-bargain-product`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

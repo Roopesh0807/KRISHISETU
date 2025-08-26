@@ -54,7 +54,7 @@ const Subscribe = () => {
     const carouselImages = [
         { img: slide1, title: "No Delivery Charges", desc: "Enjoy free delivery on all your subscription orders" },
         { img: slide2, title: "5% Discount", desc: "Get 5% discount on every product in your subscription" },
-        { img: slide3, title: "Low Subscription Fee", desc: "Subscription starts from just ₹3 per kg" },
+        { img: slide3, title: "Low Subscription Fee", desc: "Subscription starts from just ₹5 per kg" },
         { img: slide4, title: "Early Morning Delivery", desc: "Fresh products delivered by 7 AM every day" }
     ];
 
@@ -137,7 +137,7 @@ const Subscribe = () => {
         const currentHour = now.getHours();
         const currentMinutes = now.getMinutes();
         // Freeze modifications from 10:30 PM to 6:59 AM (inclusive of 10:30 PM)
-        const isFrozen = (currentHour === 22 && currentMinutes >= 30) || currentHour >= 23 || currentHour < 7;
+        const isFrozen = (currentHour === 23 && currentMinutes >= 30) || currentHour >= 23 || currentHour < 7;
         setCanModify(!isFrozen);
 
         const deadline = new Date();
@@ -350,7 +350,7 @@ const Subscribe = () => {
                 <span className="modify-notice">
                     <FaClock /> {canModify ? `Modify before ${timeLeft}` : 'Modifications paused'}
                 </span>
-                <Link to="/consumer-dashboard" className="market-link">Back to Dashboard</Link>
+               
             </div>
 
             <div className="carousel-container">

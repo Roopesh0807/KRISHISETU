@@ -147,7 +147,10 @@ const { verifyToken, authenticate, farmerOnly } = require('./src/middlewares/aut
 const httpServer = require("http").createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: [
+      "http://localhost:3000", 
+      "https://krishisetur.netlify.app"
+    ],
     methods: ["GET", "POST"],
     credentials: true
   },
@@ -161,11 +164,22 @@ const router = express.Router();
 const { authMiddleware } = require("./src/middlewares/authMiddleware"); // your renamed one
 
 // ✅ PROPER CORS SETUP
+const allowedOrigins = [
+  "http://localhost:3000", 
+  "https://krishisetur.netlify.app"
+];
+
 const corsOptions = {
-  origin: "http://localhost:3000", // your React app
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, origin);  // ✅ Echo the actual origin
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-  credentials: true, // allow cookies and sessions
+  credentials: true,
   optionsSuccessStatus: 200
 };
 const crypto = require('crypto');
@@ -706,6 +720,7 @@ app.use((req, res, next) => {
 "/api/farmers",
 "/api/products",
 "/api/agmarknet-prices",
+"/api/contact",
     // Add more public routes if needed
   ];
 
@@ -1089,14 +1104,15 @@ io.on("connection", (socket) => {
 
 
 const mysql = require("mysql");
-
-
-const querydatabase = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "krishisetur",
-});
+//
+const urlDB = 'mysql://${process.env.MYSQLUSER}:${process.env.MYSQLPASSWORD}@${process.env.MYSQLHOST}:${process.env.MYSQLPORT}/${process.env.MYSQLDATABASE}'
+const querydatabase = mysql.createConnection(urlDB);
+// const querydatabase = mysql.createConnection({
+//   host: process.env.DB_HOST,
+//   user: process.env.DB_USER,
+//   password: process.env.DB_PASSWORD,
+//   database: process.env.DB_DATABASE,
+// });
 
 querydatabase.connect((err) => {
   if (err) {
@@ -2947,11 +2963,67 @@ app.post("/api/farmerregister", async (req, res) => {
 });
 //farmerlogin
 
+// app.post("/api/farmerlogin", async (req, res) => {
+//   const { emailOrPhone, password } = req.body;
+
+//   try {
+//     // 1. Find the farmer by email or phone
+//     const results = await queryDatabase(
+//       "SELECT farmer_id, first_name, last_name, email, phone_number, password FROM farmerregistration WHERE email = ? OR phone_number = ?",
+//       [emailOrPhone, emailOrPhone]
+//     );
+
+//     if (results.length === 0) {
+//       return res.status(401).json({ success: false, message: "Invalid credentials" });
+//     }
+
+//     const user = results[0];
+
+//     // 2. Compare hashed password with bcrypt
+//     const isPasswordValid = await bcrypt.compare(password, user.password);
+    
+//     if (!isPasswordValid) {
+//       return res.status(401).json({ success: false, message: "Invalid password" });
+//     }
+
+//     // 3. Generate JWT Token
+//     const token = jwt.sign(
+//       {
+//         farmer_id: user.farmer_id,
+//         userType: "farmer",
+//         email: user.email
+//       },
+//       process.env.JWT_SECRET,
+//       { expiresIn: "8760h" }
+//     );
+
+//     // 4. Send successful response
+//     res.json({
+//       success: true,
+//       token,
+//       farmer_id: user.farmer_id,
+//       full_name: `${user.first_name} ${user.last_name}`,
+//       email: user.email,
+//       phone_number: user.phone_number,
+//       first_name: user.first_name,
+//       last_name: user.last_name,
+//     });
+    
+//   } catch (err) {
+//     console.error("Farmer Login Error:", err);
+//     res.status(500).json({ 
+//       success: false, 
+//       message: "Internal server error",
+//       error: err.message 
+//     });
+//   }
+// });
+// Farmer Login
 app.post("/api/farmerlogin", async (req, res) => {
   const { emailOrPhone, password } = req.body;
 
   try {
-    // 1. Find the farmer by email or phone
+    // 1. Find farmer by email or phone
     const results = await queryDatabase(
       "SELECT farmer_id, first_name, last_name, email, phone_number, password FROM farmerregistration WHERE email = ? OR phone_number = ?",
       [emailOrPhone, emailOrPhone]
@@ -2963,25 +3035,24 @@ app.post("/api/farmerlogin", async (req, res) => {
 
     const user = results[0];
 
-    // 2. Compare hashed password with bcrypt
+    // 2. Compare hashed password
     const isPasswordValid = await bcrypt.compare(password, user.password);
-    
     if (!isPasswordValid) {
       return res.status(401).json({ success: false, message: "Invalid password" });
     }
 
-    // 3. Generate JWT Token
+    // 3. Generate JWT token
     const token = jwt.sign(
       {
         farmer_id: user.farmer_id,
         userType: "farmer",
-        email: user.email
+        email: user.email,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "8760h" }
+      { expiresIn: "8760h" } // 1 year
     );
 
-    // 4. Send successful response
+    // 4. Send response
     res.json({
       success: true,
       token,
@@ -2992,13 +3063,13 @@ app.post("/api/farmerlogin", async (req, res) => {
       first_name: user.first_name,
       last_name: user.last_name,
     });
-    
+
   } catch (err) {
     console.error("Farmer Login Error:", err);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: "Internal server error",
-      error: err.message 
+      error: err.message,
     });
   }
 });

@@ -32,7 +32,7 @@ function MemberCommunityPage() {
         
         // Fetch community details
         const communityRes = await fetch(
-          `http://localhost:5000/api/community/${communityId}`,{
+          `${process.env.REACT_APP_BACKEND_URL}/api/community/${communityId}`,{
             headers: { 
               'Authorization': `Bearer ${consumer.token}`
             },
@@ -44,7 +44,7 @@ function MemberCommunityPage() {
 
         // Fetch members
         const membersRes = await fetch(
-          `http://localhost:5000/api/community/${communityId}/members`,{
+          `${process.env.REACT_APP_BACKEND_URL}/api/community/${communityId}/members`,{
             headers: { 
               'Authorization': `Bearer ${consumer.token}`
             },

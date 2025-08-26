@@ -76,7 +76,7 @@ const FarmerProfile = () => {
         setLoading(true);
         
         const response = await axios.get(
-          `http://localhost:5000/api/farmerprofile/${farmer_id}`,
+          `${process.env.REACT_APP_BACKEND_URL}/api/farmerprofile/${farmer_id}`,
           {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -99,11 +99,11 @@ const FarmerProfile = () => {
           ...farmerData.personal,
           dob: farmerData.personal.dob ? new Date(farmerData.personal.dob).toISOString().split('T')[0] : "",
           profile_photo: farmerData.personal.profile_photo ? 
-          `http://localhost:5000${farmerData.personal.profile_photo}${cacheBuster}` : null,
+          `${process.env.REACT_APP_BACKEND_URL}${farmerData.personal.profile_photo}${cacheBuster}` : null,
         aadhaar_proof: farmerData.personal.aadhaar_proof ? 
-          `http://localhost:5000${farmerData.personal.aadhaar_proof}${cacheBuster}` : null,
+          `${process.env.REACT_APP_BACKEND_URL}${farmerData.personal.aadhaar_proof}${cacheBuster}` : null,
         bank_proof: farmerData.personal.bank_proof ? 
-          `http://localhost:5000${farmerData.personal.bank_proof}${cacheBuster}` : null
+          `${process.env.REACT_APP_BACKEND_URL}${farmerData.personal.bank_proof}${cacheBuster}` : null
         } : {
           dob: "",
           gender: "",
@@ -203,7 +203,7 @@ const FarmerProfile = () => {
       formData.append('field', field);
       
       const res = await axios.post(
-        `http://localhost:5000/api/farmerprofile/${farmer_id}/upload-file`, 
+        `${process.env.REACT_APP_BACKEND_URL}/api/farmerprofile/${farmer_id}/upload-file`, 
         formData,
         {
           headers: {
@@ -251,7 +251,7 @@ const FarmerProfile = () => {
       formData.append('field', 'profile_photo');
       
       const res = await axios.post(
-        `http://localhost:5000/api/farmerprofile/${farmer_id}/upload-file`,
+        `${process.env.REACT_APP_BACKEND_URL}/api/farmerprofile/${farmer_id}/upload-file`,
         formData,
         {
           headers: {
@@ -282,7 +282,7 @@ const FarmerProfile = () => {
   const handleRemovePhoto = async () => {
     try {
       await axios.delete(
-        `http://localhost:5000/api/farmerprofile/${farmer_id}/remove-file`, 
+        `${process.env.REACT_APP_BACKEND_URL}/api/farmerprofile/${farmer_id}/remove-file`, 
         {
           data: { field: 'profile_photo' },
           headers: {
@@ -305,7 +305,7 @@ const FarmerProfile = () => {
   const handleRemoveFile = async (section, field) => {
     try {
       await axios.delete(
-        `http://localhost:5000/api/farmerprofile/${farmer_id}/remove-file`, 
+        `${process.env.REACT_APP_BACKEND_URL}/api/farmerprofile/${farmer_id}/remove-file`, 
         {
           data: { field },
           headers: {
@@ -340,7 +340,7 @@ const FarmerProfile = () => {
       // Determine the endpoint based on section
     const endpoint = section === 'personal' ? 'personal' : 'farm';
       await axios.put(
-        `http://localhost:5000/api/farmerprofile/${farmer_id}/${endpoint}`,
+       `${process.env.REACT_APP_BACKEND_URL}/api/farmerprofile/${farmer_id}/${endpoint}`,
         dataToSend,
         {
           headers: {
@@ -355,7 +355,7 @@ const FarmerProfile = () => {
         
     // Refresh the data after update
     const refreshResponse = await axios.get(
-      `http://localhost:5000/api/farmerprofile/${farmer_id}`,
+      `${process.env.REACT_APP_BACKEND_URL}/api/farmerprofile/${farmer_id}`,
       {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -650,7 +650,7 @@ const FarmerProfile = () => {
   {isFileField(key) ? (
     value ? (
       <a 
-        href={value.includes('http') ? value : `http://localhost:5000${value}`} 
+        href={value.includes('http') ? value : `${process.env.REACT_APP_BACKEND_URL}${value}`} 
         target="_blank" 
         rel="noopener noreferrer"
         className="farmer-profile-file-link"
@@ -733,7 +733,7 @@ const FarmerProfile = () => {
   {isFileField(key) ? (
     value ? (
       <a 
-        href={value.includes('http') ? value : `http://localhost:5000${value}`} 
+        href={value.includes('http') ? value : `${process.env.REACT_APP_BACKEND_URL}${value}`} 
         target="_blank" 
         rel="noopener noreferrer"
         className="farmer-profile-file-link"

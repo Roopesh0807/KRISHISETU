@@ -12,7 +12,7 @@ const MarketPrice = () => {
     setLoading(true);
     setError("");
 
-    const backendUrl = "http://localhost:5000/api/agmarknet-prices";
+    const backendUrl = `${process.env.REACT_APP_BACKEND_URL}/api/agmarknet-prices`;
 
     try {
       const response = await fetch(backendUrl);

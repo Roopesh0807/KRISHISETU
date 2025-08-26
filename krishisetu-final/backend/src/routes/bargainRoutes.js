@@ -12,18 +12,18 @@ const {
 } = require('../validators/bargainValidators');
 
 // ✅ CORS Middleware
-router.use((req, res, next) => {
-  res.header({
-    'Access-Control-Allow-Origin': 'http://localhost:3000',
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Allow-Credentials': true
-  });
-  next();
-});
+// router.use((req, res, next) => {
+//   res.header({
+//     'Access-Control-Allow-Origin': 'http://localhost:3000',
+//     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+//     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+//     'Access-Control-Allow-Credentials': true
+//   });
+//   next();
+// });
 
-// ✅ Preflight request handling
-router.options('*', (req, res) => res.sendStatus(200));
+// // ✅ Preflight request handling
+// router.options('*', (req, res) => res.sendStatus(200));
 
 // 🛒 Consumer Bargaining Routes
 router.post('/initiate', authenticate, consumerOnly, bargainController.initiateBargain);

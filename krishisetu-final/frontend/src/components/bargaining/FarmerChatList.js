@@ -192,7 +192,7 @@ const fetchSessions = useCallback(async () => {
     const farmerId = decodedToken.farmer_id;
     console.log(`Fetching sessions for farmer: ${farmerId}`);
 
-    const apiUrl = `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/bargain/farmers/${farmerId}/sessions`;
+    const apiUrl = `${process.env.REACT_APP_BACKEND_URL}/api/bargain/farmers/${farmerId}/sessions`;
     console.log("API Endpoint:", apiUrl);
 
     const response = await fetch(apiUrl, {
@@ -314,7 +314,7 @@ const fetchSessions = useCallback(async () => {
         }
     
         console.log("Initializing new socket connection");
-        socket.current = io(process.env.REACT_APP_API_BASE_URL || "http://localhost:5000", {
+        socket.current = io(`${process.env.REACT_APP_BACKEND_URL }`, {
           auth: { token },
           query: { farmerId },
           transports: ['websocket'],

@@ -30,8 +30,8 @@ const ContactUs = () => {
       await handleSubmit(e);
       
       // Save to database
-      const response = await axios.post("http://localhost:5000/api/contact", formData);
-      
+      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/contact`, formData);
+
       console.log("Message saved to database:", response.data);
       setSubmitSuccess(true);
       setFormData({ name: "", email: "", phone: "", message: "" });

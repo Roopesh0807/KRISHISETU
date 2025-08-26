@@ -19,7 +19,7 @@ const FarmerBargainOrders = () => {
       try {
         console.log(`Fetching orders for farmer: ${farmer.farmer_id}`);
         const response = await fetch(
-          `http://localhost:5000/api/farmer/${farmer.farmer_id}/bargain-orders`,
+          `${process.env.REACT_APP_BACKEND_URL}/api/farmer/${farmer.farmer_id}/bargain-orders`,
           {
             headers: {
               'Authorization': `Bearer ${token}`

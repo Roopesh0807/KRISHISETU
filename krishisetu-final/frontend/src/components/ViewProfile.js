@@ -25,7 +25,7 @@ const ViewProfile = () => {
 
   useEffect(() => {
     axios
-      .get("http://localhost:5000/api/farmer-profile")
+      .get(`${process.env.REACT_APP_BACKEND_URL}/api/farmer-profile`)
       .then((response) => {
         setProfile(response.data);
       })

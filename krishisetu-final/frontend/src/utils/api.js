@@ -1,5 +1,5 @@
 export const fetchProducts = async () => {
-    const endpoint = 'http://localhost:5000/api/products'; // Replace this with your actual API URL
+    const endpoint = `${process.env.REACT_APP_BACKEND_URL}/api/products`; // Replace this with your actual API URL
     try {
       const response = await fetch(endpoint);
   

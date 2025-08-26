@@ -18,7 +18,7 @@ const ConsumerBargainOrders = () => {
     const fetchOrders = async () => {
       try {
         const response = await fetch(
-          `http://localhost:5000/api/consumer/${consumer.consumer_id}/bargain-orders`,
+          `${process.env.REACT_APP_BACKEND_URL}/api/consumer/${consumer.consumer_id}/bargain-orders`,
           {
             headers: {
               'Authorization': `Bearer ${token}`

@@ -72,7 +72,7 @@ const ConsumerRegister = () => {
     setLoading(true);
   
     try {
-      const response = await fetch("http://localhost:5000/api/consumerregister", {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/consumerregister`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",

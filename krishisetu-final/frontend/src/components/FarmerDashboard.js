@@ -45,7 +45,7 @@ const Dashboard = () => {
 
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/getFarmerDetails?farmer_id=${farmer_id}`,
+        `${process.env.REACT_APP_BACKEND_URL}/api/getFarmerDetails?farmer_id=${farmer_id}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -120,7 +120,7 @@ const Dashboard = () => {
         }
 
         const response = await axios.get(
-          `http://localhost:5000/api/farmer/orders/${farmer_id}`,
+          `${process.env.REACT_APP_BACKEND_URL}/api/farmer/orders/${farmer_id}`,
           {
             headers: {
               "Content-Type": "application/json",

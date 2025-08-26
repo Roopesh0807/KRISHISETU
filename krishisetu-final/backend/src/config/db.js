@@ -4,16 +4,15 @@ const { Sequelize } = require("sequelize");
 
 // Create MySQL connection pool
 const pool = mysql.createPool({
-  host: "localhost",
-  user: "root",
-  password: "", // Add your MySQL password here
-  database: "krishisetur",
-  port: process.env.DB_PORT || 3306,
+  host: process.env.MYSQLHOST || "localhost",
+  user: process.env.MYSQLUSER || "root",
+  password: process.env.MYSQLPASSWORD || "",
+  database: process.env.MYSQLDATABASE || "railway",
+  port: process.env.MYSQLPORT || 3306,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
 });
-
 // Function to execute queries
 const queryDatabase = async (sql, values) => {
   try {
@@ -37,12 +36,18 @@ const testConnection = async () => {
 
 testConnection();
 
-// Sequelize configuration
-const sequelize = new Sequelize("krishisetur", "root", "", {
-  host: "localhost",
-  dialect: "mysql",
-  logging: false, // Set to true if you want query logs
-});
+
+const sequelize = new Sequelize(
+  process.env.MYSQLDATABASE || "railway",   // database name
+  process.env.MYSQLUSER || "root",             // db user
+  process.env.MYSQLPASSWORD || "",             // db password
+  {
+    host: process.env.MYSQLHOST || "localhost",
+    port: process.env.MYSQLPORT || 3306,
+    dialect: "mysql",
+    logging: false, // set to true if you want query logs
+  }
+);
 
 sequelize
   .authenticate()

@@ -20,8 +20,8 @@
 
 /* Main Container - Adjusted for fixed navbar */
 .ks-cart-container {
-  padding-top: 100px; /* Adjusted for navbar height */
-  min-height: calc(100vh - 100px);
+  padding-top: 120px;
+  min-height: calc(100vh - 120px);
   background-color: var(--light-gray);
   display: flex;
   justify-content: center;
@@ -38,6 +38,9 @@
   width: 100%;
   max-width: 1100px;
   border: 1px solid var(--medium-gray);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 20px;
 }
 
 /* Header Section */
@@ -45,6 +48,10 @@
   border-bottom: 1px solid var(--medium-gray);
   padding-bottom: 20px;
   margin-bottom: 25px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .ks-cart-title {
@@ -70,6 +77,36 @@
   font-size: 0.9rem;
   font-weight: 500;
   margin-left: 10px;
+}
+
+/* Dropdown Selector */
+.cart-selector-container {
+  min-width: 220px;
+}
+
+.cart-selector {
+  width: 100%;
+  padding: 10px 15px;
+  border-radius: 8px;
+  border: 1px solid var(--medium-gray);
+  background: var(--light-gray);
+  color: var(--text-dark);
+  font-size: 1rem;
+  cursor: pointer;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 15px center;
+  background-size: 12px;
+}
+
+/* Cart Content Grid */
+.ks-cart-content-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
 }
 
 /* Empty Cart */
@@ -182,7 +219,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding-right: 40px; /* Space for remove button */
+  padding-right: 40px;
 }
 
 .ks-cart-item-info {
@@ -473,19 +510,33 @@
   transform: translateY(-2px);
 }
 
+.ks-all-carts-checkout {
+  display: flex;
+  justify-content: center;
+  padding-top: 20px;
+}
+
+.ks-btn-all-checkout {
+  width: auto;
+  min-width: 300px;
+}
+
 /* Responsive Design */
 @media (max-width: 992px) {
   .ks-cart-container {
     padding-top: 90px;
   }
-  
   .ks-cart-item {
     gap: 20px;
   }
-  
   .ks-cart-item-img-container {
     width: 140px;
     height: 140px;
+  }
+  .ks-cart-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
   }
 }
 
@@ -494,47 +545,38 @@
     padding: 15px;
     padding-top: 85px;
   }
-  
   .ks-cart-card {
     padding: 20px;
   }
-  
   .ks-cart-item {
     flex-direction: column;
     gap: 15px;
     padding: 15px;
   }
-  
   .ks-cart-item-img-container {
     width: 100%;
     height: 180px;
   }
-  
   .ks-cart-item-details {
     padding-right: 0;
     gap: 15px;
   }
-  
   .ks-cart-item-controls {
     flex-direction: column;
     align-items: flex-start;
     gap: 15px;
   }
-  
   .ks-cart-item-total-container {
     width: 100%;
     align-items: flex-end;
   }
-  
   .ks-remove-btn {
     top: 15px;
     right: 15px;
   }
-  
   .ks-cart-actions {
     flex-direction: column-reverse;
   }
-  
   .ks-btn-checkout,
   .ks-btn-continue {
     width: 100%;
@@ -545,40 +587,14 @@
   .ks-cart-title {
     font-size: 1.5rem;
   }
-  
   .ks-cart-count {
     margin-left: 0;
   }
-  
   .ks-summary-row {
     flex-direction: column;
     gap: 5px;
   }
-  
   .ks-summary-row span:last-child {
     text-align: right;
-  }
-}
-
-/* Adjust the main container padding to account for navbar3 */
-.ks-cart-container {
-  padding-top: 120px; /* Increased from 100px to account for navbar3 height */
-  min-height: calc(100vh - 120px); /* Adjusted to match */
-  /* ... rest of the styles remain the same ... */
-}
-
-/* For mobile views where navbar might be smaller */
-@media (max-width: 768px) {
-  .ks-cart-container {
-    padding-top: 100px; /* Slightly less for mobile */
-    min-height: calc(100vh - 100px);
-  }
-}
-
-/* For very small screens */
-@media (max-width: 480px) {
-  .ks-cart-container {
-    padding-top: 90px;
-    min-height: calc(100vh - 90px);
   }
 }
