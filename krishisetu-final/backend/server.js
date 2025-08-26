@@ -2447,6 +2447,37 @@ app.get("/api/addresses/:consumer_id", async (req, res) => {
   }
 });
 
+
+// Secure preview route
+app.get("/api/secure-file/*", auth.authenticate, (req, res) => {
+  try {
+    // Extract relative path after /api/secure-file/
+    const relativePath = req.params[0];
+    const filePath = path.join(__dirname, "uploads", relativePath);
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ message: "File not found" });
+    }
+
+    const ext = path.extname(filePath).toLowerCase();
+    const contentTypes = {
+      ".pdf": "application/pdf",
+      ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".png": "image/png",
+    };
+
+    const contentType = contentTypes[ext] || "application/octet-stream";
+    res.setHeader("Content-Type", contentType);
+
+    // Stream for preview (inline in browser)
+    fs.createReadStream(filePath).pipe(res);
+  } catch (err) {
+    console.error("Secure file error:", err);
+    res.status(500).json({ message: "Error serving file" });
+  }
+});
+
 // Add or update consumer address
 app.post("/api/addresses/:consumer_id", async (req, res) => {
   try {
