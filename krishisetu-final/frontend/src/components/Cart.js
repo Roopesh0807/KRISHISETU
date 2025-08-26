@@ -198,7 +198,7 @@ const CartPage = () => {
       setError("All your carts are empty!");
       return;
     }
-    navigate("/combined-checkout", { state: { krishiCart, bargainCart, communityCart } });
+    navigate("/orderpage", { state: { krishiCart, bargainCart, communityCart } });
   };
 
   const renderCartItems = () => {
