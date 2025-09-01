@@ -1,0 +1,139 @@
+
+/* src/pages/CombinedOrderPage.css */
+
+.combined-order-page-container {
+    padding: 20px;
+    font-family: Arial, sans-serif;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding-top: 100px; /* Adjust for fixed header */
+}
+
+.combined-order-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 30px;
+}
+
+.products-list-container {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.product-item-combined {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    position: relative;
+}
+
+.product-item-combined:last-child {
+    border-bottom: none;
+}
+
+.product-source-tag {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: #e8f5e9;
+    color: #1b5e20;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    font-weight: bold;
+}
+
+.product-image-combined {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-right: 15px;
+}
+
+.product-details-combined {
+    flex-grow: 1;
+}
+
+.product-total-combined {
+    text-align: right;
+    font-weight: bold;
+    color: #2e7d32;
+}
+
+.summary-payment-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.summary-card-combined {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.address-details-combined p {
+    margin: 5px 0;
+}
+
+.payment-options-combined label {
+    display: block;
+    margin-bottom: 10px;
+}
+
+.summary-row-combined {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    padding-bottom: 5px;
+    border-bottom: 1px dashed #ddd;
+}
+
+.summary-row-combined.total {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #1b5e20;
+    border-bottom: none;
+}
+
+.checkout-btn-combined {
+    width: 100%;
+    padding: 15px;
+    background-color: #2e7d32;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.checkout-btn-combined:hover {
+    background-color: #1b5e20;
+}
+
+.loading-state {
+    text-align: center;
+    padding: 50px 0;
+    color: #616161;
+}
+
+.error-message-container {
+    color: #d32f2f;
+    background-color: #ffebee;
+    padding: 20px;
+    border-radius: 8px;
+    margin-top: 20px;
+}
+
+@media (max-width: 768px) {
+    .combined-order-grid {
+        grid-template-columns: 1fr;
+    }
+}

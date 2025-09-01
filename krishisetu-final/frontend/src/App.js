@@ -62,7 +62,7 @@ import CommunityOrderPage from "./pages/CommunityOrderPage";
 import PaymentSuccess from './components/PaymentSuccess';
 import PaymentFailed from './components/PaymentFailed';
 import GoogleTranslate from "./components/GoogleTranslate";
-
+import CombinedOrderPage from './components/CombinedOrderPage';
 
 import MyOrders from './components/MyOrders';
 import Transactions from './components/Transactions';
@@ -264,6 +264,7 @@ const Main = () => {
 <Route path="/payment-failed" element={<PaymentFailed />} />
 
 
+<Route path="/combined-checkout" element={<CombinedOrderPage />} />
 
 
         <Route path="/bargain" element={<ConsumerChatList />} />
