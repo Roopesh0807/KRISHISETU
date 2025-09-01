@@ -269,7 +269,7 @@ const handleRazorpayPayment = async () => {
         const quantity_total = allProducts.reduce((total, p) => total + (p.quantity || 0), 0);
 
         // 2. Create the combined order in your database
-        const orderResponse = await fetch("http://localhost:5000/api/place-order", {
+        const orderResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/place-order`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -307,7 +307,7 @@ const handleRazorpayPayment = async () => {
         }
 
         // 3. Create Razorpay order
-        const razorpayResponse = await fetch('http://localhost:5000/api/razorpay/create-order', {
+        const razorpayResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/razorpay/create-order`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -341,7 +341,7 @@ const handleRazorpayPayment = async () => {
             handler: async (response) => {
                 try {
                     // 5. Verify payment
-                    const verificationResponse = await fetch('http://localhost:5000/api/razorpay/verify', {
+                    const verificationResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/razorpay/verify`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
