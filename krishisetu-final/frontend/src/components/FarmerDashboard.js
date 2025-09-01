@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
+import FarmerOnboardingTour from './FarmerOnboardingTour'; // Add this line
 import { Line } from "react-chartjs-2";
 import { useTranslation } from "react-i18next";
 import "./../styles/FarmerDashboard.css";
@@ -168,6 +169,8 @@ const Dashboard = () => {
 
   return (
     <div className="ks-farmer-dashboard">
+         {/* Add the tour component here */}
+        <FarmerOnboardingTour /> 
       <div className="ks-dashboard-content">
         {/* Welcome Section */}
         <div className="ks-welcome-section">

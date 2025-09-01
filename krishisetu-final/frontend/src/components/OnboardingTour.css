@@ -1,0 +1,423 @@
+/*
+ * =======================================================
+ * Onboarding Tour Styles for Krishisetu
+ * Design Philosophy: Organic, Earthy, Handcrafted
+ * =======================================================
+ */
+
+/* --- Hiding the Default Beacon --- */
+.react-joyride__beacon {
+    display: none !important;
+}
+
+/* --- General Tooltip Styling: The "Paper" Effect --- */
+.react-joyride__tooltip {
+    font-family: 'Poppins', sans-serif;
+    max-width: 420px;
+    background-color: #fffaf0; /* A soft, warm off-white like parchment */
+    border: none;
+    border-radius: 18px; /* Softer, more organic corners */
+    box-shadow: 0 12px 25px rgba(0, 0, 0, 0.2); /* Deep shadow for a floating effect */
+    color: #4b3832; /* Rich, earthy brown */
+    padding: 2.5rem;
+    position: relative;
+    overflow: hidden;
+    filter: drop-shadow(0 0 5px rgba(0, 0, 0, 0.1));
+    animation: fadeInScale 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    z-index: 10000;
+}
+
+/* --- Hand-Drawn "Sketch" Border --- */
+.react-joyride__tooltip::before {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    width: calc(100% + 10px);
+    height: calc(100% + 10px);
+    border: 3px dashed #b7d6a5; /* Dashed line for a sketch-like border */
+    border-radius: 20px;
+    box-sizing: border-box;
+    z-index: 1;
+    pointer-events: none; /* Ensure it doesn't block clicks */
+}
+
+/* --- Decorative Top-Right Badge: A Sun and a Sprout --- */
+.react-joyride__tooltip::after {
+    content: '☀️'; /* Sun emoji for life and growth */
+    font-size: 3.5rem;
+    position: absolute;
+    top: -20px;
+    right: -20px;
+    opacity: 0.15;
+    transform: rotate(-15deg);
+    transition: all 0.5s ease-out;
+    pointer-events: none; /* FIX: Prevent this element from intercepting clicks */
+}
+.react-joyride__tooltip:hover::after {
+    content: '🌱'; /* Sprout on hover */
+    opacity: 0.3;
+    transform: rotate(0deg) scale(1.1);
+}
+
+/* --- Custom Close Button in Tooltip --- */
+.react-joyride__tooltip .react-joyride__close-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 1.5rem;
+    color: #a5d6a7;
+    transition: color 0.2s ease-in-out;
+    z-index: 10;
+}
+
+.react-joyride__tooltip .react-joyride__close-btn:hover {
+    color: #2b9047;
+}
+
+/* --- Tooltip Header (Title): Root-inspired design --- */
+.react-joyride__tooltip h4 {
+    color: #2e8b57; /* A deeper forest green */
+    font-family: 'Merriweather', serif;
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+    position: relative;
+    z-index: 2;
+}
+
+/* Root-like underline for the title */
+.react-joyride__tooltip h4::before {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(to right, #a5d6a7, #e6b26c); /* Green to brown gradient */
+    border-radius: 2px;
+    opacity: 0.8;
+}
+
+/* --- Tooltip Content (Body): Clear and inviting --- */
+.react-joyride__tooltip p {
+    font-family: 'Source Sans Pro', sans-serif;
+    font-size: 1.1rem;
+    line-height: 1.8;
+    margin-bottom: 1.5rem;
+    position: relative;
+    z-index: 2;
+}
+
+/* --- Tour Navigation Buttons: Buttons that feel like wood or stone --- */
+.react-joyride__buttons {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 15px;
+    position: relative;
+    z-index: 3;
+}
+
+.react-joyride__buttons button {
+    font-size: 1rem;
+    font-weight: 600;
+    padding: 12px 28px;
+    border: none;
+    border-radius: 30px; /* Fully rounded for a pebble-like shape */
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    transform: perspective(1px) translateZ(0); /* Hardware acceleration */
+}
+
+/* 'Back' Button: A more subtle, soil-like look */
+.react-joyride__buttons button:first-child {
+    background-color: #d3b48f; /* A light brown for soil */
+    color: #4b3832;
+    border: 2px solid #a88663;
+}
+
+.react-joyride__buttons button:first-child:hover {
+    background-color: #a88663;
+    color: white;
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.25);
+    transform: translateY(-2px);
+}
+
+/* 'Next' and 'Done' Buttons: Lush green and impactful */
+.react-joyride__buttons button:not(:first-child) {
+    background: linear-gradient(135deg, #4CAF50, #2e8b57);
+    color: #ffffff;
+    box-shadow: 0 6px 15px rgba(46, 139, 87, 0.3);
+}
+
+.react-joyride__buttons button:not(:first-child):hover {
+    background: linear-gradient(135deg, #2e8b57, #1e6c38);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* --- Skip button: Integrated naturally --- */
+.react-joyride__tooltip .react-joyride__skip {
+    color: #92b08a; /* Soft green */
+    text-decoration: underline;
+    font-family: 'Source Sans Pro', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    position: absolute;
+    top: 20px;
+    right: 25px;
+    transition: color 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    z-index: 3;
+}
+.react-joyride__tooltip .react-joyride__skip:hover {
+    color: #2e8b57;
+}
+
+/* --- Manual Tour Restart Button: A hidden gem --- */
+.tour-restart-btn {
+    position: fixed;
+    bottom: 40px;
+    left: 9px;
+    z-index: 9999;
+    background-color: #cbeeba; /* Soil-like brown */
+    color: #2e8b57;
+    border: 3px solid #2e8b57; /* Strong green border */
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s ease-in-out, box-shadow 0.3s ease;
+}
+
+.tour-restart-btn:hover {
+    transform: scale(1.1) rotate(10deg);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+.tour-restart-btn .fa-info-circle {
+    font-size: 30px;
+    color: #2e8b57;
+}
+
+/* --- Keyframe Animations --- */
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* The CSS below is from a previous prompt and seems to have been added at the end of the file.
+   It has some conflicting styles, so I've commented it out to avoid issues.
+   It's better to keep all styles for a single component together for maintainability. */
+/* src/styles/OnboardingTour.css */
+/* --- Manual Tour Restart Button --- */
+/*.tour-restart-btn {
+    position: fixed;
+    bottom: 35px;
+    left: 10px;
+    z-index: 9999;
+    background-color: #a5d6a7;
+    color: #1a7536;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    transition: transform 0.3s ease-in-out, background-color 0.2s;
+}
+
+.tour-restart-btn:hover {
+    transform: scale(1.1);
+    background-color: #81c784;
+}
+
+.tour-restart-btn .fa-info-circle {
+    font-size: 26px;
+}
+
+/* --- Hiding the Default Joyride Beacon --- */
+/*.react-joyride__beacon {
+    display: none !important;
+}
+
+/* --- General Tooltip Styling --- */
+/*.react-joyride__tooltip {
+    font-family: 'Arial', sans-serif;
+    max-width: 340px;
+    background-color: #f7fff5;
+    border: 1px solid #c8e6c9;
+    border-radius: 12px;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+    color: #4a4a4a;
+    padding: 1.5rem;
+    position: relative;
+    overflow: hidden;
+}
+
+/* --- Themed Icon for the Tooltip --- */
+/*.react-joyride__tooltip::before {
+    content: '🌱';
+    font-size: 2.5rem;
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    opacity: 0.3;
+    z-index: -1;
+}
+
+/* --- Tooltip Header (Title) --- */
+/*.react-joyride__tooltip h4 {
+    color: #2b9047;
+    font-size: 1.35rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    border-bottom: 2px solid #a5d6a7;
+    padding-bottom: 0.5rem;
+}
+
+/* --- Tooltip Content (Body) --- */
+/*.react-joyride__tooltip p {
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 1.25rem;
+}
+
+/* --- Tour Navigation Buttons --- */
+/*.react-joyride__buttons button {
+    font-size: 1rem;
+    font-weight: 600;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* 'Back' Button */
+/*.react-joyride__buttons button:first-child {
+    background-color: transparent;
+    color: #888;
+    margin-right: 0.5rem;
+}
+
+.react-joyride__buttons button:first-child:hover {
+    color: #2b9047;
+}
+
+/* 'Next' and 'Done' Buttons */
+/*.react-joyride__buttons button:not(:first-child) {
+    background-color: #2b9047;
+    color: #ffffff;
+    box-shadow: 0 4px 8px rgba(43, 144, 71, 0.3);
+}
+
+.react-joyride__buttons button:not(:first-child):hover {
+    background-color: #1a7536;
+    box-shadow: 0 6px 16px rgba(26, 117, 54, 0.4);
+    transform: translateY(-2px);
+}
+
+/* 'Skip' button in the tooltip header */
+/*.react-joyride__tooltip .react-joyride__skip {
+    color: #a5d6a7;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    transition: color 0.2s ease;
+}
+
+.react-joyride__tooltip .react-joyride__skip:hover {
+    color: #2b9047;
+}*/
+
+
+
+/* src/styles/OnboardingTour.css */
+
+/* --- Final Step Buttons Container --- */
+.final-step-buttons {
+    display: flex;
+    justify-content: center; /* Center the buttons */
+    align-items: center;
+    gap: 15px; /* Spacing between the buttons */
+    margin-top: 20px;
+    flex-wrap: wrap; /* Allows buttons to wrap on smaller screens */
+}
+
+/* --- "Go to Profile" Button --- */
+.go-to-profile-btn {
+    font-family: 'Poppins', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    background-color: #2e8b57; /* Deep forest green */
+    color: #ffffff;
+    box-shadow: 0 4px 8px rgba(46, 139, 87, 0.3);
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.go-to-profile-btn:hover {
+    background-color: #216340; /* Darker green on hover */
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(46, 139, 87, 0.4);
+}
+
+/* --- "Fill Later" Button --- */
+.fill-later-btn {
+    font-family: 'Poppins', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    padding: 10px 20px;
+    border: 2px solid #a5d6a7; /* Border with a light green from your palette */
+    border-radius: 25px;
+    cursor: pointer;
+    background-color: transparent;
+    color: #4b3832; /* Earthy brown text */
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.fill-later-btn:hover {
+    background-color: #f0f8e9; /* Very light green background on hover */
+    color: #2e8b57;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* --- Hiding the Default Joyride Buttons on the Final Step --- */
+.react-joyride__tooltip .react-joyride__buttons {
+    display: none;
+}

@@ -36,6 +36,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
           </button>
 
           <button
+           id="dashboard-tour-target" // Add this ID here
             onClick={() => navigateWithFarmerId('/farmer-dashboard')}
             className={isActive('/farmer-dashboard') ? 'active' : ''}
             title="Dashboard"
