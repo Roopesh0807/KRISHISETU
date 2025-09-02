@@ -2454,26 +2454,27 @@ app.get("/api/secure-file", auth.authenticate, (req, res) => {
     return res.status(400).json({ message: "File path is required" });
   }
 
-  // ✅ If full URL, strip domain and keep only /uploads/...
   if (filePath.startsWith("http")) {
     try {
       const parsed = new URL(filePath);
-      filePath = parsed.pathname;  // e.g. "/uploads/farmer-documents/xyz.pdf"
+      filePath = parsed.pathname; 
     } catch (e) {
       return res.status(400).json({ message: "Invalid file path" });
     }
   }
 
-  const fullPath = path.join(__dirname, filePath);
+  // ✅ Ensure we always serve from public/
+  const fullPath = path.join(__dirname, "public", filePath);
 
   if (!fs.existsSync(fullPath)) {
     return res.status(404).json({ message: "File not found" });
   }
 
-  res.setHeader("Content-Type", "application/pdf"); 
+  res.setHeader("Content-Type", "application/pdf");
   res.setHeader("Content-Disposition", "inline");
   fs.createReadStream(fullPath).pipe(res);
 });
+
 
 
 
