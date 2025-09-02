@@ -63,6 +63,26 @@ const FarmerProfile = () => {
       contact_no: ""
     }
   });
+const handleFileOpen = async (filePath) => {
+  try {
+    const res = await axios.get(
+      `${process.env.REACT_APP_BACKEND_URL}/api/secure-file?path=${encodeURIComponent(filePath)}`,
+      {
+        responseType: "blob",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      }
+    );
+
+    const fileBlob = new Blob([res.data]);
+    const fileURL = window.URL.createObjectURL(fileBlob);
+    window.open(fileURL, "_blank");
+  } catch (err) {
+    console.error("Error opening file:", err);
+    alert("Unable to open file");
+  }
+};
 
   const toggleSidebar = () => {
     setSidebarCollapsed(!sidebarCollapsed);
@@ -649,14 +669,14 @@ const FarmerProfile = () => {
 <div className={`farmer-profile-detail-value ${isFileField(key) ? (value ? 'farmer-profile-uploaded' : 'farmer-profile-not-uploaded') : ''} ${value ? '' : 'farmer-profile-empty'}`}>
   {isFileField(key) ? (
     value ? (
-      <a 
-        href={`${process.env.REACT_APP_BACKEND_URL}/api/secure-file?path=${encodeURIComponent(value)}&token=${token}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="farmer-profile-file-link"
-      >
-        View File
-      </a>
+    <button
+  type="button"
+  onClick={() => handleFileOpen(value)}
+  className="farmer-profile-file-link"
+>
+  View File
+</button>
+
     ) : 'Not uploaded'
   ) : (value || 'Not provided')}
 </div>
@@ -733,14 +753,14 @@ const FarmerProfile = () => {
 <div className={`farmer-profile-detail-value ${isFileField(key) ? (value ? 'farmer-profile-uploaded' : 'farmer-profile-not-uploaded') : ''} ${value ? '' : 'farmer-profile-empty'}`}>
   {isFileField(key) ? (
     value ? (
-      <a 
-        href={`${process.env.REACT_APP_BACKEND_URL}/api/secure-file?path=${encodeURIComponent(value)}&token=${token}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="farmer-profile-file-link"
-      >
-        View File
-      </a>
+      <button
+  type="button"
+  onClick={() => handleFileOpen(value)}
+  className="farmer-profile-file-link"
+>
+  View File
+</button>
+
     ) : 'Not uploaded'
   ) : (value || 'Not provided')}
 </div>
