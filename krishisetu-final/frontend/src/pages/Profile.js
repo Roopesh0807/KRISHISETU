@@ -76,7 +76,7 @@ const handleFileOpen = async (filePath) => {
     }
 
     const response = await axios.get(
-      `${BACKEND}/api/secure-file?path=${encodeURIComponent(cleanPath)}`,
+      `${REACT_APP_BACKEND_URL}/api/secure-file?path=${encodeURIComponent(cleanPath)}`,
       {
         responseType: "blob",
         headers: {
