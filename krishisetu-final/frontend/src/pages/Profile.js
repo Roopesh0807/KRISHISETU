@@ -64,25 +64,36 @@ const FarmerProfile = () => {
     }
   });
 const handleFileOpen = async (filePath) => {
+  if (!filePath) return;
+
   try {
-    const res = await axios.get(
-      `${process.env.REACT_APP_BACKEND_URL}/api/secure-file?path=${encodeURIComponent(filePath)}`,
+    let cleanPath = filePath;
+
+    // ✅ If DB stored full URL, strip only the /uploads/... part
+    if (filePath.startsWith("http")) {
+      const urlObj = new URL(filePath);
+      cleanPath = urlObj.pathname;  // "/uploads/farmer-documents/xyz.pdf"
+    }
+
+    const response = await axios.get(
+      `${BACKEND}/api/secure-file?path=${encodeURIComponent(cleanPath)}`,
       {
         responseType: "blob",
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${localStorage.getItem("token")}`
         },
+        withCredentials: true
       }
     );
 
-    const fileBlob = new Blob([res.data]);
-    const fileURL = window.URL.createObjectURL(fileBlob);
+    const fileBlob = new Blob([response.data], { type: "application/pdf" });
+    const fileURL = URL.createObjectURL(fileBlob);
     window.open(fileURL, "_blank");
-  } catch (err) {
-    console.error("Error opening file:", err);
-    alert("Unable to open file");
+  } catch (error) {
+    console.error("Error opening file:", error);
   }
 };
+
 
   const toggleSidebar = () => {
     setSidebarCollapsed(!sidebarCollapsed);
