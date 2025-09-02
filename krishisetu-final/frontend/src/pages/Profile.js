@@ -742,8 +742,8 @@ const FarmerProfile = () => {
   {isFileField(key) ? (
     value ? (
       <a 
-        href={value.includes('http') ? value : `${process.env.REACT_APP_BACKEND_URL}${value}`} 
-        target="_blank" 
+        href={`${process.env.REACT_APP_BACKEND_URL}/api/secure-file?path=${encodeURIComponent(value)}&token=${token}`}
+        target="_blank"
         rel="noopener noreferrer"
         className="farmer-profile-file-link"
       >
@@ -752,6 +752,7 @@ const FarmerProfile = () => {
     ) : 'Not uploaded'
   ) : (value || 'Not provided')}
 </div>
+
                     </div>
                   ))}
                 </div>
