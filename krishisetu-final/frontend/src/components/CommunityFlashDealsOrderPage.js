@@ -58,7 +58,7 @@ const CommunityFlashDealsOrderPage = () => {
     const fetchConsumerProfile = async () => {
         if (!consumer?.consumer_id) return;
         try {
-            const response = await axios.get(`http://localhost:5000/api/consumerprofile/${consumer.consumer_id}`, {
+            const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/consumerprofile/${consumer.consumer_id}`, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             const data = response.data;
@@ -218,7 +218,7 @@ const CommunityFlashDealsOrderPage = () => {
         }
 
         try {
-            const response = await axios.post("http://localhost:5000/api/place-community-flash-deals-order", orderData, {
+            const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/place-community-flash-deals-order`, orderData, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
 
@@ -267,7 +267,7 @@ const CommunityFlashDealsOrderPage = () => {
 
         try {
             // First, create the order in your backend database
-            const orderResponse = await axios.post("http://localhost:5000/api/place-community-flash-deals-order", orderData, {
+            const orderResponse = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/place-community-flash-deals-order`, orderData, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
 
@@ -278,7 +278,7 @@ const CommunityFlashDealsOrderPage = () => {
             const internalOrderId = orderResponse.data.order_id; // Store the ID for later use
 
             // Next, create the Razorpay order
-            const razorpayResponse = await axios.post('http://localhost:5000/api/razorpay/create-order', {
+            const razorpayResponse = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/razorpay/create-order`, {
                 amount: finalAmount,
                 order_id: internalOrderId, // Pass your internal order ID
                 notes: { internal_order_id: internalOrderId, consumer_id: consumerProfile.consumer_id }
@@ -302,7 +302,7 @@ const CommunityFlashDealsOrderPage = () => {
                     // This handler is executed ONCE after successful payment
                     try {
                         const verificationResponse = await axios.post(
-                            'http://localhost:5000/api/razorpay/verify-community-flash-deals-order',
+                            `${process.env.REACT_APP_BACKEND_URL}/api/razorpay/verify-community-flash-deals-order`,
                             {
                                 razorpay_payment_id: response.razorpay_payment_id,
                                 razorpay_order_id: response.razorpay_order_id,
@@ -383,7 +383,7 @@ const CommunityFlashDealsOrderPage = () => {
                 pincode: newAddress.pincode,
                 address: fullAddress
             };
-            const response = await axios.put("http://localhost:5000/api/update-address", payload, {
+            const response = await axios.put(`${process.env.REACT_APP_BACKEND_URL}/api/update-address`, payload, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             if (response.data.success) {
