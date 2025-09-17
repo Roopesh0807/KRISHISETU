@@ -128,15 +128,17 @@ const Chatbot = ({ userType }) => {
       return;
     }
 
-    try {
-      const apiKey = 'AIzaSyAuQIXWdgyQOYvSrzxWoVJy1tsPyJnpkG8';
-      const response = await axios.post(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-        {
-          contents: [{ parts: [{ text: inputText }] }],
-        },
-        { headers: { "Content-Type": "application/json" } }
-      );
+   try {
+    const apiKey = process.env.GEMINI_API_KEY;
+    const response = await axios.post(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      {
+        contents: [{ parts: [{ text: inputText }] }],
+      },
+      {
+        headers: { "Content-Type": "application/json" },
+      }
+    );
 
       const botMessage = {
         sender: "bot",
