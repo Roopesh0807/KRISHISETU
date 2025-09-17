@@ -1,69 +1,112 @@
-import React, { useState,useContext } from "react";
+import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
+import { useLocation } from "react-router-dom"; // Add this import
 import "./LogReg.css";
 
 const FarmerLogin = () => {
   const navigate = useNavigate();
   const { loginFarmer } = useContext(AuthContext);
+  const location = useLocation(); // Add this line to get the location object
+
   const [formData, setFormData] = useState({
     emailOrPhone: "",
     password: "",
   });
 
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
-    console.log("🟡 Form Data Being Sent:", formData);
-  
+    setLoading(true);
+    setError("");
+
     try {
+      if (!formData.emailOrPhone || !formData.password) {
+        throw new Error("Please fill in all fields");
+      }
+
       const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/farmerlogin`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
         body: JSON.stringify(formData),
       });
-  
+
       const data = await response.json();
-      console.log("🟢 Server Response:", data);
-  
-      if (data.success) {
-        localStorage.setItem("token", data.token);  // ✅ Store JWT token
-        localStorage.setItem("farmerID", data.farmer_id);
-        localStorage.setItem("farmerName", data.full_name);
-  
-        // Ensure all required fields are present in the data
-        const farmerData = {
-          token: data.token,
-          farmer_id: data.farmer_id || "",
-          full_name: data.full_name || "",
-          email: data.email || "",  // Ensure these fields are populated
-          phone_number: data.phone_number || "",
-          first_name: data.first_name || "",
-          last_name: data.last_name || "",
-        };
-  
-        loginFarmer(farmerData);
-        window.alert("✅ Login Successful! Redirecting to dashboard...");
-        setTimeout(() => navigate("/farmer-dashboard"), 1000);
-      } else {
-        window.alert(`Login Failed: ${data.message}`);
+
+      if (!response.ok) {
+        throw new Error(data.message || "Login failed");
       }
+
+      if (!data?.token) {
+        throw new Error("Authentication token missing in response");
+      }
+
+      // Decode token
+      const payload = JSON.parse(atob(data.token.split(".")[1]));
+
+      if (!payload.farmer_id || !payload.exp) {
+        throw new Error("Invalid token payload");
+      }
+
+      if (payload.exp * 1000 < Date.now()) {
+        throw new Error("Session expired. Please login again");
+      }
+
+      const farmerData = {
+        token: data.token,
+        farmer_id: data.farmer_id || payload.farmer_id,
+        full_name: data.full_name || payload.full_name || "",
+        email: data.email || payload.email || "",
+        phone_number: data.phone_number || payload.phone_number || "",
+        first_name: data.first_name || payload.first_name || "",
+        last_name: data.last_name || payload.last_name || "",
+      };
+
+      console.log("✅ Logged-in farmer:", farmerData);
+
+      loginFarmer(farmerData);
+      localStorage.setItem("farmer", JSON.stringify(farmerData));
+      localStorage.setItem("auth", JSON.stringify({
+        token: data.token,
+        farmer_id: data.farmer_id,
+        expiresAt: payload.exp * 1000,
+      }));
+
+      // The 'location' variable is now correctly defined here
+      navigate("/farmer-dashboard", {
+        replace: true,
+        state: { from: location.state?.from || "/" },
+      });
+
     } catch (error) {
-      console.error("❌ Login Error:", error);
-      window.alert("Error connecting to server. Please try again later.");
+      console.error("Login Error:", error);
+      setError(
+        error.message.includes("credentials") ||
+        error.message.includes("Invalid") ||
+        error.message.includes("expired")
+          ? error.message
+          : "Login failed. Please try again later"
+      );
+    } finally {
+      setLoading(false);
     }
   };
-  
-  
 
   return (
     <div className="log-container">
       <main className="auth-container">
         <div className="auth-card">
           <h2>FARMER LOGIN</h2>
+          {error && <div className="error-message">{error}</div>}
           <form onSubmit={handleSubmit}>
             <div className="form-group">
               <label>Email or Phone:</label>
@@ -73,9 +116,9 @@ const FarmerLogin = () => {
                 placeholder="Enter email or phone"
                 onChange={handleChange}
                 required
+                autoComplete="username"
               />
             </div>
-
             <div className="form-group">
               <label>Password:</label>
               <input
@@ -84,18 +127,33 @@ const FarmerLogin = () => {
                 placeholder="Enter password"
                 onChange={handleChange}
                 required
+                autoComplete="current-password"
               />
             </div>
-            <button type="submit" className="auth-button">Login</button>
-          </form>
-          <p>
-            </p>
-            <p>
-            Don't have an account?{" "}
-            <button onClick={() => navigate("/farmer-register")} className="link-button">
-              Register here
+            <button
+              type="submit"
+              className="auth-button"
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <span className="spinner"></span>
+                  Logging in...
+                </>
+              ) : "Login"}
             </button>
-          </p>
+          </form>
+          <div className="auth-footer">
+            <p>
+              Don't have an account?{" "}
+              <button
+                onClick={() => navigate("/farmer-register")}
+                className="link-button"
+              >
+                Register here
+              </button>
+            </p>
+          </div>
         </div>
       </main>
     </div>
