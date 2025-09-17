@@ -134,118 +134,69 @@ const CombinedOrderPage = () => {
         }
 
     }, [consumer, navigate, allProducts]);
+const handlePlaceOrder = async (isPaid = false) => {
+    if (!recipientAddress) {
+        alert("Please provide a delivery address.");
+        return;
+    }
 
-    const handlePlaceOrder = async (isPaid = false) => {
-        if (!recipientAddress) {
-            alert("Please provide a delivery address.");
-            return;
-        }
+    // Create combined strings for produce_name and a single quantity
+    const produce_name_combined = allProducts.map(p => p.produce_name || p.product_name).join(", ");
+    const quantity_total = allProducts.reduce((total, p) => total + (p.quantity || 0), 0);
 
-// Create combined strings for produce_name and a single quantity
-const produce_name_combined = allProducts.map(p => p.produce_name || p.product_name).join(", ");
-const quantity_total = allProducts.reduce((total, p) => total + (p.quantity || 0), 0);
-        try {
-            const orderData = {
-                consumer_id: consumer.consumer_id,
-                name: consumerProfile.name,
-                mobile_number: consumerProfile.mobile_number,
-                email: consumerProfile.email,
-                amount: calculateFinalPrice(),
-                payment_status: isPaid ? 'Paid' : 'Pending',
-                payment_method: isPaid ? 'razorpay' : 'cash-on-delivery',
-                address: recipientAddress,
-                pincode: consumerProfile.pincode,
-                produce_name: produce_name_combined, // Send a single string
-    quantity: quantity_total, // Send a single number
-    amount: calculateFinalPrice(),
-                // Send all products in a single 'items' array
-                items: allProducts.map(item => ({
-                    source: item.source,
-                    product_id: item.product_id,
-                    produce_name: item.product_name,
-                    quantity: item.quantity,
-                    price: item.price
-                }))
-            };
+    try {
+        const orderData = {
+            consumer_id: consumer.consumer_id,
+            name: consumerProfile.name,
+            mobile_number: consumerProfile.mobile_number,
+            email: consumerProfile.email,
+            amount: calculateFinalPrice(),
+            payment_status: isPaid ? 'Paid' : 'Pending',
+            payment_method: isPaid ? 'razorpay' : 'cash-on-delivery',
+            address: recipientAddress,
+            pincode: consumerProfile.pincode,
+            produce_name: produce_name_combined,
+            quantity: quantity_total,
+            // Send a single 'items' array. Note: The backend 'place-order' endpoint
+            // might not be designed for this, so you might need to adjust it
+            // on the server side to handle the 'items' array instead of single product details.
+            items: allProducts.map(item => ({
+                source: item.source,
+                product_id: item.product_id,
+                produce_name: item.product_name,
+                quantity: item.quantity,
+                price: item.price
+            }))
+        };
 
-            // Use the existing API endpoint
-            const response = await fetch(
-                `${process.env.REACT_APP_BACKEND_URL}/api/place-order`,
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${localStorage.getItem('token')}`
-                    },
-                    body: JSON.stringify(orderData),
-                }
-            );
+        const response = await fetch(
+            // Use the existing, correct endpoint
+            `${process.env.REACT_APP_BACKEND_URL}/api/place-order`, 
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify(orderData),
+            }
+        );
 
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error || "Order failed. Try again.");
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Order failed. Try again.");
 
-            // Clear the carts on the frontend upon success
-            localStorage.removeItem(`krishiCart_${consumer.consumer_id}`);
-            // You'll need to call your backend endpoints to clear the other carts
-            // For example:
-            // await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/clear-bargain-cart`, { method: 'DELETE' });
-            // await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/clear-community-cart`, { method: 'DELETE' });
+        // After successful order, clear the carts on the frontend
+        localStorage.removeItem(`krishiCart_${consumer.consumer_id}`);
+        // Consider making backend calls to clear the other carts here if needed
+        // e.g., await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/clear-bargain-cart`, { method: 'DELETE' });
 
-            setShowSuccessPopup(true);
-            setTimeout(() => navigate("/consumer-dashboard"), 3000);
-        } catch (error) {
-            console.error("Order placement error:", error);
-            alert(`Error placing combined order: ${error.message}`);
-        }
-
-        try {
-            const orderData = {
-                consumer_id: consumer.consumer_id,
-                name: consumerProfile.name,
-                mobile_number: consumerProfile.mobile_number,
-                email: consumerProfile.email,
-                amount: calculateFinalPrice(),
-                payment_status: isPaid ? 'Paid' : 'Pending',
-                payment_method: isPaid ? 'razorpay' : 'cash-on-delivery',
-                address: recipientAddress,
-                pincode: consumerProfile.pincode,
-                orders: allProducts.map(item => ({
-                    source: item.source,
-                    product_id: item.product_id,
-                    produce_name: item.product_name,
-                    quantity: item.quantity,
-                    price: item.price
-                }))
-            };
-
-            const response = await fetch(
-                `${process.env.REACT_APP_BACKEND_URL}/api/place-combined-order`,
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${localStorage.getItem('token')}`
-                    },
-                    body: JSON.stringify(orderData),
-                }
-            );
-
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error || "Order failed. Try again.");
-
-            localStorage.removeItem(`krishiCart_${consumer.consumer_id}`);
-            // You need to implement these backend endpoints to clear other carts
-            // await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/clear-bargain-cart`, { method: 'DELETE' });
-            // await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/clear-community-cart`, { method: 'DELETE' });
-
-            setShowSuccessPopup(true);
-            setTimeout(() => navigate("/consumer-dashboard"), 3000);
-        } catch (error) {
-            console.error("Order placement error:", error);
-            alert(`Error placing combined order: ${error.message}`);
-        }
-    };
-
+        setShowSuccessPopup(true);
+        setTimeout(() => navigate("/consumer-dashboard"), 3000);
+    } catch (error) {
+        console.error("Order placement error:", error);
+        alert(`Error placing combined order: ${error.message}`);
+    }
+};
     // src/pages/CombinedOrderPage.js
 
 // ... (rest of the component code, imports, and state)

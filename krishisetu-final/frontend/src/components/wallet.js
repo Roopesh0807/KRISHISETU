@@ -3,14 +3,15 @@ import { FaWallet, FaHistory, FaCheckCircle } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 import './wallet.css';
 
-
 const safeParseNumber = (value) => {
   if (typeof value === 'number') return value;
   const parsed = parseFloat(value);
   return isNaN(parsed) ? 0 : parsed;
 };
 
-const Wallet = () => {
+// --- UPDATED: Accepts onBalanceUpdate prop ---
+const Wallet = ({ onBalanceUpdate }) => {
+// --- END UPDATED ---
   const { consumer, token } = useAuth();
   const [walletBalance, setWalletBalance] = useState(0);
   const [transactions, setTransactions] = useState([]);
@@ -31,10 +32,10 @@ const Wallet = () => {
     setIsLoading(true);
     try {
       const [balanceRes, transactionsRes] = await Promise.all([
-        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/wallet/balance/${consumer.consumer_id}`, {
+        fetch(`http://localhost:5000/api/wallet/balance/${consumer.consumer_id}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/wallet/transactions/${consumer.consumer_id}`, {
+        fetch(`http://localhost:5000/api/wallet/transactions/${consumer.consumer_id}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
       ]);
@@ -44,8 +45,15 @@ const Wallet = () => {
 
       const balanceData = await balanceRes.json();
       const transactionsData = await transactionsRes.json();
+      
+      const newBalance = safeParseNumber(balanceData.balance);
+      setWalletBalance(newBalance);
+      // --- UPDATED: Call the parent callback with the new balance ---
+      if (onBalanceUpdate) {
+          onBalanceUpdate(newBalance);
+      }
+      // --- END UPDATED ---
 
-      setWalletBalance(safeParseNumber(balanceData.balance));
       setTransactions(transactionsData.transactions.map(txn => ({
         ...txn,
         amount: safeParseNumber(txn.amount),
@@ -57,7 +65,7 @@ const Wallet = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [consumer, token]);
+  }, [consumer, token, onBalanceUpdate]);
 
 
   useEffect(() => {
@@ -73,8 +81,7 @@ const Wallet = () => {
     setIsLoading(true);
 
     try {
-      // Step 1: Create a Razorpay Order from your server
-      const orderResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/wallet/razorpay-order`, {
+      const orderResponse = await fetch('http://localhost:5000/api/wallet/razorpay-order', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -90,17 +97,15 @@ const Wallet = () => {
       
       const { order } = orderData;
 
-      // Step 2: Configure and open Razorpay Checkout
       const options = {
-        key: process.env.REACT_APP_RAZORPAY_KEY_ID || 'rzp_test_VLCfnymiyd6HGf', // Replace with your actual Key ID
+        key: process.env.REACT_APP_RAZORPAY_KEY_ID || 'rzp_test_VLCfnymiyd6HGf',
         amount: order.amount,
         currency: order.currency,
         name: 'KrishiSetu Wallet',
         description: `Add ₹${amount} to your wallet`,
         order_id: order.id,
         handler: async (response) => {
-          // Step 3: Verify the payment on your server
-          const verificationResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/wallet/verify-payment`, {
+          const verificationResponse = await fetch('http://localhost:5000/api/wallet/verify-payment', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -110,7 +115,7 @@ const Wallet = () => {
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_order_id: response.razorpay_order_id,
               razorpay_signature: response.razorpay_signature,
-              amount: amount // Send the original amount for verification
+              amount: amount
             })
           });
 
@@ -118,9 +123,9 @@ const Wallet = () => {
 
           if (verificationData.success) {
             showSuccess(`₹${amount} added successfully!`);
-            await fetchWalletData(); // Refresh wallet data
+            await fetchWalletData();
             setShowWalletPopup(false);
-            setAddAmount(''); // Clear the input field
+            setAddAmount('');
           } else {
             throw new Error(verificationData.error || 'Payment verification failed');
           }
@@ -220,7 +225,6 @@ return (
           </div>
         </div>
       )}
-
 
       {showHistoryPopup && (
         <div className="popup-overlay">

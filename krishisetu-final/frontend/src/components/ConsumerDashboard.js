@@ -13,10 +13,13 @@ import {
     faChevronLeft,
     faChevronRight,
     faSpinner,
+    faClock,
+    faPercentage,
     faTimes, // Added for close button in subscription popup
-    faCheckCircle // Added for success message in subscription popup
+    faCheckCircle, // Added for success message in subscription popup
+    faTag
 } from '@fortawesome/free-solid-svg-icons';
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import "../components/ConsumerDashboard.css";
 import { fetchProducts } from '../utils/api';
@@ -32,6 +35,7 @@ import 'react-calendar/dist/Calendar.css'; // Import Calendar CSS
 
 const ConsumerDashboard = () => {
     const [searchQuery, setSearchQuery] = useState("");
+    const [minMaxDiscount, setMinMaxDiscount] = useState({ min: 0, max: 0 }); // New state for min/max discount
     const [selectedCategory, setSelectedCategory] = useState("All Categories");
     const [deliveryLocation, setDeliveryLocation] = useState("Fetching location...");
     const [searchResults, setSearchResults] = useState([]);
@@ -51,6 +55,7 @@ const ConsumerDashboard = () => {
     const [selectedQuantities, setSelectedQuantities] = useState({});
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [flashDealBannerProducts, setFlashDealBannerProducts] = useState([]); // New state for banner products
     const [imagesLoading, setImagesLoading] = useState(false);
     const [consumerCoords, setConsumerCoords] = useState(null);
     const [recommendedProducts, setRecommendedProducts] = useState([]);
@@ -59,6 +64,14 @@ const ConsumerDashboard = () => {
         const savedCache = localStorage.getItem('productImageCache');
         return savedCache ? JSON.parse(savedCache) : {};
     });
+    const [showFlashDealBanner, setShowFlashDealBanner] = useState(false);
+const [flashDealTimeLeft, setFlashDealTimeLeft] = useState(0);
+    // --- START: ADDED WALLET INSUFFICIENT LOGIC ---
+    // Wallet state for the popup
+    const [walletBalance, setWalletBalance] = useState(0);
+    const [showWalletRequiredPopup, setShowWalletRequiredPopup] = useState(false);
+    // --- END: ADDED WALLET INSUFFICIENT LOGIC ---
+
 
     // Function to get the initial default date based on cutoff time
     const getInitialSubscriptionDate = () => {
@@ -94,7 +107,13 @@ const ConsumerDashboard = () => {
     const [dateSelectionError, setDateSelectionError] = useState("");
     const [selectedFrequency, setSelectedFrequency] = useState("");
 
-
+// Add this function, it's a copy from CommunityFlashDeals.js
+const formatTime = (seconds) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+};
     // Haversine formula to calculate the distance between two lat/lon points
     const calculateDistance = (lat1, lon1, lat2, lon2) => {
         const R = 6371;
@@ -151,6 +170,8 @@ const ConsumerDashboard = () => {
         }
     };
 
+    
+
     // Function to fetch user's current location
     const fetchUserLocation = () => {
         setIsLoading(true);
@@ -179,14 +200,46 @@ const ConsumerDashboard = () => {
             setIsLoading(false);
         }
     };
-    
-    // Initial data fetching on component mount
-    useEffect(() => {
-        fetchUserLocation(); // Fetch user location first
 
+    // --- All useEffect hooks moved to the top level ---
+
+    // 1. Initial Data Fetching and Authentication Check
+    useEffect(() => {
+        const storedConsumer = localStorage.getItem("consumer");
+        if (!storedConsumer) {
+            console.error("❌ No consumer session found!");
+            navigate("/consumer-login");
+            return;
+        }
+
+        try {
+            const consumerData = JSON.parse(storedConsumer);
+            const token = consumerData.token;
+            if (!token) {
+                console.error("❌ No token found in consumer data!");
+                navigate("/consumer-login");
+                return;
+            }
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            if (payload.farmer_id) {
+                alert("Farmers cannot initiate bargains");
+                localStorage.removeItem("consumer");
+                navigate("/consumer-login");
+            }
+        } catch (e) {
+            console.error("❌ Error parsing token:", e);
+            localStorage.removeItem("consumer");
+            navigate("/consumer-login");
+        }
+        
+        // This is a good place to fetch initial data
+        fetchUserLocation();
+    }, [navigate]);
+
+    // 2. Data Fetching based on Consumer and Coords
+    useEffect(() => {
         const fetchAllData = async () => {
             if (!consumer?.token) {
-                console.warn("Authentication token is not yet available. Skipping protected API calls.");
                 return;
             }
 
@@ -213,7 +266,7 @@ const ConsumerDashboard = () => {
                 if (!response.ok) {
                     console.error("Failed to fetch past orders:", response.status, response.statusText);
                     if (response.status === 404) {
-                        setPastOrders([]); // No past orders found
+                        setPastOrders([]);
                     }
                     return;
                 }
@@ -222,19 +275,14 @@ const ConsumerDashboard = () => {
             } catch (error) {
                 console.error("Error fetching past orders:", error);
             }
+            
+            // Fetch farmers after consumerCoords are available
+            if (consumerCoords) {
+                fetchFarmers();
+            }
         };
 
-        // Fetch all data once consumer token is available
-        if (consumer?.token) {
-            fetchAllData();
-        }
-    }, [consumer, navigate]);
-
-    // Fetch farmers based on consumer location
-    useEffect(() => {
         const fetchFarmers = async () => {
-            if (!consumer?.token || !consumerCoords) return; // Ensure token and coords are available
-
             try {
                 const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/farmers`, {
                     method: "GET",
@@ -261,7 +309,7 @@ const ConsumerDashboard = () => {
                             const personalData = await personalResponse.json();
 
                             const ratingsResponse = await fetch(
-                                `${process.env.REACT_APP_BACKEND_URL}/reviews/${farmer.farmer_id}`,
+                               `${process.env.REACT_APP_BACKEND_URL}/reviews/${farmer.farmer_id}`,
                                 { headers: { "Authorization": `Bearer ${consumer?.token}` } }
                             );
                             const ratingsData = await ratingsResponse.json();
@@ -275,15 +323,15 @@ const ConsumerDashboard = () => {
                                 { headers: { "Authorization": `Bearer ${consumer?.token}` } }
                             );
                             const productsData = await productsResponse.json();
-                            
+
                             const farmResponse = await fetch(
                                 `${process.env.REACT_APP_BACKEND_URL}/api/farmerprofile/${farmer.farmer_id}/farm`,
                                 { headers: { "Authorization": `Bearer ${consumer?.token}` } }
                             );
                             const farmData = await farmResponse.json();
-                            
+
                             const farmerCoords = farmData.farm_address ? await geocodeAddress(farmData.farm_address) : null;
-                            
+
                             let distance = null;
                             if (consumerCoords && farmerCoords) {
                                 distance = calculateDistance(consumerCoords.lat, consumerCoords.lon, farmerCoords.lat, farmerCoords.lon);
@@ -310,12 +358,10 @@ const ConsumerDashboard = () => {
                         }
                     })
                 );
-
-                // Filter farmers based on distance (within 20km or unknown distance)
+                
                 const filteredByDistance = farmersWithData.filter(farmer =>
                     farmer.distance_km === null || farmer.distance_km <= 20
                 );
-                
                 setFarmers(filteredByDistance);
             } catch (error) {
                 console.error("Error fetching farmers:", error);
@@ -323,10 +369,150 @@ const ConsumerDashboard = () => {
             }
         };
 
-        if (consumer?.token && consumerCoords) {
-            fetchFarmers();
+        if (consumer?.token) {
+            fetchAllData();
         }
-    }, [consumer?.token, consumerCoords]);
+    }, [consumer, consumerCoords, navigate]);
+
+    // 3. Image Fetching
+    useEffect(() => {
+        const loadProductImages = async () => {
+            const images = {};
+            for (const product of products) {
+                images[product.product_id] = await fetchProductImage(product.product_name);
+            }
+            setProductImages(images);
+        };
+        if (products.length > 0) {
+            loadProductImages();
+        }
+    }, [products]);
+
+    // 4. Recommendation Generation
+    useEffect(() => {
+        if (pastOrders.length > 0 && products.length > 0) {
+            const categoryCounts = {};
+            pastOrders.forEach(order => {
+                const category = order.category || 'vegetables';
+                categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+            });
+            const sortedCategories = Object.keys(categoryCounts).sort((a, b) => categoryCounts[b] - categoryCounts[a]);
+            const topCategories = sortedCategories.slice(0, 2);
+            const recommended = products.filter(product =>
+                topCategories.includes(product.category.toLowerCase())
+            ).slice(0, 8);
+            setRecommendedProducts(recommended);
+        } else {
+            const popular = [...products].sort((a, b) => b.ratings - a.ratings).slice(0, 8);
+            setRecommendedProducts(popular);
+        }
+    }, [pastOrders, products]);
+    
+       // 5. Flash Deals Banner Logic
+    useEffect(() => {
+        const checkFlashDeals = async () => {
+            if (!consumer?.token || !consumer?.consumer_id) return;
+
+            try {
+                const profileResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/consumer/${consumer.consumer_id}`, {
+                    headers: {
+                        "Authorization": `Bearer ${consumer.token}`,
+                    }
+                });
+                const profileData = await profileResponse.json();
+                const consumerPincode = profileData.pincode;
+
+                if (!consumerPincode) {
+                    setShowFlashDealBanner(false);
+                    return;
+                }
+
+                const flashDealResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/community-flash-deals-status/${consumerPincode}`, {
+                    headers: {
+                        "Authorization": `Bearer ${consumer.token}`,
+                    }
+                });
+                const flashDealData = await flashDealResponse.json();
+
+                if (flashDealData.showFlashDeal) {
+                    setShowFlashDealBanner(true);
+                    // Fetch products for the banner
+                    if (flashDealData.timerData) {
+                const startTime = new Date(flashDealData.timerData.start_time).getTime();
+                const now = new Date().getTime();
+                const activeDuration = 24 * 60 * 60 * 1000;
+                const frozenDuration = 72 * 60 * 60 * 1000;
+                const cycleDuration = activeDuration + frozenDuration;
+                const elapsedTimeInCycle = (now - startTime) % cycleDuration;
+                
+                if (elapsedTimeInCycle < activeDuration) {
+                    setFlashDealTimeLeft(Math.floor((activeDuration - elapsedTimeInCycle) / 1000));
+                } else {
+                    setFlashDealTimeLeft(Math.floor((cycleDuration - elapsedTimeInCycle) / 1000));
+                }
+            }
+                    const bannerProductsResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/community-flashdeals/banner-data`, {
+                        headers: {
+                            "Authorization": `Bearer ${consumer.token}`,
+                        }
+                    });
+                    const bannerProductsData = await bannerProductsResponse.json();
+
+                    // Calculate min/max discount
+                    const discounts = bannerProductsData.map(product => {
+                        const discount = (product.price_per_kg - product.minimum_price) / product.price_per_kg;
+                        return Math.round(discount * 100);
+                    }).filter(d => !isNaN(d));
+
+                    if (discounts.length > 0) {
+                        setMinMaxDiscount({
+                            min: Math.min(...discounts),
+                            max: Math.max(...discounts)
+                        });
+                    }
+
+                    setFlashDealBannerProducts(bannerProductsData);
+
+                } else {
+                    setShowFlashDealBanner(false);
+                     setFlashDealTimeLeft(0);
+                }
+            } catch (error) {
+                console.error("Error checking flash deals:", error);
+                setShowFlashDealBanner(false);
+            }
+        };
+
+        checkFlashDeals();
+        // Add the interval to update the timer every second
+    const timer = setInterval(() => {
+        setFlashDealTimeLeft(prevTime => Math.max(0, prevTime - 1));
+    }, 1000);
+    
+    // Cleanup function for the timer
+    return () => clearInterval(timer);
+    }, [consumer]);
+
+    // --- START: ADDED WALLET INSUFFICIENT LOGIC ---
+    // New useEffect to fetch wallet balance on component load
+    useEffect(() => {
+      const fetchWalletBalance = async () => {
+          if (!consumer?.consumer_id || !consumer?.token) return;
+          try {
+              const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/wallet/balance/${consumer.consumer_id}`, {
+                  headers: { "Authorization": `Bearer ${consumer.token}` }
+              });
+              const data = await response.json();
+              if (data.success) {
+                  setWalletBalance(data.balance);
+              }
+          } catch (error) {
+              console.error("Error fetching wallet balance:", error);
+          }
+      };
+      fetchWalletBalance();
+    }, [consumer]);
+    // --- END: ADDED WALLET INSUFFICIENT LOGIC ---
 
     // Search handler for the main search bar
     const handleSearch = () => {
@@ -340,6 +526,34 @@ const ConsumerDashboard = () => {
         setSearchResults(results);
         console.log("Search Results:", results);
     };
+   // Remove the existing `bannerCarouselSettings` object.
+// Add this updated version:
+const bannerCarouselSettings = {
+    dots: false,
+    infinite: true,
+    speed: 500,
+    slidesToShow: 3, // Display 3 products at a time for a horizontal look
+    slidesToScroll: 1,
+    autoplay: true,
+    autoplaySpeed: 3000,
+    cssEase: "linear",
+    arrows: false,
+    responsive: [
+        {
+            breakpoint: 1024,
+            settings: {
+                slidesToShow: 2,
+            }
+        },
+        {
+            breakpoint: 600,
+            settings: {
+                slidesToShow: 1,
+            }
+        }
+    ]
+};
+
 
     // Carousel Settings for Recommended Products
     const carouselSettings = {
@@ -419,26 +633,6 @@ const ConsumerDashboard = () => {
         );
     }
 
-    // Generate recommendations based on past orders or popular products
-    useEffect(() => {
-        if (pastOrders.length > 0 && products.length > 0) {
-            const categoryCounts = {};
-            pastOrders.forEach(order => {
-                const category = order.category || 'vegetables';
-                categoryCounts[category] = (categoryCounts[category] || 0) + 1;
-            });
-            const sortedCategories = Object.keys(categoryCounts).sort((a, b) => categoryCounts[b] - categoryCounts[a]);
-            const topCategories = sortedCategories.slice(0, 2);
-            const recommended = products.filter(product =>
-                topCategories.includes(product.category.toLowerCase())
-            ).slice(0, 8);
-            setRecommendedProducts(recommended);
-        } else {
-            const popular = [...products].sort((a, b) => b.ratings - a.ratings).slice(0, 8);
-            setRecommendedProducts(popular);
-        }
-    }, [pastOrders, products]);
-
     // Fetch product images from Pexels API and cache them
     const fetchProductImage = async (productName) => {
         if (imageCache[productName]) {
@@ -465,111 +659,90 @@ const ConsumerDashboard = () => {
         }
     };
     
-    // Load product images for displayed products
-    useEffect(() => {
-        const loadProductImages = async () => {
-            const images = {};
-            for (const product of products) {
-                images[product.product_id] = await fetchProductImage(product.product_name);
-            }
-            setProductImages(images);
-        };
-        if (products.length > 0) {
-            loadProductImages();
-        }
-    }, [products]);
-
     // Handle bargain initiation
-    const handleBargainClick = async (farmer, product, e) => {
-        if (e) e.stopPropagation();
-        try {
-            setIsLoading(true);
-            setError(null);
+    // const handleBargainClick = async (farmer, product, e) => {
+    //     if (e) e.stopPropagation();
+    //     try {
+    //         setIsLoading(true);
+    //         setError(null);
             
-            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/create-bargain`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${consumer.token}`
-                },
-                body: JSON.stringify({
-                    farmer_id: farmer.farmer_id
-                })
-            });
+    //         const response = await fetch(`http://localhost:5000/api/create-bargain`, {
+    //             method: 'POST',
+    //             headers: {
+    //                 'Content-Type': 'application/json',
+    //                 'Authorization': `Bearer ${consumer.token}`
+    //             },
+    //             body: JSON.stringify({
+    //                 farmer_id: farmer.farmer_id
+    //             })
+    //         });
             
-            const data = await response.json();
+    //         const data = await response.json();
             
-            if (!data.success) {
-                throw new Error(data.error || 'Failed to create bargain session');
-            }
+    //         if (!data.success) {
+    //             throw new Error(data.error || 'Failed to create bargain session');
+    //         }
             
-            const productResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/add-bargain-product`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${consumer.token}`
-                },
-                body: JSON.stringify({
-                    bargain_id: data.bargainId,
-                    product_id: product.product_id,
-                    quantity: 10
-                })
-            });
+    //         const productResponse = await fetch(`http://localhost:5000/api/add-bargain-product`, {
+    //             method: 'POST',
+    //             headers: {
+    //                 'Content-Type': 'application/json',
+    //                 'Authorization': `Bearer ${consumer.token}`
+    //             },
+    //             body: JSON.stringify({
+    //                 bargain_id: data.bargainId,
+    //                 product_id: product.product_id,
+    //                 quantity: 10
+    //             })
+    //         });
             
-            const productData = await productResponse.json();
+    //         const productData = await productResponse.json();
             
-            if (!productData.success) {
-                throw new Error(productData.error || 'Failed to add product');
-            }
+    //         if (!productData.success) {
+    //             throw new Error(productData.error || 'Failed to add product');
+    //         }
             
-            navigate(`/bargain/${data.bargainId}`, {
-                state: {
-                    farmer,
-                    product: {
-                        ...product,
-                        price_per_kg: productData.price_per_kg,
-                        quantity: productData.quantity
-                    }
-                }
-            });
+    //         navigate(`/bargain/${data.bargainId}`, {
+    //             state: {
+    //                 farmer,
+    //                 product: {
+    //                     ...product,
+    //                     price_per_kg: productData.price_per_kg,
+    //                     quantity: productData.quantity
+    //                 }
+    //             }
+    //         });
             
-        } catch (error) {
-            setError(error.message);
-            console.error("Bargain error:", error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    //     } catch (error) {
+    //         setError(error.message);
+    //         console.error("Bargain error:", error);
+    //     } finally {
+    //         setIsLoading(false);
+    //     }
+    // };
+const handleBargainClick = (farmer, product, e) => {
+  if (e) e.stopPropagation();
 
-    // Authentication check for consumer
-    useEffect(() => {
-        const storedConsumer = localStorage.getItem("consumer");
-        if (!storedConsumer) {
-            console.error("❌ No consumer session found!");
-            navigate("/consumer-login");
-            return;
-        }
-        try {
-            const consumerData = JSON.parse(storedConsumer);
-            const token = consumerData.token;
-            if (!token) {
-                console.error("❌ No token found in consumer data!");
-                navigate("/consumer-login");
-                return;
-            }
-            const payload = JSON.parse(atob(token.split('.')[1]));
-            if (payload.farmer_id) {
-                alert("Farmers cannot initiate bargains");
-                localStorage.removeItem("consumer");
-                navigate("/consumer-login");
-            }
-        } catch (e) {
-            console.error("❌ Error parsing token:", e);
-            localStorage.removeItem("consumer");
-            navigate("/consumer-login");
-        }
-    }, [navigate]);
+  try {
+    setIsLoading(true);
+    setError(null);
 
+    // ✅ Navigate to popup page with ALL farmer products
+    navigate(`/initiate-bargain/${farmer.farmer_id}`, {
+      state: { 
+        farmer, 
+        product, // Current product (optional)
+        products: farmer.products // All products for selection
+      },
+    });
+
+  } catch (error) {
+    setError(error.message);
+    console.error("Bargain navigation error:", error);
+  } finally {
+    setIsLoading(false);
+  }
+};
     // Handle quantity change for products
     const handleQuantityChange = (productId, event) => {
         const value = parseInt(event.target.value, 10);
@@ -608,23 +781,43 @@ const ConsumerDashboard = () => {
         navigate(`/community-home`);
     };
 
-    // New subscription handlers
-    const handleSubscribeClick = (product, e) => {
-        e.stopPropagation();
-        if (!consumer) {
-            alert("Please login first");
-            navigate("/consumer-login");
-            return;
-        }
-        setSelectedProductForSubscription(product);
-        setShowSubscriptionPopup(true);
-        setShowCalendar(false); // Reset calendar view
-        setSubscriptionConfirmed(false); // Reset confirmation view
-        setSelectedFrequency(""); // Reset frequency
-        setSelectedDate(getInitialSubscriptionDate()); // Set initial default date here
-        setDateSelectionError(""); // Clear any previous errors
-    };
+    // --- START: ADDED WALLET INSUFFICIENT LOGIC ---
+    const handleSubscribeClick = async (product, e) => {
+      e.stopPropagation();
+      if (!consumer) {
+          alert("Please login first");
+          navigate("/consumer-login");
+          return;
+      }
+      
+      try {
+          const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/wallet/balance/${consumer.consumer_id}`, {
+              headers: { "Authorization": `Bearer ${consumer.token}` }
+          });
+          const data = await response.json();
+          setWalletBalance(data.balance);
+          
+          if (data.balance < 5) { // Assuming a minimum balance of 5 is required to subscribe
+              setShowWalletRequiredPopup(true);
+              return;
+          }
+      } catch (error) {
+          console.error("Error fetching wallet balance:", error);
+          alert("Could not fetch wallet balance. Please ensure your wallet is funded.");
+      }
 
+      setSelectedProductForSubscription(product);
+      setShowSubscriptionPopup(true);
+      setShowCalendar(false);
+      setSubscriptionConfirmed(false);
+      setSelectedFrequency("");
+      setSelectedDate(getInitialSubscriptionDate());
+      setDateSelectionError("");
+    };
+    // --- END: ADDED WALLET INSUFFICIENT LOGIC ---
+
+
+    // New subscription handlers
     const handleFrequencySelect = (frequency) => {
         setSelectedFrequency(frequency);
         setShowCalendar(true);
@@ -640,24 +833,24 @@ const ConsumerDashboard = () => {
         const now = new Date();
         const cutoffHour = 22; // 10 PM
         const cutoffMinute = 30; // 30 minutes
-        return now.getHours() > cutoffHour || 
+        return now.getHours() > cutoffHour ||
                 (now.getHours() === cutoffHour && now.getMinutes() >= cutoffMinute);
     };
 
     const confirmSubscriptionDate = () => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        
+
         const selectedDay = new Date(selectedDate);
         selectedDay.setHours(0, 0, 0, 0);
-        
+
         // This check ensures that the selected date is not in the past relative to the minimum allowed date.
         // The getMinDate() function already handles the "today blocked" and "tomorrow blocked after cutoff" logic.
         if (selectedDay < getMinDate()) {
             setDateSelectionError("Please select a valid start date.");
             return;
         }
-        
+
         setShowCalendar(false);
         setSubscriptionConfirmed(true);
         setDateSelectionError("");
@@ -676,7 +869,7 @@ const ConsumerDashboard = () => {
                 navigate("/consumer-login");
                 return;
             }
-        
+
             const getBackendSubscriptionType = (frequency) => {
                 switch(frequency) {
                     case 'daily': return 'Daily';
@@ -686,13 +879,13 @@ const ConsumerDashboard = () => {
                     default: return frequency;
                 }
             };
-            
+
             const quantity = selectedQuantities[selectedProductForSubscription.product_id] || 1;
             const originalPrice = selectedProductForSubscription.price_1kg * quantity;
             const discountedPrice = calculateDiscountedPrice(originalPrice);
 
             const subscriptionType = getBackendSubscriptionType(selectedFrequency);
-            
+
             // --- FIX APPLIED HERE ---
             // Manually construct the date string to avoid timezone issues.
             const date = new Date(selectedDate);
@@ -721,15 +914,15 @@ const ConsumerDashboard = () => {
                 },
                 body: JSON.stringify(subscriptionData)
             });
-        
+
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.message || "Failed to save subscription");
             }
-        
+
             const data = await response.json();
             console.log("Subscription created:", data);
-        
+
             setShowSuccessMessage(true);
             setShowSubscriptionPopup(false);
             setSubscriptionConfirmed(false);
@@ -854,6 +1047,25 @@ const ConsumerDashboard = () => {
 
     return (
         <div className="ks-consumer-dashboard">
+            {/* --- START: ADDED WALLET INSUFFICIENT POPUP --- */}
+             {showWalletRequiredPopup && (
+                <div className="popup-overlay">
+                    <div className="wallet-required-popup popup-content">
+                        <div className="popup-header">
+                            <h3>Wallet Balance Low</h3>
+                            <button className="close-popup" onClick={() => setShowWalletRequiredPopup(false)}>&times;</button>
+                        </div>
+                        <div className="popup-body">
+                            <p>You need to have a minimum balance to subscribe to a product.</p>
+                            <p>Your current balance is ₹{walletBalance.toFixed(2)}.</p>
+                            <button className="add-money-btn" onClick={() => navigate('/subscribe', { state: { scrollToWallet: true } })}>
+                                Add Money to Wallet
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* --- END: ADDED WALLET INSUFFICIENT POPUP --- */}
             {/* Success Message Overlay for Subscription */}
             {showSuccessMessage && (
                 <div className="ks-success-overlay">
@@ -1000,6 +1212,50 @@ const ConsumerDashboard = () => {
                     </button>
                 </div>
             </div>
+
+{/* New Flash Deal Banner with Carousel */}
+            {showFlashDealBanner && flashDealBannerProducts.length > 0 && (
+                <div className="ks-flash-deal-banner-new">
+                    <div className="ks-banner-left">
+                        <div className="ks-discount-box">
+                            <span className="ks-discount-value">{minMaxDiscount.min}% - {minMaxDiscount.max}%</span>
+                            <FontAwesomeIcon icon={faPercentage} className="ks-percent-icon" />
+                        </div>
+                        <div className="ks-banner-title">
+                            <h3>COMMUNITY DEALS</h3>
+                            <p>Limited Time Offers</p>
+                        </div>
+                         <div className="ks-banner-timer">
+        <FontAwesomeIcon icon={faClock} />
+        <span>{formatTime(flashDealTimeLeft)}</span>
+    </div>
+                    </div>
+                    <div className="ks-banner-carousel-container">
+                        <Slider {...bannerCarouselSettings}>
+                            {flashDealBannerProducts.map((deal) => (
+                                <div key={deal.product_id} className="ks-banner-product-item">
+                                    <img
+                                        src={productImages[deal.product_id] || 'https://via.placeholder.com/100?text=No+Image'}
+                                        alt={deal.produce_name}
+                                        className="ks-banner-product-image"
+                                    />
+                                    <div className="ks-banner-product-details">
+                                        <h4>{deal.produce_name}</h4>
+                                        <p className="ks-banner-price">
+                                            <span className="ks-original-price">₹{deal.price_per_kg}/kg</span></p>
+                                            <p className="ks-banner-price">
+                                            <span className="ks-flash-price">₹{deal.minimum_price}/kg</span>
+                                        </p>
+                                    </div>
+                                </div>
+                            ))}
+                        </Slider>
+                    </div>
+                    <button className="ks-participate-btn" onClick={() => navigate('/community-flash-deals')}>
+                        <FontAwesomeIcon icon={faBolt} /> Shop Now
+                    </button>
+                </div>
+            )}
             {/* Recommendation Carousel Section - Always visible */}
             {recommendedProducts.length > 0 && (
                 <div className="ks-recommendation-section">
@@ -1050,6 +1306,28 @@ const ConsumerDashboard = () => {
                     </div>
                 </div>
             )}
+            
+            {/* Flash Deal Banner (Conditional Rendering) - Placed after recommendation
+            {showFlashDealBanner && (
+                <div className="ks-flash-deal-banner">
+                    <div className="ks-flash-content-area">
+                        <FontAwesomeIcon icon={faTag} className="ks-flash-icon" />
+                        <div className="ks-marquee-container">
+                            <div className="ks-marquee-content">
+                                Flash deals are open for your location! Grab them before they vanish! 
+                            </div>
+                        </div>
+                    </div>
+                    <button className="ks-participate-btn" onClick={() => navigate('/community-flash-deals')}>
+                        <FontAwesomeIcon icon={faBolt} /> Participate Now!
+                    </button>
+                    <button className="ks-close-flash-banner" onClick={() => setShowFlashDealBanner(false)}>
+                        <FontAwesomeIcon icon={faTimes} />
+                    </button>
+                </div>
+            )} */}
+
+
             <div className="ks-main-content">
                 <div className="ks-market-section">
                     <h2 className="ks-section-title">KrishiSetu Marketplace</h2>
@@ -1165,7 +1443,7 @@ const ConsumerDashboard = () => {
                                                 onClick={(e) => handleSubscribeClick(product, e)}
                                                 className="ks-action-btn ks-subscribe-btn"
                                             >
-                                                <FontAwesomeIcon icon={faCalendarAlt} /> Subscribe @ ₹{discountedPriceForDisplay.toFixed(2)}
+                                                <FontAwesomeIcon icon={faCalendarAlt} /> Subscribe
                                             </button>
                                         </div>
                                     </div>
@@ -1244,7 +1522,7 @@ const ConsumerDashboard = () => {
                                             )}
                                         </div>
                                     </div>
-                                    
+
                                     <div className="ks-products-table-container">
                                         <table className="ks-products-table">
                                             <thead>
@@ -1267,7 +1545,7 @@ const ConsumerDashboard = () => {
                                             </tbody>
                                         </table>
                                     </div>
-                                    
+
                                     <div className="ks-farmer-actions">
                                         <button
                                             onClick={(e) => handleBargainClick(farmer, farmer.products[0], e)}

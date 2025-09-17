@@ -1,18 +1,35 @@
-/* Container styling */
+/* GoogleTranslator.css */
+
+/*
+  This styles the main container for the Google Translate widget (the dropdown itself).
+  It's set to 'position: fixed' so it floats above other content and stays
+  in place even when scrolling.
+*/
 #google_translate_element {
-  position: fixed;
-  top: 60px;
-  right: 20px;
-  z-index: 1000;
-  padding: 10px 15px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  display:flex;
+  position: fixed; /* Keep it fixed on the screen */
+  top: 100px; /* Default starting position from the top */
+  right: 20px; /* Default starting position from the right */
+  z-index: 9999; /* Ensure it's on top of almost everything else */
+  padding: 10px 15px; /* Ample padding around the dropdown */
+  background: rgba(255, 255, 255, 0.9); /* Semi-transparent white background */
+  border-radius: 12px; /* Rounded corners */
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2); /* More prominent shadow for floating effect */
+  font-family: "Inter", sans-serif; /* Using Inter font as per instructions */
+  display: flex; /* Helps align its internal elements (the dropdown) */
+  align-items: center; /* Vertically center the dropdown */
+  cursor: grab; /* Indicate that the element is draggable */
+  transition: box-shadow 0.3s ease; /* Smooth transition for shadow on hover */
 }
 
-/* Dropdown styling */
+#google_translate_element:active {
+  cursor: grabbing; /* Cursor changes when dragging */
+}
+
+#google_translate_element:hover {
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.3); /* Slightly larger shadow on hover */
+}
+
+/* Styling for the dropdown box itself, injected by Google Translate */
 .goog-te-combo {
   padding: 8px 12px;
   font-size: 14px;
@@ -21,22 +38,61 @@
   background-color: #f9f9f9;
   color: #333;
   outline: none;
-  transition: border 0.3s ease;
+  transition: border 0.3s ease, box-shadow 0.3s ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  cursor: pointer; /* Keep cursor pointer for the dropdown itself */
 }
 
 .goog-te-combo:hover {
   border-color: #007bff;
+  box-shadow: 0 2px 6px rgba(0, 123, 255, 0.2);
 }
 
-/* Hide the Google banner if you want (but not recommended for production) */
-/*
-.goog-logo-link,
+/* --- IMPORTANT: HIDING THE "Translated to: X Show original" BAR ---
+  This targets the main div that Google Translate creates at the very top of the body
+  when a translation occurs, as well as the iframe it might use.
+  
+  We're adding more specific and robust selectors.
+*/
+/* The primary container of the translation bar */
+.goog-te-banner-box,
+body > .skiptranslate.goog-te-spinner-pos,
+#goog-gt-vt,
+.VIpgJd-yAWLgf,
+/* Target the iframe directly if it's the one causing overlap */
+iframe.goog-te-banner-frame,
+iframe[name="google_translate_element"] /* A more general iframe selector */
+{
+  display: none !important; /* Force hide the element */
+  visibility: hidden !important; /* Ensure it's not just transparent but truly gone */
+  height: 0 !important; /* Collapse its height */
+  min-height: 0 !important; /* Ensure min-height doesn't prevent collapse */
+  overflow: hidden !important; /* Hide any overflowing content */
+  border: none !important; /* Remove any border */
+  margin: 0 !important; /* Remove any margin */
+  padding: 0 !important; /* Remove any padding */
+}
+
+/* Hide the "Powered by Google Translate" text within the dropdown */
 .goog-te-gadget span {
+  font-size: 0 !important; /* Makes text invisible */
+  visibility: hidden; /* Removes the space it occupies */
+}
+
+/* Ensure the dropdown arrow/icon remains visible */
+.goog-te-gadget span .VIpgJd-ZVi9od-xl07Ob-LgbsSe-Bz112c {
+  visibility: visible !important;
+  font-size: 14px !important;
+  margin-left: 5px;
+}
+
+/* Hide the Google logo link if it appears (check Google's terms of service for compliance) */
+.goog-logo-link {
   display: none !important;
 }
 
-.goog-te-gadget {
-  color: transparent !important;
+/* Remove default Google Translate widget background and border */
+.goog-te-gadget-simple {
+  background-color: transparent !important;
+  border: none !important;
 }
-*/

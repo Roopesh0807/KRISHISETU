@@ -302,7 +302,6 @@ const Subscribe = () => {
 
     return (
         <div className="subscribe-page">
-            {isLoading && <div className="loading-overlay"><div className="loading-spinner"></div></div>}
             {successMessage && <div className="success-message"><FaCheckCircle /> {successMessage}</div>}
 
             <div className="welcome-container">

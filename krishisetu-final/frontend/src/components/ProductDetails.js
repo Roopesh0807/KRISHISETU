@@ -3,9 +3,10 @@ import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import "./ProductDetails.css";
 import { useCart } from "../context/CartContext";
 import { AuthContext } from "../context/AuthContext";
-import { FaShoppingCart, FaUsers, FaCalendarAlt, FaBolt, FaMinus, FaPlus, FaArrowLeft, FaTimes, FaCheckCircle } from "react-icons/fa";
+import { FaShoppingCart, FaUsers, FaCalendarAlt, FaBolt, FaMinus, FaPlus, FaArrowLeft, FaTimes, FaCheckCircle, FaExclamationTriangle } from "react-icons/fa";
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
+// The Wallet component is no longer imported here as it's been moved to the Subscribe page.
 
 const ProductDetails = () => {
   const { product_id } = useParams();
@@ -25,34 +26,33 @@ const ProductDetails = () => {
   const [showCommunityOptions, setShowCommunityOptions] = useState(false);
   const { consumer } = React.useContext(AuthContext);
 
-  // Function to get the initial default date based on cutoff time
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [showWalletRequiredPopup, setShowWalletRequiredPopup] = useState(false);
+
   const getInitialSubscriptionDate = () => {
       const now = new Date();
-      const cutoffHour = 22; // 10 PM
-      const cutoffMinute = 30; // 30 minutes
+      const cutoffHour = 22;
+      const cutoffMinute = 30;
 
       const tomorrow = new Date();
       tomorrow.setDate(now.getDate() + 1);
-      tomorrow.setHours(0, 0, 0, 0); // Normalize to start of day
+      tomorrow.setHours(0, 0, 0, 0);
 
       const dayAfterTomorrow = new Date();
       dayAfterTomorrow.setDate(now.getDate() + 2);
-      dayAfterTomorrow.setHours(0, 0, 0, 0); // Normalize to start of day
+      dayAfterTomorrow.setHours(0, 0, 0, 0);
 
       if (now.getHours() > cutoffHour || (now.getHours() === cutoffHour && now.getMinutes() >= cutoffMinute)) {
-          // After 10:30 PM today, default to day after tomorrow
           return dayAfterTomorrow;
       } else {
-          // Before or at 10:30 PM today, default to tomorrow
           return tomorrow;
       }
   };
   
-  // Subscription state
   const [showSubscriptionPopup, setShowSubscriptionPopup] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedFrequency, setSelectedFrequency] = useState("");
-  const [selectedDate, setSelectedDate] = useState(getInitialSubscriptionDate()); // Initialize with new logic
+  const [selectedDate, setSelectedDate] = useState(getInitialSubscriptionDate());
   const [subscriptionConfirmed, setSubscriptionConfirmed] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [dateSelectionError, setDateSelectionError] = useState("");
@@ -77,7 +77,6 @@ const ProductDetails = () => {
       .catch(() => setError("Error fetching product"));
   }, [product_id, consumer?.token]);
 
-  // Calculate discounted price (5% off)
   const calculateDiscountedPrice = (price) => {
     return price * 0.95;
   };
@@ -149,7 +148,6 @@ const ProductDetails = () => {
           consumer_id: consumer.consumer_id,
           quantity: selectedQuantity,
           price: selectedQuantity * product.price_1kg,
-          // buy_type and category will be fetched by the backend from the product
         })
       });
       const data = await response.json();
@@ -188,15 +186,32 @@ const ProductDetails = () => {
     }
   };
 
-  const handleSubscribe = () => {
+  const handleSubscribe = async () => {
     if (!consumer) {
       alert("Please login first");
       navigate("/consumer-login");
       return;
     }
+
+    try {
+        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/wallet/balance/${consumer.consumer_id}`, {
+            headers: { "Authorization": `Bearer ${consumer.token}` }
+        });
+        const data = await response.json();
+        setWalletBalance(data.balance);
+        
+        if (data.balance < 5) {
+            setShowWalletRequiredPopup(true);
+            return;
+        }
+    } catch (error) {
+        console.error("Error fetching wallet balance:", error);
+        alert("Could not fetch wallet balance. Please ensure your wallet is funded.");
+    }
+    
     setShowSubscriptionPopup(true);
     setDateSelectionError("");
-    setSelectedDate(getInitialSubscriptionDate()); // Reset selectedDate when popup opens
+    setSelectedDate(getInitialSubscriptionDate());
   };
 
   const handleFrequencySelect = (frequency) => {
@@ -206,7 +221,6 @@ const ProductDetails = () => {
   };
 
   const handleDateChange = (date) => {
-    // Normalize the selected date to avoid timezone issues when setting the state
     const normalizedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
     setSelectedDate(normalizedDate);
     setDateSelectionError("");
@@ -214,16 +228,14 @@ const ProductDetails = () => {
 
   const isPastCutoffTime = () => {
     const now = new Date();
-    const cutoffHour = 22; // 10 PM
-    const cutoffMinute = 30; // 30 minutes
-    return now.getHours() > cutoffHour || 
+    const cutoffHour = 22;
+    const cutoffMinute = 30;
+    return now.getHours() > cutoffHour ||
            (now.getHours() === cutoffHour && now.getMinutes() >= cutoffMinute);
   };
 
   const confirmSubscriptionDate = () => {
-    // The getMinDate() function already handles the "today blocked" and "tomorrow blocked after cutoff" logic.
-    // We just need to ensure the selected date is not before this minimum.
-    if (selectedDate < getMinDate()) { // Compare selectedDate directly with the calculated minimum
+    if (selectedDate < getMinDate()) {
         setDateSelectionError("Please select a valid start date.");
         return;
     }
@@ -255,9 +267,8 @@ const ProductDetails = () => {
       const subscriptionType = getBackendSubscriptionType(selectedFrequency);
       const discountedPrice = calculateDiscountedPrice(product.price_1kg * selectedQuantity);
       
-      // Format the date to YYYY-MM-DD string using local date components
       const year = selectedDate.getFullYear();
-      const month = String(selectedDate.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed
+      const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
       const day = String(selectedDate.getDate()).padStart(2, '0');
       const formattedStartDate = `${year}-${month}-${day}`;
 
@@ -268,11 +279,11 @@ const ProductDetails = () => {
         product_name: product.product_name,
         quantity: selectedQuantity,
         original_price: product.price_1kg * selectedQuantity,
-        price: discountedPrice, // This is the total discounted price for the quantity
-        start_date: formattedStartDate, // Use the manually formatted date string
-        discount_applied: 5 // 5% discount
+        price: discountedPrice,
+        start_date: formattedStartDate,
+        discount_applied: 5
       };
-
+  
       const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/subscriptions`, {
         method: "POST",
         headers: {
@@ -332,28 +343,42 @@ const ProductDetails = () => {
   const totalPrice = selectedQuantity * (product.price_1kg || 0);
   const discountedPrice = calculateDiscountedPrice(totalPrice);
 
-  // Corrected getMinDate function to block today and tomorrow after cutoff
   const getMinDate = () => {
       const now = new Date();
       const tomorrow = new Date(now);
       tomorrow.setDate(now.getDate() + 1);
-      tomorrow.setHours(0, 0, 0, 0); // Normalize to start of day
+      tomorrow.setHours(0, 0, 0, 0);
 
       const dayAfterTomorrow = new Date(now);
       dayAfterTomorrow.setDate(now.getDate() + 2);
-      dayAfterTomorrow.setHours(0, 0, 0, 0); // Normalize to start of day
+      dayAfterTomorrow.setHours(0, 0, 0, 0);
 
       if (isPastCutoffTime()) {
-          // If it's past 10:30 PM today, min date is day after tomorrow
           return dayAfterTomorrow;
       } else {
-          // If it's before or at 10:30 PM today, min date is tomorrow
           return tomorrow;
       }
   };
 
   return (
     <div className="ks-product-page">
+      {showWalletRequiredPopup && (
+        <div className="popup-overlay">
+          <div className="wallet-required-popup popup-content">
+              <div className="popup-header">
+                  <h3>Wallet Balance Low</h3>
+                  <button className="close-popup" onClick={() => setShowWalletRequiredPopup(false)}>&times;</button>
+              </div>
+              <div className="popup-body">
+                  <p>You need to have a minimum balance to subscribe to a product.</p>
+                  <p>Your current balance is ₹{walletBalance.toFixed(2)}.</p>
+                  <button className="add-money-btn" onClick={() => navigate('/subscribe', { state: { scrollToWallet: true } })}>
+                      Add Money to Wallet
+                  </button>
+              </div>
+          </div>
+        </div>
+      )}
       {showSuccessMessage && (
         <div className="ks-success-overlay">
           <div className="ks-success-message">
@@ -364,12 +389,6 @@ const ProductDetails = () => {
       )}
 
       <div className="ks-product-container">
-        {/* <div className="ks-breadcrumb">
-          <Link to="/consumer-dashboard" className="ks-breadcrumb-link">
-            <FaArrowLeft /> Back to Dashboard
-          </Link>
-        </div> */}
-
         <div className="ks-product-grid">
           <div className="ks-product-gallery">
           <div className="ks-main-image">
@@ -391,7 +410,7 @@ const ProductDetails = () => {
               <span className="ks-product-category">{product.category}</span>
               <span className="ks-product-type">{product.buy_type}</span>
             </div>
-
+            
             <div className="ks-product-description">
               <h3 className="ks-section-title">Product Details</h3>
               <p>{product.description || "Fresh from the farms"}</p>
@@ -497,7 +516,6 @@ const ProductDetails = () => {
             
             <h2>Choose Subscription Plan</h2>
             
-            {/* Conditional rendering for frequency options vs calendar vs confirmation */}
             {!showCalendar && !subscriptionConfirmed ? (
               <div className="ks-frequency-options">
                 <div 
@@ -525,7 +543,7 @@ const ProductDetails = () => {
                   Monthly
                 </div>
               </div>
-            ) : showCalendar && !subscriptionConfirmed ? ( /* Only show calendar if showCalendar is true AND subscription is NOT confirmed */
+            ) : showCalendar && !subscriptionConfirmed ? (
               <div className="ks-calendar-section">
                 <h3>Select Start Date</h3>
                 {isPastCutoffTime() ? (
@@ -538,7 +556,7 @@ const ProductDetails = () => {
                 <Calendar 
                   onChange={handleDateChange}
                   value={selectedDate}
-                  minDate={getMinDate()} // Use the corrected getMinDate
+                  minDate={getMinDate()}
                 />
                 {dateSelectionError && (
                   <div className="ks-date-error">{dateSelectionError}</div>
@@ -550,7 +568,7 @@ const ProductDetails = () => {
                   Confirm Date
                 </button>
               </div>
-            ) : ( /* Show confirmation if subscriptionConfirmed is true */
+            ) : (
               <div className="ks-subscription-confirmation">
                 <p>Subscribe to {product.product_name} ({selectedQuantity}kg) {selectedFrequency} starting from {selectedDate.toDateString()}</p>
                 <div className="ks-subscription-price">

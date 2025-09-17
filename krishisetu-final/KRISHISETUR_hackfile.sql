@@ -1706,8 +1706,92 @@ ADD COLUMN minimum_price DECIMAL(10,2) NULL CHECK (minimum_price >= 0);
 
 ALTER TABLE wallet_transactions ADD razorpay_payment_id VARCHAR(255) NULL;
 
-ALTER TABLE consumerregistration 
-MODIFY confirm_password VARCHAR(255) NULL;
 
-ALTER TABLE farmerregistration 
-MODIFY confirm_password VARCHAR(255) NULL;
+
+-- Ruchita's products
+UPDATE add_produce SET minimum_quantity = 10, minimum_price = 18.00 WHERE produce_name = 'Potatoes';
+UPDATE add_produce SET minimum_quantity = 5,  minimum_price = 110.00 WHERE produce_name = 'Apples';
+UPDATE add_produce SET minimum_quantity = 10, minimum_price = 12.00 WHERE produce_name = 'Cabbage';
+UPDATE add_produce SET minimum_quantity = 5,  minimum_price = 85.00 WHERE produce_name = 'Grapes';
+UPDATE add_produce SET minimum_quantity = 5,  minimum_price = 70.00 WHERE produce_name = 'Garlic';
+
+-- Arush's products
+UPDATE add_produce SET minimum_quantity = 5,  minimum_price = 20.00 WHERE produce_name = 'Spinach';
+UPDATE add_produce SET minimum_quantity = 3,  minimum_price = 15.00 WHERE produce_name = 'Pumpkin';
+UPDATE add_produce SET minimum_quantity = 10, minimum_price = 35.00 WHERE produce_name = 'Bananas';
+UPDATE add_produce SET minimum_quantity = 8,  minimum_price = 55.00 WHERE produce_name = 'Peanuts';
+UPDATE add_produce SET minimum_quantity = 9,  minimum_price = 50.00 WHERE produce_name = 'Green Peas';
+
+-- Pavan's products
+UPDATE add_produce SET minimum_quantity = 6,  minimum_price = 20.00 WHERE produce_name = 'Cucumber';
+UPDATE add_produce SET minimum_quantity = 5,  minimum_price = 70.00 WHERE produce_name = 'Peppers';
+UPDATE add_produce SET minimum_quantity = 7,  minimum_price = 100.00 WHERE produce_name = 'Mangoes';
+UPDATE add_produce SET minimum_quantity = 3,  minimum_price = 15.00 WHERE produce_name = 'Radish';
+UPDATE add_produce SET minimum_quantity = 12, minimum_price = 12.00 WHERE produce_name = 'Sugarcane';
+
+-- Teju's products
+UPDATE add_produce SET minimum_quantity = 15, minimum_price = 45.00 WHERE produce_name = 'Milk';
+UPDATE add_produce SET minimum_quantity = 8,  minimum_price = 400.00 WHERE produce_name = 'Butter';
+UPDATE add_produce SET minimum_quantity = 20, minimum_price = 30.00 WHERE produce_name = 'Corn';
+UPDATE add_produce SET minimum_quantity = 9,  minimum_price = 25.00 WHERE produce_name = 'Tomatoes';
+UPDATE add_produce SET minimum_quantity = 11, minimum_price = 90.00 WHERE produce_name = 'Lentils';
+
+
+CREATE TABLE community_flash_deals_orders (
+  order_id INT AUTO_INCREMENT PRIMARY KEY,
+  community_id VARCHAR(20) NOT NULL,
+  consumer_id VARCHAR(20) NOT NULL,
+  name VARCHAR(100) NOT NULL,
+  mobile_number VARCHAR(15) NOT NULL,
+  email VARCHAR(100) NOT NULL,
+  address TEXT NOT NULL,
+  pincode VARCHAR(10) NOT NULL,
+  produce_name TEXT NOT NULL,
+  quantity INT,
+  amount DECIMAL(10,2) NOT NULL,
+  is_self_delivery BOOLEAN DEFAULT FALSE,
+  status VARCHAR(20) DEFAULT 'Pending',
+  payment_method VARCHAR(50) NOT NULL,
+  payment_status VARCHAR(20) DEFAULT 'Pending',
+  subtotal DECIMAL(10,2) NOT NULL,
+  discount_amount DECIMAL(10,2) DEFAULT 0.00,
+  total_amount DECIMAL(10,2) NOT NULL,
+  order_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+  delivery_date DATE,
+  delivery_time VARCHAR(50),
+  discount_data JSON,
+  razorpay_order_id VARCHAR(50) DEFAULT NULL,
+  razorpay_payment_id VARCHAR(50) DEFAULT NULL,
+  razorpay_signature VARCHAR(255) DEFAULT NULL,
+  FOREIGN KEY (community_id) REFERENCES communities(community_id),
+  FOREIGN KEY (consumer_id) REFERENCES consumerregistration(consumer_id)
+);
+
+
+
+CREATE TABLE farmer_notifications (
+  notification_id INT(11) NOT NULL AUTO_INCREMENT,
+  farmer_id INT(11) NOT NULL,
+  order_id VARCHAR(100),
+  consumer_name VARCHAR(255),
+  message TEXT NOT NULL,
+  is_read TINYINT(1) DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (notification_id),
+
+  -- Only order_id is a foreign key referencing placeorder
+  CONSTRAINT fk_notification_order
+    FOREIGN KEY (order_id)
+    REFERENCES placeorder(order_id)
+    ON DELETE SET NULL
+    ON UPDATE CASCADE
+);
+
+
+CREATE TABLE flash_deals_status (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    pincode VARCHAR(10) UNIQUE NOT NULL,
+    start_time DATETIME NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

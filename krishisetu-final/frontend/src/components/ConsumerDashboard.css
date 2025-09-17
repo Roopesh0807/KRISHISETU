@@ -1238,3 +1238,605 @@ body {
   text-overflow: ellipsis;
 }
 
+/* Flash Deal Banner */
+.ks-flash-deal-banner {
+    /* Removed position: fixed, top, left to make it part of normal document flow */
+    width: 100%;
+    background: linear-gradient(90deg, #00BCD4, #FFEB3B, #9C27B0); /* Bright Cyan, Yellow, Purple */
+    color: white;
+    padding: 8px 15px; /* Made thinner */
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Distribute items */
+    font-size: 1.1em;
+    font-weight: bold;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    border-radius: 10px; /* Rounded corners */
+    z-index: 999; /* Lower than fixed elements if any, but still prominent */
+    overflow: hidden; /* Important for marquee effect */
+    margin-bottom: 30px; /* Space after the banner */
+    box-sizing: border-box; /* Include padding in width calculation */
+}
+
+.ks-flash-content-area {
+    display: flex;
+    align-items: center;
+    flex-grow: 1; /* Allows it to take up available space */
+    overflow: hidden; /* Ensures only the scrolling text is visible */
+}
+
+.ks-flash-deal-banner .ks-flash-icon {
+    margin-right: 15px;
+    font-size: 1.5em;
+    animation: pulse 1.5s infinite alternate; /* Pulsing animation for icon */
+    flex-shrink: 0; /* Prevent icon from shrinking */
+}
+
+.ks-marquee-container {
+    flex-grow: 1; /* Takes available space between icon and buttons */
+    overflow: hidden;
+    white-space: nowrap; /* Keep text on a single line */
+}
+
+.ks-marquee-content {
+    display: inline-block; /* Allows content to be wider than container */
+    padding-left: 100%; /* Starts content off-screen to the right, creating a loop effect */
+    animation: marquee 25s linear infinite; /* Adjusted duration for smoother loop */
+    will-change: transform; /* Hint to browsers for animation performance */
+}
+
+.ks-flash-deal-banner .ks-participate-btn {
+    background-color: #2196F3; /* Bright Blue button */
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 25px; /* More rounded pill shape */
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: bold;
+    transition: all 0.3s ease; /* Smooth transitions for hover effects */
+    display: flex;
+    align-items: center;
+    gap: 8px; /* Space between icon and text */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    animation: bounceIn 1s ease-out; /* Entry animation */
+    margin-left: 20px; /* Space from scrolling text */
+    flex-shrink: 0; /* Prevent button from shrinking */
+}
+
+.ks-flash-deal-banner .ks-participate-btn:hover {
+    background-color: #19b6d2; /* Darker blue on hover */
+    transform: translateY(-2px); /* Slight lift effect */
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+}
+
+.ks-flash-deal-banner .ks-participate-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.ks-flash-deal-banner .ks-close-flash-banner {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.2em;
+    cursor: pointer;
+    margin-left: 15px;
+    padding: 5px;
+    transition: transform 0.2s ease-in-out;
+    flex-shrink: 0; /* Prevent button from shrinking */
+}
+
+.ks-flash-deal-banner .ks-close-flash-banner:hover {
+    transform: rotate(90deg);
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* ============================================== */
+/* === FLASH DEALS BANNER: Zomato/Swiggy Style === */
+/* ============================================== */
+
+/* Main Banner Container */
+.ks-flash-deal-banner-new {
+  --banner-bg-start: #ff416c; /* Vibrant pink-red */
+    --banner-bg-end: #ff4b2b; /* Intense orange-red */
+    --primary-text-color: #ffffff;
+    --secondary-text-color: #ffeff1;
+    --accent-color: #ffd700; /* Gold for highlights */
+    --shadow-color: rgba(0, 0, 0, 0.4);
+    
+    position: relative;
+    width: 100%;
+    padding: 30px 40px;
+    margin-bottom: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 30px;
+    background: linear-gradient(135deg, var(--banner-bg-start) 0%, var(--banner-bg-end) 100%);
+    border-radius: 20px;
+    box-shadow: 0 15px 45px var(--shadow-color);
+    overflow: hidden;
+    transform: perspective(1000px) rotateX(0deg);
+    transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    will-change: transform, box-shadow;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+.ks-flash-deal-banner-new:hover {
+    transform: perspective(1000px) rotateX(5deg) scale(1.02);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
+}
+
+/* Background Animation Effect */
+.ks-flash-deal-banner-new::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at 10% 20%, rgba(255,255,255,0.1) 0%, transparent 60%),
+                radial-gradient(circle at 90% 80%, rgba(255,255,255,0.1) 0%, transparent 60%);
+    animation: rotate 20s linear infinite;
+    z-index: 0;
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Content Container */
+.ks-banner-content-wrapper {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 30px;
+}
+
+/* Left Section: Discounts and Title */
+.ks-banner-left {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    flex-shrink: 0;
+    gap: 15px;
+    animation: slideInLeft 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes slideInLeft {
+    from { transform: translateX(-100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+/* 3D Discount Badge */
+.ks-discount-box {
+    position: relative;
+    background: linear-gradient(45deg, #fff 0%, var(--accent-color) 100%);
+    color: var(--banner-bg-start);
+    padding: 12px 20px;
+    border-radius: 15px;
+    font-weight: 900;
+    font-size: 2.5rem;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    transform: skewX(-10deg) scale(1.1);
+    animation: popIn 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.ks-discount-box::before {
+    content: 'OFF';
+    position: absolute;
+    bottom: -10px;
+    right: 5px;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--primary-text-color);
+    background: var(--banner-bg-start);
+    padding: 2px 8px;
+    border-radius: 5px;
+    transform: skewX(10deg);
+}
+
+@keyframes popIn {
+    from { transform: scale(0.5) skewX(-10deg); opacity: 0; }
+    to { transform: scale(1.1) skewX(-10deg); opacity: 1; }
+}
+
+.ks-discount-value {
+    font-size: 2.2rem;
+    line-height: 1;
+}
+
+.ks-percent-icon {
+    font-size: 1.2rem;
+    position: relative;
+    bottom: 2px;
+}
+
+/* Title and Subtitle */
+.ks-banner-title h3 {
+    margin: 0;
+    font-size: 2.8rem;
+    font-weight: 900;
+    letter-spacing: 2px;
+    text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
+    color: var(--primary-text-color);
+    animation: textFlicker 2s infinite alternate;
+}
+
+@keyframes textFlicker {
+    0%, 100% { text-shadow: 3px 3px 6px rgba(0,0,0,0.3); }
+    50% { text-shadow: 3px 3px 10px rgba(0,0,0,0.5); }
+}
+
+.ks-banner-title p {
+    margin: 0;
+    font-size: 1rem; /* Reduced font size */
+    font-weight: 500;
+    opacity: 0.95;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+    color: var(--secondary-text-color);
+}
+
+/* Middle Section: Carousel */
+.ks-banner-carousel-container {
+    flex: 1;
+    min-width: 0;
+    max-width: 500px;
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+    margin: 0 20px;
+    animation: fadeIn 1.2s ease-out;
+}
+
+
+/* Individual Carousel Item */
+
+/* Individual Carousel Item */
+.ks-banner-product-item {
+    padding: 0 10px;
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
+    transition: transform 0.3s ease-in-out;
+    cursor: pointer;
+}
+
+
+.ks-banner-product-item:hover {
+    transform: scale(1.01);
+}
+
+.ks-banner-product-image {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.25);
+    border: 3px solid rgba(255, 255, 255, 0.6);
+    transition: all 0.3s ease;
+}
+
+.ks-banner-product-item:hover .ks-banner-product-image {
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+}
+
+/* Product details text */
+.ks-banner-product-details {
+    color: var(--primary-text-color);
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+}
+
+.ks-banner-product-details h4 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 700;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ks-banner-price {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--secondary-text-color);
+}
+
+.ks-banner-price .ks-original-price {
+    text-decoration: line-through;
+    opacity: 0.7;
+    font-size: 0.9rem;
+}
+
+.ks-banner-price .ks-flash-price {
+    font-weight: bold;
+    color: var(--accent-color);
+    font-size: 1.1rem;
+    text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+}
+
+/* Right Section: Call-to-Action Button */
+.ks-participate-btn {
+    position: relative;
+    z-index: 1;
+    background: var(--accent-color);
+    color: var(--banner-bg-start);
+    border: none;
+    padding: 12px 25px; /* Reduced padding */
+    border-radius: 50px;
+    font-weight: 800;
+    font-size: 1rem; /* Reduced font size */
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.3s ease-in-out;
+    flex-shrink: 0;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+    text-transform: uppercase;
+    overflow: hidden;
+}
+/* Add this new section at the end of the file */
+.ks-banner-timer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 15px;
+  color: var(--primary-text-color);
+  background: rgba(255, 255, 255, 0.2);
+  padding: 8px 15px;
+  border-radius: 50px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+.ks-banner-timer .fa-clock {
+  font-size: 1.4rem;
+  color: var(--accent-color);
+}
+
+.ks-participate-btn:hover {
+    background-color: #ffd966;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+/* Animations */
+@keyframes bounceIn {
+    0% { transform: scale(0.5); opacity: 0; }
+    50% { transform: scale(1.1); opacity: 1; }
+    70% { transform: scale(0.9); }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+
+/* Responsive Adjustments */
+@media (max-width: 1200px) {
+    .ks-flash-deal-banner-new {
+        flex-direction: column;
+        text-align: center;
+        padding: 25px;
+    }
+    .ks-banner-content-wrapper {
+        flex-direction: column;
+        gap: 20px;
+    }
+    .ks-banner-left {
+        align-items: center;
+    }
+    .ks-banner-carousel-container {
+        max-width: 100%;
+        margin: 20px 0;
+    }
+    .ks-participate-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 768px) {
+    .ks-flash-deal-banner-new {
+        padding: 20px;
+    }
+    .ks-banner-title h3 {
+        font-size: 1.8rem;
+        letter-spacing: 1px;
+    }
+    .ks-discount-box {
+        font-size: 1.5rem;
+        padding: 10px 15px;
+    }
+    .ks-discount-value {
+        font-size: 1.2rem;
+    }
+    .ks-banner-title p {
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .ks-flash-deal-banner-new {
+        padding: 15px;
+        border-radius: 15px;
+    }
+    .ks-banner-title h3 {
+        font-size: 1.5rem;
+    }
+    .ks-banner-title p {
+        font-size: 0.8rem;
+    }
+    .ks-banner-product-image {
+        width: 60px;
+        height: 60px;
+    }
+    .ks-banner-product-details h4 {
+        font-size: 0.9rem;
+    }
+    .ks-participate-btn {
+        font-size: 0.9rem;
+        padding: 10px 20px;
+    }
+}
+
+
+
+
+
+
+
+/* Keyframe Animations */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+@keyframes bounceIn {
+    0% { transform: scale(0.3); opacity: 0; }
+    50% { transform: scale(1.05); opacity: 1; }
+    70% { transform: scale(0.9); }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes marquee {
+    0% { transform: translateX(0%); }
+    100% { transform: translateX(-100%); } /* Scrolls the entire content width */
+}
+
+/* Pop-up Overlay */
+.popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* General Pop-up Content Container */
+.popup-content {
+    background-color: #ffffff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    width: 90%;
+    max-width: 450px;
+    position: relative;
+    animation: slideUp 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    border: 1px solid #e0e0e0;
+    text-align: center;
+}
+
+/* Pop-up Header */
+.popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid var(--primary-light-green);
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+}
+
+.popup-header h3 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: var(--primary-dark-green);
+}
+
+.close-popup {
+    background: none;
+    border: none;
+    font-size: 1.8rem;
+    color: #9e9e9e;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.close-popup:hover {
+    color: #424242;
+}
+
+/* Pop-up Body Content */
+.popup-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+.popup-body p {
+    margin: 0;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: var(--text-medium);
+}
+
+/* Add Money Button */
+.add-money-btn {
+    background-color: var(--primary-green);
+    color: #ffffff;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 30px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: var(--shadow-sm);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.add-money-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
