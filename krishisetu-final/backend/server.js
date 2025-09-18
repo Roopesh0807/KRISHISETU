@@ -149,7 +149,8 @@ const io = new Server(httpServer, {
   cors: {
     origin: [
       "http://localhost:3000", 
-      "https://krishisetur.netlify.app"
+      "https://krishisetur.netlify.app",
+      "https://krishisetuindia.in",
     ],
     methods: ["GET", "POST"],
     credentials: true
@@ -166,7 +167,8 @@ const { authMiddleware } = require("./src/middlewares/authMiddleware"); // your 
 // ✅ PROPER CORS SETUP
 const allowedOrigins = [
   "http://localhost:3000", 
-  "https://krishisetur.netlify.app"
+  "https://krishisetur.netlify.app",
+  "https://krishisetuindia.in",
 ];
 
 const corsOptions = {
