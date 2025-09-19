@@ -845,25 +845,28 @@ app.get('/api/community-flash-deals-status/:pincode', async (req, res) => {
     const baseUrl = `${req.protocol}://${req.get('host')}`;
 
     try {
+        // Count consumers in this pincode
         const [countResult] = await queryDatabase(
             "SELECT COUNT(*) as consumer_count FROM consumerprofile WHERE pincode = ?",
             [pincode]
         );
 
         const consumerCount = countResult.consumer_count;
-        const requiredCount = 2; // Set your required user count here
+        const requiredCount = 2; // Minimum required users for flash deal
         let showFlashDeal = consumerCount >= requiredCount;
 
         let timerData = null;
 
+        // Check if a record exists for this pincode
         const [statusRecord] = await queryDatabase(
             "SELECT start_time FROM flash_deals_status WHERE pincode = ?",
             [pincode]
         );
 
         const now = new Date();
-        const activeDuration = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-        const frozenDuration = 72 * 60 * 60 * 1000; // 72 hours (2 days) in milliseconds
+        const mysqlDatetime = now.toISOString().slice(0, 19).replace("T", " "); // ✅ Format for MySQL
+        const activeDuration = 24 * 60 * 60 * 1000;  // 24 hours
+        const frozenDuration = 72 * 60 * 60 * 1000;  // 72 hours (3 days)
 
         if (statusRecord) {
             const startTime = new Date(statusRecord.start_time);
@@ -871,41 +874,38 @@ app.get('/api/community-flash-deals-status/:pincode', async (req, res) => {
             const totalCycleTime = activeDuration + frozenDuration;
 
             if (elapsedTime < totalCycleTime) {
-                // If the current cycle is still ongoing
+                // Current cycle still ongoing
                 timerData = { start_time: statusRecord.start_time };
                 if (elapsedTime > activeDuration) {
-                    // It's in the frozen (cool-down) period
+                    // In frozen (cool-down) period
                     showFlashDeal = false;
                 }
             } else {
-                // The previous cycle has completed, start a new one
+                // Previous cycle finished → start new one if conditions met
                 if (showFlashDeal) {
-                    const newStartTime = now.toISOString();
                     await queryDatabase(
                         "UPDATE flash_deals_status SET start_time = ? WHERE pincode = ?",
-                        [newStartTime, pincode]
+                        [mysqlDatetime, pincode]
                     );
-                    timerData = { start_time: newStartTime };
+                    timerData = { start_time: mysqlDatetime };
                 } else {
-                    // Conditions for a new deal are not met yet
-                    timerData = { start_time: null }; 
+                    timerData = { start_time: null };
                 }
             }
         } else {
-            // No record exists for this pincode, check if conditions are met to start a new deal
+            // No record for this pincode yet
             if (showFlashDeal) {
-                const newStartTime = now.toISOString();
                 await queryDatabase(
                     "INSERT INTO flash_deals_status (pincode, start_time) VALUES (?, ?)",
-                    [pincode, newStartTime]
+                    [pincode, mysqlDatetime]
                 );
-                timerData = { start_time: newStartTime };
+                timerData = { start_time: mysqlDatetime };
             } else {
-                // Conditions not met, return no timer data
                 timerData = { start_time: null };
             }
         }
 
+        // Shareable links
         const flashDealsUrl = `${baseUrl}/community-flash-deals?pincode=${pincode}`;
         const shareableMessage = encodeURIComponent(
             `Join me for exclusive flash deals in our community! Click the link to participate: ${flashDealsUrl}`
@@ -923,7 +923,7 @@ app.get('/api/community-flash-deals-status/:pincode', async (req, res) => {
         console.error("Error checking for flash deals status:", error);
         res.status(500).json({
             success: false,
-            error: "Failed to check flash deals status",
+            error: error.message || "Failed to check flash deals status",
         });
     }
 });
