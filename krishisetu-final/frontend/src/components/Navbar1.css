@@ -143,3 +143,76 @@
     font-size: 18px; /* Reduced font size */
   }
 }
+/* Add to Navbar1.css */
+
+/* Hamburger icon styles */
+.hamburger {
+  display: none; /* Hide by default on desktop */
+  cursor: pointer;
+}
+
+.hamburger div {
+  width: 25px;
+  height: 3px;
+  background-color: white;
+  margin: 5px;
+  transition: all 0.3s ease;
+}
+
+/* Add to Navbar1.css */
+
+/* Mobile menu styles for a side drawer */
+.mobile-menu {
+  display: flex;
+  flex-direction: column;
+  background-color: rgba(0, 0, 0, 0.641);
+  position: fixed;
+  top: 60px;
+  right: -300px;
+  width: 170px; 
+  height: 30%; 
+  padding-top: 30px; 
+  transition: right 0.3s ease-in-out;
+  z-index: 999;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  box-shadow: -4px 0 15px rgba(0, 0, 0, 0.3);
+}
+
+.mobile-menu.open {
+  right: 0; /* Slide in when open */
+}
+
+/* Close button for the mobile menu */
+.close-btn {
+  color: white;
+  font-size: 30px;
+  position: absolute;
+  top: 10px;
+  right: 20px;
+  cursor: pointer;
+}
+
+.mobile-menu li {
+  text-align: center;
+  padding: 15px 0;
+  width: 100%;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .navbar1 .navbar-links {
+    display: none; /* Hide the regular links on small screens */
+  }
+
+  .hamburger {
+    display: block; /* Show the hamburger icon */
+  }
+
+  .navbar1 {
+    justify-content: space-between;
+    flex-direction: row;
+    padding: 10px 20px;
+  }
+}

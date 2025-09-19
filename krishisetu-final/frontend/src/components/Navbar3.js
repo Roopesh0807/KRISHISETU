@@ -209,6 +209,15 @@ const Navbar3 = () => {
             Community Orders
           </Link>
         </li>
+         <li>
+          <Link
+            to="/community-flash-deals"
+            className={`navbar-link ${isHovered === 12 ? 'hover' : ''} ${isActive("/community-flash-deals") ? 'active' : ''}`}
+            onMouseEnter={() => handleMouseEnter(12)}
+            onMouseLeave={handleMouseLeave}>
+            Community Flash Deals
+          </Link>
+        </li>
         <li>
           <Link
             to="/subscribe"
