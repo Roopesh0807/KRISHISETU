@@ -1,13 +1,12 @@
 import React, { useState, useContext } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
-import { useLocation } from "react-router-dom"; // Add this import
 import "./LogReg.css";
 
 const FarmerLogin = () => {
   const navigate = useNavigate();
   const { loginFarmer } = useContext(AuthContext);
-  const location = useLocation(); // Add this line to get the location object
+  const location = useLocation();
 
   const [formData, setFormData] = useState({
     emailOrPhone: "",
@@ -33,6 +32,7 @@ const FarmerLogin = () => {
 
       const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/farmerlogin`, {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
           "Accept": "application/json",
@@ -52,7 +52,7 @@ const FarmerLogin = () => {
 
       // Decode token
       const payload = JSON.parse(atob(data.token.split(".")[1]));
-
+      
       if (!payload.farmer_id || !payload.exp) {
         throw new Error("Invalid token payload");
       }
@@ -81,7 +81,6 @@ const FarmerLogin = () => {
         expiresAt: payload.exp * 1000,
       }));
 
-      // The 'location' variable is now correctly defined here
       navigate("/farmer-dashboard", {
         replace: true,
         state: { from: location.state?.from || "/" },
