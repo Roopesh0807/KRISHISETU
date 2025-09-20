@@ -4891,6 +4891,39 @@ app.get("/api/community-flashdeals", authenticateToken, async (req, res) => {
   }
 });
 
+// Route to securely serve images from the protected directory
+app.get("/api/secure-image-stream", authenticateToken, (req, res) => {
+  const filePath = req.query.filePath;
+
+  if (!filePath) {
+    return res.status(400).json({ error: "File path is required." });
+  }
+
+  // Prevents directory traversal attacks
+  const securePath = path.join(__dirname, 'uploads', 'farmer-documents', path.basename(filePath));
+
+  // Check if the file exists and is in the intended directory
+  fs.access(securePath, fs.constants.F_OK, (err) => {
+    if (err) {
+      console.error("File not found or no access:", err);
+      return res.status(404).json({ error: "File not found." });
+    }
+
+    // Serve the file
+    res.sendFile(securePath, (err) => {
+      if (err) {
+        console.error("Error sending file:", err);
+        res.status(500).json({ error: "Failed to send file." });
+      }
+    });
+  });
+});
+
+// Other routes...
+
+// The rest of your existing server code should follow here.
+// Example protected routes that also use the middleware:
+// app.get("/api/farmer/orders/:id", authenticateToken, (req, res) => { /* ... */ });
 
 
 

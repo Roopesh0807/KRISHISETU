@@ -6,6 +6,101 @@ import { faStar as farStar } from '@fortawesome/free-regular-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import './CommunityFlashDeals.css';
 
+// New secure FarmPhotosPopup component to handle authenticated image requests
+const FarmPhotosPopup = ({ onClose, photos, consumerToken }) => {
+    const [imageUrls, setImageUrls] = useState({});
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        const fetchImages = async () => {
+            setLoading(true);
+            setError(null);
+            const newUrls = {};
+
+            if (!photos || photos.length === 0) {
+                setLoading(false);
+                return;
+            }
+
+            const baseSecureUrl = `${process.env.REACT_APP_BACKEND_URL}/api/secure-image-stream?filePath=`;
+
+            try {
+                await Promise.all(
+                    photos.map(async (photoPath) => {
+                        const filePath = photoPath.split('/').pop();
+                        const response = await fetch(`${baseSecureUrl}${filePath}`, {
+                            method: 'GET',
+                            headers: {
+                                'Authorization': `Bearer ${consumerToken}`,
+                            },
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`Failed to load image: ${response.statusText}`);
+                        }
+
+                        const blob = await response.blob();
+                        newUrls[photoPath] = URL.createObjectURL(blob);
+                    })
+                );
+                setImageUrls(newUrls);
+            } catch (err) {
+                console.error("Error fetching images:", err);
+                setError("Failed to load farm photos.");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchImages();
+
+        return () => {
+            Object.values(imageUrls).forEach(URL.revokeObjectURL);
+        };
+    }, [photos, consumerToken]);
+
+    return (
+        <div className="reviews-popup">
+            <div className="reviews-popup-content">
+                <button onClick={onClose} className="reviews-popup-close-btn">
+                    <FontAwesomeIcon icon={faTimesCircle} />
+                </button>
+                <h3>Farm Photos</h3>
+                {loading ? (
+                    <div className="loading-container">
+                        <FontAwesomeIcon icon={faSpinner} spin size="2x" />
+                        <p>Loading photos...</p>
+                    </div>
+                ) : error ? (
+                    <p className="error-message">{error}</p>
+                ) : (
+                    <div className="farm-photos-container">
+                        {photos && photos.length > 0 ? (
+                            photos.map((photo, index) => (
+                                imageUrls[photo] ? (
+                                    <img
+                                        key={index}
+                                        src={imageUrls[photo]}
+                                        alt={`Farm Photo ${index + 1}`}
+                                        className="farm-photo-item"
+                                    />
+                                ) : (
+                                    <div key={index} className="photo-placeholder">
+                                        <p>Loading...</p>
+                                    </div>
+                                )
+                            ))
+                        ) : (
+                            <p className="no-photos-message">No farm photos available for this farmer.</p>
+                        )}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
 const CommunityFlashDeals = () => {
     const { consumer } = useContext(AuthContext);
     const navigate = useNavigate();
@@ -38,7 +133,6 @@ const CommunityFlashDeals = () => {
         }
     }, []);
 
-    // Function to generate a unique community ID
     const getOrCreateCommunityId = () => {
         let communityId = localStorage.getItem('userCommunityId');
         if (!communityId) {
@@ -153,7 +247,7 @@ const CommunityFlashDeals = () => {
 
     const DealCard = ({ deal, isAvailable }) => {
         const { produce_name, price_per_kg, minimum_price, availability, farmer_name, produce_type, average_rating, farm_address, profile_photo, farm_photographs } = deal;
-        const [imageSrc, setImageSrc] = useState('https://via.placeholder.com/300?text=Loading...');
+        const [imageSrc, setImageSrc] = useState('https://via.placeholder.co/300?text=Loading...');
 
         useEffect(() => {
             fetchProductImage(produce_name).then(url => setImageSrc(url));
@@ -303,31 +397,6 @@ const CommunityFlashDeals = () => {
         </div>
     );
     
-    const FarmPhotosPopup = ({ onClose, photos }) => (
-        <div className="reviews-popup">
-            <div className="reviews-popup-content">
-                <button onClick={onClose} className="reviews-popup-close-btn">
-                    <FontAwesomeIcon icon={faTimesCircle} />
-                </button>
-                <h3>Farm Photos</h3>
-                <div className="farm-photos-container">
-                    {photos && photos.length > 0 ? (
-                        photos.map((photo, index) => (
-                            <img
-                                key={index}
-                                src={`${process.env.REACT_APP_BACKEND_URL}${photo}`}
-                                alt={`Farm Photo ${index + 1}`}
-                                className="farm-photo-item"
-                            />
-                        ))
-                    ) : (
-                        <p className="no-photos-message">No farm photos available for this farmer.</p>
-                    )}
-                </div>
-            </div>
-        </div>
-    );
-
     useEffect(() => {
         const fetchDealsAndStatus = async () => {
             if (!consumer?.consumer_id || !consumer?.token) {
@@ -369,7 +438,6 @@ const CommunityFlashDeals = () => {
                         if (elapsedTimeInCycle < activeDuration) {
                             setTimeLeft(Math.floor((activeDuration - elapsedTimeInCycle) / 1000));
                         } else {
-                            // This is the cool-down period. Calculate time until the next active phase.
                     const timeToNextActive = cycleDuration - elapsedTimeInCycle;
                     setTimeLeft(Math.floor(timeToNextActive / 1000));}
                     }
@@ -612,6 +680,7 @@ const CommunityFlashDeals = () => {
                 <FarmPhotosPopup
                     onClose={() => setShowFarmPhotosPopup(false)}
                     photos={selectedProductForFarmPhotos.farm_photographs}
+                    consumerToken={consumer?.token}
                 />
             )}
             {showInstructions && <InstructionsPopup onClose={() => setShowInstructions(false)} />}
