@@ -428,6 +428,60 @@ app.post("/api/farmerregister", async (req, res) => {
 //   }
 // });
 
+app.post("/api/farmerlogin", async (req, res) => {
+  const { emailOrPhone, password } = req.body;
+
+  try {
+    // 1. Find farmer by email or phone
+    const results = await queryDatabase(
+      "SELECT farmer_id, first_name, last_name, email, phone_number, password FROM farmerregistration WHERE email = ? OR phone_number = ?",
+      [emailOrPhone, emailOrPhone]
+    );
+
+    if (results.length === 0) {
+      return res.status(401).json({ success: false, message: "Invalid credentials" });
+    }
+
+    const user = results[0];
+
+    // 2. Compare hashed password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ success: false, message: "Invalid password" });
+    }
+
+    // 3. Generate JWT token
+    const token = jwt.sign(
+      {
+        farmer_id: user.farmer_id,
+        userType: "farmer",
+        email: user.email,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "8760h" } // 1 year
+    );
+
+    // 4. Send response
+    res.json({
+      success: true,
+      token,
+      farmer_id: user.farmer_id,
+      full_name: `${user.first_name} ${user.last_name}`,
+      email: user.email,
+      phone_number: user.phone_number,
+      first_name: user.first_name,
+      last_name: user.last_name,
+    });
+
+  } catch (err) {
+    console.error("Farmer Login Error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: err.message,
+    });
+  }
+});
 
 
 
