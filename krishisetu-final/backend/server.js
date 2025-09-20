@@ -151,6 +151,7 @@ const io = new Server(httpServer, {
       "http://localhost:3000", 
       "https://krishisetur.netlify.app",
       "https://krishisetuindia.in",
+       "https://www.krishisetuindia.in"
     ],
     methods: ["GET", "POST"],
     credentials: true
@@ -169,6 +170,7 @@ const allowedOrigins = [
   "http://localhost:3000", 
   "https://krishisetur.netlify.app",
   "https://krishisetuindia.in",
+   "https://www.krishisetuindia.in"
 ];
 
 const corsOptions = {
