@@ -74,9 +74,12 @@ const FarmerLogin = () => {
       console.log("✅ Logged-in farmer:", farmerData);
 
       loginFarmer(farmerData);
-      // Update these lines to match your local storage
+      // Store token along with other data
       localStorage.setItem("farmerID", data.farmer_id);
       localStorage.setItem("farmerName", data.full_name);
+      localStorage.setItem("token", data.token);
+      
+      // Store the auth data for session management
       localStorage.setItem("auth", JSON.stringify({
         token: data.token,
         farmer_id: data.farmer_id,
