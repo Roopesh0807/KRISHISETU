@@ -1359,7 +1359,7 @@ const BargainChatWindow = () => {
       const messageContent = `💰 Offered ₹${price}/kg for ${selectedQuantity}kg of ${selectedProduct.produce_name}`;
       
       const response = await fetch(
-        `${process.env.REACT_APP_Backend_URL}/api/bargain/${bargainId}/messages`,
+        `${process.env.REACT_APP_BACKEND_URL}/api/bargain/${bargainId}/messages`,
         {
           method: 'POST',
           headers: {
