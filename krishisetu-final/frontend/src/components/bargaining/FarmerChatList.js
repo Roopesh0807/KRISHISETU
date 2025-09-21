@@ -3952,7 +3952,7 @@ const FarmerChatList = () => {
       const decodedToken = JSON.parse(atob(token.split(".")[1]));
       const farmerId = decodedToken.farmer_id;
 
-      const apiUrl = `${process.env.REACT_APP_API_BASE_URL}/api/bargain/farmers/${farmerId}/sessions`;
+      const apiUrl = `${process.env.REACT_APP_BACKEND_URL}/api/bargain/farmers/${farmerId}/sessions`;
 
       const response = await fetch(apiUrl, {
         headers: {
@@ -4055,7 +4055,7 @@ const FarmerChatList = () => {
         socket.current = null;
       }
 
-      socket.current = io(process.env.REACT_APP_API_BASE_URL, {
+      socket.current = io(process.env.REACT_APP_BACKEND_URL, {
         auth: { token },
         query: { 
           userType: 'farmer',
@@ -4416,26 +4416,26 @@ const FarmerChatList = () => {
       </div>
   
       <div className="chat-window-container">
-        {selectedSession ? (
-          <FarmerChatWindow
-            bargainId={selectedSession.bargain_id}
-            socket={socket.current}
-            connectionStatus={connectionStatus}
-            initialSession={selectedSession}
-            onBack={() => {
-              setSelectedSession(null);
-              navigate("/farmer/bargain");
-            }}
-          />
-        ) : (
-          <div className="empty-chat-window">
-            <div className="empty-content">
-              <h3>Select a bargain request</h3>
-              <p>Choose a conversation from the sidebar to start bargaining</p>
-            </div>
-          </div>
-        )}
+  {selectedSession ? (
+    <FarmerChatWindow
+      bargainId={selectedSession.bargain_id}
+      socket={socket.current}
+      connectionStatus={connectionStatus}
+      initialSession={selectedSession}
+      onBack={() => {
+        setSelectedSession(null);
+        navigate("/farmer/bargain");
+      }}
+    />
+  ) : (
+    <div className="empty-chat-window">
+      <div className="empty-content">
+        <h3>Select a bargain request</h3>
+        <p>Choose a conversation from the sidebar to start bargaining</p>
       </div>
+    </div>
+  )}
+</div>
     </div>
   );
 };
