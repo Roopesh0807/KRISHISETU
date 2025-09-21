@@ -92,14 +92,12 @@ const ConsumerLogin = () => {
         expiresAt: payload.exp * 1000,
       }));
       
-      // Store consumer-specific data including consumerId
-      const userCommunityData = {
-          userCommunityId: data.community_id || "COMM-1757765440431-467",
-          userEmail: consumerData.email,
-          userName: consumerData.full_name || consumerData.first_name,
-          consumerId: consumerData.consumer_id
-      };
-      localStorage.setItem("user", JSON.stringify(userCommunityData));
+      // Store each piece of data in a separate key-value pair
+      localStorage.setItem("userCommunityId", data.community_id || "COMM-1757765440431-467");
+      localStorage.setItem("userEmail", consumerData.email);
+      localStorage.setItem("userName", consumerData.full_name || consumerData.first_name);
+      localStorage.setItem("consumerId", consumerData.consumer_id);
+
 
       navigate("/consumer-dashboard", {
         replace: true,
