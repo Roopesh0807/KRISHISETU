@@ -1206,7 +1206,7 @@ const BargainChatWindow = () => {
     console.log("Initializing consumer socket with options:", socketOptions);
   
     socket.current = io(
-      process.env.REACT_APP_API_BASE_URL || "http://localhost:5000",
+      process.env.REACT_APP_API_BASE_URL,
       socketOptions
     );
   
@@ -1359,7 +1359,7 @@ const BargainChatWindow = () => {
       const messageContent = `💰 Offered ₹${price}/kg for ${selectedQuantity}kg of ${selectedProduct.produce_name}`;
       
       const response = await fetch(
-        `${process.env.REACT_APP_API_BASE_UR}/api/bargain/${bargainId}/messages`,
+        `${process.env.REACT_APP_API_BASE_URL}/api/bargain/${bargainId}/messages`,
         {
           method: 'POST',
           headers: {
