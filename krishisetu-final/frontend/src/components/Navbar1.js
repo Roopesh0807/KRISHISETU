@@ -30,11 +30,15 @@ const Navbar1 = ({ isLoginPage = false, isAuthPage = false }) => {
       </div>
       
       {/* Hamburger Icon */}
-      <div className="hamburger" onClick={handleMenuToggle}>
-        <div></div>
-        <div></div>
-        <div></div>
-      </div>
+     <div className={`hamburger ${isOpen ? 'open' : ''}`} onClick={handleMenuToggle}>
+  {isOpen ? <span className="close-btn">&times;</span> : (
+    <>
+      <div></div>
+      <div></div>
+      <div></div>
+    </>
+  )}
+</div>
       
       {/* Desktop Links */}
       <ul className="navbar-links">
@@ -73,7 +77,6 @@ const Navbar1 = ({ isLoginPage = false, isAuthPage = false }) => {
       
       {/* Mobile Menu as a separate container */}
       <ul className={`mobile-menu ${isOpen ? 'open' : ''}`}>
-        <span className="close-btn" onClick={handleMenuToggle}>&times;</span>
         <li>
           <a href="/" className="navbar-link" onClick={handleHomeClick}>
             HOME

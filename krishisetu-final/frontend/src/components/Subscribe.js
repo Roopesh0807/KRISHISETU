@@ -345,7 +345,9 @@ const Subscribe = () => {
             )}
 
             <div className="subscribe-header">
-                <button className="back-button" onClick={() => navigate(-1)}><FaArrowLeft /></button>
+                  <button className="instructions-btn" onClick={() => setShowInstructions(true)}>
+                    <FaInfoCircle />Instructions
+                </button>
                 <span className="modify-notice">
                     <FaClock /> {canModify ? `Modify before ${timeLeft}` : 'Modifications paused'}
                 </span>
@@ -370,9 +372,6 @@ const Subscribe = () => {
                     <FaFilePdf /> Download Combined Bill (Last 30 Days)
                 </button>
                 {/* New Instructions Button */}
-                <button className="instructions-btn" onClick={() => setShowInstructions(true)}>
-                    <FaInfoCircle /> View Instructions
-                </button>
             </div>
 
 

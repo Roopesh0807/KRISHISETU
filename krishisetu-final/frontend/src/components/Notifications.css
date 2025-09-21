@@ -2,6 +2,7 @@
 .notifications-container {
   max-width: 800px;
   margin: 2rem auto;
+  margin-top: 100px;
   padding: 2rem;
   background: #ffffff;
   border-radius: 12px;

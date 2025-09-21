@@ -147,8 +147,10 @@
 
 /* Hamburger icon styles */
 .hamburger {
-  display: none; /* Hide by default on desktop */
+  display: none;
   cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 1001; /* Ensure it's above the mobile menu */
 }
 
 .hamburger div {
@@ -158,6 +160,27 @@
   margin: 5px;
   transition: all 0.3s ease;
 }
+
+/* Transform hamburger to 'X' when open */
+.hamburger.open div:nth-child(1) {
+  transform: rotate(-45deg) translate(-5px, 6px);
+}
+
+.hamburger.open div:nth-child(2) {
+  opacity: 0;
+}
+
+.hamburger.open div:nth-child(3) {
+  transform: rotate(45deg) translate(-5px, -6px);
+}
+
+/* Close button inside hamburger container */
+.hamburger .close-btn {
+  color: white;
+  font-size: 30px;
+  /* These styles might not be necessary if using the hamburger transform method */
+}
+
 
 /* Add to Navbar1.css */
 
@@ -169,7 +192,7 @@
   position: fixed;
   top: 60px;
   right: -300px;
-  width: 170px; 
+  width: 140px; 
   height: 30%; 
   padding-top: 30px; 
   transition: right 0.3s ease-in-out;
@@ -184,19 +207,10 @@
   right: 0; /* Slide in when open */
 }
 
-/* Close button for the mobile menu */
-.close-btn {
-  color: white;
-  font-size: 30px;
-  position: absolute;
-  top: 10px;
-  right: 20px;
-  cursor: pointer;
-}
 
 .mobile-menu li {
-  text-align: center;
-  padding: 15px 0;
+  text-align: left;
+  padding: 15px 15px;
   width: 100%;
 }
 

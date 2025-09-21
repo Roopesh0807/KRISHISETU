@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaSeedling, FaPlus, FaBell, FaUser, FaSignOutAlt, FaMicrophone } from 'react-icons/fa';
+import { FaSeedling, FaPlus, FaBell, FaUser, FaSignOutAlt, FaMicrophone, FaBars, FaTimes } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 import logo from '../assets/logo.jpg';
 import './Navbar2.css';
@@ -9,6 +9,7 @@ const Navbar2 = () => {
   const navigate = useNavigate();
   const { farmer, logout } = useAuth();
   const [isListening, setIsListening] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [voiceFeedback, setVoiceFeedback] = useState('');
   const recognitionRef = useRef(null);
 
@@ -89,6 +90,14 @@ const Navbar2 = () => {
     }
   };
 
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
+  };
+
+  const closeMenu = () => {
+    setIsMenuOpen(false);
+  };
+
   const processVoiceCommand = (command) => {
     // Remove common filler words and punctuation
     const cleanCommand = command
@@ -122,6 +131,7 @@ const Navbar2 = () => {
         } else {
           navigate(destination);
         }
+        setIsListening(false);
       }, 1500);
     } else {
       setVoiceFeedback(prev => `${prev}\nSorry, I didn't understand. Try saying:\n- "Add produce"\n- "Notifications"\n- "Profile"\n- "Logout"`);
@@ -157,27 +167,27 @@ const Navbar2 = () => {
         <span className="navbar-name">KRISHISETU</span>
       </div>
 
-      {/* Right Aligned: Icons */}
-      <ul className="navbar-icons">
-        {/* Voice Command */}
-        <li>
-        
-          <button 
-            onClick={toggleVoiceCommand} 
-            className={`icon ${isListening ? 'voice-active' : ''}`}
-            title={isListening ? 'Stop Voice Command' : 'Start Voice Command'}
-          >
-            <div className="icon-container">
-            <FaMicrophone className="icon" />
-            <span className="icon-text">Voice</span>
-            </div>
-          </button>
-          
-        </li>
+      {/* Voice Command Button - Always visible */}
+      <div className="voice-command-container">
+        <button 
+          onClick={toggleVoiceCommand} 
+          className={`voice-command-btn ${isListening ? 'active' : ''}`}
+          title={isListening ? 'Stop Voice Command' : 'Start Voice Command'}
+        >
+          <FaMicrophone />
+        </button>
+      </div>
 
+      {/* Hamburger Menu Button */}
+      <div className={`hamburger ${isMenuOpen ? 'open' : ''}`} onClick={toggleMenu}>
+        {isMenuOpen ? <FaTimes /> : <FaBars />}
+      </div>
+
+      {/* Right Aligned: Icons */}
+      <ul className={`navbar-icons ${isMenuOpen ? 'open' : ''}`}>
         {/* Add Produce */}
         <li>
-          <Link to="/add-produce" className="icon-link" title="Add Produce">
+          <Link to="/add-produce" className="icon-link" title="Add Produce" onClick={closeMenu}>
             <div className="icon-container">
               <FaSeedling className="icon" aria-label="Add Produce" />
               <FaPlus className="plus-icon" aria-label="Add" />
@@ -188,7 +198,7 @@ const Navbar2 = () => {
 
         {/* Notifications */}
         <li>
-          <Link to="/notifications" className="icon-link" title="Notifications">
+          <Link to="/notifications" className="icon-link" title="Notifications" onClick={closeMenu}>
             <FaBell className="icon" aria-label="Notifications" />
             <span className="icon-text">Notifications</span>
           </Link>
@@ -200,6 +210,7 @@ const Navbar2 = () => {
             to={`/farmer/${farmer?.farmer_id}/profile`} 
             className="icon-link" 
             title="Profile"
+            onClick={closeMenu}
           >
             <FaUser className="icon" aria-label="Profile" />
             <span className="icon-text">Profile</span>
@@ -209,6 +220,7 @@ const Navbar2 = () => {
         {/* Logout */}
         <li>
           <button className="icon-link logout" title="Logout" onClick={() => {
+            closeMenu();
             logout();
             navigate('/LoginPage');
           }}>

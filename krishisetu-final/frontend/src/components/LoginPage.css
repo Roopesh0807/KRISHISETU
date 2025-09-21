@@ -11,6 +11,7 @@
   --ks-dark: #263238;
   --ks-gray: #607D8B;
   --ks-light-gray: #ECEFF1;
+  
 }
 
 .ks-login-container {
@@ -22,6 +23,7 @@
   justify-content: center;
   overflow: hidden;
   font-family: 'Poppins', sans-serif;
+  margin-top: 50px;
 }
 
 .ks-login-bg-image {
