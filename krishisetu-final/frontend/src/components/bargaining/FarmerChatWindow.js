@@ -80,7 +80,7 @@ const [, setFreezeUI] = useState(false);
   const fetchMessages = async () => {
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_API_BASE_URL}/api/bargain/${bargainId}/messages`,
+        `${process.env.REACT_APP_BACKEND_URL}/api/bargain/${bargainId}/messages`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -142,7 +142,7 @@ const [, setFreezeUI] = useState(false);
 
     // Create new socket connection
     socket.current = io(
-      process.env.REACT_APP_API_BASE_URL,
+      process.env.REACT_APP_BACKEND_URL,
       socketOptions
     );
 
@@ -286,7 +286,7 @@ const [, setFreezeUI] = useState(false);
         : `❌ You rejected the offer at ₹${currentPrice}/kg`;
       
       const response = await fetch(
-        `${process.env.REACT_APP_API_BASE_URL}/api/bargain/${bargainId}/messages`,
+        `${process.env.REACT_APP_BACKEND_URL}/api/bargain/${bargainId}/messages`,
         {
           method: 'POST',
           headers: {
@@ -349,7 +349,7 @@ const [, setFreezeUI] = useState(false);
         
         if (!selectedProduct || !selectedConsumer) {
           const response = await fetch(
-            `${process.env.REACT_APP_API_BASE_URL}/api/bargain/${bargainId}`,
+            `${process.env.REACT_APP_BACKEND_URL}/api/bargain/${bargainId}`,
             {
               headers: { 'Authorization': `Bearer ${token}` }
             }
@@ -410,7 +410,7 @@ const [, setFreezeUI] = useState(false);
       const messageContent = `💰 Counter offer: ₹${price}/kg for ${quantity}kg of ${selectedProduct.produce_name}`;
       
       // Define the API URL
-      const apiUrl = `${process.env.REACT_APP_API_BASE_URL}/api/bargain/${bargainId}/messages`;
+      const apiUrl = `${process.env.REACT_APP_BACKEND_URL}/api/bargain/${bargainId}/messages`;
       
       // Create the message payload
       const messagePayload = {
