@@ -1081,7 +1081,7 @@ const BargainChatWindow = () => {
   const fetchMessages = async () => {
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_API_BASE_URL}/api/bargain/${bargainId}/messages`,
+        `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/bargain/${bargainId}/messages`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -1125,7 +1125,7 @@ const BargainChatWindow = () => {
       };
   
       const response = await fetch(
-        `${process.env.REACT_APP_API_BASE_URL}/api/cart/${consumer.consumer_id}`,
+        `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/cart/${consumer.consumer_id}`,
         {
           method: 'POST',
           headers: {
@@ -1206,7 +1206,7 @@ const BargainChatWindow = () => {
     console.log("Initializing consumer socket with options:", socketOptions);
   
     socket.current = io(
-      process.env.REACT_APP_API_BASE_URL,
+      process.env.REACT_APP_API_BASE_URL || "http://localhost:5000",
       socketOptions
     );
   
@@ -1306,7 +1306,7 @@ const BargainChatWindow = () => {
         
         if (!selectedProduct || !selectedFarmer) {
           const response = await fetch(
-            `${process.env.REACT_APP_API_BASE_URL}/api/bargain/${bargainId}`,
+            `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/bargain/${bargainId}`,
             {
               headers: { 'Authorization': `Bearer ${token}` }
             }
@@ -1359,7 +1359,7 @@ const BargainChatWindow = () => {
       const messageContent = `💰 Offered ₹${price}/kg for ${selectedQuantity}kg of ${selectedProduct.produce_name}`;
       
       const response = await fetch(
-        `${process.env.REACT_APP_API_BASE_URL}/api/bargain/${bargainId}/messages`,
+        `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/bargain/${bargainId}/messages`,
         {
           method: 'POST',
           headers: {
@@ -1402,7 +1402,7 @@ const BargainChatWindow = () => {
       setWaitingForResponse(true);
   
       const response = await fetch(
-        `${process.env.REACT_APP_API_BASE_URL}/api/bargain/${bargainId}/messages`,
+        `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/bargain/${bargainId}/messages`,
         {
           method: 'POST',
           headers: {
@@ -1454,7 +1454,7 @@ const BargainChatWindow = () => {
       setWaitingForResponse(true);
       
       const response = await fetch(
-        `${process.env.REACT_APP_API_BASE_URL}/api/bargain/${bargainId}/messages`,
+        `${process.env.REACT_APP_API_BASE_URL || "http://localhost:5000"}/api/bargain/${bargainId}/messages`,
         {
           method: 'POST',
           headers: {
