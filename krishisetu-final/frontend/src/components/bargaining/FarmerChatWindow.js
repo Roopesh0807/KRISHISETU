@@ -142,7 +142,7 @@ const [, setFreezeUI] = useState(false);
 
     // Create new socket connection
     socket.current = io(
-      process.env.REACT_APP_API_BASE_URL || "http://localhost:5000",
+      process.env.REACT_APP_API_BASE_URL,
       socketOptions
     );
 
