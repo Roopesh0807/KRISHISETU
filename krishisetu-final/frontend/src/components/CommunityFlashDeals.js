@@ -42,7 +42,7 @@ const CommunityFlashDeals = () => {
     const getOrCreateCommunityId = () => {
         let communityId = localStorage.getItem('userCommunityId');
         if (!communityId) {
-            communityId = `COMM-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+            communityId = `COMM-${Date.now()}-${Math.floor(Math.random() * 10)}`;
             localStorage.setItem('userCommunityId', communityId);
         }
         return communityId;
