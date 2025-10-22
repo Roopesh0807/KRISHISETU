@@ -765,19 +765,23 @@ app.post('/api/contact', async (req, res) => {
 
 
 app.post("/api/sms/inbound", async (req, res) => {
-    console.log("Incoming SMS webhook received:", req.body);
-    // Fast2SMS webhook data format:
-    // It's usually a POST request with URL-encoded data.
-    // The keys are typically `sender`, `message`, `date`, `time`, etc.
-    // You'll need to confirm the exact names from your Fast2SMS webhook settings.
-    const { from, message } = req.body; 
+    // Re-import handleInboundSms locally
+    console.log("\n>>> TWILIO WEBHOOK HIT <<<");
+    console.log("Raw Request Body:", req.body); // <-- CHECK THIS FIRST!
+    
+    // Note: Twilio sends 'To' and 'From' as fields, not just 'from' and 'message'
+    // You may need to adjust the variables based on Twilio's actual fields:
+    // Twilio fields are typically: Body (for message) and From (for sender number)
+    const { Body, From } = req.body; 
 
     // Handle the incoming SMS message
-    if (from && message) {
-        await handleInboundSms(from, message);
+    if (From && Body) {
+        // We pass the message content and sender number to the handler
+        await handleInboundSms(From, Body, io); 
+    } else {
+        console.error("Missing required fields in webhook body:", req.body);
     }
 
-    // Fast2SMS expects a 200 OK response to confirm receipt
     res.status(200).send("OK");
 });
 
@@ -7283,81 +7287,96 @@ app.get('/api/bargain/fetch-session-data', async (req, res) => {
 
 // Get all messages for a bargain
 // Add this to your backend routes (e.g., app.js or routes/bargain.js)
-app.post('/api/bargain/:bargainId/messages', authenticate, async (req, res) => {
-  try {
-    const { bargainId } = req.params;
-    const { sender_role, sender_id, message_content, price_suggestion, message_type } = req.body;
+// app.post('/api/bargain/:bargainId/messages', authenticate, async (req, res) => {
+//   try {
+//     const { bargainId } = req.params;
+//     const { sender_role, sender_id, message_content, price_suggestion, message_type } = req.body;
 
-    if (!bargainId || isNaN(bargainId)) {
-      return res.status(400).json({ error: 'Invalid bargain ID' });
-    }
+//     if (!bargainId || isNaN(bargainId)) {
+//       return res.status(400).json({ error: 'Invalid bargain ID' });
+//     }
 
-    if (!sender_role || !sender_id || !message_content || !message_type) {
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
+//     if (!sender_role || !sender_id || !message_content || !message_type) {
+//       return res.status(400).json({ error: 'Missing required fields' });
+//     }
 
-    // Step 1: Insert the message
-    const result = await queryDatabase(`
-      INSERT INTO bargain_messages (
-        bargain_id,
-        sender_role,
-        sender_id,
-        message_content,
-        price_suggestion,
-        message_type
-      ) VALUES (?, ?, ?, ?, ?, ?)
-    `, [bargainId, sender_role, sender_id, message_content, price_suggestion || null, message_type]);
+//     // Step 1: Insert the message
+//     const result = await queryDatabase(`
+//       INSERT INTO bargain_messages (
+//         bargain_id,
+//         sender_role,
+//         sender_id,
+//         message_content,
+//         price_suggestion,
+//         message_type
+//       ) VALUES (?, ?, ?, ?, ?, ?)
+//     `, [bargainId, sender_role, sender_id, message_content, price_suggestion || null, message_type]);
 
-    // Step 2: On 'accept', insert product_name and category
-    if (message_type === 'accept') {
-      const [sessionProduct] = await queryDatabase(`
-        SELECT product_id
-        FROM bargain_session_products
-        WHERE bargain_id = ?
-        LIMIT 1
-      `, [bargainId]);
+//     // Step 2: On 'accept', insert product_name and category
+//     if (message_type === 'accept') {
+//       const [sessionProduct] = await queryDatabase(`
+//         SELECT product_id
+//         FROM bargain_session_products
+//         WHERE bargain_id = ?
+//         LIMIT 1
+//       `, [bargainId]);
 
-      if (sessionProduct) {
-        const productId = sessionProduct.product_id;
+//       if (sessionProduct) {
+//         const productId = sessionProduct.product_id;
 
-        const [product] = await queryDatabase(`
-          SELECT produce_name AS product_name, produce_type
-          FROM add_produce
-          WHERE product_id = ?
-          LIMIT 1
-        `, [productId]);
+//         const [product] = await queryDatabase(`
+//           SELECT produce_name AS product_name, produce_type
+//           FROM add_produce
+//           WHERE product_id = ?
+//           LIMIT 1
+//         `, [productId]);
 
-        if (product) {
-          const { product_name, produce_type } = product;
+//         if (product) {
+//           const { product_name, produce_type } = product;
 
-          await queryDatabase(`
-            UPDATE bargain_orders
-            SET product_name = ?, product_category = ?
-            WHERE bargain_id = ?
-          `, [product_name, produce_type, bargainId]);
-        }
-      }
-    }
+//           await queryDatabase(`
+//             UPDATE bargain_orders
+//             SET product_name = ?, product_category = ?
+//             WHERE bargain_id = ?
+//           `, [product_name, produce_type, bargainId]);
+//         }
+//       }
+//     }
 
-    res.status(201).json({
-      message_id: result.insertId,
-      bargain_id: bargainId,
-      sender_role,
-      sender_id,
-      message_content,
-      price_suggestion: price_suggestion || null,
-      message_type,
-      created_at: new Date().toISOString()
-    });
+//     res.status(201).json({
+//       message_id: result.insertId,
+//       bargain_id: bargainId,
+//       sender_role,
+//       sender_id,
+//       message_content,
+//       price_suggestion: price_suggestion || null,
+//       message_type,
+//       created_at: new Date().toISOString()
+//     });
 
-  } catch (err) {
-    console.error('Error saving message:', err);
-    res.status(500).json({
-      error: 'Failed to save message',
-      details: err.sqlMessage || err.message
-    });
-  }
-});
+//   } catch (err) {
+//     console.error('Error saving message:', err);
+//     res.status(500).json({
+//       error: 'Failed to save message',
+//       details: err.sqlMessage || err.message
+//     });
+//   }
+// });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // server.js or your routes file
 app.get('/api/farmer/:farmerId/bargain-orders', authenticate, async (req, res) => {
@@ -7807,41 +7826,240 @@ app.post('/api/cart/add-from-bargain', authMiddleware, async (req, res) => {
 // Get bargain session details with last message
 
 // Add this to your backend routes
-app.post('/api/bargain/:bargainId/system-message', authenticate, async (req, res) => {
-  try {
-    const { bargainId } = req.params;
-    const { message_content, message_type, price_suggestion } = req.body;
+// app.post('/api/bargain/:bargainId/system-message', authenticate, async (req, res) => {
+//   try {
+//     const { bargainId } = req.params;
+//     const { message_content, message_type, price_suggestion } = req.body;
 
-    if (!bargainId || !message_content || !message_type) {
-      return res.status(400).json({ error: 'Missing required fields' });
+//     if (!bargainId || !message_content || !message_type) {
+//       return res.status(400).json({ error: 'Missing required fields' });
+//     }
+
+//     // Insert into database
+//     const result = await queryDatabase(`
+//       INSERT INTO bargain_messages (
+//         bargain_id,
+//         sender_role,
+//         sender_id,
+//         message_content,
+//         price_suggestion,
+//         message_type
+//       ) VALUES (?, 'system', NULL, ?, ?, ?)
+//     `, [bargainId, message_content, price_suggestion || null, message_type]);
+
+//     res.status(201).json({
+//       message_id: result.insertId,
+//       bargain_id: bargainId,
+//       message_content,
+//       message_type,
+//       price_suggestion: price_suggestion || null,
+//       created_at: new Date().toISOString()
+//     });
+
+//   } catch (err) {
+//     console.error('Error saving system message:', err);
+//     res.status(500).json({ error: 'Failed to save system message' });
+//   }
+// }); 
+
+
+
+
+
+
+// server.js (New Internal Route to handle SMS delivery)
+
+// Note: This route must be protected internally or accessed with a secret key 
+// in a production environment, but for testing, we keep it simple.
+
+app.post('/internal-api/send-bargain-sms', async (req, res) => {
+    // Re-import locally to ensure access (if the function is not globally available)
+    // We assume sendSms is available here, if not, put the require here.
+    
+    
+    const { bargainId, priceSuggestion, consumerId } = req.body;
+
+    try {
+        // 1. Fetch all necessary data using the Bargain ID
+        const [farmerDetails] = await queryDatabase(`
+            SELECT 
+                fr.phone_number, 
+                ap.produce_name,
+                bsp.quantity
+            FROM bargain_sessions bs
+            JOIN farmerregistration fr ON bs.farmer_id = fr.farmer_id
+            JOIN bargain_session_products bsp ON bs.bargain_id = bsp.bargain_id
+            JOIN add_produce ap ON bsp.product_id = ap.product_id
+            WHERE bs.bargain_id = ?
+            LIMIT 1
+        `, [bargainId]);
+
+        if (!farmerDetails || !farmerDetails.phone_number) {
+            return res.status(404).json({ success: false, error: "Farmer or phone number not found." });
+        }
+
+        const { phone_number, produce_name, quantity } = farmerDetails;
+        
+        // 2. Construct the action-packed SMS message
+        const actionSmsMessage = `
+            BARGAIN OFFER #${bargainId} for ${produce_name} (${quantity}kg). Consumer bids ₹${priceSuggestion}. 
+            Reply: A ${bargainId} (Accept), R ${bargainId} (Reject), 
+            C[0-10] ${bargainId} (Counter).
+        `.trim().replace(/\s{2,}/g, ' '); 
+
+        // 3. Send SMS (The guaranteed working line)
+        await sendSms(phone_number, actionSmsMessage);
+
+        res.json({ success: true, message: "SMS delegated and sent (simulated)." });
+
+    } catch (err) {
+        console.error('Error in internal SMS route:', err);
+        res.status(500).json({ success: false, error: 'Internal SMS failure.' });
     }
+});
 
-    // Insert into database
-    const result = await queryDatabase(`
-      INSERT INTO bargain_messages (
-        bargain_id,
-        sender_role,
-        sender_id,
-        message_content,
-        price_suggestion,
-        message_type
-      ) VALUES (?, 'system', NULL, ?, ?, ?)
-    `, [bargainId, message_content, price_suggestion || null, message_type]);
 
-    res.status(201).json({
-      message_id: result.insertId,
-      bargain_id: bargainId,
-      message_content,
-      message_type,
-      price_suggestion: price_suggestion || null,
-      created_at: new Date().toISOString()
-    });
 
-  } catch (err) {
-    console.error('Error saving system message:', err);
-    res.status(500).json({ error: 'Failed to save system message' });
-  }
-}); 
+
+
+// server.js (UPDATED BLOCK - Replace your entire existing app.post('/api/bargain/:bargainId/messages', ...) route)
+// server.js (FINAL FIX for POST /api/bargain/:bargainId/messages)
+// server.js (FINAL, CLEAN VERSION of POST /api/bargain/:bargainId/messages)
+
+// NOTE: This relies on 'sendSms' and 'queryDatabase' being successfully imported at the top.
+
+// server.js (UPDATED POST /api/bargain/:bargainId/messages)
+
+// NOTE: Ensure your initial imports at the top look clean:
+// const { queryDatabase } = require('./src/config/db');
+// const { sendSms, handleInboundSms } = require('./src/controllers/smsController'); 
+// (The top-level definitions of sendSms and generatePriceSuggestions should be REMOVED)
+
+// server.js (FINAL, COMPLETE POST /api/bargain/:bargainId/messages ROUTE)
+
+// NOTE: This relies on 'sendSms' and 'queryDatabase' being successfully imported at the top.
+
+app.post('/api/bargain/:bargainId/messages', authenticate, async (req, res) => {
+    
+    // We rely ONLY on the top-level imports: sendSms and queryDatabase.
+    
+    try {
+        const { bargainId } = req.params;
+        const { 
+            sender_role, 
+            sender_id, 
+            message_content, 
+            price_suggestion, 
+            message_type 
+        } = req.body;
+        
+        // --- 1. Validation ---
+        if (!bargainId || isNaN(bargainId) || !sender_role || !sender_id || !message_content || !message_type) {
+             return res.status(400).json({ error: 'Missing required fields or Invalid bargain ID' });
+        }
+
+        // --- 2. Insert Message into Database ---
+        const result = await queryDatabase(`
+            INSERT INTO bargain_messages (
+                bargain_id, sender_role, sender_id, message_content, price_suggestion, message_type
+            ) VALUES (?, ?, ?, ?, ?, ?)
+        `, [bargainId, sender_role, sender_id, message_content, price_suggestion || null, message_type]);
+        
+        const newMessageId = result.insertId;
+
+        // --- 3. SMS OUTBOUND LOGIC (Trigger Farmer Notification) ---
+        
+        // 3a. Fetch necessary SMS data (Farmer Phone, Product, Consumer Name)
+        const [details] = await queryDatabase(`
+            SELECT 
+                fr.phone_number AS farmer_phone, 
+                ap.produce_name,
+                bsp.quantity,
+                cr.first_name AS consumer_first_name,
+                cr.last_name AS consumer_last_name
+            FROM bargain_sessions bs
+            JOIN farmerregistration fr ON bs.farmer_id = fr.farmer_id
+            JOIN consumerregistration cr ON bs.consumer_id = cr.consumer_id
+            JOIN bargain_session_products bsp ON bs.bargain_id = bsp.bargain_id
+            JOIN add_produce ap ON bsp.product_id = ap.product_id
+            WHERE bs.bargain_id = ?
+            LIMIT 1
+        `, [bargainId]);
+
+        if (details && details.farmer_phone) {
+            const phoneNumber = details.farmer_phone;
+            const productName = details.produce_name;
+            const quantity = details.quantity;
+            const currentBid = price_suggestion;
+            const consumerFullName = `${details.consumer_first_name} ${details.consumer_last_name}`.trim();
+            
+            let smsMessage;
+            
+            if (sender_role === 'consumer' && message_type === 'counter_offer' && price_suggestion) {
+                // SMS for a COUNTER OFFER (Farmer needs to reply A, R, or C[0-10])
+                smsMessage = `
+                    BARGAIN OFFER #${bargainId} for ${productName} (${quantity}kg). Consumer bids ₹${currentBid}. 
+                    Reply: A ${bargainId} (Accept), R ${bargainId} (Reject), C[0-10] ${bargainId} (Counter).
+                `.trim().replace(/\s{2,}/g, ' '); 
+
+                await sendSms(phoneNumber, smsMessage);
+
+            } else if (sender_role === 'consumer' && message_type === 'accept' && price_suggestion) {
+                // SMS for FINAL ACCEPTANCE (Farmer needs confirmation)
+                smsMessage = `
+                    🎉 ORDER CONFIRMED! Consumer ${consumerFullName} accepted your price for ${productName} at ₹${currentBid}/kg. 
+                    Action: Prepare the produce. Check the 'Bargain Orders' tab for fulfillment details.
+                `.trim().replace(/\s{2,}/g, ' '); 
+
+                await sendSms(phoneNumber, smsMessage);
+            }
+        }
+
+        // --- 4. Return Full Response ---
+        res.status(201).json({
+            message_id: newMessageId,
+            bargain_id: bargainId,
+            sender_role,
+            sender_id,
+            message_content,
+            price_suggestion: price_suggestion || null,
+            message_type,
+            created_at: new Date().toISOString()
+        });
+
+    } catch (err) {
+        console.error('Error saving message:', err);
+        res.status(500).json({
+            error: 'Failed to save message',
+            details: err.sqlMessage || err.message
+        });
+    }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
